@@ -1,0 +1,80 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "packages/money"
+    },
+    {
+      "path": "packages/tax"
+    },
+    {
+      "path": "packages/audit"
+    },
+    {
+      "path": "packages/core"
+    },
+    {
+      "path": "packages/api"
+    },
+    {
+      "path": "packages/sync"
+    },
+    {
+      "path": "packages/auth"
+    },
+    {
+      "path": "packages/export"
+    },
+    {
+      "path": "packages/hardware"
+    },
+    {
+      "path": "packages/ui"
+    },
+    {
+      "path": "packages/backoffice"
+    },
+    {
+      "path": "packages/config"
+    },
+    {
+      "path": "packages/db-pg"
+    },
+    {
+      "path": "packages/db-sqlite"
+    },
+    {
+      "path": "packages/ports"
+    },
+    {
+      "path": "packages/conformance"
+    },
+    {
+      "path": "packages/adapters-cf"
+    },
+    {
+      "path": "packages/adapters-box"
+    },
+    {
+      "path": "apps/edge"
+    },
+    {
+      "path": "apps/box"
+    },
+    {
+      "path": "apps/portal"
+    },
+    {
+      "path": "apps/shop"
+    },
+    {
+      "path": "apps/till-ui"
+    },
+    {
+      "path": "apps/till-host"
+    },
+    {
+      "path": "apps/till-electron"
+    }
+  ]
+}

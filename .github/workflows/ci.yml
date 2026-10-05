@@ -1,0 +1,36 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: shopper
+          POSTGRES_PASSWORD: shopper_ci_only
+          POSTGRES_DB: shopper
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U shopper -d shopper"
+          --health-interval 2s --health-timeout 5s --health-retries 30
+    env:
+      TEST_DATABASE_URL: postgresql://shopper:shopper_ci_only@127.0.0.1:5432/shopper
+    steps:
+      - uses: actions/checkout@v5
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "24.21.0"
+          version: "1.0.0"
+          run-install: false
+      - run: vp install --frozen-lockfile
+      - run: vp check
+      - run: vp test --run
+      - run: vp run build
+      - run: vp run typecheck

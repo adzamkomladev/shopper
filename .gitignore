@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.vite/
+.wrangler/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.dev.vars*
+!*.example
+tooling/printer/captures/
+dist-staging/

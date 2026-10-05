@@ -1,0 +1,23 @@
+{
+  "name": "@shopper/shop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "vp build",
+    "dev": "vp dev"
+  },
+  "dependencies": {
+    "@shopper/ui": "workspace:*",
+    "@tanstack/react-router": "1.170.41",
+    "@tanstack/react-start": "1.168.60",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  }
+}

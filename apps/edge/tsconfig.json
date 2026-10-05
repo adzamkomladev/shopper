@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src", "worker-configuration.d.ts"],
+  "references": [
+    {
+      "path": "../../packages/api"
+    },
+    {
+      "path": "../../packages/adapters-cf"
+    }
+  ]
+}

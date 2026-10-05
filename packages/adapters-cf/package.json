@@ -1,0 +1,18 @@
+{
+  "name": "@shopper/adapters-cf",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./coordination": "./src/coordination.ts"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "types": "wrangler types worker-configuration.d.ts --config ../../apps/edge/wrangler.jsonc --include-env=false"
+  },
+  "dependencies": {}
+}

@@ -8,6 +8,12 @@
   "references": [
     {
       "path": "../../packages/config"
+    },
+    {
+      "path": "../../packages/db-pg"
+    },
+    {
+      "path": "../../packages/tax"
     }
   ]
 }

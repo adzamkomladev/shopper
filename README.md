@@ -3,9 +3,9 @@
 Offline-first supermarket POS for Ghana, sharing business code between
 Cloudflare Workers and a Bun/Elysia on-premise host.
 
-Day 1 establishes buildable app boundaries, development services, integration
-fixtures and CI. Till hardware, authentication, database schemas, sale commands,
-sync and UI design are implemented on their scheduled days.
+Day 1 establishes the app boundaries, development services and CI. Day 2 adds
+integer money, dated tax rules and PostgreSQL schema v1. Till hardware,
+authentication, sale commands, sync and UI design follow on their scheduled days.
 
 ## Develop
 
@@ -33,6 +33,50 @@ Rivet runs on localhost:6420 with the local-only token
 saves raw bytes under `tooling/printer/captures/` (ignored by Git).
 `vp run services:down` stops services and preserves their volumes.
 
+## Money, tax and schema v1
+
+`@shopper/money` owns amount arithmetic: 1 GHS = 10,000 integer units, quantities
+use thousandths and rates use basis points. BigInt intermediates preserve exact
+products; values outside JavaScript's safe integer range are rejected. Half-up
+rounding acts on the magnitude, so negative ties round away from zero. Gateway
+conversions use `toPesewas()` or `toDecimal(amount, 2)`; never pass a floating
+amount to a gateway. `toDecimal(amount, 4)` preserves storage precision.
+
+`@shopper/tax` takes a dated database rule and produces an immutable line
+snapshot. The initial seed starts on 1 January 2026: VAT 15%, NHIL 2.5%, GETFund
+2.5% and COVID 0%, all on the same base, per the
+[GRA notice](https://gra.gov.gh/news/portfolio/notice-to-all-vat-registered-taxpayers/).
+Inclusive prices divide by 1.20 using integer ratios. Any residual from rounding
+components to four decimals is recorded separately, keeping the gross exact.
+Zero-rated and exempt lines retain their distinct class with zero tax. No
+historical rate is inferred for dates before the first rule.
+
+```sh
+vp run db:migrate
+vp run db:seed
+```
+
+These commands default to local PG18. For Neon dev, provide its direct connection
+URL through `DATABASE_URL` in your shell's secret environment. Do not commit it.
+The development seed creates one organization, three tax classes, the dated rule,
+an install-history record and an audit row atomically. Repeating it is a no-op.
+
+Drizzle migrations live in `packages/db-pg/migrations`; generate the next forward
+migration with `vp exec drizzle-kit generate --config packages/db-pg/drizzle.config.ts`.
+Never edit an applied migration. The migration journal makes reruns a no-op;
+its infrastructure table lives outside the tenant schema and uses UUIDv7 rather
+than Drizzle's default serial key. All 12 domain tables have `org_id`, UUIDv7 key
+defaults and timestamps. Composite foreign keys prevent cross-tenant links.
+Database triggers maintain `updated_at` and protect audit/version history from
+updates and deletes. Every application mutation uses `defineCommand()` to append
+an audit row in its transaction; richer audit context is scheduled for day 3.
+
+`GET /tax-rules?on=YYYY-MM-DD` selects the latest effective rule for the trusted
+session organization. `createApi()` accepts a database and authenticated
+organization resolver. The default cloud/box hosts return 401 until the later
+authentication work supplies that resolver; tenant IDs from request parameters
+cannot grant access. This boundary is exercised against real PostgreSQL in CI.
+
 ## Boundaries
 
 - `apps/edge`: Worker entry and Cloudflare Vite build.
@@ -48,7 +92,8 @@ Most package exports are intentionally empty until their scheduled day.
 
 ## Tests and compatibility
 
-`vp test --run` exercises PostgreSQL 18, the Hono/Elysia API boundary, a real TCP
+`vp test --run` exercises PostgreSQL 18 migration reruns, audited transactions,
+exact money storage and dated tax rules through the API, the Hono/Elysia boundary, a real TCP
 printer capture, and the Hono Worker in workerd. Cloudflare's test plugin currently
 requires a separate Vitest 4 runner; see `tooling/worker-tests/README.md`.
 TanStack Start and the Cloudflare plugin build successfully on Vite+ / Vite 8.

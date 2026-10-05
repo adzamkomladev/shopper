@@ -9,9 +9,7 @@
       "default": "./src/index.ts"
     }
   },
-  "scripts": {
-    "build": "node ../../tooling/build-server.mjs till-electron"
-  },
+  "scripts": {},
   "dependencies": {
     "@shopper/config": "workspace:*"
   }

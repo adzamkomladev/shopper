@@ -10,7 +10,6 @@
     }
   },
   "scripts": {
-    "build": "vp build",
     "dev": "vp dev",
     "build:staging": "CLOUDFLARE_ENV=staging vp build",
     "deploy:staging": "wrangler deploy --config dist-staging/shopper_edge_dev/wrangler.json",

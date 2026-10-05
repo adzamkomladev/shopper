@@ -58,6 +58,8 @@ TanStack Start and the Cloudflare plugin build successfully on Vite+ / Vite 8.
 `package.json` owns the product version. `tooling/build-info.ts` injects
 `SHOPPER_VERSION`, `GIT_SHA`, `BUILD_DATE`, `SCHEMA_VERSION`, `SYNC_PROTOCOL`, and
 `ARCHIVE_FORMAT` into app builds. CI can supply `BUILD_DATE` and `GITHUB_SHA`.
+App build tasks fingerprint the Git revision and explicit version environment
+variables, so cached builds cannot keep metadata from an earlier commit.
 The API sends `Shopper-Version` on every response and exposes `/about` and
 `/health`. UI shells render the same metadata through `@shopper/ui`.
 

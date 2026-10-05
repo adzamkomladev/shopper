@@ -19,3 +19,18 @@ export const buildDefines = {
   SYNC_PROTOCOL: "1",
   ARCHIVE_FORMAT: "1",
 };
+
+export function buildTask(command: string) {
+  return {
+    command,
+    cache: {
+      env: ["GITHUB_SHA", "BUILD_DATE"],
+      input: [
+        { auto: true },
+        { pattern: ".git/HEAD", base: "workspace" as const },
+        { pattern: ".git/refs/**", base: "workspace" as const },
+        { pattern: ".git/packed-refs", base: "workspace" as const },
+      ],
+    },
+  };
+}

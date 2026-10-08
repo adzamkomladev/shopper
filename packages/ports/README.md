@@ -28,5 +28,10 @@ and a Shopper endpoint; adapters expose `readSigned` for the host to serve at
 that endpoint. The URLs are Shopper capabilities, not R2 public URLs. Host route
 wiring and persisted asset metadata follow with asset features.
 
-Queue, Workflow, Scheduler and Realtime are contracts at this stage. Their
-runtime implementations and engine conformance are tracked as remaining work.
+`memoryWorkflow()` provides the portable Workflow contract runtime used by both
+development adapters and conformance. It buffers messages sent before a wait,
+raises a typed timeout, retries named steps, and replays completed steps without
+running them again. Durable Cloudflare/Rivet execution can replace it behind the
+same port when those engines are introduced.
+
+Queue, Scheduler and Realtime remain contracts until their feature days.

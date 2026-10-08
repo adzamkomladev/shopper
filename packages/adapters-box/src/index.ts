@@ -6,7 +6,14 @@ import { drizzle } from "drizzle-orm/sqlite-proxy";
 import { createStorage } from "unstorage";
 import fsDriver from "unstorage/drivers/fs";
 import { sqliteCache, cacheMigration } from "@shopper/db-sqlite";
-import { blobUrlAccess, storedBlobs, type BlobUrlOptions, type Sequencer } from "@shopper/ports";
+import {
+  blobUrlAccess,
+  memoryWorkflow,
+  storedBlobs,
+  type BlobUrlOptions,
+  type Sequencer,
+  type Workflow,
+} from "@shopper/ports";
 import { nextStoreSequence } from "@shopper/core";
 import { buildInfo } from "@shopper/config";
 import type { ShopperDatabase } from "@shopper/db-pg";
@@ -44,5 +51,8 @@ export function boxSequencer(db: ShopperDatabase): Sequencer {
     next: (orgId, storeId, floor) =>
       nextStoreSequence(db, { orgId, appVersion: buildInfo.version }, storeId, floor),
   };
+}
+export function boxWorkflow(instanceId: string): Workflow {
+  return memoryWorkflow(instanceId);
 }
 export { boxDatabase } from "./database";

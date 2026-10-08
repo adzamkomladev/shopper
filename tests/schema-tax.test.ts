@@ -64,11 +64,13 @@ test("schema v1 migrates twice, uses tenant UUIDv7 keys, and preserves bigint mo
     "tax_class",
     "tax_rule",
     "user",
+    "workflow_run",
+    "workflow_step",
   ]);
   const columns = await fixture.client.query<{ table_name: string }>(
     "SELECT table_name FROM information_schema.columns WHERE table_schema = 'public' AND column_name = 'org_id'",
   );
-  expect(columns.rowCount).toBe(12);
+  expect(columns.rowCount).toBe(14);
   const serials = await fixture.client.query(
     "SELECT * FROM information_schema.columns WHERE table_schema IN ('public', 'drizzle') AND (column_default LIKE '%nextval%' OR is_identity = 'YES')",
   );

@@ -7,7 +7,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { eq } from "drizzle-orm";
 import * as schema from "../packages/db-pg/src/schema";
 import { defineCommand } from "../packages/audit/src/index";
-import { boxCache, boxBlobs, boxSequencer } from "../packages/adapters-box/src/index";
+import { boxCache, boxBlobs, boxSequencer, boxWorkflow } from "../packages/adapters-box/src/index";
 import { portConformance } from "../packages/conformance/src/index";
 import { migrateDatabase } from "../tooling/migrate";
 import { provisionOrg, provisioningContext } from "../tooling/seed";
@@ -64,6 +64,7 @@ portConformance("box development adapters", test, async () => {
     cache: local.cache,
     blobs: storage.blobs,
     sequencer: boxSequencer(db),
+    workflow: boxWorkflow,
     readSigned: storage.readSigned,
     advanceClock: (ms) => {
       time += ms;

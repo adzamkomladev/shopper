@@ -4,11 +4,8 @@ import { store, branch, type ShopperDatabase } from "@shopper/db-pg";
 import { defineCommand } from "@shopper/audit";
 import { money } from "@shopper/money";
 
-export const managementId = v.pipe(
-  v.string(),
-  v.uuid(),
-  v.regex(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i),
-);
+export { uuidV7Schema as managementId } from "@shopper/ports";
+import { uuidV7Schema as managementId } from "@shopper/ports";
 const name = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(200));
 const rounding = v.pipe(v.number(), v.safeInteger(), v.minValue(1));
 export const storeInput = v.strictObject({ name, cashRoundingStep: v.optional(rounding) });

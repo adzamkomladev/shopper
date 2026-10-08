@@ -16,9 +16,9 @@ test("Worker integration and shared conformance suite pass in workerd", async ()
     const { stdout } = await exec("node", ["node_modules/vitest/vitest.mjs", "run"], {
       cwd: new URL("../tooling/worker-tests/", import.meta.url),
       env: { ...process.env, CF_TEST_DATABASE_URL: fixture.connectionString },
-      timeout: 50000,
+      timeout: 100000,
     });
-    expect(stdout).toContain("4 passed");
+    expect(stdout).toContain("5 passed");
     const rows = await db.select().from(schema.auditLog).orderBy(asc(schema.auditLog.chainSeq));
     for (const orgId of new Set(rows.map((row) => row.orgId))) {
       expect(await verifyChain(rows.filter((row) => row.orgId === orgId))).toMatchObject({
@@ -28,4 +28,4 @@ test("Worker integration and shared conformance suite pass in workerd", async ()
   } finally {
     await fixture.close();
   }
-});
+}, 120000);

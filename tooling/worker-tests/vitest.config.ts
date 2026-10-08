@@ -30,6 +30,11 @@ export default defineConfig({
     cloudflareTest({
       wrangler: { configPath: "../../apps/edge/wrangler.jsonc" },
       miniflare: {
+        bindings: {
+          SHOPPER_AUTH_SECRET: "integration-secret-with-at-least-32-characters",
+          SHOPPER_AUTH_URL: "https://shopper.test",
+          SHOPPER_BOOTSTRAP_TOKEN: "integration-bootstrap-token",
+        },
         hyperdrives: {
           HYPERDRIVE:
             process.env.CF_TEST_DATABASE_URL ??

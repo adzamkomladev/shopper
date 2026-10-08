@@ -1,4 +1,7 @@
-import { DatabaseSync, type SQLOutputValue, type SQLInputValue } from "node:sqlite";
+import { createRequire } from "node:module";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
+import type { SQLOutputValue, SQLInputValue } from "node:sqlite";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
 import { createStorage } from "unstorage";
 import fsDriver from "unstorage/drivers/fs";
@@ -10,7 +13,12 @@ import type { ShopperDatabase } from "@shopper/db-pg";
 
 // Local development fallback; the production Rivet host is scheduled for day 36.
 export function boxCache(path: string, now = Date.now) {
-  const sqlite = new DatabaseSync(path);
+  if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
+  const require = createRequire(import.meta.url);
+  const bun = !!process.versions.bun;
+  const sqlite = bun
+    ? new (require("bun:sqlite").Database)(path)
+    : new (require("node:sqlite").DatabaseSync)(path);
   sqlite.exec(cacheMigration);
   const db = drizzle(async (query, params: SQLInputValue[], method) => {
     const statement = sqlite.prepare(query);
@@ -18,8 +26,10 @@ export function boxCache(path: string, now = Date.now) {
       statement.run(...params);
       return { rows: [] };
     }
-    statement.setReturnArrays(true);
-    const rows = statement.all(...params) as unknown as SQLOutputValue[][];
+    if (!bun) statement.setReturnArrays(true);
+    const rows = (
+      bun ? statement.values(...params) : statement.all(...params)
+    ) as SQLOutputValue[][];
     return { rows: method === "get" ? (rows[0] ?? []) : rows };
   });
   return { cache: sqliteCache(db, now), close: () => sqlite.close() };
@@ -35,3 +45,4 @@ export function boxSequencer(db: ShopperDatabase): Sequencer {
       nextStoreSequence(db, { orgId, appVersion: buildInfo.version }, storeId, floor),
   };
 }
+export { boxDatabase } from "./database";

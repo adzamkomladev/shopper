@@ -13,3 +13,17 @@ test("Hono and the Elysia box host expose the same portable API", async () => {
     expect(await boxResponse.text()).toBe(await cloudResponse.text());
   }
 });
+
+test("box runtime keeps health public and fails closed when auth is not configured", async () => {
+  const { createBoxApp } = await import("../apps/box/src");
+  const runtime = createBoxApp({});
+  expect((await runtime.handle(new Request("http://localhost/health"))).status).toBe(200);
+  expect((await runtime.handle(new Request("http://localhost/stores"))).status).toBe(503);
+  expect(
+    (
+      await runtime.handle(
+        new Request("http://localhost/api/auth/sign-in/email", { method: "POST" }),
+      )
+    ).status,
+  ).toBe(503);
+});

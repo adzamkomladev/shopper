@@ -47,30 +47,40 @@ const createStore = defineCommand({
   audit: (_input, row) => ({ storeId: row.id, cashRoundingStep: row.cashRoundingStep }),
 });
 
-test("schema v1 migrates twice, uses tenant UUIDv7 keys, and preserves bigint money through Drizzle", async () => {
+test("current schema migrates twice, uses tenant UUIDv7 keys, and preserves bigint money through Drizzle", async () => {
   const tables = await fixture.client.query<{ table_name: string }>(
     "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name",
   );
   expect(tables.rows.map((row) => row.table_name)).toEqual([
+    "account",
     "audit_log",
     "branch",
+    "cashier_pin",
+    "cashier_session",
     "device",
+    "device_credential",
+    "device_enrollment",
+    "enrollment_attempt",
+    "invitation",
+    "member",
     "org",
     "permission",
     "role",
     "role_permission",
+    "session",
     "shopper_meta",
     "store",
     "tax_class",
     "tax_rule",
     "user",
+    "verification",
     "workflow_run",
     "workflow_step",
   ]);
   const columns = await fixture.client.query<{ table_name: string }>(
     "SELECT table_name FROM information_schema.columns WHERE table_schema = 'public' AND column_name = 'org_id'",
   );
-  expect(columns.rowCount).toBe(14);
+  expect(columns.rowCount).toBe(24);
   const serials = await fixture.client.query(
     "SELECT * FROM information_schema.columns WHERE table_schema IN ('public', 'drizzle') AND (column_default LIKE '%nextval%' OR is_identity = 'YES')",
   );

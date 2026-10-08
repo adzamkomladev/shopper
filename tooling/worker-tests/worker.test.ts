@@ -9,7 +9,7 @@ test("shared Hono API runs inside workerd and reports its baked version", async 
     build: { version: string; schemaVersion: number };
   };
   expect(data.status).toBe("ok");
-  expect(data.build.schemaVersion).toBe(2);
+  expect(data.build.schemaVersion).toBe(buildInfo.schemaVersion);
   expect(response.headers.get("Shopper-Version")).toBe(data.build.version);
   const missing = await SELF.fetch("https://shopper.test/missing");
   expect(missing.status).toBe(404);
@@ -97,4 +97,57 @@ portConformance("Cloudflare adapters in workerd", test, async () => {
       }
     },
   };
+});
+
+test("real Worker auth session authorizes audited store routes", async () => {
+  const bindings = env as { HYPERDRIVE: Hyperdrive; CACHE_DB: D1Database };
+  const connection = await cloudflareDatabase(bindings.HYPERDRIVE.connectionString);
+  const orgId = v7();
+  try {
+    await provision(connection.db, { orgId, appVersion: buildInfo.version }, undefined);
+    await bindings.CACHE_DB.prepare(cacheMigration).run();
+    const headers = {
+      "content-type": "application/json",
+      "X-Shopper-Org": orgId,
+      "X-Shopper-Bootstrap-Token": "integration-bootstrap-token",
+    };
+    const signup = await SELF.fetch("https://shopper.test/api/auth/sign-up/email", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        name: "Owner",
+        email: `${orgId}@worker.invalid`,
+        password: "integration-password-123",
+      }),
+    });
+    expect(signup.status).toBe(200);
+    const signin = await SELF.fetch("https://shopper.test/api/auth/sign-in/email", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        email: `${orgId}@worker.invalid`,
+        password: "integration-password-123",
+      }),
+    });
+    expect(signin.status).toBe(200);
+    const cookie = signin.headers.get("set-cookie")?.split(";")[0];
+    expect(cookie).toBeTruthy();
+    const created = await SELF.fetch("https://shopper.test/stores", {
+      method: "POST",
+      headers: { ...headers, cookie: cookie! },
+      body: JSON.stringify({ name: "Authenticated Worker store" }),
+    });
+    expect(created.status).toBe(201);
+    const store = (await created.json()) as { id: string; lastSeq: string };
+    expect(store.lastSeq).toBe("0");
+    const listed = await SELF.fetch("https://shopper.test/stores", {
+      headers: { "X-Shopper-Org": orgId, cookie: cookie! },
+    });
+    expect(listed.status).toBe(200);
+    expect(await listed.json()).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: store.id })]),
+    );
+  } finally {
+    await connection.close();
+  }
 });

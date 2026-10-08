@@ -7,6 +7,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./management": {
+      "types": "./src/management.ts",
+      "default": "./src/management.ts"
     }
   },
   "scripts": {
@@ -17,6 +21,7 @@
     "@shopper/db-pg": "workspace:*",
     "@shopper/money": "workspace:*",
     "@shopper/ports": "workspace:*",
-    "drizzle-orm": "0.45.3"
+    "drizzle-orm": "0.45.3",
+    "valibot": "1.1.0"
   }
 }

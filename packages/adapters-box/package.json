@@ -12,5 +12,14 @@
   "scripts": {
     "build": "tsc -b"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@shopper/config": "workspace:*",
+    "@shopper/core": "workspace:*",
+    "@shopper/db-pg": "workspace:*",
+    "@shopper/db-sqlite": "workspace:*",
+    "@shopper/ports": "workspace:*",
+    "drizzle-orm": "0.45.3",
+    "pg": "8.23.1",
+    "unstorage": "1.17.4"
+  }
 }

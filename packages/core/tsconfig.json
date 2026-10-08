@@ -7,7 +7,16 @@
   "include": ["src"],
   "references": [
     {
-      "path": "../../packages/db-pg"
+      "path": "../audit"
+    },
+    {
+      "path": "../db-pg"
+    },
+    {
+      "path": "../money"
+    },
+    {
+      "path": "../ports"
     }
   ]
 }

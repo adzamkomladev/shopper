@@ -10,3 +10,5 @@ dist/
 !*.example
 tooling/printer/captures/
 dist-staging/
+
+.shopper/

@@ -4,5 +4,22 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src"]
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../ports"
+    },
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../db-pg"
+    },
+    {
+      "path": "../db-sqlite"
+    },
+    {
+      "path": "../config"
+    }
+  ]
 }

@@ -13,6 +13,7 @@
     "dev": "vp run build && bun --watch dist/index.js"
   },
   "dependencies": {
+    "@shopper/adapters-box": "workspace:*",
     "@shopper/api": "workspace:*",
     "elysia": "1.4.30"
   }

@@ -1,3 +1,6 @@
 # @shopper/core
 
-Day 1 package boundary. Business implementation follows the Daily Schedule.
+Portable business commands. `defineCommand` is re-exported from @shopper/audit,
+which owns business/audit transactions and optional workflow checkpoints.
+`nextStoreSequence` advances a store's authoritative PostgreSQL cursor and writes
+its audit row atomically. It enforces tenant scope and supports archive floors.

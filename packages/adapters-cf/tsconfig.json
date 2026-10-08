@@ -4,5 +4,22 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src", "worker-configuration.d.ts"]
+  "include": ["src", "worker-configuration.d.ts"],
+  "references": [
+    {
+      "path": "../ports"
+    },
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../db-pg"
+    },
+    {
+      "path": "../db-sqlite"
+    },
+    {
+      "path": "../config"
+    }
+  ]
 }

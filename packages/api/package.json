@@ -7,14 +7,21 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./runtime": {
+      "types": "./src/runtime.ts",
+      "default": "./src/runtime.ts"
     }
   },
   "scripts": {
     "build": "tsc -b"
   },
   "dependencies": {
+    "@shopper/auth": "workspace:*",
     "@shopper/config": "workspace:*",
+    "@shopper/core": "workspace:*",
     "@shopper/db-pg": "workspace:*",
+    "@shopper/ports": "workspace:*",
     "@shopper/tax": "workspace:*",
     "drizzle-orm": "0.45.3",
     "hono": "4.13.13",

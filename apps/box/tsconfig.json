@@ -8,6 +8,9 @@
   "references": [
     {
       "path": "../../packages/api"
+    },
+    {
+      "path": "../../packages/adapters-box"
     }
   ]
 }

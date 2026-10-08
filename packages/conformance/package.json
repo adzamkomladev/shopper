@@ -12,5 +12,7 @@
   "scripts": {
     "build": "tsc -b"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@shopper/ports": "workspace:*"
+  }
 }

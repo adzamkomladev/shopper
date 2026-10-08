@@ -7,10 +7,24 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./devices": {
+      "types": "./src/devices.ts",
+      "default": "./src/devices.ts"
     }
   },
   "scripts": {
     "build": "tsc -b"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@better-auth/drizzle-adapter": "1.7.7",
+    "@shopper/audit": "workspace:*",
+    "@shopper/config": "workspace:*",
+    "@shopper/db-pg": "workspace:*",
+    "@shopper/ports": "workspace:*",
+    "better-auth": "1.7.7",
+    "drizzle-orm": "0.45.3",
+    "uuid": "14.0.2",
+    "valibot": "1.1.0"
+  }
 }

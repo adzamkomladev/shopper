@@ -4,7 +4,10 @@ Offline-first supermarket POS for Ghana, sharing business code between
 Cloudflare Workers and a Bun/Elysia on-premise host.
 
 Day 1 establishes the app boundaries, development services and CI. Day 2 adds
-integer money, dated tax rules and PostgreSQL schema v1. Till hardware,
+integer money, dated tax rules and PostgreSQL schema v1. Day 3 adds service
+contracts, Cache/Blobs/Sequencer conformance and hash-chained audit transactions
+with workflow checkpoints (schema v2). Workflow engine event/timeout/compensation
+conformance remains next. Till hardware,
 authentication, sale commands, sync and UI design follow on their scheduled days.
 
 ## Develop
@@ -65,11 +68,14 @@ Drizzle migrations live in `packages/db-pg/migrations`; generate the next forwar
 migration with `vp exec drizzle-kit generate --config packages/db-pg/drizzle.config.ts`.
 Never edit an applied migration. The migration journal makes reruns a no-op;
 its infrastructure table lives outside the tenant schema and uses UUIDv7 rather
-than Drizzle's default serial key. All 12 domain tables have `org_id`, UUIDv7 key
+than Drizzle's default serial key. All 14 domain tables have `org_id`, UUIDv7 key
 defaults and timestamps. Composite foreign keys prevent cross-tenant links.
 Database triggers maintain `updated_at` and protect audit/version history from
 updates and deletes. Every application mutation uses `defineCommand()` to append
-an audit row in its transaction; richer audit context is scheduled for day 3.
+an audit row in its transaction; the wrapper now lives in `@shopper/audit`, with trusted context, redacted JSON
+snapshots and a per-organization SHA-256 chain. `@shopper/core` re-exports it.
+Legacy Day 2 audit rows are preserved and explicitly reported as unhashed by the
+verifier. Workflow checkpoints and committed results live in PostgreSQL.
 
 `GET /tax-rules?on=YYYY-MM-DD` selects the latest effective rule for the trusted
 session organization. `createApi()` accepts a database and authenticated
@@ -93,7 +99,9 @@ Most package exports are intentionally empty until their scheduled day.
 ## Tests and compatibility
 
 `vp test --run` exercises PostgreSQL 18 migration reruns, audited transactions,
-exact money storage and dated tax rules through the API, the Hono/Elysia boundary, a real TCP
+exact money storage and dated tax rules through the API, audit tamper/rollback/
+concurrent-chain checks, and shared Cache/Blobs/Sequencer conformance on both
+Cloudflare and Node development adapters, the Hono/Elysia boundary, a real TCP
 printer capture, and the Hono Worker in workerd. Cloudflare's test plugin currently
 requires a separate Vitest 4 runner; see `tooling/worker-tests/README.md`.
 TanStack Start and the Cloudflare plugin build successfully on Vite+ / Vite 8.

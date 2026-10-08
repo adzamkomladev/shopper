@@ -23,6 +23,7 @@ export async function postgresFixture() {
     throw error;
   }
   return {
+    connectionString: url.toString(),
     client,
     async close() {
       try {

@@ -25,6 +25,7 @@ import {
   cloudflareCache,
   cloudflareBlobs,
   cloudflareSequencer,
+  cloudflareWorkflow,
 } from "../../packages/adapters-cf/src/index";
 import { cacheMigration } from "../../packages/db-sqlite/src/index";
 import { portConformance } from "../../packages/conformance/src/index";
@@ -74,6 +75,7 @@ portConformance("Cloudflare adapters in workerd", test, async () => {
     cache: cloudflareCache(bindings.CACHE_DB, now),
     blobs: storage.blobs,
     sequencer: cloudflareSequencer(bindings.STORE_SEQUENCER),
+    workflow: cloudflareWorkflow,
     advanceClock: (ms) => {
       time += ms;
     },

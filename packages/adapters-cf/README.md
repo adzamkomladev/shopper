@@ -7,6 +7,8 @@ Cloudflare binding access stays here. Implemented Day 3 adapters:
 - Sequencer: one StoreSequencer Durable Object address per store. The RPC
   performs an audited PostgreSQL increment through Hyperdrive; PostgreSQL
   holds the cursor and the DO holds no competing persistent counter.
+- Workflow: the portable in-process runtime for contract conformance; durable
+  Cloudflare Workflows wiring follows the engine integration feature.
 
 Apply the cache migration for local development with
 `vp exec wrangler d1 migrations apply CACHE_DB --local --config apps/edge/wrangler.jsonc`.
@@ -15,4 +17,4 @@ from the pinned Wrangler target; regenerate with `vp -C packages/adapters-cf run
 
 The same conformance cases run in workerd and against the box development
 adapters. The Worker suite uses a fresh PG18 database provisioned by the root
-integration runner. Queue/workflow/realtime adapters follow their feature days.
+integration runner. Queue and realtime adapters follow their feature days.

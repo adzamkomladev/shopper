@@ -5,6 +5,8 @@ import {
   type Blobs,
   type Cache,
   type Sequencer,
+  type Workflow,
+  WorkflowTimeoutError,
 } from "@shopper/ports";
 export interface AdapterFixture {
   orgId: string;
@@ -13,6 +15,7 @@ export interface AdapterFixture {
   cache: Cache;
   blobs: Blobs;
   sequencer: Sequencer;
+  workflow(instanceId: string): Workflow;
   advanceClock(ms: number): void;
   readSigned(url: string, blobs: Pick<Blobs, "get">): Promise<Uint8Array | null>;
   reopen(): Promise<{ cache: Cache; sequencer: Sequencer }>;
@@ -99,6 +102,44 @@ export function portConformance(
     assert.throws(
       () => messageBody({ ...envelope, payload: "€".repeat(MAX_MESSAGE_BYTES / 2) }),
       /96 KB/,
+    );
+  });
+  test(`${name}: Workflow delivers early events, times out, and retries steps idempotently`, async () => {
+    const f = await fixture();
+    const sender = f.workflow(`${f.orgId}:sender`);
+    const receiver = f.workflow(`${f.orgId}:receiver`);
+    await sender.send(receiver.instanceId, "ready", { accepted: true });
+    assert.deepEqual(await receiver.waitFor("ready-step", "ready", 25), { accepted: true });
+
+    let attempts = 0;
+    const result = await receiver.step(
+      "retry-step",
+      { maxAttempts: 2, delayMs: 0, backoff: "constant" },
+      async () => {
+        attempts += 1;
+        if (attempts === 1) throw new Error("transient");
+        return { completed: true };
+      },
+    );
+    assert.deepEqual(result, { completed: true });
+    assert.equal(attempts, 2);
+    assert.deepEqual(
+      await receiver.step(
+        "retry-step",
+        { maxAttempts: 2, delayMs: 0, backoff: "constant" },
+        async () => {
+          attempts += 1;
+          return { completed: false };
+        },
+      ),
+      { completed: true },
+    );
+    assert.equal(attempts, 2);
+
+    const timeout = f.workflow(`${f.orgId}:timeout`);
+    await assert.rejects(
+      timeout.waitFor("missing-step", "missing", 5),
+      (error: unknown) => error instanceof WorkflowTimeoutError,
     );
   });
 }

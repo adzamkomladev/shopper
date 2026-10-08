@@ -4,6 +4,9 @@ Day 3 development adapters use real local SQLite, filesystem blobs via unstorage
 and audited PostgreSQL sequencing. They implement the same Cache/Blobs/Sequencer
 contracts as the Cloudflare adapters and run the same conformance cases.
 
+`boxWorkflow()` exposes the portable Workflow runtime for local and conformance
+use. Durable Rivet workflow execution remains part of the on-prem phase.
+
 `boxCache()` currently uses Node 24's built-in SQLite driver through Drizzle's
 SQLite proxy. It is a Node development fallback, not the sealed Bun/Rivet host.
 The production Rivet actors, workflow engine, RustFS driver and Bun-native SQLite

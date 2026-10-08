@@ -2,7 +2,14 @@ import { drizzle } from "drizzle-orm/d1";
 import { createStorage } from "unstorage";
 import r2Driver from "unstorage/drivers/cloudflare-r2-binding";
 import { sqliteCache } from "@shopper/db-sqlite";
-import { blobUrlAccess, storedBlobs, type BlobUrlOptions, type Sequencer } from "@shopper/ports";
+import {
+  blobUrlAccess,
+  memoryWorkflow,
+  storedBlobs,
+  type BlobUrlOptions,
+  type Sequencer,
+  type Workflow,
+} from "@shopper/ports";
 import type { StoreSequencer } from "./coordination";
 export function cloudflareCache(binding: D1Database, now = Date.now) {
   return sqliteCache(drizzle(binding), now);
@@ -20,6 +27,9 @@ export function cloudflareSequencer(binding: DurableObjectNamespace<StoreSequenc
       );
     },
   };
+}
+export function cloudflareWorkflow(instanceId: string): Workflow {
+  return memoryWorkflow(instanceId);
 }
 
 export { cloudflareDatabase } from "./database";

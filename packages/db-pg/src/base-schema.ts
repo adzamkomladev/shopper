@@ -155,6 +155,7 @@ export const taxClass = pgTable(
     name: text("name").notNull(),
   },
   (t) => [
+    unique().on(t.orgId, t.id),
     unique().on(t.orgId, t.code),
     check("tax_class_code", sql`${t.code} IN ('standard', 'zero-rated', 'exempt')`),
   ],

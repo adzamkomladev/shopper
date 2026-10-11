@@ -1,0 +1,129 @@
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  check,
+  foreignKey,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
+import { branch, moneyColumn, taxClass, tenant, user } from "./base-schema";
+
+export const baseUnits = ["each", "kg", "g", "l", "ml"] as const;
+export type BaseUnit = (typeof baseUnits)[number];
+
+export const category = pgTable(
+  "category",
+  {
+    ...tenant(),
+    name: text("name").notNull(),
+    parentId: uuid("parent_id"),
+  },
+  (t) => [
+    unique().on(t.orgId, t.id),
+    foreignKey({ columns: [t.orgId, t.parentId], foreignColumns: [t.orgId, t.id] }),
+    // Coalesce so top-level categories (null parent) are unique too.
+    uniqueIndex("category_org_name_parent").on(
+      t.orgId,
+      sql`lower(${t.name})`,
+      sql`coalesce(${t.parentId}, ${t.orgId})`,
+    ),
+  ],
+);
+export const supplier = pgTable(
+  "supplier",
+  {
+    ...tenant(),
+    name: text("name").notNull(),
+    phone: text("phone"),
+    email: text("email"),
+    tin: text("tin"),
+  },
+  (t) => [
+    unique().on(t.orgId, t.id),
+    uniqueIndex("supplier_org_name").on(t.orgId, sql`lower(${t.name})`),
+  ],
+);
+export const product = pgTable(
+  "product",
+  {
+    ...tenant(),
+    sku: text("sku").notNull(),
+    name: text("name").notNull(),
+    categoryId: uuid("category_id"),
+    supplierId: uuid("supplier_id"),
+    taxClassId: uuid("tax_class_id").notNull(),
+    baseUnit: text("base_unit").$type<BaseUnit>().notNull(),
+    onlineVisible: boolean("online_visible").notNull().default(false),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+  },
+  (t) => [
+    unique().on(t.orgId, t.id),
+    unique().on(t.orgId, t.sku),
+    foreignKey({ columns: [t.orgId, t.categoryId], foreignColumns: [category.orgId, category.id] }),
+    foreignKey({ columns: [t.orgId, t.supplierId], foreignColumns: [supplier.orgId, supplier.id] }),
+    foreignKey({ columns: [t.orgId, t.taxClassId], foreignColumns: [taxClass.orgId, taxClass.id] }),
+    check("product_base_unit", sql`${t.baseUnit} IN ('each', 'kg', 'g', 'l', 'ml')`),
+  ],
+);
+/** A scannable code. quantity_thousandths converts one scan to base units (a case of 24 = 24000). */
+export const productBarcode = pgTable(
+  "product_barcode",
+  {
+    ...tenant(),
+    productId: uuid("product_id").notNull(),
+    code: text("code").notNull(),
+    quantityThousandths: integer("quantity_thousandths").notNull().default(1000),
+  },
+  (t) => [
+    unique().on(t.orgId, t.id),
+    unique().on(t.orgId, t.code),
+    foreignKey({ columns: [t.orgId, t.productId], foreignColumns: [product.orgId, product.id] }),
+    index().on(t.orgId, t.productId),
+    check("product_barcode_quantity", sql`${t.quantityThousandths} > 0`),
+  ],
+);
+/** Append-only VAT-inclusive shelf price versions. A null branch applies to every branch. */
+export const price = pgTable(
+  "price",
+  {
+    ...tenant(),
+    productId: uuid("product_id").notNull(),
+    branchId: uuid("branch_id"),
+    amount: moneyColumn("amount").notNull(),
+    validFrom: timestamp("valid_from", { withTimezone: true }).notNull(),
+    validTo: timestamp("valid_to", { withTimezone: true }),
+  },
+  (t) => [
+    unique().on(t.orgId, t.id),
+    foreignKey({ columns: [t.orgId, t.productId], foreignColumns: [product.orgId, product.id] }),
+    foreignKey({ columns: [t.orgId, t.branchId], foreignColumns: [branch.orgId, branch.id] }),
+    index().on(t.orgId, t.productId, t.branchId, t.validFrom.desc()),
+    check("price_amount_positive", sql`${t.amount} > 0`),
+    check("price_window", sql`${t.validTo} IS NULL OR ${t.validTo} > ${t.validFrom}`),
+  ],
+);
+export const productImport = pgTable(
+  "product_import",
+  {
+    ...tenant(),
+    fileName: text("file_name").notNull(),
+    sha256: text("sha256").notNull(),
+    rowsTotal: integer("rows_total").notNull(),
+    rowsOk: integer("rows_ok").notNull(),
+    rowsFailed: integer("rows_failed").notNull(),
+    report: jsonb("report").notNull(),
+    priceValidFrom: timestamp("price_valid_from", { withTimezone: true }).notNull(),
+    actorId: uuid("actor_id"),
+  },
+  (t) => [
+    unique().on(t.orgId, t.id),
+    foreignKey({ columns: [t.orgId, t.actorId], foreignColumns: [user.orgId, user.id] }),
+  ],
+);

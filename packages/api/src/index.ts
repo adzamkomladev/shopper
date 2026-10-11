@@ -1,3 +1,4 @@
+import type { AuthPrincipal } from "@shopper/auth";
 import { DeviceError, type createDeviceService } from "@shopper/auth/devices";
 import { Hono, type MiddlewareHandler } from "hono";
 import { buildInfo } from "@shopper/config";
@@ -14,14 +15,7 @@ import {
 } from "@shopper/core/management";
 import { dateSchema } from "@shopper/tax";
 
-export interface ApiPrincipal {
-  orgId: string;
-  userId: string;
-  roleId: string;
-  roleName: string;
-  deviceId?: string;
-  branchId?: string;
-}
+export type ApiPrincipal = AuthPrincipal;
 export interface ApiAuthentication {
   resolvePrincipal(request: Request): Promise<ApiPrincipal | null>;
   hasPermission(principal: ApiPrincipal, code: string): Promise<boolean>;

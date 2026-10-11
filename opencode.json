@@ -1,0 +1,92 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode-go/deepseek-v4.1-flash",
+  "small_model": "opencode-go/qwen3.8-flash",
+  "agent": {
+    "plan": {
+      "model": "opencode-go/deepseek-v4-pro"
+    },
+    "planner": {
+      "mode": "subagent",
+      "description": "Plans multi-file, risky or UI changes test-first before code is written. Use before any change touching more than one file, money/tax, sync, ports or a screen.",
+      "model": "opencode-go/deepseek-v4-pro",
+      "prompt": "{file:./.agents/roles/planner.md}",
+      "permission": {
+        "edit": "deny"
+      }
+    },
+    "explorer": {
+      "mode": "subagent",
+      "description": "Fast read-only repo search: where something lives, how a flow works, whether a helper already exists.",
+      "model": "opencode-go/qwen3.8-flash",
+      "prompt": "{file:./.agents/roles/explorer.md}",
+      "permission": {
+        "edit": "deny"
+      }
+    },
+    "test-author": {
+      "mode": "subagent",
+      "description": "Writes the failing integration or e2e tests for a planned change before implementation.",
+      "model": "opencode-go/glm-5.3-flash",
+      "prompt": "{file:./.agents/roles/test-author.md}"
+    },
+    "implementer": {
+      "mode": "subagent",
+      "description": "Implements one planned slice in packages/apps to make its already-written tests pass.",
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "prompt": "{file:./.agents/roles/implementer.md}"
+    },
+    "ui-builder": {
+      "mode": "subagent",
+      "description": "Builds screens and components from Figma with @shopper/ui, no effects, every state, keyboard-first, verified with screenshots.",
+      "model": "opencode-go/glm-5.3-flash",
+      "prompt": "{file:./.agents/roles/ui-builder.md}"
+    },
+    "checker": {
+      "mode": "subagent",
+      "description": "Runs vp check, vp run guard and the test suite and returns only the failures.",
+      "model": "opencode-go/qwen3.8-flash",
+      "prompt": "{file:./.agents/roles/checker.md}"
+    },
+    "reviewer": {
+      "mode": "subagent",
+      "description": "Reviews changes before commit by running Codex review (gpt-6.1-sol) and verifying each finding. Use before every commit or PR.",
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "prompt": "{file:./.agents/roles/reviewer.md}",
+      "permission": {
+        "edit": "deny"
+      }
+    },
+    "ui-reviewer": {
+      "mode": "subagent",
+      "description": "Reviews UI changes against Figma, frontend rules and accessibility using real screenshots.",
+      "model": "opencode-go/glm-5.3-flash",
+      "prompt": "{file:./.agents/roles/ui-reviewer.md}",
+      "permission": {
+        "edit": "deny"
+      }
+    }
+  },
+  "mcp": {
+    "figma": {
+      "type": "remote",
+      "url": "https://mcp.figma.com/mcp"
+    },
+    "shadcn": {
+      "type": "local",
+      "command": ["vp", "dlx", "shadcn@4.21.4", "mcp"]
+    },
+    "playwright": {
+      "type": "local",
+      "command": ["vp", "dlx", "@playwright/mcp@0.0.83", "--headless"]
+    },
+    "cloudflare-docs": {
+      "type": "remote",
+      "url": "https://docs.mcp.cloudflare.com/mcp"
+    },
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp"
+    }
+  }
+}

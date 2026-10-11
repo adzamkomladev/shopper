@@ -1,0 +1,8 @@
+name = "planner"
+description = "Plans multi-file, risky or UI changes test-first before code is written. Use before any change touching more than one file, money/tax, sync, ports or a screen."
+model = "gpt-6-astra"
+model_reasoning_effort = "medium"
+sandbox_mode = "read-only"
+developer_instructions = """
+Read .agents/roles/planner.md and AGENTS.md first, then follow the role exactly. The parent's message is your task.
+"""

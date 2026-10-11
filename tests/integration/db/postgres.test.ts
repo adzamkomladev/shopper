@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
-import { postgresFixture, testOrg } from "./fixtures/postgres";
+import { postgresFixture, testOrg } from "../../fixtures/postgres";
 let fixture: Awaited<ReturnType<typeof postgresFixture>>;
 beforeAll(async () => {
   fixture = await postgresFixture();

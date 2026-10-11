@@ -15,7 +15,7 @@ export const buildDefines = {
   SHOPPER_VERSION: JSON.stringify(manifest.version),
   GIT_SHA: JSON.stringify(process.env.GITHUB_SHA ?? gitSha),
   BUILD_DATE: JSON.stringify(process.env.BUILD_DATE ?? new Date().toISOString()),
-  SCHEMA_VERSION: "4",
+  SCHEMA_VERSION: "5",
   SYNC_PROTOCOL: "1",
   ARCHIVE_FORMAT: "1",
 };

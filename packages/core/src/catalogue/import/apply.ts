@@ -65,7 +65,7 @@ async function importRun(tx: ShopperTransaction, context: CommandContext, input:
     return id;
   };
   const taxId = (row: CleanRow) => {
-    const id = refs.tax.get(row.taxClass);
+    const id = row.taxClass && refs.tax.get(row.taxClass);
     if (!id) throw new ManagementError("Unknown tax class", 400);
     return id;
   };

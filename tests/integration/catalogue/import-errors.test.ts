@@ -11,8 +11,8 @@ test("prices accept thousands commas only; decimal commas and cents are row erro
   const prices = ["1,250.50", "GHS 3,000", "1,50", "50¢", "1,2345", "12,34,567"];
   const result = await importOk(
     csv(
-      head,
-      prices.map((p, i) => [`${tag}-${i}`, "Item", p]),
+      [...head, "Tax Class"],
+      prices.map((p, i) => [`${tag}-${i}`, "Item", p, "Standard"]),
     ),
   );
   expect(result).toMatchObject({ rowsOk: 2, rowsFailed: 4 });
@@ -84,4 +84,25 @@ test("empty sheets, non-UTF-8 CSVs and ambiguous headers get their own 400s", as
   expect(await message(csv(codes, [[ean13(), ean13(), "a", "b", "1"]]))).toBe(
     'Columns "Barcode" and "Barcodes" both mean barcodes',
   );
+});
+
+test("a blank tax class is a row error, and new products need the Tax Class column", async () => {
+  const tag = unique("TAX");
+  const blank = await importOk(
+    csv(
+      [...head, "Tax Class"],
+      [
+        [`${tag}-1`, "Gari 1kg", "18.00", ""],
+        [`${tag}-2`, "Sugar 1kg", "21.00", "Standard"],
+      ],
+    ),
+  );
+  expect(blank).toMatchObject({ rowsOk: 1, rowsFailed: 1 });
+  expect(blank.errors).toMatchObject([{ row: 2, column: "Tax Class", value: "" }]);
+  const missing = await importOk(csv(head, [[`${tag}-3`, "Rice 5kg", "120.00"]]));
+  expect(missing).toMatchObject({ rowsOk: 0, rowsFailed: 1 });
+  expect(missing.errors).toMatchObject([{ row: 2, column: "Tax Class" }]);
+  const existing = await importOk(csv(head, [[`${tag}-2`, "Sugar 1kg bag", "21.00"]]));
+  expect(existing).toMatchObject({ rowsOk: 1, updated: 1 });
+  expect((await detail(`${tag}-2`))!.taxClass).toBe("standard");
 });

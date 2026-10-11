@@ -13,8 +13,8 @@ const basic = (
   name = sku,
   price: string | number = "1.00",
   barcode: string | number = "",
-) => [sku, name, price, barcode];
-const headers = ["SKU", "Name", "Selling Price", "Barcodes"];
+) => [sku, name, price, barcode, "Standard"];
+const headers = ["SKU", "Name", "Selling Price", "Barcodes", "Tax Class"];
 
 test("an XLSX numeric EAN-13 cell keeps all 13 digits", async () => {
   const sku = unique("NUMERIC-EAN");
@@ -62,7 +62,10 @@ test("text cedi prices parse, while decimal commas are rejected", async () => {
 test("headers are matched after trimming and without case", async () => {
   const sku = unique("ODD-HEADER");
   await importOk(
-    csv(["  sku ", "DESCRIPTION", "selling price"], [[sku, "Odd header product", "2.00"]]),
+    csv(
+      ["  sku ", "DESCRIPTION", "selling price", " VAT "],
+      [[sku, "Odd header product", "2.00", "Standard"]],
+    ),
   );
   expect(await detail(sku)).toMatchObject({
     name: "Odd header product",
@@ -73,7 +76,7 @@ test("headers are matched after trimming and without case", async () => {
 test("UTF-8 BOM CSV with CRLF preserves Ghanaian names", async () => {
   const one = unique("UTF8-A");
   const two = unique("UTF8-B");
-  const text = `SKU,Name,Selling Price\r\n${one},Nkatie Burger Café,1.00\r\n${two},Ɛkuo honey,2.00\r\n`;
+  const text = `SKU,Name,Selling Price,Tax Class\r\n${one},Nkatie Burger Café,1.00,Standard\r\n${two},Ɛkuo honey,2.00,Exempt\r\n`;
   await importOk(new TextEncoder().encode(`\uFEFF${text}`));
   expect(await detail(one)).toMatchObject({ name: "Nkatie Burger Café" });
   expect(await detail(two)).toMatchObject({ name: "Ɛkuo honey" });
@@ -129,10 +132,10 @@ test("category names differing only by case resolve to one category", async () =
   const second = unique("CAT-B");
   await importOk(
     csv(
-      ["SKU", "Name", "Selling Price", "Category"],
+      ["SKU", "Name", "Selling Price", "Category", "Tax Class"],
       [
-        [first, first, "1.00", "Snacks"],
-        [second, second, "1.00", "snacks"],
+        [first, first, "1.00", "Snacks", "Standard"],
+        [second, second, "1.00", "snacks", "Standard"],
       ],
     ),
   );

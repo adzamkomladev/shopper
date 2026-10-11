@@ -28,7 +28,16 @@ export async function planImport(
   const errors: ImportError[] = [];
   const kept: CleanRow[] = [];
   for (const row of rows) {
-    if (!refs.tax.has(row.taxClass) && (headers.taxClass || !existing.has(row.sku))) {
+    if (!row.taxClass && !existing.has(row.sku)) {
+      errors.push({
+        row: row.row,
+        column: "Tax Class",
+        value: "",
+        message: "New products need a Tax Class column (Standard, Zero-rated or Exempt)",
+      });
+      continue;
+    }
+    if (row.taxClass && !refs.tax.has(row.taxClass)) {
       errors.push({
         row: row.row,
         column: headers.taxClass ?? "taxClass",
@@ -93,7 +102,7 @@ function differs(found: Existing, row: CleanRow, refs: Refs, use: FieldSet) {
     found.name !== row.name ||
     (use.unit && found.baseUnit !== row.baseUnit) ||
     (use.online && found.onlineVisible !== row.onlineVisible) ||
-    (use.tax && found.taxClassId !== refs.tax.get(row.taxClass)) ||
+    (use.tax && !!row.taxClass && found.taxClassId !== refs.tax.get(row.taxClass)) ||
     (use.category && found.categoryId !== categoryOf(refs, row)) ||
     (use.supplier && found.supplierId !== supplierOf(refs, row))
   );

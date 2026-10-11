@@ -10,15 +10,22 @@
     "services:down": "docker compose -f tooling/docker-compose.dev.yml down",
     "db:migrate": "tsx tooling/database.ts migrate",
     "db:seed": "tsx tooling/database.ts seed",
-    "guard": "tsx tooling/guard.ts"
+    "guard": "tsx tooling/guard.ts",
+    "e2e": "playwright test"
   },
   "devDependencies": {
+    "@babel/core": "7.29.7",
     "@cloudflare/vite-plugin": "1.62.5",
+    "@playwright/test": "1.64.0",
+    "@rolldown/plugin-babel": "0.2.4",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/babel__core": "7.20.5",
     "@types/node": "24.19.1",
     "@types/pg": "8.23.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.1",
+    "babel-plugin-react-compiler": "1.0.0",
     "drizzle-kit": "0.31.11",
     "drizzle-orm": "0.45.3",
     "pg": "8.23.1",

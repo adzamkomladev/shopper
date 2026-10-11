@@ -12,3 +12,5 @@ tooling/printer/captures/
 dist-staging/
 
 .shopper/
+tests/e2e/.auth/
+test-results/

@@ -47,14 +47,16 @@ export function boxRealtime(replayLimit = 500): Realtime {
             .catch((error: unknown) => {
               console.error({ event: "realtime.handler_failed", orgId, storeId, deviceId, error });
               if (target.devices.get(deviceId) === subscriber) target.devices.delete(deviceId);
-              queue = new Promise(() => {}); // Nothing more reaches a dropped device.
+              // Never settles, so nothing already queued behind the failure is delivered.
+              return new Promise<void>(() => {});
             });
         },
       };
       // Register before replaying so nothing published meanwhile is missed; one socket per device.
       target.devices.set(deviceId, subscriber);
-      for (const message of target.log.filter((m) => BigInt(m.sequence) > after))
-        subscriber.deliver(message);
+      const missed = target.log.filter((m) => BigInt(m.sequence) > after);
+      missed.sort((a, b) => (BigInt(a.sequence) < BigInt(b.sequence) ? -1 : 1));
+      for (const message of missed) subscriber.deliver(message);
       return {
         async close() {
           if (target.devices.get(deviceId) === subscriber) target.devices.delete(deviceId);

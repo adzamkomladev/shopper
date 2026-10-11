@@ -155,23 +155,30 @@ export function catalogueRoutes(options: {
   }
 
   app.post("/catalogue/imports", async (c) => {
-    // Multipart framing adds a little to the file; parseBody buffers it all, so refuse early.
-    if (Number(c.req.header("content-length")) > maxUpload + multipartOverhead)
+    // Multipart framing adds a little to the file. The body is read with a byte budget, so a
+    // chunked upload without Content-Length cannot buffer more than the limit either.
+    const limit = maxUpload + multipartOverhead;
+    if (Number(c.req.header("content-length")) > limit)
       return c.json({ error: "File is larger than 10 MB" }, 413);
-    const body = await c.req.parseBody().catch((cause) => {
-      throw new ManagementError(
-        "Could not read the upload; send multipart/form-data with a file field",
-        400,
-        { cause },
-      );
-    });
-    const file = body.file;
+    const bytes = await readWithin(c.req.raw, limit);
+    if (!bytes) return c.json({ error: "File is larger than 10 MB" }, 413);
+    const contentType = c.req.header("content-type") ?? "";
+    const body = await new Response(bytes, { headers: { "content-type": contentType } })
+      .formData()
+      .catch((cause: unknown) => {
+        throw new ManagementError(
+          "Could not read the upload; send multipart/form-data with a file field",
+          400,
+          { cause },
+        );
+      });
+    const file = body.get("file");
     if (!(file instanceof File))
       throw new ManagementError("Send the spreadsheet as a file field", 400);
     if (file.size > maxUpload) return c.json({ error: "File is larger than 10 MB" }, 413);
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    if (c.req.query("dryRun") === "1") return c.json(await previewImport(db, org(c), bytes));
-    return c.json(await runImport(db, context(c), bytes, file.name), 201);
+    const sheet = new Uint8Array(await file.arrayBuffer());
+    if (c.req.query("dryRun") === "1") return c.json(await previewImport(db, org(c), sheet));
+    return c.json(await runImport(db, context(c), sheet, file.name), 201);
   });
   app.get("/catalogue/imports/:id", async (c) =>
     c.json(await readImport(db, org(c), c.req.param("id"))),
@@ -189,4 +196,20 @@ export function catalogueRoutes(options: {
     throw error;
   });
   return app;
+}
+
+/** The request body, or null once it passes `limit` bytes (the rest is never read). */
+async function readWithin(request: Request, limit: number) {
+  const chunks: BlobPart[] = [];
+  let size = 0;
+  const reader = request.body?.getReader();
+  for (let next = await reader?.read(); next && !next.done; next = await reader!.read()) {
+    size += next.value.byteLength;
+    if (size > limit) {
+      await reader!.cancel();
+      return null;
+    }
+    chunks.push(next.value);
+  }
+  return new Blob(chunks);
 }

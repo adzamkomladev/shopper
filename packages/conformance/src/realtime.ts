@@ -65,15 +65,35 @@ export function realtimeConformance(
     );
     await till.close();
   });
+  test(`${name}: Realtime replays by sequence and finishes each delivery before the next`, async () => {
+    const f = await fixture();
+    for (const sequence of [2n, 1n])
+      await f.realtime.publish(f.orgId, f.storeId, envelope(f.orgId, sequence));
+    const finished: string[] = [];
+    const subscription = await f.realtime.subscribe(f.orgId, f.storeId, v7(), "0", async (m) => {
+      if (m.sequence === "1") await new Promise((resolve) => setTimeout(resolve, 100));
+      finished.push(m.sequence);
+    });
+    for (let waited = 0; finished.length < 2 && waited < 5000; waited += 10)
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.deepEqual(finished, ["1", "2"]);
+    await subscription.close();
+  });
   test(`${name}: Realtime drops a device whose handler fails and keeps serving the rest`, async () => {
     const f = await fixture();
     const healthy = await listen(f.realtime, f.orgId, f.storeId, v7(), "0");
+    let failingCalls = 0;
     const failing = await f.realtime.subscribe(f.orgId, f.storeId, v7(), "0", async () => {
+      failingCalls += 1;
+      await new Promise((resolve) => setTimeout(resolve, 30));
       throw new Error("till crashed");
     });
     await f.realtime.publish(f.orgId, f.storeId, envelope(f.orgId, 1n));
     await f.realtime.publish(f.orgId, f.storeId, envelope(f.orgId, 2n));
     await healthy.received(2);
+    await settle();
+    // Nothing queued behind the failure reaches the dropped device, so its cursor never skips it.
+    assert.equal(failingCalls, 1);
     await Promise.all([healthy.close(), failing.close()]);
   });
   test(`${name}: Realtime rejects malformed or cross-tenant messages`, async () => {

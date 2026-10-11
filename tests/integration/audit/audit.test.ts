@@ -3,14 +3,14 @@ import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { asc, eq } from "drizzle-orm";
 import { v7 } from "uuid";
-import * as schema from "../packages/db-pg/src/schema";
-import { defineCommand, verifyChain } from "../packages/audit/src/index";
-import { migrateDatabase } from "../tooling/migrate";
-import { provisionOrg, provisioningContext } from "../tooling/seed";
-import { postgresFixture } from "./fixtures/postgres";
+import * as schema from "@shopper/db-pg";
+import { defineCommand, verifyChain } from "@shopper/audit";
+import { migrateDatabase } from "../../../tooling/migrate";
+import { provisionOrg, provisioningContext } from "../../../tooling/seed";
+import { postgresFixture } from "../../fixtures/postgres";
 let fixture: Awaited<ReturnType<typeof postgresFixture>>;
 let pool: Pool;
-let db: import("../packages/db-pg/src/index").ShopperDatabase;
+let db: import("@shopper/db-pg").ShopperDatabase;
 const context = provisioningContext();
 beforeAll(async () => {
   fixture = await postgresFixture();
@@ -179,7 +179,7 @@ test("a forward migration preserves legacy audit rows and reports their unhashed
   try {
     for (const name of ["0000_schema_v1.sql", "0001_timestamps_and_audit.sql"]) {
       const sql = await readFile(
-        new URL(`../packages/db-pg/migrations/${name}`, import.meta.url),
+        new URL(`../../../packages/db-pg/migrations/${name}`, import.meta.url),
         "utf8",
       );
       for (const statement of sql.split("--> statement-breakpoint"))
@@ -192,7 +192,7 @@ test("a forward migration preserves legacy audit rows and reports their unhashed
       [ctx.orgId, ctx.appVersion],
     );
     const forward = await readFile(
-      new URL("../packages/db-pg/migrations/0002_audit_and_workflows.sql", import.meta.url),
+      new URL("../../../packages/db-pg/migrations/0002_audit_and_workflows.sql", import.meta.url),
       "utf8",
     );
     for (const statement of forward.split("--> statement-breakpoint"))

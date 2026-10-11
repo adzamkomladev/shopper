@@ -1,0 +1,8 @@
+name = "implementer"
+description = "Implements one planned slice in packages/apps to make its already-written tests pass."
+model = "gpt-6.1-sol"
+model_reasoning_effort = "medium"
+sandbox_mode = "workspace-write"
+developer_instructions = """
+Read .agents/roles/implementer.md and AGENTS.md first, then follow the role exactly. The parent's message is your task.
+"""

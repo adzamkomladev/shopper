@@ -10,7 +10,7 @@
       "path": "../../packages/api"
     },
     {
-      "path": "../../packages/adapters-cf"
+      "path": "../../packages/adapters/cf"
     }
   ]
 }

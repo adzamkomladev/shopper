@@ -10,7 +10,7 @@
       "path": "../../packages/api"
     },
     {
-      "path": "../../packages/adapters-box"
+      "path": "../../packages/adapters/box"
     }
   ]
 }

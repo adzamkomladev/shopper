@@ -50,10 +50,10 @@
       "path": "packages/conformance"
     },
     {
-      "path": "packages/adapters-cf"
+      "path": "packages/adapters/cf"
     },
     {
-      "path": "packages/adapters-box"
+      "path": "packages/adapters/box"
     },
     {
       "path": "apps/edge"

@@ -1,5 +1,5 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist"
@@ -7,19 +7,19 @@
   "include": ["src", "worker-configuration.d.ts"],
   "references": [
     {
-      "path": "../ports"
+      "path": "../../ports"
     },
     {
-      "path": "../core"
+      "path": "../../core"
     },
     {
-      "path": "../db-pg"
+      "path": "../../db-pg"
     },
     {
-      "path": "../db-sqlite"
+      "path": "../../db-sqlite"
     },
     {
-      "path": "../config"
+      "path": "../../config"
     }
   ]
 }

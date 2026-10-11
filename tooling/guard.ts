@@ -59,7 +59,7 @@ const IMPORTS = new Set([
 ]);
 const PLATFORM = /^(cloudflare:|@cloudflare\/|rivetkit|@rivetkit\/)/;
 const BUILD_CONFIG = /(^|\/)[^/]+\.config\.(ts|mts|js|mjs)$/;
-const PLATFORM_HOMES = /^(packages\/adapters-[^/]+\/|apps\/(edge|box)\/|tests\/|tooling\/)/;
+const PLATFORM_HOMES = /^(packages\/adapters\/[^/]+\/|apps\/(edge|box)\/|tests\/|tooling\/)/;
 
 /** Checks the repository rules in docs/engineering/architecture.md and code-quality.md. */
 export function guard(root: string): Violation[] {
@@ -72,10 +72,13 @@ export function guard(root: string): Violation[] {
 }
 
 function readProjects(root: string): Project[] {
-  const manifests = globSync("{apps/*,packages/*,tooling/*,tests}/package.json", {
-    cwd: root,
-    exclude: IGNORED,
-  });
+  const manifests = globSync(
+    "{apps/*,packages/*,packages/adapters/*,tooling/*,tests}/package.json",
+    {
+      cwd: root,
+      exclude: IGNORED,
+    },
+  );
   return manifests.map((path) => {
     const json = JSON.parse(readFileSync(join(root, path), "utf8"));
     const dir = posix.dirname(path.split(sep).join("/"));
@@ -191,7 +194,7 @@ function checkImport(file: string, spec: string, owner?: Project): Violation | u
   }
   const buildConfig = BUILD_CONFIG.test(file);
   if (PLATFORM.test(spec) && !PLATFORM_HOMES.test(file) && !buildConfig) {
-    const message = `${spec} is platform code. Put it in packages/adapters-* behind a port.`;
+    const message = `${spec} is platform code. Put it in packages/adapters/* behind a port.`;
     return { rule: "platform-import", file, message };
   }
   if (spec.startsWith(".") && owner) {

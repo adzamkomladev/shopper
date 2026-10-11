@@ -222,7 +222,7 @@ importers:
     dependencies:
       '@shopper/adapters-box':
         specifier: workspace:*
-        version: link:../../packages/adapters-box
+        version: link:../../packages/adapters/box
       '@shopper/api':
         specifier: workspace:*
         version: link:../../packages/api
@@ -234,7 +234,7 @@ importers:
     dependencies:
       '@shopper/adapters-cf':
         specifier: workspace:*
-        version: link:../../packages/adapters-cf
+        version: link:../../packages/adapters/cf
       '@shopper/api':
         specifier: workspace:*
         version: link:../../packages/api
@@ -296,23 +296,23 @@ importers:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
 
-  packages/adapters-box:
+  packages/adapters/box:
     dependencies:
       '@shopper/config':
         specifier: workspace:*
-        version: link:../config
+        version: link:../../config
       '@shopper/core':
         specifier: workspace:*
-        version: link:../core
+        version: link:../../core
       '@shopper/db-pg':
         specifier: workspace:*
-        version: link:../db-pg
+        version: link:../../db-pg
       '@shopper/db-sqlite':
         specifier: workspace:*
-        version: link:../db-sqlite
+        version: link:../../db-sqlite
       '@shopper/ports':
         specifier: workspace:*
-        version: link:../ports
+        version: link:../../ports
       drizzle-orm:
         specifier: 0.45.3
         version: 0.45.3(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.1)
@@ -326,23 +326,23 @@ importers:
         specifier: 1.1.0
         version: 1.1.0(typescript@7.0.2)
 
-  packages/adapters-cf:
+  packages/adapters/cf:
     dependencies:
       '@shopper/config':
         specifier: workspace:*
-        version: link:../config
+        version: link:../../config
       '@shopper/core':
         specifier: workspace:*
-        version: link:../core
+        version: link:../../core
       '@shopper/db-pg':
         specifier: workspace:*
-        version: link:../db-pg
+        version: link:../../db-pg
       '@shopper/db-sqlite':
         specifier: workspace:*
-        version: link:../db-sqlite
+        version: link:../../db-sqlite
       '@shopper/ports':
         specifier: workspace:*
-        version: link:../ports
+        version: link:../../ports
       drizzle-orm:
         specifier: 0.45.3
         version: 0.45.3(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.1)
@@ -538,7 +538,7 @@ importers:
     devDependencies:
       '@shopper/adapters-box':
         specifier: workspace:*
-        version: link:../packages/adapters-box
+        version: link:../packages/adapters/box
       '@shopper/api':
         specifier: workspace:*
         version: link:../packages/api
@@ -577,7 +577,7 @@ importers:
         version: 1.3.6(@types/node@24.19.1)(@vitest/runner@4.1.9)(@vitest/snapshot@4.1.9)(vitest@4.1.9)
       '@shopper/adapters-cf':
         specifier: workspace:*
-        version: link:../../packages/adapters-cf
+        version: link:../../packages/adapters/cf
       '@shopper/audit':
         specifier: workspace:*
         version: link:../../packages/audit

@@ -34,7 +34,7 @@ Import downwards only. A package may import its own layer (without a cycle) or a
 never a higher one. The current dependency graph follows this table; keep it that way.
 
 ```text
-5  adapters-cf, adapters-box               platform code (the only place for Cloudflare and Rivet)
+5  adapters/cf, adapters/box               platform code (the only place for Cloudflare and Rivet)
 4  api, backoffice, sync, export           use cases exposed over HTTP, UI or files
 3  core, auth, audit, hardware             commands, policies, domain rules
 2  ports, db-pg, db-sqlite, conformance    contracts and schemas
@@ -51,12 +51,12 @@ layer.
 Business code is written once and runs on Cloudflare (cloud) and on Rivet/Bun (on-prem).
 
 - **Platform imports (guard).** `cloudflare:*`, `@cloudflare/*`, `rivetkit` and `@rivetkit/*` appear
-  only in `packages/adapters-*`, `apps/edge`, `apps/box`, build config, tests and tooling.
+  only in `packages/adapters/*`, `apps/edge`, `apps/box`, build config, tests and tooling.
 - **Shared function, thin shell.** Every Durable Object method, Rivet actor action, Workflow step and
   queue consumer is a few lines that call one shared function in `core`/`api`/`sync`. The reference
   example is `nextStoreSequence()` in `@shopper/core`, which is called by both the `StoreSequencer`
-  Durable Object (`packages/adapters-cf/src/coordination.ts`) and `boxSequencer()`
-  (`packages/adapters-box/src/index.ts`).
+  Durable Object (`packages/adapters/cf/src/coordination.ts`) and `boxSequencer()`
+  (`packages/adapters/box/src/sequencer.ts`).
 - **Ports only where no library abstracts it.** Hono, Drizzle, unstorage and Better Auth already run on
   both. `@shopper/ports` covers the rest: Sequencer, Lane, Workflow, Queue, Realtime, Scheduler,
   Cache, Blobs, Renderer.
@@ -75,5 +75,5 @@ The full feature map is in [platforms.md](platforms.md).
 | A back-office screen                     | `@shopper/backoffice` (runs in the portal and in Electron)      |
 | A reusable visual component              | `@shopper/ui`                                                   |
 | A generic helper with no domain meaning  | See "Shared helpers" in [code-quality.md](code-quality.md)      |
-| Anything that touches a platform API     | `packages/adapters-cf` and `packages/adapters-box`, both        |
+| Anything that touches a platform API     | `packages/adapters/cf` and `packages/adapters/box`, both        |
 | A dev script                             | `tooling/`                                                      |

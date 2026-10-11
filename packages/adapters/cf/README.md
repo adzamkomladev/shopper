@@ -13,7 +13,7 @@ Cloudflare binding access stays here. Implemented Day 3 adapters:
 Apply the cache migration for local development with
 `vp exec wrangler d1 migrations apply CACHE_DB --local --config apps/edge/wrangler.jsonc`.
 Cloud D1 migration application remains a deployment step. Binding types come
-from the pinned Wrangler target; regenerate with `vp -C packages/adapters-cf run types`.
+from the pinned Wrangler target; regenerate with `vp -C packages/adapters/cf run types`.
 
 The same conformance cases run in workerd and against the box development
 adapters. The Worker suite uses a fresh PG18 database provisioned by the root

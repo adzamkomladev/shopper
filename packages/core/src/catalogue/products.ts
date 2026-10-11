@@ -4,7 +4,8 @@ import { defineCommand } from "@shopper/audit";
 import { product, productBarcode } from "@shopper/db-pg";
 import { managementJson, ManagementError } from "../management";
 import { loadProduct } from "./product-reads";
-import { barcodeInput, nonEmpty, productInput, productPatch, recordId, taxClassId } from "./schema";
+import { barcodeInput, productInput, productPatch } from "../schemas/catalogue";
+import { nonEmpty, recordId, taxClassId } from "./records";
 
 const productDetails = (
   _input: unknown,

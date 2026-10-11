@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, isNull, lte, gt, or } from "drizzle-orm";
 import { price, product, productBarcode } from "@shopper/db-pg";
 import type { Money } from "@shopper/money";
-import type { Queryable } from "../schema";
+import type { Queryable } from "../../types";
 import type { Headers } from "./parse";
 import { categoryOf, chunks, loadRefs, supplierOf, type Refs } from "./refs";
 import type { CleanRow, ImportError } from "./validate";

@@ -6,7 +6,7 @@ import type { Cache } from "@shopper/ports";
 import { createAuth } from "@shopper/auth";
 import { managementId } from "@shopper/core/management";
 import type { ShopperDatabase } from "@shopper/db-pg";
-import { createApi } from "./index";
+import { createApi } from "./app";
 
 export interface RuntimeOptions {
   database: ShopperDatabase;

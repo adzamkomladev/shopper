@@ -1,6 +1,6 @@
 ---
 name: cloud-box-parity
-description: Add or change anything that runs on both Cloudflare and Rivet in Shopper - ports, adapters, Durable Objects/actors, Workflows, Queues, cron, realtime, blobs. Use whenever code touches packages/ports, packages/adapters-*, packages/conformance, apps/edge or apps/box.
+description: Add or change anything that runs on both Cloudflare and Rivet in Shopper - ports, adapters, Durable Objects/actors, Workflows, Queues, cron, realtime, blobs. Use whenever code touches packages/ports, packages/adapters/*, packages/conformance, apps/edge or apps/box.
 ---
 
 # Cloud ⇄ box parity
@@ -13,7 +13,7 @@ description: Add or change anything that runs on both Cloudflare and Rivet in Sh
 3. Write the conformance cases first in `packages/conformance`, and run them against both adapters:
    `tests/integration/ports` (box) and `tooling/worker-tests` (Cloudflare).
 4. Put the behaviour in one shared function in a domain package. Write the Cloudflare shell
-   (`adapters-cf`) and the Rivet shell (`adapters-box`) as thin callers, about 20 lines each.
+   (`adapters/cf`) and the Rivet shell (`adapters/box`) as thin callers, about 20 lines each.
 5. Check the rules: PostgreSQL is the record (table + audit + `workflow_run` in one transaction), no
    platform IDs in business tables, instance id = business key, five coordination classes only, no
    polling and no business crons.

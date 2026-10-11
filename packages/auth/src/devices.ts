@@ -12,19 +12,14 @@ import {
 } from "@shopper/db-pg";
 import type { Cache } from "@shopper/ports";
 import type { AuthPrincipal } from "./roles";
+import { DeviceError, assign, consume, digest, issue, loginCommand } from "./device-commands";
 import {
-  DeviceError,
-  assign,
   cashierLoginInput,
-  consume,
-  digest,
   enrollmentInput,
   enrollmentIssueInput,
-  issue,
-  loginCommand,
   pinInput,
   revokeDeviceInput,
-} from "./device-commands";
+} from "./schemas/devices";
 
 export { DeviceError } from "./device-commands";
 export type DevicePrincipal = AuthPrincipal;

@@ -1,6 +1,5 @@
-import type { AuthPrincipal } from "@shopper/auth";
 import { DeviceError, type createDeviceService } from "@shopper/auth/devices";
-import { Hono, type MiddlewareHandler } from "hono";
+import { Hono } from "hono";
 import { buildInfo } from "@shopper/config";
 import * as v from "valibot";
 import { and, desc, eq, lte } from "drizzle-orm";
@@ -14,34 +13,19 @@ import {
   type ManagementKind,
 } from "@shopper/core/management";
 import { dateSchema } from "@shopper/tax";
+import { requirePermission, type ApiAuthentication, type ApiEnvironment } from "./auth-middleware";
+import { catalogueRoutes } from "./catalogue-routes";
+import type { WorkflowLauncher } from "@shopper/ports";
 
-export type ApiPrincipal = AuthPrincipal;
-export interface ApiAuthentication {
-  resolvePrincipal(request: Request): Promise<ApiPrincipal | null>;
-  hasPermission(principal: ApiPrincipal, code: string): Promise<boolean>;
-  handler?: (request: Request) => Promise<Response>;
-}
+export { requirePermission, type ApiAuthentication, type ApiPrincipal } from "./auth-middleware";
+
 export interface ApiOptions {
   authentication?: ApiAuthentication;
   database?: ShopperDatabase;
   devices?: ReturnType<typeof createDeviceService>;
   // Populated by the authenticated session adapter; never derive this from request parameters.
   resolveOrgId?: (request: Request) => Promise<string | null>;
-}
-type ApiEnvironment = { Variables: { principal: ApiPrincipal } };
-export function requirePermission(
-  authentication: ApiAuthentication | undefined,
-  permission: string | ((request: Request) => string),
-): MiddlewareHandler<ApiEnvironment> {
-  return async (c, next) => {
-    const principal = await authentication?.resolvePrincipal(c.req.raw);
-    if (!principal) return c.json({ error: "Authentication required" }, 401);
-    const code = typeof permission === "string" ? permission : permission(c.req.raw);
-    if (!(await authentication!.hasPermission(principal, code)))
-      return c.json({ error: "Permission denied" }, 403);
-    c.set("principal", principal);
-    await next();
-  };
+  priceChange?: WorkflowLauncher;
 }
 export function createApi(options: ApiOptions = {}) {
   const app = new Hono<ApiEnvironment>();
@@ -72,6 +56,15 @@ export function createApi(options: ApiOptions = {}) {
     if (!rule) return c.json({ error: "No tax rule for this date" }, 404);
     return c.json(rule);
   });
+  if (options.database)
+    app.route(
+      "/",
+      catalogueRoutes({
+        database: options.database,
+        authentication: options.authentication,
+        priceChange: options.priceChange,
+      }),
+    );
   if (options.authentication?.handler)
     app.all("/api/auth/*", (c) => options.authentication!.handler!(c.req.raw));
   for (const kind of ["store", "branch"] as const) {

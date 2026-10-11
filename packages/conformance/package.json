@@ -13,6 +13,7 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@shopper/ports": "workspace:*"
+    "@shopper/ports": "workspace:*",
+    "uuid": "14.0.2"
   }
 }

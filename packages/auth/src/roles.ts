@@ -27,6 +27,7 @@ const permissionNames = [
   "shift.write",
   "stock.read",
   "stock.write",
+  "product.read",
   "product.write",
   "product.propose",
   "tax.read",
@@ -49,11 +50,12 @@ const rolePermissions: Record<string, readonly string[]> = {
   admin: permissionNames.filter(
     (code) => !code.startsWith("store.") && !code.startsWith("branch.") && code !== "tax.write",
   ),
-  accountant: ["shift.read", "stock.read", "tax.read", "report.read", "audit.read"],
-  inventory: ["stock.read", "stock.write", "product.propose"],
-  cashier: ["sale.create", "refund.request", "shift.read", "shift.write"],
+  accountant: ["product.read", "shift.read", "stock.read", "tax.read", "report.read", "audit.read"],
+  inventory: ["product.read", "stock.read", "stock.write", "product.propose"],
+  cashier: ["product.read", "sale.create", "refund.request", "shift.read", "shift.write"],
 };
 const tillPermissions = new Set([
+  "product.read",
   "sale.create",
   "refund.approve",
   "refund.request",

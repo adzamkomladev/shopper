@@ -1,6 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import { v7 } from "uuid";
 import { defineCommand, type CommandContext } from "../packages/core/src/index";
+import { runImport } from "../packages/core/src/catalogue/index";
 import {
   org,
   shopperMeta,
@@ -10,6 +11,7 @@ import {
 } from "../packages/db-pg/src/index";
 import { ghana2026 } from "../packages/tax/src/index";
 import { buildDefines } from "./build-info";
+import { generateCatalogue, toSpreadsheet } from "./lib/catalogue-fixture";
 
 export const provisionOrg = defineCommand({
   name: "org.provision",
@@ -50,4 +52,9 @@ export async function seedDevelopment(db: ShopperDatabase) {
     const result = await provisionOrg(tx, context, { name: "Shopper development" });
     return { ...result, created: true };
   });
+}
+// Run once, for a newly created dev org: the catalogue goes through the real import command.
+export async function seedCatalogue(db: ShopperDatabase, orgId: string, count = 20_000) {
+  const sheet = toSpreadsheet(generateCatalogue(count), "xlsx");
+  return runImport(db, provisioningContext(orgId), sheet, "dev-catalogue.xlsx");
 }

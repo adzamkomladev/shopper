@@ -1,8 +1,9 @@
 import { Elysia } from "elysia";
-import { boxDatabase, boxCache } from "@shopper/adapters-box";
+import { boxCache, boxDatabase, boxPool, boxPriceChange, boxRealtime } from "@shopper/adapters-box";
 import { isPublicRequest, publicApi, runtimeUnavailable, serveRuntime } from "@shopper/api/runtime";
 export function createBoxApp(environment: Record<string, string | undefined> = process.env) {
   let cache: ReturnType<typeof boxCache> | undefined;
+  let priceChange: ReturnType<typeof boxPriceChange> | undefined;
   return new Elysia()
     .onRequest(({ request, server }) => {
       request.headers.set(
@@ -22,6 +23,11 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
       if (!DATABASE_URL || !SHOPPER_AUTH_SECRET || !SHOPPER_AUTH_URL) return runtimeUnavailable();
       const connection = await boxDatabase(DATABASE_URL);
       cache ??= boxCache(environment.SHOPPER_CACHE_PATH ?? ".shopper/cache.sqlite");
+      // Created on first use, never at import: workflows outlive requests, so they get their own pool.
+      priceChange ??= boxPriceChange({
+        database: boxPool(DATABASE_URL).db,
+        realtime: boxRealtime(),
+      });
       try {
         return await serveRuntime(request, {
           database: connection.db,
@@ -31,6 +37,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
           orgId: SHOPPER_ORG_ID,
           bootstrapToken: SHOPPER_BOOTSTRAP_TOKEN,
           clientIP: request.headers.get("X-Shopper-Client-IP") ?? "127.0.0.1",
+          priceChange: priceChange.launcher,
         });
       } finally {
         await connection.close();

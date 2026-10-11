@@ -23,8 +23,9 @@ export class ManagementError extends Error {
   constructor(
     message: string,
     public status: 400 | 404 | 409 = 404,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
   }
 }
 // bigint cursors are strings in both API responses and immutable audit snapshots.

@@ -49,8 +49,19 @@
             "name": "STORE_SEQUENCER",
             "class_name": "StoreSequencer",
           },
+          {
+            "name": "STORE_HUB",
+            "class_name": "StoreHub",
+          },
         ],
       },
+      "workflows": [
+        {
+          "name": "shopper-price-change-staging",
+          "binding": "PRICE_CHANGE",
+          "class_name": "PriceChangeWorkflow",
+        },
+      ],
       "routes": [
         {
           "pattern": "shopper-api-staging.temtem.dev",
@@ -94,13 +105,28 @@
         "name": "STORE_SEQUENCER",
         "class_name": "StoreSequencer",
       },
+      {
+        "name": "STORE_HUB",
+        "class_name": "StoreHub",
+      },
     ],
   },
+  "workflows": [
+    {
+      "name": "shopper-price-change-dev",
+      "binding": "PRICE_CHANGE",
+      "class_name": "PriceChangeWorkflow",
+    },
+  ],
   "account_id": "bd9ef997b398c9aeeee8ac3d3618efdc",
   "migrations": [
     {
       "tag": "v1",
       "new_sqlite_classes": ["StoreSequencer"],
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["StoreHub"],
     },
   ],
 }

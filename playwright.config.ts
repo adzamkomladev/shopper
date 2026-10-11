@@ -20,7 +20,11 @@ export default defineConfig({
   outputDir: "test-results",
   use: { trace: "retain-on-failure" },
   projects: [
-    { name: "setup", testMatch: /auth\.setup\.ts/ },
+    {
+      name: "setup",
+      testMatch: /auth\.setup\.ts/,
+      use: { baseURL: "http://localhost:5183" },
+    },
     {
       name: "portal",
       testDir: "tests/e2e/portal",

@@ -1,13 +1,6 @@
 import * as v from "valibot";
-import {
-  jsonSchema,
-  uuidV7Schema,
-  type Blobs,
-  type Cache,
-  type CacheReader,
-  type CacheWriter,
-  type Json,
-} from "./index";
+import { jsonSchema, uuidV7Schema, type Json } from "./schemas/primitives";
+import type { Blobs, Cache, CacheReader, CacheWriter } from "./types";
 export function scopedKey(orgId: string, key: string): string {
   v.parse(uuidV7Schema, orgId);
   if (

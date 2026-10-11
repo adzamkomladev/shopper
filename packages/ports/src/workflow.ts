@@ -1,5 +1,6 @@
 import * as v from "valibot";
-import type { Json, RetryPolicy, Workflow } from "./index";
+import { retryPolicySchema, type Json, type RetryPolicy } from "./schemas/primitives";
+import type { Workflow } from "./types";
 
 type Timer = ReturnType<typeof setTimeout>;
 
@@ -23,12 +24,6 @@ type WorkflowState = {
 };
 
 const workflowStates = new Map<string, WorkflowState>();
-const policySchema = v.object({
-  maxAttempts: v.pipe(v.number(), v.integer(), v.minValue(1)),
-  delayMs: v.pipe(v.number(), v.integer(), v.minValue(0)),
-  backoff: v.picklist(["constant", "linear", "exponential"]),
-});
-
 export class WorkflowTimeoutError extends Error {
   constructor(
     readonly instanceId: string,
@@ -131,7 +126,7 @@ export function memoryWorkflow(instanceId: string): Workflow {
       compensate?: (output: T) => Promise<void>,
     ) {
       if (!name) throw new Error("Workflow step name is required");
-      const policy = v.parse(policySchema, rawPolicy);
+      const policy = v.parse(retryPolicySchema, rawPolicy);
       const existing = state.steps.get(name);
       if (existing !== undefined || state.steps.has(name)) return existing as T;
       const running = state.runningSteps.get(name);

@@ -3,10 +3,8 @@ import { hashPassword } from "better-auth/crypto";
 import * as v from "valibot";
 import { defineCommand } from "@shopper/audit";
 import { account, member, role, user } from "@shopper/db-pg";
-import { uuidV7Schema } from "@shopper/ports";
+import { assignRoleInput, registerUserInput } from "./schemas/users";
 import { assertCanGrantRole, assertHasPermission } from "./roles";
-
-const assignRoleInput = v.strictObject({ userId: uuidV7Schema, roleId: uuidV7Schema });
 
 export const assignMemberRole = defineCommand({
   name: "auth.member.assign-role",
@@ -50,12 +48,6 @@ export const assignMemberRole = defineCommand({
   details: (_input, output) => ({ entity: "member", entityId: output.memberId, after: output }),
 });
 
-const registerUserInput = v.strictObject({
-  name: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(200)),
-  email: v.pipe(v.string(), v.trim(), v.email()),
-  password: v.pipe(v.string(), v.minLength(8), v.maxLength(128)),
-  roleId: uuidV7Schema,
-});
 export const registerOrganizationUser = defineCommand({
   name: "auth.user.register",
   async run(tx, context, rawInput: unknown) {

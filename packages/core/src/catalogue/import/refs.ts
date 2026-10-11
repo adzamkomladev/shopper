@@ -2,7 +2,7 @@ import { category, supplier, taxClass } from "@shopper/db-pg";
 
 type TaxClass = (typeof taxClass.$inferSelect)["code"];
 import { eq } from "drizzle-orm";
-import type { Queryable } from "../schema";
+import type { Queryable } from "../../types";
 import type { CleanRow } from "./validate";
 
 /** Existing reference rows by case-insensitive name; categories are keyed by parent too. */

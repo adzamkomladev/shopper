@@ -4,7 +4,9 @@ import { defineCommand } from "@shopper/audit";
 import { price, product } from "@shopper/db-pg";
 import { money } from "@shopper/money";
 import { managementJson, ManagementError } from "../management";
-import { priceAtQuery, priceInput, recordId, type Queryable } from "./schema";
+import { priceAtQuery, priceInput } from "../schemas/catalogue";
+import type { Queryable } from "../types";
+import { recordId } from "./records";
 
 type Price = typeof price.$inferSelect;
 export const priceView = (row: Price) => ({

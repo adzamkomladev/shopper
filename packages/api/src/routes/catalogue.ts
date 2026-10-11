@@ -24,14 +24,13 @@ import {
   updateProduct,
   schedulePrice,
 } from "@shopper/core/catalogue";
-import { requirePermission, type ApiAuthentication, type ApiEnvironment } from "./auth-middleware";
+import { requirePermission } from "../middleware/require-permission";
+import { priceBody } from "../schemas/catalogue";
+import type { ApiAuthentication, ApiEnvironment } from "../types";
 
 const maxUpload = 10 * 1024 * 1024;
 const multipartOverhead = 64 * 1024;
 type Ctx = Context<ApiEnvironment>;
-const priceBody = v.looseObject({
-  reason: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(500)),
-});
 // The reason goes to the audit row, the rest is the price itself.
 function withReason(data: unknown) {
   const { reason, ...price } = v.parse(priceBody, data);

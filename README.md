@@ -93,7 +93,9 @@ cannot grant access. This boundary is exercised against real PostgreSQL in CI.
 - `apps/till-host`, `apps/till-electron`: engine and Windows shell boundaries.
 - `packages/*`: handbook package boundaries, with strict TypeScript references.
 
-Read `CLAUDE.md` for money, tax, audit, tenancy and portability rules.
+Read `AGENTS.md` and `docs/engineering/` for every rule: boundaries, code quality,
+testing, frontend, platforms, deployment and the AI workflow. `vp run guard` enforces
+the import, file-size and no-effect rules.
 Most package exports are intentionally empty until their scheduled day.
 
 ## Tests and compatibility

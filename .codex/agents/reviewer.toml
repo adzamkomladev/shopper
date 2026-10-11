@@ -1,0 +1,8 @@
+name = "reviewer"
+description = "Reviews changes before commit for real defects and Shopper rule violations, verifying each finding. Use before every commit or PR."
+model = "gpt-6.1-sol"
+model_reasoning_effort = "medium"
+sandbox_mode = "read-only"
+developer_instructions = """
+Read .agents/roles/reviewer.md and AGENTS.md first, then follow the role exactly. The parent's message is your task.
+"""

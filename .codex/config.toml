@@ -1,0 +1,24 @@
+# Project defaults for Codex. Roles and models: docs/engineering/ai-workflow.md
+model = "gpt-6.1-sol"
+model_reasoning_effort = "low" # raise to "medium" for complex work
+plan_mode_reasoning_effort = "medium"
+
+[agents]
+max_concurrent_threads_per_session = 4
+
+[mcp_servers.figma]
+url = "https://mcp.figma.com/mcp"
+
+[mcp_servers.shadcn]
+command = "vp"
+args = ["dlx", "shadcn@4.21.4", "mcp"]
+
+[mcp_servers.playwright]
+command = "vp"
+args = ["dlx", "@playwright/mcp@0.0.83", "--headless"]
+
+[mcp_servers.cloudflare-docs]
+url = "https://docs.mcp.cloudflare.com/mcp"
+
+[mcp_servers.context7]
+url = "https://mcp.context7.com/mcp"

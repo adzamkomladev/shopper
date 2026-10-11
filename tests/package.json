@@ -1,0 +1,19 @@
+{
+  "name": "@shopper/tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@shopper/adapters-box": "workspace:*",
+    "@shopper/api": "workspace:*",
+    "@shopper/audit": "workspace:*",
+    "@shopper/auth": "workspace:*",
+    "@shopper/box": "workspace:*",
+    "@shopper/conformance": "workspace:*",
+    "@shopper/core": "workspace:*",
+    "@shopper/db-pg": "workspace:*",
+    "@shopper/money": "workspace:*",
+    "@shopper/ports": "workspace:*",
+    "@shopper/tax": "workspace:*"
+  }
+}

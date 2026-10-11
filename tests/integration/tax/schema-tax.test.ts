@@ -2,9 +2,9 @@ import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { eq, sql } from "drizzle-orm";
 import { v7 } from "uuid";
-import * as schema from "../packages/db-pg/src/schema";
-import { defineCommand } from "../packages/core/src/index";
-import { createApi } from "../packages/api/src/index";
+import * as schema from "@shopper/db-pg";
+import { defineCommand } from "@shopper/core";
+import { createApi } from "@shopper/api";
 import {
   add,
   sub,
@@ -15,14 +15,14 @@ import {
   toDecimal,
   toPesewas,
   formatGHS,
-} from "../packages/money/src/index";
-import { snapshotLine } from "../packages/tax/src/index";
-import { migrateDatabase } from "../tooling/migrate";
-import { provisionOrg, provisioningContext, seedDevelopment } from "../tooling/seed";
-import { postgresFixture } from "./fixtures/postgres";
+} from "@shopper/money";
+import { snapshotLine } from "@shopper/tax";
+import { migrateDatabase } from "../../../tooling/migrate";
+import { provisionOrg, provisioningContext, seedDevelopment } from "../../../tooling/seed";
+import { postgresFixture } from "../../fixtures/postgres";
 
 let fixture: Awaited<ReturnType<typeof postgresFixture>>;
-let db: import("../packages/db-pg/src/index").ShopperDatabase;
+let db: import("@shopper/db-pg").ShopperDatabase;
 const context = provisioningContext();
 beforeAll(async () => {
   fixture = await postgresFixture();

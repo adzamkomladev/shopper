@@ -2,11 +2,11 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { expect, test } from "vite-plus/test";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { migrateDatabase } from "../tooling/migrate";
-import { postgresFixture } from "./fixtures/postgres";
-import * as schema from "../packages/db-pg/src/schema";
+import { migrateDatabase } from "../../../tooling/migrate";
+import { postgresFixture } from "../../fixtures/postgres";
+import * as schema from "@shopper/db-pg";
 import { asc } from "drizzle-orm";
-import { verifyChain } from "../packages/audit/src/index";
+import { verifyChain } from "@shopper/audit";
 const exec = promisify(execFile);
 test("Worker integration and shared conformance suite pass in workerd", async () => {
   const fixture = await postgresFixture();
@@ -14,7 +14,7 @@ test("Worker integration and shared conformance suite pass in workerd", async ()
     const db = drizzle(fixture.client, { schema });
     await migrateDatabase(db);
     const { stdout } = await exec("node", ["node_modules/vitest/vitest.mjs", "run"], {
-      cwd: new URL("../tooling/worker-tests/", import.meta.url),
+      cwd: new URL("../../../tooling/worker-tests/", import.meta.url),
       env: { ...process.env, CF_TEST_DATABASE_URL: fixture.connectionString },
       timeout: 100000,
     });

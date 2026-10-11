@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "figma": { "type": "http", "url": "https://mcp.figma.com/mcp" },
+    "shadcn": { "type": "stdio", "command": "vp", "args": ["dlx", "shadcn@4.21.4", "mcp"] },
+    "playwright": {
+      "type": "stdio",
+      "command": "vp",
+      "args": ["dlx", "@playwright/mcp@0.0.83", "--headless"]
+    },
+    "cloudflare-docs": { "type": "http", "url": "https://docs.mcp.cloudflare.com/mcp" },
+    "context7": { "type": "http", "url": "https://mcp.context7.com/mcp" }
+  }
+}

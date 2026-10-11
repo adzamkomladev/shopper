@@ -1,0 +1,8 @@
+name = "test-author"
+description = "Writes the failing integration or e2e tests for a planned change before implementation."
+model = "gpt-6-luna"
+model_reasoning_effort = "high"
+sandbox_mode = "workspace-write"
+developer_instructions = """
+Read .agents/roles/test-author.md and AGENTS.md first, then follow the role exactly. The parent's message is your task.
+"""

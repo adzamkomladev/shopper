@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - tests
   - tooling/worker-tests
 catalog:
   vite-plus: 1.0.0

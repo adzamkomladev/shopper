@@ -1,0 +1,8 @@
+name = "ui-reviewer"
+description = "Reviews UI changes against Figma, frontend rules and accessibility using real screenshots."
+model = "gpt-6-luna"
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+developer_instructions = """
+Read .agents/roles/ui-reviewer.md and AGENTS.md first, then follow the role exactly. The parent's message is your task.
+"""

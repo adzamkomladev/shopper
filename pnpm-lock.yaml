@@ -516,11 +516,65 @@ importers:
         specifier: 19.3.0
         version: 19.3.0
 
+  tests:
+    devDependencies:
+      '@shopper/adapters-box':
+        specifier: workspace:*
+        version: link:../packages/adapters-box
+      '@shopper/api':
+        specifier: workspace:*
+        version: link:../packages/api
+      '@shopper/audit':
+        specifier: workspace:*
+        version: link:../packages/audit
+      '@shopper/auth':
+        specifier: workspace:*
+        version: link:../packages/auth
+      '@shopper/box':
+        specifier: workspace:*
+        version: link:../apps/box
+      '@shopper/conformance':
+        specifier: workspace:*
+        version: link:../packages/conformance
+      '@shopper/core':
+        specifier: workspace:*
+        version: link:../packages/core
+      '@shopper/db-pg':
+        specifier: workspace:*
+        version: link:../packages/db-pg
+      '@shopper/money':
+        specifier: workspace:*
+        version: link:../packages/money
+      '@shopper/ports':
+        specifier: workspace:*
+        version: link:../packages/ports
+      '@shopper/tax':
+        specifier: workspace:*
+        version: link:../packages/tax
+
   tooling/worker-tests:
     devDependencies:
       '@cloudflare/vitest-plugin':
         specifier: 1.3.6
         version: 1.3.6(@types/node@24.19.1)(@vitest/runner@4.1.9)(@vitest/snapshot@4.1.9)(vitest@4.1.9)
+      '@shopper/adapters-cf':
+        specifier: workspace:*
+        version: link:../../packages/adapters-cf
+      '@shopper/audit':
+        specifier: workspace:*
+        version: link:../../packages/audit
+      '@shopper/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@shopper/conformance':
+        specifier: workspace:*
+        version: link:../../packages/conformance
+      '@shopper/db-pg':
+        specifier: workspace:*
+        version: link:../../packages/db-pg
+      '@shopper/db-sqlite':
+        specifier: workspace:*
+        version: link:../../packages/db-sqlite
       esbuild:
         specifier: 0.28.1
         version: 0.28.1

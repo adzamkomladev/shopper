@@ -18,18 +18,18 @@ test("shared Hono API runs inside workerd and reports its baked version", async 
 
 import { eq } from "drizzle-orm";
 import { v7 } from "uuid";
-import * as schema from "../../packages/db-pg/src/schema";
-import { defineCommand } from "../../packages/audit/src/index";
+import * as schema from "@shopper/db-pg";
+import { defineCommand } from "@shopper/audit";
 import {
   cloudflareDatabase,
   cloudflareCache,
   cloudflareBlobs,
   cloudflareSequencer,
   cloudflareWorkflow,
-} from "../../packages/adapters-cf/src/index";
-import { cacheMigration } from "../../packages/db-sqlite/src/index";
-import { portConformance } from "../../packages/conformance/src/index";
-import { buildInfo } from "../../packages/config/src/index";
+} from "@shopper/adapters-cf";
+import { cacheMigration } from "@shopper/db-sqlite";
+import { portConformance } from "@shopper/conformance";
+import { buildInfo } from "@shopper/config";
 const provision = defineCommand({
   name: "conformance.provision",
   async run(tx, ctx) {
@@ -48,7 +48,7 @@ portConformance("Cloudflare adapters in workerd", test, async () => {
     BLOBS: R2Bucket;
     HYPERDRIVE: Hyperdrive;
     STORE_SEQUENCER: DurableObjectNamespace<
-      import("../../packages/adapters-cf/src/coordination").StoreSequencer
+      import("@shopper/adapters-cf/coordination").StoreSequencer
     >;
   };
   await bindings.CACHE_DB.prepare(cacheMigration).run();

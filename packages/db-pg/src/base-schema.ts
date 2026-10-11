@@ -2,7 +2,6 @@ import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
-  index,
   check,
   customType,
   date,
@@ -55,7 +54,7 @@ export const org = pgTable(
     check("org_mode", sql`${t.mode} IN ('full', 'relay')`),
   ],
 );
-const tenant = () => ({
+export const tenant = () => ({
   id: id(),
   orgId: uuid("org_id")
     .notNull()
@@ -148,81 +147,6 @@ export const rolePermission = pgTable(
     }),
   ],
 );
-export const session = pgTable(
-  "session",
-  {
-    ...tenant(),
-    userId: uuid("user_id").notNull(),
-    token: text("token").notNull(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    ipAddress: text("ip_address"),
-    userAgent: text("user_agent"),
-    activeOrganizationId: uuid("active_organization_id"),
-  },
-  (t) => [
-    unique().on(t.token),
-    foreignKey({ columns: [t.orgId, t.userId], foreignColumns: [user.orgId, user.id] }),
-    foreignKey({
-      columns: [t.orgId, t.activeOrganizationId],
-      foreignColumns: [org.orgId, org.id],
-    }),
-  ],
-);
-export const account = pgTable(
-  "account",
-  {
-    ...tenant(),
-    accountId: text("account_id").notNull(),
-    providerId: text("provider_id").notNull(),
-    userId: uuid("user_id").notNull(),
-    accessToken: text("access_token"),
-    refreshToken: text("refresh_token"),
-    idToken: text("id_token"),
-    accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }),
-    refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { withTimezone: true }),
-    scope: text("scope"),
-    password: text("password"),
-  },
-  (t) => [foreignKey({ columns: [t.orgId, t.userId], foreignColumns: [user.orgId, user.id] })],
-);
-export const verification = pgTable("verification", {
-  ...tenant(),
-  identifier: text("identifier").notNull(),
-  value: text("value").notNull(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-});
-export const member = pgTable(
-  "member",
-  {
-    ...tenant(),
-    organizationId: uuid("organization_id").notNull(),
-    userId: uuid("user_id").notNull(),
-    role: text("role").notNull().default("member"),
-    roleId: uuid("role_id").notNull(),
-  },
-  (t) => [
-    unique().on(t.orgId, t.organizationId, t.userId),
-    foreignKey({ columns: [t.orgId, t.organizationId], foreignColumns: [org.orgId, org.id] }),
-    foreignKey({ columns: [t.orgId, t.userId], foreignColumns: [user.orgId, user.id] }),
-    foreignKey({ columns: [t.orgId, t.roleId], foreignColumns: [role.orgId, role.id] }),
-  ],
-);
-export const invitation = pgTable(
-  "invitation",
-  {
-    ...tenant(),
-    organizationId: uuid("organization_id").notNull(),
-    email: text("email").notNull(),
-    role: text("role").notNull().default("member"),
-    status: text("status").notNull().default("pending"),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    inviterId: uuid("inviter_id").notNull(),
-  },
-  (t) => [
-    foreignKey({ columns: [t.orgId, t.organizationId], foreignColumns: [org.orgId, org.id] }),
-    foreignKey({ columns: [t.orgId, t.inviterId], foreignColumns: [user.orgId, user.id] }),
-  ],
-);
 export const taxClass = pgTable(
   "tax_class",
   {
@@ -304,44 +228,5 @@ export const shopperMeta = pgTable(
       "meta_versions",
       sql`${t.schemaVersion} > 0 AND ${t.syncProtocol} > 0 AND ${t.archiveFormat} > 0`,
     ),
-  ],
-);
-
-export const workflowRun = pgTable(
-  "workflow_run",
-  {
-    ...tenant(),
-    instanceId: text("instance_id").notNull(),
-    type: text("type").notNull(),
-    businessKey: text("business_key").notNull(),
-    status: text("status", {
-      enum: ["running", "waiting", "completed", "failed", "compensating", "compensated"],
-    }).notNull(),
-    currentStep: text("current_step").notNull(),
-  },
-  (t) => [
-    unique().on(t.orgId, t.instanceId),
-    check("workflow_business_key", sql`${t.instanceId} = ${t.businessKey}`),
-    check(
-      "workflow_status",
-      sql`${t.status} IN ('running', 'waiting', 'completed', 'failed', 'compensating', 'compensated')`,
-    ),
-  ],
-);
-export const workflowStep = pgTable(
-  "workflow_step",
-  {
-    ...tenant(),
-    instanceId: text("instance_id").notNull(),
-    name: text("name").notNull(),
-    output: jsonb("output").notNull(),
-  },
-  (t) => [
-    unique().on(t.orgId, t.instanceId, t.name),
-    foreignKey({
-      columns: [t.orgId, t.instanceId],
-      foreignColumns: [workflowRun.orgId, workflowRun.instanceId],
-    }),
-    index().on(t.orgId, t.instanceId),
   ],
 );

@@ -27,6 +27,8 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -57,6 +59,8 @@
   --accent: oklch(0.9683 0.0069 247.9);
   --accent-foreground: oklch(0.2077 0.0398 265.75);
   --destructive: oklch(0.5771 0.2152 27.33);
+  --success: oklch(0.6271 0.1699 149.21);
+  --success-foreground: oklch(1 0 0);
   --border: oklch(0.9288 0.0126 255.51);
   --input: oklch(0.9288 0.0126 255.51);
   --ring: var(--primary);
@@ -86,6 +90,8 @@
     --accent: oklch(0.2795 0.0368 260.03);
     --accent-foreground: oklch(0.9842 0.0034 247.86);
     --destructive: oklch(0.6368 0.2078 25.33);
+    --success: oklch(0.7227 0.192 149.58);
+    --success-foreground: oklch(0.1288 0.0406 264.7);
     --border: oklch(0.2795 0.0368 260.03);
     --input: oklch(0.2795 0.0368 260.03);
     --page: oklch(0.1744 0.0258 171.89);
@@ -107,8 +113,14 @@
 
 /* Figma focus ring: 2px background gap, then 4px primary. Unlayered so it wins over each
    component's own ring utilities. Invalid fields keep the destructive ring, and an input inside
-   an input group hands the ring to the group (see InputGroup). */
-:focus-visible:not([aria-invalid="true"], [tabindex="-1"], [data-slot="input-group-control"]) {
+   an input group hands the ring to the group (see InputGroup), and the palette input sits inside
+   a bordered popover that needs none. */
+:focus-visible:not(
+  [aria-invalid="true"],
+  [tabindex="-1"],
+  [data-slot="input-group-control"],
+  [data-slot="command-input"]
+) {
   box-shadow:
     0 0 0 2px var(--background),
     0 0 0 4px var(--ring);

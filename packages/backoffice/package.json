@@ -7,10 +7,22 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
-    }
+    },
+    "./styles.css": "./src/styles.css"
   },
   "scripts": {
     "build": "tsc -b"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@shopper/config": "workspace:*",
+    "@shopper/core": "workspace:*",
+    "@shopper/ui": "workspace:*",
+    "@tanstack/react-form": "1.33.5",
+    "@tanstack/react-query": "5.103.3",
+    "@tanstack/react-router": "1.170.41",
+    "lucide-react": "1.55.0",
+    "react": "19.3.0",
+    "sonner": "2.0.8",
+    "valibot": "1.1.0"
+  }
 }

@@ -11,6 +11,10 @@
     "./management": {
       "types": "./src/management.ts",
       "default": "./src/management.ts"
+    },
+    "./catalogue": {
+      "types": "./src/catalogue/index.ts",
+      "default": "./src/catalogue/index.ts"
     }
   },
   "scripts": {
@@ -22,6 +26,7 @@
     "@shopper/money": "workspace:*",
     "@shopper/ports": "workspace:*",
     "drizzle-orm": "0.45.3",
-    "valibot": "1.1.0"
+    "valibot": "1.1.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   }
 }

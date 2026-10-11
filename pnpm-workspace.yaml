@@ -1,6 +1,7 @@
 packages:
   - apps/*
   - packages/*
+  - packages/adapters/*
   - tests
   - tooling/worker-tests
 catalog:

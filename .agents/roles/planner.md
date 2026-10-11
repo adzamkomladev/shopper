@@ -13,7 +13,7 @@ Return a plan with exactly these sections, kept short:
 2. **Behaviours as tests.** Each test name, its file under `tests/integration/<area>/` or
    `tests/e2e/<app>/`, and what it asserts. These are written first.
 3. **Changes.** Files to add or edit, grouped by package. For each: the shared function, then the
-   cloud shell (`adapters-cf`/`apps/edge`) and the box shell (`adapters-box`/`apps/box`) when
+   cloud shell (`adapters/cf`/`apps/edge`) and the box shell (`adapters/box`/`apps/box`) when
    platform code is involved. Name what is reused.
 4. **UI** (if any). Screens and components, every state (empty, loading, error, offline, no
    permission), keyboard shortcuts, and the Figma frames to match.

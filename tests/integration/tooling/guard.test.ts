@@ -47,7 +47,7 @@ test("guard reports each boundary, size and React rule it enforces", () => {
   write("packages/core/src/optional.ts", 'import { add } from "@shopper/money";\n');
   write("packages/core/src/devtool.ts", 'import { seed } from "../../../tooling/seed";\n');
   write(
-    "packages/adapters-cf/src/index.ts",
+    "packages/adapters/cf/src/index.ts",
     'import { DurableObject } from "cloudflare:workers";\n',
   );
 

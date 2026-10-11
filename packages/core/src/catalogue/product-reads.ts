@@ -4,7 +4,8 @@ import { price, product, productBarcode, taxClass } from "@shopper/db-pg";
 import { managementJson } from "../management";
 import { uuidV7Schema } from "@shopper/ports";
 import { priceAt, priceView } from "./prices";
-import { listQuery, lookupQuery, type Queryable } from "./schema";
+import { listQuery, lookupQuery } from "../schemas/catalogue";
+import type { Queryable } from "../types";
 
 const columns = {
   id: product.id,

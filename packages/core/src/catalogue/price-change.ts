@@ -5,17 +5,17 @@ import { defineCommand, type CommandContext } from "@shopper/audit";
 import { branch, price, product, store, type ShopperDatabase } from "@shopper/db-pg";
 import { money } from "@shopper/money";
 import {
-  uuidV7Schema,
   type Envelope,
   type Json,
   type Realtime,
   type Workflow,
   type WorkflowCheckpoint,
 } from "@shopper/ports";
-import { allocateStoreSequence } from "../index";
+import { allocateStoreSequence } from "../sequence";
 import { managementJson, ManagementError } from "../management";
 import { priceView } from "./prices";
-import { recordId, timestamp } from "./schema";
+import { priceChangeParams, scheduleInput } from "../schemas/catalogue";
+import { recordId } from "./records";
 
 export interface PriceChangeDeps {
   // Each step opens its own connection: workflows outlive the request that started them.
@@ -23,14 +23,6 @@ export interface PriceChangeDeps {
   realtime: Realtime;
   appVersion: string;
 }
-export const priceChangeParams = v.object({
-  orgId: uuidV7Schema,
-  priceId: uuidV7Schema,
-  actorId: v.optional(uuidV7Schema),
-  startsAt: timestamp,
-  endsAt: timestamp,
-});
-
 const policy = { maxAttempts: 5, delayMs: 1000, backoff: "exponential" } as const;
 
 /** The scheduled price change, shared by Cloudflare Workflows and the box engine. */
@@ -95,17 +87,6 @@ const endPriceChange = defineCommand({
 });
 
 export const priceChangeId = (orgId: string, priceId: string) => `price-change_${orgId}_${priceId}`;
-
-const scheduleInput = v.pipe(
-  v.strictObject({
-    amount: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
-    branchId: v.optional(uuidV7Schema),
-    startsAt: timestamp,
-    endsAt: timestamp,
-  }),
-  v.check((data) => data.endsAt > data.startsAt, "endsAt must be after startsAt"),
-  v.check((data) => data.endsAt.getTime() > Date.now(), "endsAt must be in the future"),
-);
 
 /**
  * Appends a windowed price version and records the workflow as waiting, in one transaction.

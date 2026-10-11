@@ -25,8 +25,8 @@ export async function runStoreDay(workflow: Workflow, deps: StoreDayDeps, input:
 ```
 
 The `Workflow` port (`packages/ports/src/index.ts`) defines `step`, `sleep`, `sleepUntil`,
-`waitFor`, `send` and `compensate`. `adapters-cf` binds it to a `WorkflowEntrypoint`
-(`step.do`, `step.sleep`, `step.sleepUntil`, `step.waitForEvent`). `adapters-box` binds it to a
+`waitFor`, `send` and `compensate`. `adapters/cf` binds it to a `WorkflowEntrypoint`
+(`step.do`, `step.sleep`, `step.sleepUntil`, `step.waitForEvent`). `adapters/box` binds it to a
 Rivet workflow. The live example of this pattern is `nextStoreSequence()`, which is shared by the
 `StoreSequencer` Durable Object and `boxSequencer()`. The first real workflow is `runPriceChange()`
 (`packages/core/src/catalogue/price-change.ts`): `PriceChangeWorkflow` runs it on Cloudflare and

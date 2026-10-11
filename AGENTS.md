@@ -26,7 +26,7 @@ Read the doc for the area you are touching **before** you change it:
 - IDs: UUIDv7. Never serial/autoincrement. Every table has org_id.
 - Every mutation goes through defineCommand() and writes an audit row in the same transaction.
 - Tax: read rules by date from the tax_rule table; snapshot tax onto every sale line.
-- Never import a Cloudflare binding or a Rivet handle outside packages/adapters-*.
+- Never import a Cloudflare binding or a Rivet handle outside packages/adapters/*.
   Business code uses @shopper/ports, Drizzle, unstorage, Hono only. One shared function, two thin shells.
 - Validation: Valibot only (import * as v from 'valibot'). Never add Zod.
 - Cache port: never read-after-write in the same request.

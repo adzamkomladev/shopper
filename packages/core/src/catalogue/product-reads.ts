@@ -37,21 +37,20 @@ export async function getProduct(db: Queryable, orgId: string, id: string) {
   if (!v.is(uuidV7Schema, id)) return null;
   const row = await loadProduct(db, orgId, id);
   if (!row) return null;
-  const [barcodes, prices] = await Promise.all([
-    db
-      .select({
-        code: productBarcode.code,
-        quantityThousandths: productBarcode.quantityThousandths,
-      })
-      .from(productBarcode)
-      .where(and(eq(productBarcode.orgId, orgId), eq(productBarcode.productId, id)))
-      .orderBy(asc(productBarcode.code)),
-    db
-      .select()
-      .from(price)
-      .where(and(eq(price.orgId, orgId), eq(price.productId, id)))
-      .orderBy(desc(price.validFrom), desc(price.id)),
-  ]);
+  // Sequential: one pg client runs one query at a time.
+  const barcodes = await db
+    .select({
+      code: productBarcode.code,
+      quantityThousandths: productBarcode.quantityThousandths,
+    })
+    .from(productBarcode)
+    .where(and(eq(productBarcode.orgId, orgId), eq(productBarcode.productId, id)))
+    .orderBy(asc(productBarcode.code));
+  const prices = await db
+    .select()
+    .from(price)
+    .where(and(eq(price.orgId, orgId), eq(price.productId, id)))
+    .orderBy(desc(price.validFrom), desc(price.id));
   return { ...row, barcodes, prices: prices.map(priceView) };
 }
 

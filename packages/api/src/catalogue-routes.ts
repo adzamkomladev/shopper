@@ -12,7 +12,10 @@ import {
   listCategories,
   listProducts,
   listSuppliers,
+  previewImport,
+  readImport,
   readPriceAt,
+  runImport,
   removeBarcode,
   saveCategory,
   saveSupplier,
@@ -21,10 +24,17 @@ import {
 } from "@shopper/core/catalogue";
 import { requirePermission, type ApiAuthentication, type ApiEnvironment } from "./auth-middleware";
 
+const maxUpload = 10 * 1024 * 1024;
+const multipartOverhead = 64 * 1024;
 type Ctx = Context<ApiEnvironment>;
 const priceBody = v.looseObject({
   reason: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(500)),
 });
+// The reason goes to the audit row, the rest is the price itself.
+function withReason(data: unknown) {
+  const { reason, ...price } = v.parse(priceBody, data);
+  return { reason, price };
+}
 
 /** Catalogue API: reads need product.read, writes product.write. Errors are mapped once, below. */
 export function catalogueRoutes(options: {
@@ -36,7 +46,7 @@ export function catalogueRoutes(options: {
   const guard = requirePermission(options.authentication, (request) =>
     request.method === "GET" ? "product.read" : "product.write",
   );
-  for (const root of ["products", "barcodes", "prices", "categories", "suppliers"])
+  for (const root of ["products", "barcodes", "prices", "categories", "suppliers", "catalogue"])
     app.use(`/${root}`, guard).use(`/${root}/*`, guard);
 
   const org = (c: Ctx) => c.get("principal").orgId;
@@ -98,9 +108,7 @@ export function catalogueRoutes(options: {
     return c.body(null, 204);
   });
   app.post("/products/:id/prices", async (c) => {
-    const data = await body(c);
-    const { reason } = v.parse(priceBody, data);
-    const { reason: _reason, ...price } = data as Record<string, unknown>;
+    const { reason, price } = withReason(await body(c));
     const result = await setPrice(db, context(c, reason), {
       productId: c.req.param("id"),
       data: price,
@@ -132,8 +140,32 @@ export function catalogueRoutes(options: {
     );
   }
 
+  app.post("/catalogue/imports", async (c) => {
+    // Multipart framing adds a little to the file; parseBody buffers it all, so refuse early.
+    if (Number(c.req.header("content-length")) > maxUpload + multipartOverhead)
+      return c.json({ error: "File is larger than 10 MB" }, 413);
+    const body = await c.req.parseBody().catch((cause) => {
+      throw new ManagementError(
+        "Could not read the upload; send multipart/form-data with a file field",
+        400,
+        { cause },
+      );
+    });
+    const file = body.file;
+    if (!(file instanceof File))
+      throw new ManagementError("Send the spreadsheet as a file field", 400);
+    if (file.size > maxUpload) return c.json({ error: "File is larger than 10 MB" }, 413);
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (c.req.query("dryRun") === "1") return c.json(await previewImport(db, org(c), bytes));
+    return c.json(await runImport(db, context(c), bytes, file.name), 201);
+  });
+  app.get("/catalogue/imports/:id", async (c) =>
+    c.json(await readImport(db, org(c), c.req.param("id"))),
+  );
+
   app.onError((error, c) => {
-    if (v.isValiError(error)) return c.json({ error: "Invalid request data" }, 400);
+    if (v.isValiError(error))
+      return c.json({ error: "Invalid request data", detail: error.issues[0].message }, 400);
     if (error instanceof ManagementError) return c.json({ error: error.message }, error.status);
     const pg = error as { code?: string; cause?: { code?: string } };
     const code = pg.code ?? pg.cause?.code;

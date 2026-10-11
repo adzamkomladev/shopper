@@ -3,12 +3,13 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Pool } from "pg";
+import { v7 } from "uuid";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
 import { defineCommand } from "@shopper/audit";
-import { boxCache, boxBlobs, boxSequencer, boxWorkflow } from "@shopper/adapters-box";
-import { portConformance } from "@shopper/conformance";
+import { boxCache, boxBlobs, boxRealtime, boxSequencer, boxWorkflow } from "@shopper/adapters-box";
+import { portConformance, realtimeConformance } from "@shopper/conformance";
 import { migrateDatabase } from "../../../tooling/migrate";
 import { provisionOrg, provisioningContext } from "../../../tooling/seed";
 import { postgresFixture } from "../../fixtures/postgres";
@@ -80,3 +81,9 @@ portConformance("box development adapters", test, async () => {
     },
   };
 });
+realtimeConformance("box broadcaster", test, async () => ({
+  orgId: v7(),
+  otherOrgId: v7(),
+  storeId: v7(),
+  realtime: boxRealtime(),
+}));

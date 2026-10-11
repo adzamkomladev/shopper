@@ -26,4 +26,4 @@ export default {
     }
   },
 };
-export { StoreSequencer } from "@shopper/adapters-cf/coordination";
+export { StoreHub, StoreSequencer } from "@shopper/adapters-cf/coordination";

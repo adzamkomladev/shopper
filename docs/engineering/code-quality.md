@@ -30,6 +30,21 @@ Never add to it.
 4. **Comments say why, not what.** Delete comments that restate the code. Keep the ones that explain
    a constraint, a trade-off, or a non-obvious invariant.
 
+## Layout inside a project
+
+Grow a project with folders, not new packages. Each app or package uses the same layout:
+
+- **`index.ts` only re-exports.** No logic, no routes, no schemas, no interfaces. Code inside the
+  project never imports its own `./index`. It imports the file that holds the code it needs.
+- **`schemas/`** holds the project's Valibot schemas, one file per domain (`schemas/catalogue.ts`,
+  `schemas/devices.ts`). Fields shared by several schemas go in `schemas/fields.ts`.
+- **`types.ts`** holds the project's interfaces and type aliases. Types inferred from a schema stay
+  next to that schema.
+- **Feature folders** group code that belongs together: `routes/` (one Hono sub-app per resource,
+  mounted in `app.ts`), `middleware/`, `cases/`, or a domain folder such as `catalogue/`.
+- **Adapters mirror each other.** `adapters-cf` and `adapters-box` use the same file names
+  (`storage`, `sequencer`, `realtime`, the workflow and launcher files).
+
 ## Shared helpers live in one place
 
 Before writing any helper, search the repo (`rg "function <idea>"`, read the owning package's
@@ -80,6 +95,7 @@ Use the standard library or the platform before writing a helper: `Intl`, `struc
 ## Slop checklist (reviewers reject on sight)
 
 - Code that duplicates an existing helper, schema, or component.
+- Logic, routes, schemas or interfaces in an `index.ts`.
 - Speculative abstractions: an interface with one implementation, a factory for one product, options
   nobody passes, "for later" scaffolding.
 - Dead code, commented-out code, unused exports, `TODO` without an owner and an issue.

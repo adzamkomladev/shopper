@@ -15,8 +15,10 @@ import { generateCatalogue, toSpreadsheet } from "./lib/catalogue-fixture";
 
 export const provisionOrg = defineCommand({
   name: "org.provision",
-  async run(tx, context, input: { name: string }) {
-    await tx.insert(org).values({ id: context.orgId, name: input.name });
+  async run(tx, context, input: { name: string; slug?: string }) {
+    await tx
+      .insert(org)
+      .values({ id: context.orgId, name: input.name, slug: input.slug?.trim().toLowerCase() });
     await tx.insert(taxClass).values([
       { orgId: context.orgId, code: "standard", name: "Standard" },
       { orgId: context.orgId, code: "zero-rated", name: "Zero-rated" },
@@ -49,7 +51,7 @@ export async function seedDevelopment(db: ShopperDatabase) {
     const [existing] = await tx.select().from(org).where(eq(org.name, "Shopper development"));
     if (existing) return { id: existing.id, created: false };
     const context = provisioningContext();
-    const result = await provisionOrg(tx, context, { name: "Shopper development" });
+    const result = await provisionOrg(tx, context, { name: "Shopper development", slug: "dev" });
     return { ...result, created: true };
   });
 }

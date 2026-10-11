@@ -12,6 +12,14 @@
       "types": "./src/management.ts",
       "default": "./src/management.ts"
     },
+    "./schemas": {
+      "types": "./src/schemas/index.ts",
+      "default": "./src/schemas/index.ts"
+    },
+    "./orgs": {
+      "types": "./src/orgs.ts",
+      "default": "./src/orgs.ts"
+    },
     "./catalogue": {
       "types": "./src/catalogue/index.ts",
       "default": "./src/catalogue/index.ts"

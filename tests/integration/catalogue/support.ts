@@ -1,7 +1,9 @@
 // Shared helpers for the catalogue suites. Importing it also registers the auth tenants and sessions.
 import { expect } from "vite-plus/test";
 import { eq } from "drizzle-orm";
+import type * as v from "valibot";
 import * as schema from "@shopper/db-pg";
+import type { productDetail } from "@shopper/core/schemas";
 import { verifyChain } from "@shopper/audit";
 import { api, context, cookies, db, request } from "../auth/setup";
 
@@ -35,25 +37,7 @@ export async function createProduct(extra: Record<string, unknown> = {}) {
   return (await response.json()) as ProductDetail;
 }
 
-export type ProductDetail = {
-  id: string;
-  sku: string;
-  name: string;
-  baseUnit: string;
-  taxClass: string;
-  categoryId: string | null;
-  supplierId: string | null;
-  onlineVisible: boolean;
-  archivedAt: string | null;
-  barcodes: { code: string; quantityThousandths: number }[];
-  prices: {
-    id: string;
-    branchId: string | null;
-    amount: number;
-    validFrom: string;
-    validTo: string | null;
-  }[];
-};
+export type ProductDetail = v.InferOutput<typeof productDetail>;
 
 export async function auditRowsFor(entityId: string) {
   const rows = await allAuditRows();

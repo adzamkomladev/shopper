@@ -56,3 +56,4 @@ export function boxWorkflow(instanceId: string): Workflow {
   return memoryWorkflow(instanceId);
 }
 export { boxDatabase } from "./database";
+export { boxRealtime } from "./realtime";

@@ -49,6 +49,10 @@
             "name": "STORE_SEQUENCER",
             "class_name": "StoreSequencer",
           },
+          {
+            "name": "STORE_HUB",
+            "class_name": "StoreHub",
+          },
         ],
       },
       "routes": [
@@ -94,6 +98,10 @@
         "name": "STORE_SEQUENCER",
         "class_name": "StoreSequencer",
       },
+      {
+        "name": "STORE_HUB",
+        "class_name": "StoreHub",
+      },
     ],
   },
   "account_id": "bd9ef997b398c9aeeee8ac3d3618efdc",
@@ -101,6 +109,10 @@
     {
       "tag": "v1",
       "new_sqlite_classes": ["StoreSequencer"],
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["StoreHub"],
     },
   ],
 }

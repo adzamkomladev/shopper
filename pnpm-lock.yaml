@@ -322,6 +322,9 @@ importers:
       unstorage:
         specifier: 1.17.4
         version: 1.17.4
+      valibot:
+        specifier: 1.1.0
+        version: 1.1.0(typescript@7.0.2)
 
   packages/adapters-cf:
     dependencies:
@@ -349,6 +352,9 @@ importers:
       unstorage:
         specifier: 1.17.4
         version: 1.17.4
+      valibot:
+        specifier: 1.1.0
+        version: 1.1.0(typescript@7.0.2)
 
   packages/api:
     dependencies:
@@ -455,6 +461,9 @@ importers:
       drizzle-orm:
         specifier: 0.45.3
         version: 0.45.3(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.1)
+      uuid:
+        specifier: 14.0.2
+        version: 14.0.2
       valibot:
         specifier: 1.1.0
         version: 1.1.0(typescript@7.0.2)

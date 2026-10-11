@@ -66,8 +66,11 @@ async function pause(delayMs: number): Promise<void> {
     await Promise.resolve();
     return;
   }
-  await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
+  // setTimeout fires at once past 2^31-1 ms (~24.8 days), so long sleeps wait in chunks.
+  for (let remaining = delayMs; remaining > 0; remaining -= MAX_TIMER_MS)
+    await new Promise<void>((resolve) => setTimeout(resolve, Math.min(remaining, MAX_TIMER_MS)));
 }
+const MAX_TIMER_MS = 2 ** 31 - 1;
 
 function retryDelay(policy: RetryPolicy, attempt: number): number {
   if (policy.backoff === "constant") return policy.delayMs;

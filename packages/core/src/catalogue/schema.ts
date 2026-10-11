@@ -10,7 +10,7 @@ const text = (max: number) => v.pipe(v.string(), v.trim(), v.minLength(1), v.max
 const name = text(200);
 const positiveInt = v.pipe(v.number(), v.safeInteger(), v.minValue(1), v.maxValue(2_147_483_647));
 // Strict ISO 8601 with Z or ±hh:mm, on a real calendar day (no silent 31 Feb -> 3 Mar roll-over).
-const timestamp = v.pipe(
+export const timestamp = v.pipe(
   v.string(),
   v.regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/),
   v.check((value) => {

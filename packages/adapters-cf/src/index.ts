@@ -10,9 +10,12 @@ import {
   scopedKey,
   sequenceSchema,
   uuidV7Schema,
+  workflowInstanceIdSchema,
   storedBlobs,
   type BlobUrlOptions,
   type Envelope,
+  type Json,
+  type WorkflowLauncher,
   type Realtime,
   type Sequencer,
   type Workflow,
@@ -63,6 +66,27 @@ export function cloudflareRealtime(binding: DurableObjectNamespace<StoreHub>): R
           });
       });
       return { close: async () => socket.close(1000, "Closed") };
+    },
+  };
+}
+// Starting an id that already exists is a no-op, as on the box: create() throws, get() proves it exists.
+export function cloudflareLauncher(binding: {
+  create(options: { id: string; params: Json }): Promise<unknown>;
+  get(id: string): Promise<unknown>;
+}): WorkflowLauncher {
+  return {
+    async start(instanceId, params) {
+      v.parse(workflowInstanceIdSchema, instanceId);
+      try {
+        await binding.create({ id: instanceId, params });
+      } catch (error) {
+        const exists = await binding.get(instanceId).then(
+          () => true,
+          () => false,
+        );
+        if (!exists) throw error;
+        console.warn({ event: "workflow.already_started", instanceId });
+      }
     },
   };
 }

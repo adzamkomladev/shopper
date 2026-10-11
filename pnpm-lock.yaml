@@ -587,12 +587,18 @@ importers:
       '@shopper/conformance':
         specifier: workspace:*
         version: link:../../packages/conformance
+      '@shopper/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@shopper/db-pg':
         specifier: workspace:*
         version: link:../../packages/db-pg
       '@shopper/db-sqlite':
         specifier: workspace:*
         version: link:../../packages/db-sqlite
+      '@shopper/ports':
+        specifier: workspace:*
+        version: link:../../packages/ports
       esbuild:
         specifier: 0.28.1
         version: 0.28.1

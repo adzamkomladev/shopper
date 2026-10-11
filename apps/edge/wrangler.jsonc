@@ -55,6 +55,13 @@
           },
         ],
       },
+      "workflows": [
+        {
+          "name": "shopper-price-change-staging",
+          "binding": "PRICE_CHANGE",
+          "class_name": "PriceChangeWorkflow",
+        },
+      ],
       "routes": [
         {
           "pattern": "shopper-api-staging.temtem.dev",
@@ -104,6 +111,13 @@
       },
     ],
   },
+  "workflows": [
+    {
+      "name": "shopper-price-change-dev",
+      "binding": "PRICE_CHANGE",
+      "class_name": "PriceChangeWorkflow",
+    },
+  ],
   "account_id": "bd9ef997b398c9aeeee8ac3d3618efdc",
   "migrations": [
     {

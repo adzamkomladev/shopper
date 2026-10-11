@@ -26,7 +26,8 @@
     "typescript": "7.0.2",
     "uuid": "14.0.2",
     "vite-plus": "1.0.0",
-    "wrangler": "4.147.0"
+    "wrangler": "4.147.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devEngines": {
     "packageManager": {

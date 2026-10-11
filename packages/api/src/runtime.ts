@@ -19,7 +19,7 @@ export interface RuntimeOptions {
 export const publicApi = createApi();
 export function isPublicRequest(request: Request) {
   const path = new URL(request.url).pathname;
-  return !/^\/(?:api\/auth(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|devices(?:\/|$)|cashiers(?:\/|$))/.test(
+  return !/^\/(?:api\/auth(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|devices(?:\/|$)|cashiers(?:\/|$)|(?:products|categories|suppliers|prices|barcodes|catalogue)(?:\/|$))/.test(
     path,
   );
 }

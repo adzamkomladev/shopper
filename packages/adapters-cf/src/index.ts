@@ -56,13 +56,16 @@ export function cloudflareRealtime(binding: DurableObjectNamespace<StoreHub>): R
       const socket = response.webSocket;
       if (!socket) throw new Error(`StoreHub refused the connection (${response.status})`);
       socket.accept();
+      // Deliveries run one at a time in order; a failed handler drops the socket and the queue.
+      let queue = Promise.resolve();
       socket.addEventListener("message", (event) => {
-        // A failed handler drops the socket; the subscriber resubscribes from its cursor.
-        Promise.resolve()
+        queue = queue
           .then(() => onMessage(JSON.parse(String(event.data)) as Envelope))
           .catch((error: unknown) => {
             console.error({ event: "realtime.handler_failed", orgId, storeId, deviceId, error });
             socket.close(1011, "Message handler failed");
+            // Never settles, so nothing already queued behind the failure is delivered.
+            return new Promise<void>(() => {});
           });
       });
       return { close: async () => socket.close(1000, "Closed") };

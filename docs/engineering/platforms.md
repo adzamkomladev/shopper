@@ -28,7 +28,20 @@ The `Workflow` port (`packages/ports/src/index.ts`) defines `step`, `sleep`, `sl
 `waitFor`, `send` and `compensate`. `adapters-cf` binds it to a `WorkflowEntrypoint`
 (`step.do`, `step.sleep`, `step.sleepUntil`, `step.waitForEvent`). `adapters-box` binds it to a
 Rivet workflow. The live example of this pattern is `nextStoreSequence()`, which is shared by the
-`StoreSequencer` Durable Object and `boxSequencer()`.
+`StoreSequencer` Durable Object and `boxSequencer()`. The first real workflow is `runPriceChange()`
+(`packages/core/src/catalogue/price-change.ts`): `PriceChangeWorkflow` runs it on Cloudflare and
+`boxPriceChange()` on the box (memory engine until Rivet, day 36).
+
+- Start workflows through a `WorkflowLauncher` (one per kind). `start` only acknowledges the launch;
+  starting an existing instance id is a no-op on both engines. Ids must pass
+  `workflowInstanceIdSchema` (Cloudflare's rule: letters, digits, `-`, `_`, at most 100 characters).
+- Launch inside the command that creates the business row. If that transaction rolls back, the flow
+  finds nothing and closes its `workflow_run` instead of sleeping.
+- Step outputs are JSON and checkpointed through `defineCommand`, so a retried step resends the same
+  envelopes. A flow that runs out of retries records `failed` before it throws.
+- The `Realtime` port: device ids are UUIDv7, cursors are store sequences (`sequenceSchema`), one
+  socket per device, replay in sequence order from a bounded log, and deliveries run one at a time.
+  A failing handler drops that subscription; the subscriber reconnects from its cursor.
 
 ## Feature map
 

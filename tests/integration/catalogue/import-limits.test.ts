@@ -27,6 +27,28 @@ test("a declared Content-Length over the limit is refused before the body is rea
   expect(response.status).toBe(413);
 });
 
+test("a chunked upload with no Content-Length still stops at 10 MB", async () => {
+  const chunk = new Uint8Array(1024 * 1024);
+  let sent = 0;
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (sent++ < 12) controller.enqueue(chunk);
+      else controller.close();
+    },
+  });
+  const response = await api.request("/catalogue/imports", {
+    method: "POST",
+    headers: {
+      cookie: cookies.get("superadmin")!,
+      "content-type": "multipart/form-data; boundary=x",
+    },
+    body,
+    duplex: "half",
+  } as RequestInit);
+  expect(response.status).toBe(413);
+  expect(sent).toBeLessThan(13);
+});
+
 test(
   "22,000 new categories and suppliers import without exceeding bind parameters",
   {

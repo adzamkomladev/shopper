@@ -14,7 +14,8 @@ export type CleanRow = {
   department: string | null;
   category: string | null;
   supplier: string | null;
-  taxClass: TaxClass;
+  // Undefined only when the file has no Tax Class column; existing products then keep theirs.
+  taxClass?: TaxClass;
   amount: Money;
   onlineVisible: boolean;
 };
@@ -22,7 +23,6 @@ export type CleanRow = {
 const units = new Set(["each", "kg", "g", "l", "ml"]);
 const taxAliases = new Map<string, TaxClass>(
   Object.entries({
-    "": "standard",
     standard: "standard",
     vat: "standard",
     "15%": "standard",
@@ -118,8 +118,13 @@ export function validateRows(sheet: SheetRows, headers: Headers) {
 
     const unit = cell("unit").toLowerCase() || "each";
     if (!units.has(unit)) fail("unit", `Unit must be one of ${[...units].join(", ")}`);
-    const taxClass = taxAliases.get(cell("taxClass").toLowerCase().replace(/\s+/g, " "));
-    if (!taxClass) fail("taxClass", "Unknown tax class (use Standard, Zero-rated or Exempt)");
+    // A blank tax class is an error, never a silent "standard": a wrong rate taxes every sale.
+    const taxText = cell("taxClass").toLowerCase().replace(/\s+/g, " ");
+    const taxClass = headers.taxClass ? taxAliases.get(taxText) : undefined;
+    if (headers.taxClass && !taxText)
+      fail("taxClass", "Tax class is required (Standard, Zero-rated or Exempt)");
+    else if (headers.taxClass && !taxClass)
+      fail("taxClass", "Unknown tax class (use Standard, Zero-rated or Exempt)");
     const online = flags.get(cell("online").toLowerCase());
     if (online === undefined) fail("online", "Online must be Yes or No");
     const department = optionalName("department");
@@ -153,7 +158,7 @@ export function validateRows(sheet: SheetRows, headers: Headers) {
       department,
       category,
       supplier,
-      taxClass: taxClass!,
+      taxClass,
       amount: amount!,
       onlineVisible: online!,
     });

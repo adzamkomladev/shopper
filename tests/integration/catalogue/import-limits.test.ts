@@ -62,8 +62,9 @@ test(
       "1.00",
       `${tag} cat ${i}`,
       `${tag} sup ${i}`,
+      "Standard",
     ]);
-    const result = await importOk(csv([...head, "Category", "Supplier"], rows));
+    const result = await importOk(csv([...head, "Category", "Supplier", "Tax Class"], rows));
     expect(result).toMatchObject({ rowsOk: 22_000, created: 22_000 });
   },
 );

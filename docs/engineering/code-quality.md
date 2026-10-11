@@ -42,7 +42,7 @@ Grow a project with folders, not new packages. Each app or package uses the same
   next to that schema.
 - **Feature folders** group code that belongs together: `routes/` (one Hono sub-app per resource,
   mounted in `app.ts`), `middleware/`, `cases/`, or a domain folder such as `catalogue/`.
-- **Adapters mirror each other.** `adapters-cf` and `adapters-box` use the same file names
+- **Adapters mirror each other.** `adapters/cf` and `adapters/box` use the same file names
   (`storage`, `sequencer`, `realtime`, the workflow and launcher files).
 
 ## Shared helpers live in one place

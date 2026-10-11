@@ -46,7 +46,7 @@ tooling/worker-tests/         Workers runtime suite (Vitest 4 + Cloudflare plugi
 - **Real commands.** Change data through `defineCommand()`, the API, or the till-host, exactly as
   production does. Then assert on the rows, the audit chain (`verifyChain`), and the HTTP response.
 - **Both adapters for anything behind a port.** Conformance suites live in `packages/conformance`
-  and run against `adapters-box` (in `tests/integration/ports`) and `adapters-cf` (in
+  and run against `adapters/box` (in `tests/integration/ports`) and `adapters/cf` (in
   `tooling/worker-tests`). A port change without both green is not done.
 - **Golden sale fixtures** for money and tax. A trading day of sales runs through the full sale path
   and must match the stored expected totals to the last 1/10000 of a cedi. Changing a golden file

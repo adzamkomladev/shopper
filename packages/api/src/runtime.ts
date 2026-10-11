@@ -1,3 +1,4 @@
+import type { WorkflowLauncher } from "@shopper/ports";
 import * as v from "valibot";
 import { buildInfo } from "@shopper/config";
 import { createDeviceService } from "@shopper/auth/devices";
@@ -15,6 +16,7 @@ export interface RuntimeOptions {
   orgId?: string;
   bootstrapToken?: string;
   clientIP?: string;
+  priceChange?: WorkflowLauncher;
 }
 export const publicApi = createApi();
 export function isPublicRequest(request: Request) {
@@ -72,5 +74,6 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     database: options.database,
     authentication: { ...authentication, resolvePrincipal },
     devices,
+    priceChange: options.priceChange,
   }).fetch(request);
 }

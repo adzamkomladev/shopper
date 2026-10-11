@@ -26,6 +26,7 @@
     "@shopper/money": "workspace:*",
     "@shopper/ports": "workspace:*",
     "drizzle-orm": "0.45.3",
+    "uuid": "14.0.2",
     "valibot": "1.1.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   }

@@ -15,6 +15,7 @@ import {
 import { dateSchema } from "@shopper/tax";
 import { requirePermission, type ApiAuthentication, type ApiEnvironment } from "./auth-middleware";
 import { catalogueRoutes } from "./catalogue-routes";
+import type { WorkflowLauncher } from "@shopper/ports";
 
 export { requirePermission, type ApiAuthentication, type ApiPrincipal } from "./auth-middleware";
 
@@ -24,6 +25,7 @@ export interface ApiOptions {
   devices?: ReturnType<typeof createDeviceService>;
   // Populated by the authenticated session adapter; never derive this from request parameters.
   resolveOrgId?: (request: Request) => Promise<string | null>;
+  priceChange?: WorkflowLauncher;
 }
 export function createApi(options: ApiOptions = {}) {
   const app = new Hono<ApiEnvironment>();
@@ -57,7 +59,11 @@ export function createApi(options: ApiOptions = {}) {
   if (options.database)
     app.route(
       "/",
-      catalogueRoutes({ database: options.database, authentication: options.authentication }),
+      catalogueRoutes({
+        database: options.database,
+        authentication: options.authentication,
+        priceChange: options.priceChange,
+      }),
     );
   if (options.authentication?.handler)
     app.all("/api/auth/*", (c) => options.authentication!.handler!(c.req.raw));

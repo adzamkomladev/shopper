@@ -2,6 +2,7 @@ import { Hono, type Context } from "hono";
 import * as v from "valibot";
 import { buildInfo } from "@shopper/config";
 import type { ShopperDatabase } from "@shopper/db-pg";
+import type { WorkflowLauncher } from "@shopper/ports";
 import { ManagementError } from "@shopper/core/management";
 import {
   addBarcode,
@@ -21,6 +22,7 @@ import {
   saveSupplier,
   setPrice,
   updateProduct,
+  schedulePrice,
 } from "@shopper/core/catalogue";
 import { requirePermission, type ApiAuthentication, type ApiEnvironment } from "./auth-middleware";
 
@@ -40,6 +42,7 @@ function withReason(data: unknown) {
 export function catalogueRoutes(options: {
   database: ShopperDatabase;
   authentication?: ApiAuthentication;
+  priceChange?: WorkflowLauncher;
 }) {
   const db = options.database;
   const app = new Hono<ApiEnvironment>();
@@ -114,6 +117,17 @@ export function catalogueRoutes(options: {
       data: price,
     });
     return c.json(result.after, 201);
+  });
+  app.post("/products/:id/prices/schedule", async (c) => {
+    const launcher = options.priceChange;
+    if (!launcher) return c.json({ error: "Scheduled price changes are unavailable" }, 503);
+    const { reason, price } = withReason(await body(c));
+    const result = await schedulePrice(db, context(c, reason), {
+      productId: c.req.param("id"),
+      data: price,
+      launch: (id, params) => launcher.start(id, params),
+    });
+    return c.json(result, 201);
   });
   app.get("/barcodes/:code", async (c) => {
     const found = await findByBarcode(db, org(c), c.req.param("code"), lookup(c));

@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.64.0",
     "@shopper/adapters-box": "workspace:*",
     "@shopper/api": "workspace:*",
     "@shopper/audit": "workspace:*",

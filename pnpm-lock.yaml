@@ -569,6 +569,9 @@ importers:
       '@shopper/tax':
         specifier: workspace:*
         version: link:../packages/tax
+      valibot:
+        specifier: 1.1.0
+        version: 1.1.0(typescript@7.0.2)
 
   tooling/worker-tests:
     devDependencies:

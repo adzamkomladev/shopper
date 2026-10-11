@@ -7,6 +7,7 @@ import { createAuth } from "@shopper/auth";
 import { managementId } from "@shopper/core/management";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import { createApi } from "./app";
+import { orgRoutes } from "./routes/orgs";
 
 export interface RuntimeOptions {
   database: ShopperDatabase;
@@ -21,7 +22,7 @@ export interface RuntimeOptions {
 export const publicApi = createApi();
 export function isPublicRequest(request: Request) {
   const path = new URL(request.url).pathname;
-  return !/^\/(?:api\/auth(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|devices(?:\/|$)|cashiers(?:\/|$)|(?:products|categories|suppliers|prices|barcodes|catalogue)(?:\/|$))/.test(
+  return !/^\/(?:api\/auth(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|devices(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue)(?:\/|$))/.test(
     path,
   );
 }
@@ -30,6 +31,9 @@ export function runtimeUnavailable() {
 }
 export async function serveRuntime(request: Request, options: RuntimeOptions): Promise<Response> {
   if (isPublicRequest(request)) return publicApi.fetch(request);
+  // The shop code lookup is how a browser finds its tenant, so it runs before the tenant checks.
+  if (/^\/orgs(?:\/|$)/.test(new URL(request.url).pathname))
+    return orgRoutes(options).fetch(request);
   const headers = new Headers(request.headers);
   headers.delete("X-Shopper-Client-IP");
   if (options.clientIP) headers.set("X-Shopper-Client-IP", options.clientIP);

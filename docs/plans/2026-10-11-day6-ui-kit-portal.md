@@ -11,6 +11,7 @@ This is Day 6 of the 45-day plan ([Notion row](https://app.notion.com/3eba2c999c
 The Day-5 plan also moved the catalogue, price and import screens to today.
 
 Starting point:
+
 - `@shopper/ui` exports only an `About` component.
 - `@shopper/backoffice` is empty.
 - The portal is a one-route TanStack Router stub.
@@ -18,6 +19,7 @@ Starting point:
 - The Day-5 catalogue API is complete.
 
 **Decisions taken by the user:**
+
 - **Tenant:** a "Shop code" (the org slug) at login, looked up through a new public `GET /orgs/:slug`. Shops are remembered on the device, and the org switcher lists them. The box hides the field (fixed `SHOPPER_ORG_ID`).
 - **Figma till frames** (barcode scanner, purchases) are a **style reference only**. Till sale screens come on days 8–10.
 - **Login** uses email + password. Figma says "Username"; we relabel it Email.
@@ -26,6 +28,7 @@ Starting point:
 **Data is disposable:** reset the dev DB, D1, KV and DO freely. Commit after each slice. Push only at the end, then update Notion.
 
 **Planner defaults I'm taking.** Change them on approval if you disagree:
+
 - The product list shows the current org-wide price and sorts newest first.
 - One session per origin for now (per-org cookie prefix deferred).
 - Accept the React Compiler via `@rolldown/plugin-babel`.
@@ -37,27 +40,29 @@ Branch: `claude/day6-ui-kit-portal` off `main`. Saved to the repo as `docs/plans
 ## Figma → tokens (file `4MtEIWv8yBUBYgkrk4ubPk`)
 
 **Frames:**
+
 - 12-66: Input
 - 9-61: login flow plus a "Login Completed" card
 - 27-2031 and 45-852: the shell and table language
 
 **Theme:** shadcn new-york, slate base.
 
-| Token | Value |
-|---|---|
-| `--primary` | `#155058` (foreground white) |
-| `--foreground` | `#020617` |
-| `--muted`, `--secondary` | `#f1f5f9` |
-| `--muted-foreground` | `#64748b` |
-| `--border`, `--input` | `#e2e8f0` |
-| `--destructive` | `#dc2626` |
-| `--radius` | 8px (inputs 6px) |
-| Font | Geist, self-hosted (the box is offline) |
-| Focus ring | 2px background + 4px primary |
-| Page tint | `#f0fdf4` |
-| Shell | Teal backdrop with a 20px rounded white panel |
+| Token                    | Value                                         |
+| ------------------------ | --------------------------------------------- |
+| `--primary`              | `#155058` (foreground white)                  |
+| `--foreground`           | `#020617`                                     |
+| `--muted`, `--secondary` | `#f1f5f9`                                     |
+| `--muted-foreground`     | `#64748b`                                     |
+| `--border`, `--input`    | `#e2e8f0`                                     |
+| `--destructive`          | `#dc2626`                                     |
+| `--radius`               | 8px (inputs 6px)                              |
+| Font                     | Geist, self-hosted (the box is offline)       |
+| Focus ring               | 2px background + 4px primary                  |
+| Page tint                | `#f0fdf4`                                     |
+| Shell                    | Teal backdrop with a 20px rounded white panel |
 
 **Shell:**
+
 - Top nav: org combobox, text links, search input, avatar.
 - H1 is `text-3xl` bold.
 - Card table: search input-group, filters, underline tabs, a muted/50 header, 66px two-line rows, badges, right-aligned totals.
@@ -69,6 +74,7 @@ Branch: `claude/day6-ui-kit-portal` off `main`. Saved to the repo as `docs/plans
 **Integration (Vitest + PG18 fixture)**
 
 `tests/integration/api/org-lookup.test.ts`:
+
 - a shop code resolves to only `{id, name}`, with no session or tenant header
 - matching ignores case and surrounding spaces
 - an unknown code returns 404
@@ -77,10 +83,12 @@ Branch: `claude/day6-ui-kit-portal` off `main`. Saved to the repo as `docs/plans
 - `provisionOrg` stores the slug it is given
 
 `tests/integration/catalogue/views.test.ts`:
+
 - list, detail, price, category, supplier, import preview and import record responses all parse with the published view schemas
 - the hand-written `ProductDetail` in `catalogue/support.ts` is replaced by the inferred type
 
 `tests/integration/catalogue/errors.test.ts`:
+
 - a duplicate SKU returns 409 with `field: "sku"`
 - a duplicate barcode returns 409 with `field: "barcodes"`
 - an invalid body returns 400 naming the field path
@@ -90,6 +98,7 @@ Branch: `claude/day6-ui-kit-portal` off `main`. Saved to the repo as `docs/plans
 `auth.setup.ts` signs up an owner per e2e org with the bootstrap token, creates the branch "Accra Central", and saves `storageState`.
 
 `login.spec.ts`:
+
 - keyboard-only sign-in with shop code, email and password lands on products
 - an unknown shop code shows an error on the field
 - a wrong password keeps the code and shows a form error
@@ -98,6 +107,7 @@ Branch: `claude/day6-ui-kit-portal` off `main`. Saved to the repo as `docs/plans
 - axe, plus screenshots at 1366, 1440 and 390
 
 `catalogue.spec.ts`:
+
 - **log in, create a product, and see it in the list**
 - an empty catalogue offers "Add product" and "Import spreadsheet"
 - search by name, SKU or barcode, with a "no match, clear search" state
@@ -109,6 +119,7 @@ Branch: `claude/day6-ui-kit-portal` off `main`. Saved to the repo as `docs/plans
 - axe and screenshots
 
 `product.spec.ts`:
+
 - an edit persists after reload
 - a pack barcode with quantity 24 can be added and removed
 - setting a price with a reason shows GH₵ 12.50 in the history
@@ -118,33 +129,37 @@ Branch: `claude/day6-ui-kit-portal` off `main`. Saved to the repo as `docs/plans
 - axe
 
 `import.spec.ts`:
+
 - a messy-file dry run reports bad rows by row and column and writes nothing
 - running the import adds the good rows
 - axe
 
 `tests/e2e/till-ui/smoke.spec.ts`:
+
 - the till renders `@shopper/ui` Button and Card with the shared theme: the computed background equals `--primary`
 
 ## Changes
 
 **Dependencies.** All pinned exact. Check each with context7 or npm before installing.
 
-| Where | Packages |
-|---|---|
-| root devDeps | `@tailwindcss/vite` 4.x, `babel-plugin-react-compiler` 1.0.0, `@rolldown/plugin-babel` |
-| `tests` | `@playwright/test`, `@axe-core/playwright` |
-| `packages/ui` | `tailwindcss`, `tw-animate-css`, `radix-ui`, `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`, `sonner`, `cmdk`, `@tanstack/react-table`, `@tanstack/react-virtual`, `@fontsource-variable/geist` |
-| `packages/backoffice` | `@tanstack/react-query`, `@tanstack/react-form`, `@tanstack/react-router` 1.170.41, `valibot` |
+| Where                 | Packages                                                                                                                                                                                                              |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| root devDeps          | `@tailwindcss/vite` 4.x, `babel-plugin-react-compiler` 1.0.0, `@rolldown/plugin-babel`                                                                                                                                |
+| `tests`               | `@playwright/test`, `@axe-core/playwright`                                                                                                                                                                            |
+| `packages/ui`         | `tailwindcss`, `tw-animate-css`, `radix-ui`, `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`, `sonner`, `cmdk`, `@tanstack/react-table`, `@tanstack/react-virtual`, `@fontsource-variable/geist` |
+| `packages/backoffice` | `@tanstack/react-query`, `@tanstack/react-form`, `@tanstack/react-router` 1.170.41, `valibot`                                                                                                                         |
 
 shadcn itself is never a dependency. It runs as `vp dlx shadcn@<pin from .mcp.json>` or through the shadcn MCP.
 
 **@shopper/core**
+
 - `src/orgs.ts`: `findOrgBySlug` and `findOrg`.
 - `src/schemas/catalogue-views.ts`: response schemas (`productSummary`, `productPage`, `productDetail`, `priceView`, `categoryView`, `supplierView`, `importPreview`, `importRecord`, `orgSummary`).
 - New `"./schemas"` export with re-exports only.
 - `listProducts`: add the current org-wide price (lateral join) and a newest-first keyset.
 
 **@shopper/api**
+
 - `src/routes/orgs.ts`: `GET /orgs/current` and `GET /orgs/:slug`.
 - `src/runtime.ts`: dispatch `/orgs/*` before the origin and tenant checks. These routes are read-only and GET-only.
 - Catalogue `onError` adds `field`. Move the mapping to `src/middleware/problem.ts` if `catalogue.ts` would pass 250 lines.
@@ -153,6 +168,7 @@ shadcn itself is never a dependency. It runs as `vp dlx shadcn@<pin from .mcp.js
 **tooling/seed.ts:** `provisionOrg` takes `slug`, and the dev org gets `slug: "dev"`. Reset the dev DB.
 
 **@shopper/ui (shadcn/ui, presentation only)**
+
 - `components.json`: new-york, slate, CSS variables, `tailwind.css: src/styles/theme.css`.
 - `package.json` exports `./components/*`, `./hooks/*`, `./lib/*` and `./styles.css`.
 - `src/styles/theme.css` is the single token file. It holds `@theme inline` with the Figma tokens in oklch, light and dark, imports Geist and tw-animate, and declares its own `@source`.
@@ -167,6 +183,7 @@ shadcn itself is never a dependency. It runs as `vp dlx shadcn@<pin from .mcp.js
 - `About` moves to `components/about.tsx`.
 
 **@shopper/backoffice** (layer 4). Mounted by the portal now and by Electron on day 13.
+
 - `src/routes.tsx`, `createBackofficeRoutes(rootRoute)`:
   - `/login`
   - a `_shop` layout whose `beforeLoad` runs `ensureQueryData(session)` and otherwise redirects to `/login?shop=`
@@ -180,17 +197,18 @@ shadcn itself is never a dependency. It runs as `vp dlx shadcn@<pin from .mcp.js
 - `src/schemas/forms.ts`: the price form maps a decimal string through `fromDecimal` to Money. Product forms reuse `productInput` and `productPatch`.
 - Screen folders, each with `*-screen.tsx`, part files, `queries.ts` and `use-*-shortcuts.ts`:
 
-| Screen | Parts | States | Shortcuts |
-|---|---|---|---|
-| `login/` (Figma 9-61) | shop code → email → password → Login; success card with Continue | Focus ring; shop-code error; bad credentials; box hides the code | Enter |
-| `shell/` (45-852 nav) | Backdrop panel, top nav (Products, Import), shop switcher (Popover + Command), command palette, user menu (version from `buildInfo`, sign out), offline banner, Toaster | Offline | Mod+K palette; `/` search |
-| `products/` | Toolbar (search, category), DataTable (name + SKU, category, unit, price, tax and online badges), new-product Sheet; infinite keyset, 100 per page | Skeleton, empty, no match, 403, error, offline | N new; Esc |
-| `product/$id` | Details form, barcodes card, prices card (current, upcoming, history, branch overrides), price dialog, schedule dialog | No price yet, 404, field errors | Mod+S; P price |
-| `import/` | Native file input and drop zone, dry-run report DataTable, run | Idle, checking, report, running, done, 413/400 | Mod+Enter |
+| Screen                | Parts                                                                                                                                                                   | States                                                           | Shortcuts                 |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------- |
+| `login/` (Figma 9-61) | shop code → email → password → Login; success card with Continue                                                                                                        | Focus ring; shop-code error; bad credentials; box hides the code | Enter                     |
+| `shell/` (45-852 nav) | Backdrop panel, top nav (Products, Import), shop switcher (Popover + Command), command palette, user menu (version from `buildInfo`, sign out), offline banner, Toaster | Offline                                                          | Mod+K palette; `/` search |
+| `products/`           | Toolbar (search, category), DataTable (name + SKU, category, unit, price, tax and online badges), new-product Sheet; infinite keyset, 100 per page                      | Skeleton, empty, no match, 403, error, offline                   | N new; Esc                |
+| `product/$id`         | Details form, barcodes card, prices card (current, upcoming, history, branch overrides), price dialog, schedule dialog                                                  | No price yet, 404, field errors                                  | Mod+S; P price            |
+| `import/`             | Native file input and drop zone, dry-run report DataTable, run                                                                                                          | Idle, checking, report, running, done, 413/400                   | Mod+Enter                 |
 
 Search state lives in `?q&categoryId`, validated by Valibot.
 
 **Apps**
+
 - `apps/portal`:
   - `vite.config.ts`: tailwind and React with the compiler. A proxy sends `/api` → `SHOPPER_API_URL ?? :8787`, stripping `/api` except for `/api/auth`, and keeps Origin.
   - `src/index.tsx`: root route with context, a `QueryClient`, and `createBackofficeRoutes`.
@@ -201,6 +219,7 @@ Search state lives in `?q&categoryId`, validated by Valibot.
 - `apps/portal/README.md`: a sign-up curl line.
 
 **E2E harness**
+
 - Root `playwright.config.ts`:
   - projects `setup` → `portal`, plus `till-ui`
   - workers 1
@@ -228,6 +247,7 @@ Search state lives in `?q&categoryId`, validated by Valibot.
 ## Slices: agents, skills, commits
 
 Every slice follows `tdd-slice`:
+
 1. `test-author` writes the red tests.
 2. `implementer` or `ui-builder` turns them green. UI slices load the `ui-screen` skill and use the shadcn MCP, Figma `get_design_context`/`get_screenshot` and Playwright MCP screenshots.
 3. `checker` runs `vp check`, the guard and tests.
@@ -236,19 +256,20 @@ Every slice follows `tdd-slice`:
 
 `explorer` handles lookups, and context7 covers TanStack, Tailwind v4 and the shadcn docs. Nothing is pushed until slice 7.
 
-| # | Slice | Commit |
-|---|---|---|
-| 0 | Branch, save the plan into `docs/plans/` | `docs: day 6 plan` |
-| 1 | Org lookup, view schemas, `field` errors, list price and order, seed slug; three integration files | `feat(api): shop code lookup, catalogue view schemas, field errors` |
-| 2 | Toolchain, Tailwind v4, React Compiler, **shadcn init and components**, theme tokens, DataTable, Money, shortcuts, `useOnline`; till-ui on the kit; Playwright harness and CI; till smoke spec | `feat(ui): shadcn/ui kit on Tailwind v4 with Figma tokens` |
-| 3 | Backoffice client, shop store, routes, login, shell, switcher, palette, proxy; `auth.setup` and `login.spec` | `feat(backoffice): portal shell, shop code login and switcher` |
-| 4 | Products list and new-product sheet; `catalogue.spec` | `feat(backoffice): product list and create` |
-| 5 | Product editor, barcodes, prices, schedule; `product.spec` | `feat(backoffice): product editor and pricing` |
-| 6 | Import screen; `import.spec` (plus `silent-failure-hunter`) | `feat(backoffice): spreadsheet import with dry run` |
-| 7 | Whole-branch `pre-merge-review` and a final `ui-reviewer` pass. Docs: developer-experience, testing and frontend. Full check run. **Push**, open the PR with screenshots, then bind the PR with the `ccd_pr` tools | `docs: day 6 rules and harness` |
-| 8 | Notion Day 6 row: tick the tasks, add a "Day 6 complete" section (commits, test counts, PR link, remarks), set Status = Done | none |
+| #   | Slice                                                                                                                                                                                                              | Commit                                                              |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| 0   | Branch, save the plan into `docs/plans/`                                                                                                                                                                           | `docs: day 6 plan`                                                  |
+| 1   | Org lookup, view schemas, `field` errors, list price and order, seed slug; three integration files                                                                                                                 | `feat(api): shop code lookup, catalogue view schemas, field errors` |
+| 2   | Toolchain, Tailwind v4, React Compiler, **shadcn init and components**, theme tokens, DataTable, Money, shortcuts, `useOnline`; till-ui on the kit; Playwright harness and CI; till smoke spec                     | `feat(ui): shadcn/ui kit on Tailwind v4 with Figma tokens`          |
+| 3   | Backoffice client, shop store, routes, login, shell, switcher, palette, proxy; `auth.setup` and `login.spec`                                                                                                       | `feat(backoffice): portal shell, shop code login and switcher`      |
+| 4   | Products list and new-product sheet; `catalogue.spec`                                                                                                                                                              | `feat(backoffice): product list and create`                         |
+| 5   | Product editor, barcodes, prices, schedule; `product.spec`                                                                                                                                                         | `feat(backoffice): product editor and pricing`                      |
+| 6   | Import screen; `import.spec` (plus `silent-failure-hunter`)                                                                                                                                                        | `feat(backoffice): spreadsheet import with dry run`                 |
+| 7   | Whole-branch `pre-merge-review` and a final `ui-reviewer` pass. Docs: developer-experience, testing and frontend. Full check run. **Push**, open the PR with screenshots, then bind the PR with the `ccd_pr` tools | `docs: day 6 rules and harness`                                     |
+| 8   | Notion Day 6 row: tick the tasks, add a "Day 6 complete" section (commits, test counts, PR link, remarks), set Status = Done                                                                                       | none                                                                |
 
 **Remarks for the Notion section:**
+
 - the `/api` prefix
 - one session per origin
 - prod hosting deferred to release

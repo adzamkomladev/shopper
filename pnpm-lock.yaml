@@ -214,6 +214,9 @@ importers:
       wrangler:
         specifier: 4.147.0
         version: 4.147.0(@types/node@24.19.1)
+      xlsx:
+        specifier: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
+        version: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
 
   apps/box:
     dependencies:
@@ -319,6 +322,9 @@ importers:
       unstorage:
         specifier: 1.17.4
         version: 1.17.4
+      valibot:
+        specifier: 1.1.0
+        version: 1.1.0(typescript@7.0.2)
 
   packages/adapters-cf:
     dependencies:
@@ -346,6 +352,9 @@ importers:
       unstorage:
         specifier: 1.17.4
         version: 1.17.4
+      valibot:
+        specifier: 1.1.0
+        version: 1.1.0(typescript@7.0.2)
 
   packages/api:
     dependencies:
@@ -431,6 +440,9 @@ importers:
       '@shopper/ports':
         specifier: workspace:*
         version: link:../ports
+      uuid:
+        specifier: 14.0.2
+        version: 14.0.2
 
   packages/core:
     dependencies:
@@ -449,9 +461,15 @@ importers:
       drizzle-orm:
         specifier: 0.45.3
         version: 0.45.3(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.1)
+      uuid:
+        specifier: 14.0.2
+        version: 14.0.2
       valibot:
         specifier: 1.1.0
         version: 1.1.0(typescript@7.0.2)
+      xlsx:
+        specifier: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
+        version: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
 
   packages/db-pg:
     dependencies:
@@ -569,12 +587,18 @@ importers:
       '@shopper/conformance':
         specifier: workspace:*
         version: link:../../packages/conformance
+      '@shopper/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@shopper/db-pg':
         specifier: workspace:*
         version: link:../../packages/db-pg
       '@shopper/db-sqlite':
         specifier: workspace:*
         version: link:../../packages/db-sqlite
+      '@shopper/ports':
+        specifier: workspace:*
+        version: link:../../packages/ports
       esbuild:
         specifier: 0.28.1
         version: 0.28.1
@@ -3684,6 +3708,12 @@ packages:
       utf-8-validate:
         optional: true
 
+  xlsx@https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz:
+    resolution: {integrity: sha512-oLDq3jw7AcLqKWH2AhCpVTZl8mf6X2YReP+Neh0SJUzV/BdZYjth94tG5toiMB1PPrYtxOCfaoUCkvtuH+3AJA==, tarball: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz}
+    version: 0.20.3
+    engines: {node: '>=0.8'}
+    hasBin: true
+
   xmlbuilder2@4.0.3:
     resolution: {integrity: sha512-bx8Q1STctnNaaDymWnkfQLKofs0mGNN7rLLapJlGuV3VlvegD7Ls4ggMjE3aUSWItCCzU0PEv45lI87iSigiCA==}
     engines: {node: '>=20.0'}
@@ -6128,6 +6158,8 @@ snapshots:
   ws@8.21.0: {}
 
   ws@8.22.0: {}
+
+  xlsx@https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz: {}
 
   xmlbuilder2@4.0.3:
     dependencies:

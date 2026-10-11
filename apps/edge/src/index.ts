@@ -1,4 +1,4 @@
-import { cloudflareDatabase, cloudflareCache } from "@shopper/adapters-cf";
+import { cloudflareCache, cloudflareDatabase, cloudflareLauncher } from "@shopper/adapters-cf";
 import { isPublicRequest, publicApi, runtimeUnavailable, serveRuntime } from "@shopper/api/runtime";
 
 interface AuthEnvironment {
@@ -20,10 +20,12 @@ export default {
         baseURL: env.SHOPPER_AUTH_URL,
         bootstrapToken: env.SHOPPER_BOOTSTRAP_TOKEN,
         clientIP: request.headers.get("CF-Connecting-IP") ?? undefined,
+        priceChange: cloudflareLauncher(env.PRICE_CHANGE),
       });
     } finally {
       await connection.close();
     }
   },
 };
-export { StoreSequencer } from "@shopper/adapters-cf/coordination";
+export { StoreHub, StoreSequencer } from "@shopper/adapters-cf/coordination";
+export { PriceChangeWorkflow } from "@shopper/adapters-cf/workflows";

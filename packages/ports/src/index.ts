@@ -20,6 +20,14 @@ export const uuidV7Schema = v.pipe(
   v.regex(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i),
 );
 export const MAX_MESSAGE_BYTES = 96 * 1024;
+// A store sequence: a non-negative PG bigint as decimal text (at most 19 digits).
+export const sequenceSchema = v.pipe(v.string(), v.regex(/^\d{1,19}$/));
+// Cloudflare's instance id rule; the box enforces it too so ids work on both engines.
+export const workflowInstanceIdSchema = v.pipe(
+  v.string(),
+  v.maxLength(100),
+  v.regex(/^[a-zA-Z0-9_][a-zA-Z0-9_-]*$/),
+);
 export const retryPolicySchema = v.object({
   maxAttempts: v.pipe(v.number(), v.integer(), v.minValue(1)),
   delayMs: v.pipe(v.number(), v.integer(), v.minValue(0)),
@@ -40,7 +48,7 @@ export function messageBody(message: Envelope): string {
       id: uuidV7Schema,
       orgId: uuidV7Schema,
       v: v.pipe(v.number(), v.integer(), v.minValue(1)),
-      sequence: v.pipe(v.string(), v.regex(/^\d+$/)),
+      sequence: sequenceSchema,
       type: v.pipe(v.string(), v.minLength(1)),
       payload: jsonSchema,
     }),
@@ -111,6 +119,10 @@ export interface Workflow {
   waitFor(name: string, type: string, timeoutMs: number): Promise<Json>;
   send(instanceId: string, type: string, payload: Json): Promise<void>;
   compensate(): Promise<void>;
+}
+// One launcher per workflow kind. Acknowledges the launch only; starting an existing id is a no-op.
+export interface WorkflowLauncher {
+  start(instanceId: string, params: Json): Promise<void>;
 }
 export interface UtcCron {
   expression: string;

@@ -55,4 +55,6 @@ export function boxSequencer(db: ShopperDatabase): Sequencer {
 export function boxWorkflow(instanceId: string): Workflow {
   return memoryWorkflow(instanceId);
 }
-export { boxDatabase } from "./database";
+export { boxDatabase, boxPool } from "./database";
+export { boxRealtime } from "./realtime";
+export { boxPriceChange } from "./price-change";

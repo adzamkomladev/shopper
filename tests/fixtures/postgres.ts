@@ -28,6 +28,16 @@ export async function postgresFixture() {
     async close() {
       try {
         await client.end();
+        // pool.end() resolves before its sockets close; a forced drop would kill those
+        // backends mid-disconnect and surface as an unhandled client error. Let them drain.
+        for (let waited = 0; waited < 5000; waited += 50) {
+          const open = await admin.query(
+            "SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname = $1",
+            [database],
+          );
+          if (open.rows[0].n === 0) break;
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
         await admin.query(`DROP DATABASE "${database}" WITH (FORCE)`);
       } finally {
         await admin.end();

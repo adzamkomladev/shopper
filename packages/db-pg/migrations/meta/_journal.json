@@ -36,6 +36,13 @@
       "when": 1791421754008,
       "tag": "0004_devices",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791720125277,
+      "tag": "0005_catalogue",
+      "breakpoints": true
     }
   ]
 }

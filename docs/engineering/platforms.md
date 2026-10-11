@@ -62,7 +62,7 @@ Before using a Cloudflare product that is not in this table, load the `cloudflar
 - **PostgreSQL is the record.** Every workflow step and every DO/actor write also writes its table
   and an audit row in one transaction, and updates `workflow_run`. Reports never read engine state.
 - **No platform IDs in business tables.** No DO ids, no actor keys. Workflow instance id = the
-  business key (for example `store-day:<orgId>:<storeId>:<date>`), so both engines address the same
+  business key (for example `store-day_<orgId>_<storeId>_<date>`; Cloudflare instance ids allow only letters, digits, `-` and `_`), so both engines address the same
   thing.
 - **Exactly five coordination classes**: StoreSequencer, StoreHub, FiscalLane, StockHold, RateLimiter.
   Ask before adding a sixth. Each exists as a DO and as a Rivet actor.

@@ -4,7 +4,7 @@ import { runPriceChange } from "@shopper/core/catalogue";
 import type { Json, RetryPolicy } from "@shopper/ports";
 import type { StoreHub } from "./coordination";
 import { cloudflareDatabase } from "./database";
-import { cloudflareRealtime } from "./index";
+import { cloudflareRealtime } from "./realtime";
 
 interface WorkflowEnv {
   HYPERDRIVE: Hyperdrive;

@@ -2,14 +2,10 @@ import * as v from "valibot";
 import { and, asc, eq } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
 import { category, supplier } from "@shopper/db-pg";
-import { uuidV7Schema } from "@shopper/ports";
 import { managementJson, ManagementError } from "../management";
-import { nonEmpty, recordId, type Queryable } from "./schema";
-
-const name = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(200));
-const contact = v.optional(v.nullable(v.pipe(v.string(), v.trim(), v.maxLength(200))));
-const categoryInput = v.strictObject({ name, parentId: v.optional(v.nullable(uuidV7Schema)) });
-const supplierInput = v.strictObject({ name, phone: contact, email: contact, tin: contact });
+import { categoryInput, supplierInput } from "../schemas/catalogue";
+import type { Queryable } from "../types";
+import { nonEmpty, recordId } from "./records";
 
 export const saveCategory = defineSave("category", category, categoryInput);
 export const saveSupplier = defineSave("supplier", supplier, supplierInput);

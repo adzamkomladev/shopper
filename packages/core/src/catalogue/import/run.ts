@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import type { CommandContext } from "@shopper/audit";
 import { productImport, type ShopperDatabase } from "@shopper/db-pg";
 import { ManagementError, managementJson } from "../../management";
-import { recordId } from "../schema";
+import { recordId } from "../records";
 import { importCatalogue } from "./apply";
 import { parseSheet } from "./parse";
 import { planImport } from "./plan";

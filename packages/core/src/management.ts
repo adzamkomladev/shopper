@@ -4,20 +4,21 @@ import { store, branch, type ShopperDatabase } from "@shopper/db-pg";
 import { defineCommand } from "@shopper/audit";
 import { money } from "@shopper/money";
 
-export { uuidV7Schema as managementId } from "@shopper/ports";
-import { uuidV7Schema as managementId } from "@shopper/ports";
-const name = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(200));
-const rounding = v.pipe(v.number(), v.safeInteger(), v.minValue(1));
-export const storeInput = v.strictObject({ name, cashRoundingStep: v.optional(rounding) });
-export const storePatch = v.strictObject({
-  name: v.optional(name),
-  cashRoundingStep: v.optional(rounding),
-});
-export const branchInput = v.strictObject({ name, storeId: managementId });
-export const branchPatch = v.strictObject({
-  name: v.optional(name),
-  storeId: v.optional(managementId),
-});
+import {
+  branchInput,
+  branchPatch,
+  managementId,
+  storeInput,
+  storePatch,
+} from "./schemas/management";
+
+export {
+  managementId,
+  branchInput,
+  branchPatch,
+  storeInput,
+  storePatch,
+} from "./schemas/management";
 export type ManagementKind = "store" | "branch";
 export class ManagementError extends Error {
   constructor(

@@ -1,6 +1,6 @@
 import { expect, test } from "vite-plus/test";
-import { createApi } from "../packages/api/src";
-import { app } from "../apps/box/src";
+import { createApi } from "@shopper/api";
+import { app } from "@shopper/box";
 test("Hono and the Elysia box host expose the same portable API", async () => {
   const api = createApi();
   for (const path of ["/", "/health", "/about", "/missing"]) {
@@ -15,7 +15,7 @@ test("Hono and the Elysia box host expose the same portable API", async () => {
 });
 
 test("box runtime keeps health public and fails closed when auth is not configured", async () => {
-  const { createBoxApp } = await import("../apps/box/src");
+  const { createBoxApp } = await import("@shopper/box");
   const runtime = createBoxApp({});
   expect((await runtime.handle(new Request("http://localhost/health"))).status).toBe(200);
   expect((await runtime.handle(new Request("http://localhost/stores"))).status).toBe(503);

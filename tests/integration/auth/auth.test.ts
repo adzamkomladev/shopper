@@ -2,20 +2,20 @@ import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { v7 } from "uuid";
-import * as schema from "../packages/db-pg/src/schema";
-import type { ShopperDatabase } from "../packages/db-pg/src/index";
+import * as schema from "@shopper/db-pg";
+import type { ShopperDatabase } from "@shopper/db-pg";
 import {
   createAuth,
   createDeviceService,
   registerOrganizationUser,
   seedAuthRoles,
-} from "../packages/auth/src/index";
-import { createApi } from "../packages/api/src/index";
-import { defineCommand } from "../packages/audit/src/index";
-import { boxCache } from "../packages/adapters-box/src/index";
-import { migrateDatabase } from "../tooling/migrate";
-import { provisionOrg, provisioningContext } from "../tooling/seed";
-import { postgresFixture } from "./fixtures/postgres";
+} from "@shopper/auth";
+import { createApi } from "@shopper/api";
+import { defineCommand } from "@shopper/audit";
+import { boxCache } from "@shopper/adapters-box";
+import { migrateDatabase } from "../../../tooling/migrate";
+import { provisionOrg, provisioningContext } from "../../../tooling/seed";
+import { postgresFixture } from "../../fixtures/postgres";
 
 const baseURL = "http://localhost:8787";
 const secret = "auth integration test secret that is at least thirty two chars";

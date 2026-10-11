@@ -9,7 +9,8 @@
     "services:up": "docker compose -f tooling/docker-compose.dev.yml up -d",
     "services:down": "docker compose -f tooling/docker-compose.dev.yml down",
     "db:migrate": "tsx tooling/database.ts migrate",
-    "db:seed": "tsx tooling/database.ts seed"
+    "db:seed": "tsx tooling/database.ts seed",
+    "guard": "tsx tooling/guard.ts"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.62.5",

@@ -1,0 +1,97 @@
+# Code quality
+
+The bar: a reviewer reads a file top to bottom once and understands it. No slop, no ceremony.
+Rules marked **(guard)** fail CI through `vp run guard`. The rest are enforced in review.
+
+## Size limits (guard)
+
+| File                                                    | Max lines |
+| ------------------------------------------------------- | --------- |
+| `.ts`, `.mts`, `.js`, `.mjs` (including tests)          | 250       |
+| `.tsx`, `.jsx`, `.vue`, `.astro` (templates/components) | 300       |
+| Email templates (`emails/` folders)                     | no limit  |
+| Generated files (`*.gen.ts`, `*.d.ts`, migrations)      | no limit  |
+
+Hitting the limit means the file has more than one job. Split it by responsibility: a schema file,
+a command file, a query file. Do not split mechanically into `part1.ts` and `part2.ts`. The baseline
+list in `tooling/guard.ts` holds files that were already too long. They may shrink but never grow.
+Never add to it.
+
+## Shape of a file
+
+1. **The main export comes first.** A reader sees what the file does before how. Helpers follow
+   below, in the order the main function calls them. Function declarations are hoisted, so this
+   always works.
+2. **Few helpers, and only real ones.** Extract a helper when it is reused, or when its name explains
+   something a reader would otherwise have to work out. Do not extract a 2-line helper used once. Five
+   tiny helpers in one file is noise. Inline them.
+3. **One concept per file.** File names say what is inside (`sale-totals.ts`, not `utils.ts` or
+   `helpers.ts`).
+4. **Comments say why, not what.** Delete comments that restate the code. Keep the ones that explain
+   a constraint, a trade-off, or a non-obvious invariant.
+
+## Shared helpers live in one place
+
+Before writing any helper, search the repo (`rg "function <idea>"`, read the owning package's
+`index.ts`). Reimplementing something that already exists a few folders away is the most common
+kind of slop.
+
+| Kind of helper                                       | Home                                                                                          |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Domain logic (money, tax, sequence, audit, auth)     | The owning package, exported from its `index.ts`                                              |
+| Validation schemas reused across packages            | The producing package (e.g. `uuidV7Schema` in `@shopper/ports`)                               |
+| UI primitives, hooks, formatting for display         | `@shopper/ui`                                                                                 |
+| Generic, domain-free helpers (strings, dates, async) | `@shopper/utils`. Create the package when the first helper needs it, never as an empty shell. |
+| Test setup, fixtures, builders                       | `tests/fixtures/` (data) and `tests/support/` (helpers)                                       |
+| Script helpers                                       | `tooling/lib/`                                                                                |
+
+Use the standard library or the platform before writing a helper: `Intl`, `structuredClone`,
+`Array.prototype.toSorted`, `Object.groupBy`, `crypto.randomUUID`, `URL`, `AbortSignal.timeout`.
+
+## TypeScript
+
+- Strict mode. No `any`, no `as unknown as T`, no non-null `!` without a comment saying why it holds.
+- Types come from the source of truth: `v.InferOutput<typeof schema>`, Drizzle's `$inferSelect`,
+  `wrangler types` for bindings. Never hand-write a type that a schema already describes.
+- Validate at every trust boundary with Valibot (`import * as v from "valibot"`): HTTP input, IPC
+  messages, queue payloads, workflow events, files, env. Never use Zod (guard). Inside the boundary,
+  trust the types and do not re-validate.
+- Prefer `type` aliases and plain functions. Use a class only when the platform requires one
+  (Durable Object, `WorkflowEntrypoint`, `Error` subclasses).
+- Prefer discriminated unions over boolean flags and optional fields that only make sense together.
+- Use named exports only. A package's public surface is its `index.ts` plus subpaths in `exports`.
+
+## Errors
+
+- Throw typed errors (`class StockHoldExpired extends Error`) and map them to HTTP problems once,
+  at the Hono boundary. Never return `{ ok: false }` from some functions and throw from others.
+- Never swallow an error. A `catch` either handles the case completely, adds context and rethrows, or
+  is not written. No `catch {}` and no `console.error` followed by carrying on.
+- Fallbacks that hide data loss are bugs. If a sale cannot be recorded, the till says so.
+
+## Naming
+
+- Functions are verbs (`recordSale`), values are nouns (`saleTotal`), booleans are questions
+  (`isVoided`, `hasManagerApproval`).
+- Use business words from the domain: sale, line, tender, till, store, branch, Z-report, credit
+  note. Do not invent synonyms.
+- Units go in names when they are not `Money`: `delayMs`, `quantityThousandths`, `rateBps`.
+
+## Slop checklist (reviewers reject on sight)
+
+- Code that duplicates an existing helper, schema, or component.
+- Speculative abstractions: an interface with one implementation, a factory for one product, options
+  nobody passes, "for later" scaffolding.
+- Dead code, commented-out code, unused exports, `TODO` without an owner and an issue.
+- Defensive checks for states the types already rule out.
+- Logging or comments that narrate the code (`// loop over items`).
+- Magic numbers. Use named constants, or `@shopper/money` for any amount.
+- Floats anywhere near money, quantity, or rate.
+- A diff that changes things the task did not ask for.
+
+## Dependencies
+
+Reach for, in this order: the standard library, the platform (Web APIs, CSS, Postgres constraints),
+an already-installed dependency, a few lines of our own code. A new dependency needs a reason in the
+PR description: what it replaces, its size, its maintenance, and whether it runs on Workers **and**
+Bun. Pin exact versions.

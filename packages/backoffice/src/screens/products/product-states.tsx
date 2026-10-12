@@ -35,9 +35,7 @@ export function EmptyCatalogue({
       <EmptyContent className="flex-row justify-center">
         <Button ref={addRef} onClick={onAdd}>
           Add product
-          <Kbd aria-hidden className="bg-primary-foreground/20 text-primary-foreground">
-            N
-          </Kbd>
+          <Kbd aria-hidden>N</Kbd>
         </Button>
         <Button asChild variant="outline">
           <Link to="/imports">Import spreadsheet</Link>

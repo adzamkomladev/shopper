@@ -11,6 +11,11 @@ const session = v.nullable(
 );
 const done = v.object({ success: v.boolean() });
 
+/** Everything fetched for a shop and user; the public org lookup is not tenant data and stays. */
+export function isTenantQuery({ queryKey }: { queryKey: readonly unknown[] }) {
+  return queryKey[0] !== "org";
+}
+
 /** The signed-in user for a shop (default: the current one), or null. Keyed and fetched per shop, so a shop switch can never read another shop's answer. */
 export function sessionQuery(shop = currentShop()) {
   return queryOptions({

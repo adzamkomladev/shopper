@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as v from "valibot";
 import { ApiError, apiFetch } from "../../api/client";
-import { lookupShop } from "../../session/queries";
+import { isTenantQuery, lookupShop } from "../../session/queries";
 import { rememberShop } from "../../shops/shop-store";
 import type { LoginValues } from "./login-schema";
 
@@ -24,8 +24,8 @@ export function useSignIn(box: { id: string; name: string } | null, onSignedIn: 
         document.getElementById("shopCode")?.focus();
     },
     onSuccess: () => {
-      // The shop's cached "no session" answer is now stale.
-      queryClient.removeQueries({ queryKey: ["session"] });
+      // Everything cached so far belongs to the previous user or shop, not just the session answer.
+      queryClient.removeQueries({ predicate: isTenantQuery });
       onSignedIn();
     },
   });

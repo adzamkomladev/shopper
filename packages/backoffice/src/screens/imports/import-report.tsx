@@ -126,9 +126,7 @@ export function ImportReport({ report, running, online, error, onRun, onChooseAn
           ) : (
             <>
               Import {plural(report.rowsOk, "product", "products")}
-              <Kbd aria-hidden className="bg-primary-foreground/20 text-primary-foreground">
-                {MOD_KEY} ↵
-              </Kbd>
+              <Kbd aria-hidden>{MOD_KEY} ↵</Kbd>
             </>
           )}
         </Button>

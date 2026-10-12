@@ -35,9 +35,12 @@ export function branchesQuery(shop = currentShop()) {
   });
 }
 
-// The cache key is read when a write starts, so a shop switch mid-write cannot send its result
-// into another shop's cache.
-const pinKey = (productId: string) => ({ key: productQuery(productId).queryKey });
+// The shop and cache key are read when a write starts, so a shop switch mid-write (or before an
+// Undo) cannot send the request or its result to another shop.
+const pinShop = (productId: string, shop = currentShop()) => ({
+  key: productQuery(productId, shop).queryKey,
+  shopId: shop?.id ?? null,
+});
 type Barcode = ProductDetail["barcodes"][number];
 
 /** Saves the details; the list is refetched because it shows the name, SKU and price. */
@@ -49,7 +52,7 @@ export function useSaveProduct(productId: string) {
         method: "PATCH",
         body: toDetailsBody(values),
       }),
-    onMutate: () => pinKey(productId),
+    onMutate: () => pinShop(productId),
     onSuccess: async (detail, _values, pinned) => {
       queryClient.setQueryData(pinned.key, detail);
       toast.success("Changes saved");
@@ -62,7 +65,7 @@ export function useAddBarcode(productId: string, onAdded: () => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (values: BarcodeValues) => postBarcode(productId, toBarcodeBody(values)),
-    onMutate: () => pinKey(productId),
+    onMutate: () => pinShop(productId),
     onSuccess: (barcodes, _values, pinned) => {
       queryClient.setQueryData(pinned.key, (old) => old && { ...old, barcodes });
       toast.success("Barcode added");
@@ -79,7 +82,7 @@ export function useRemoveBarcode(productId: string) {
       apiFetch(`/products/${productId}/barcodes/${encodeURIComponent(barcode.code)}`, v.null(), {
         method: "DELETE",
       }),
-    onMutate: () => pinKey(productId),
+    onMutate: () => pinShop(productId),
     onSuccess: (_removed, barcode, pinned) => {
       queryClient.setQueryData(
         pinned.key,
@@ -90,7 +93,7 @@ export function useRemoveBarcode(productId: string) {
         action: {
           label: "Undo",
           onClick: () =>
-            void postBarcode(productId, barcode).then(
+            void postBarcode(productId, barcode, pinned.shopId).then(
               (barcodes) =>
                 queryClient.setQueryData(pinned.key, (old) => old && { ...old, barcodes }),
               (error: Error) => toast.error(failureMessage(error)),
@@ -115,7 +118,7 @@ export function useSavePrice(productId: string, mode: PriceMode, onSaved: () => 
         body,
       });
     },
-    onMutate: () => pinKey(productId),
+    onMutate: () => pinShop(productId),
     onSuccess: async (_price, _values, pinned) => {
       await queryClient.invalidateQueries({ queryKey: pinned.key });
       toast.success(mode === "set" ? "Price saved" : "Price scheduled");
@@ -125,9 +128,14 @@ export function useSavePrice(productId: string, mode: PriceMode, onSaved: () => 
   });
 }
 
-function postBarcode(productId: string, body: { code: string; quantityThousandths: number }) {
+function postBarcode(
+  productId: string,
+  body: { code: string; quantityThousandths: number },
+  shopId = currentShop()?.id ?? null,
+) {
   return apiFetch(`/products/${productId}/barcodes`, productDetail.entries.barcodes, {
     method: "POST",
     body,
+    shopId,
   });
 }

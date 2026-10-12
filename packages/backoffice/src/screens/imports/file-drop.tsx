@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { UploadIcon } from "lucide-react";
-import { Field, FieldDescription, FieldError, FieldLabel } from "@shopper/ui/components/field";
-import { Input } from "@shopper/ui/components/input";
+import { Button } from "@shopper/ui/components/button";
+import { Field, FieldDescription, FieldError } from "@shopper/ui/components/field";
 import { MAX_FILE_BYTES } from "./queries";
 
 const ACCEPT = ".csv,.xlsx,.xls";
@@ -58,12 +58,13 @@ export function FileDrop({ file, onChoose, disabled }: Props) {
       <div className="flex flex-col gap-1">
         <p className="font-medium">Drop a spreadsheet here</p>
         <p className="text-sm text-muted-foreground">
-          or choose one below. CSV, XLSX or XLS, up to 10 MB.
+          or choose one. CSV, XLSX or XLS, up to 10 MB.
         </p>
       </div>
-      <Field data-invalid={!!rejection} className="max-w-sm text-left">
-        <FieldLabel htmlFor="spreadsheet">Spreadsheet</FieldLabel>
-        <Input
+      <Field data-invalid={!!rejection} className="max-w-sm items-center text-center">
+        {/* The native input stays in the page for keyboards and screen readers; its own "No file
+            chosen" text would repeat the description below, so a label styled as a button fronts it. */}
+        <input
           ref={input}
           id="spreadsheet"
           type="file"
@@ -72,7 +73,15 @@ export function FileDrop({ file, onChoose, disabled }: Props) {
           aria-invalid={!!rejection}
           aria-describedby={rejection ? "spreadsheet-file spreadsheet-error" : "spreadsheet-file"}
           onChange={(event) => choose(event.target.files)}
+          className="peer sr-only"
         />
+        <Button
+          asChild
+          variant="outline"
+          className="peer-focus-visible:border-ring peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50 peer-disabled:pointer-events-none peer-disabled:opacity-50"
+        >
+          <label htmlFor="spreadsheet">Choose spreadsheet</label>
+        </Button>
         <FieldDescription id="spreadsheet-file">
           {file ? `${file.name} (${sizeOf(file.size)})` : "No file chosen yet."}
         </FieldDescription>

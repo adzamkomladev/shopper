@@ -9,8 +9,20 @@ for dev services.
 vp install --frozen-lockfile
 vp run services:up             # PostgreSQL 18, Rivet engine, virtual ESC/POS printer
 vp run db:migrate && vp run db:seed
-vp run dev                     # portal :5173, till-ui :5174, shop :5175, edge in workerd
+cp apps/edge/.dev.vars.example apps/edge/.dev.vars
+vp run dev                     # portal :5173, till-ui :5174, shop :5175, edge :8787 in workerd
 ```
+
+The seeded dev shop has the shop code `dev`. Create its owner once (details in
+`apps/portal/README.md`), then sign in at http://localhost:5173:
+
+```sh
+curl -s localhost:8787/api/auth/sign-up/email -H "Origin: http://localhost:5173" -H "X-Shopper-Org: $(curl -s localhost:8787/orgs/dev | jq -r .id)" -H "X-Shopper-Bootstrap-Token: dev-only-bootstrap-token" -H "Content-Type: application/json" -d '{"name":"Dev Owner","email":"owner@dev.local","password":"dev-owner-password"}'
+```
+
+The portal's Vite server proxies `/api` to the edge (`SHOPPER_API_URL`, default
+`http://localhost:8787`). It strips `/api` except for `/api/auth`, which Better Auth serves under
+that prefix. `apps/edge/.dev.vars` holds the local secrets (`.dev.vars.example` is the template).
 
 Use `vp` for everything. Never call `npm` in this repo: `devEngines` rejects it. Run one-off binaries
 with `vp exec <bin>`.
@@ -23,8 +35,13 @@ with `vp exec <bin>`.
 | `vp check --fix`                    | Apply format and lint fixes                                                    |
 | `vp run guard`                      | Repository rules: boundaries, file sizes, no effects, no Zod, platform imports |
 | `vp test --run [path]`              | Integration suites (needs services up)                                         |
+| `vp run e2e`                        | Playwright suites (needs Postgres and Bun)                                     |
 | `vp run build` / `vp run typecheck` | Cached builds / project-reference type check                                   |
 | `vp run services:down`              | Stop dev services and keep their volumes                                       |
+
+`vp run e2e` uses its own ports so it never clashes with `vp run dev`: box 3101, portal 5183,
+till-ui 5184. It builds and starts the box with Bun, so Bun must be installed. See
+[testing.md](testing.md).
 
 Before you push, run: `vp check && vp run guard && vp test --run`.
 

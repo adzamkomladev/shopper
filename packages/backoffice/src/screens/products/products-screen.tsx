@@ -34,9 +34,7 @@ export function ProductsScreen() {
         {!isEmptyCatalogue && (
           <Button ref={addRef} onClick={() => setSheetOpen(true)}>
             Add product
-            <Kbd aria-hidden className="bg-primary-foreground/20 text-primary-foreground">
-              N
-            </Kbd>
+            <Kbd aria-hidden>N</Kbd>
           </Button>
         )}
       </div>

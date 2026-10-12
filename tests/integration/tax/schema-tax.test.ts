@@ -137,6 +137,14 @@ test("seeded dated rules are selected through the tenant API and drive exact tax
   const secondSeed = await seedDevelopment(db);
   expect(firstSeed.created).toBe(true);
   expect(secondSeed).toEqual({ id: firstSeed.id, created: false });
+  // A dev org seeded before shop codes existed has the default uuid slug; seeding again gives it "dev".
+  await db
+    .update(schema.org)
+    .set({ slug: "0198-default-slug" })
+    .where(eq(schema.org.id, firstSeed.id));
+  await seedDevelopment(db);
+  const [seeded] = await db.select().from(schema.org).where(eq(schema.org.id, firstSeed.id));
+  expect(seeded!.slug).toBe("dev");
   const api = createApi({ database: db, resolveOrgId: async () => context.orgId });
   const get = (date: string) => api.request(`/tax-rules?on=${date}`);
   expect((await get("2025-12-31")).status).toBe(404);

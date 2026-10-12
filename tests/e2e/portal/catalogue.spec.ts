@@ -103,6 +103,14 @@ test.describe("as the owner of E2E Mart", () => {
     await expect(page.getByRole("button", { name: "Add product" })).toBeFocused();
   });
 
+  test("Mod+Enter saves the new product from the sheet", async ({ page }) => {
+    await page.keyboard.press("n");
+    await fillSheet(page, { name: `Millet ${tagOf()}`, sku: `MIL-${tagOf()}` });
+    await page.keyboard.press("ControlOrMeta+Enter");
+    await expect(page.getByText(/\bproduct (added|created)\b/i)).toBeVisible();
+    await expect(sheet(page)).toBeHidden();
+  });
+
   test("a duplicate SKU shows its error on the SKU field", async ({ page, request }) => {
     const tag = tagOf();
     const taken = { name: `Maize ${tag}`, sku: `MAI-${tag}` };

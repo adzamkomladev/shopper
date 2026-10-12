@@ -103,7 +103,13 @@ export function DataTable<TData extends RowData>({
           {items.map((item) => {
             const row = rows[item.index]!;
             return (
-              <TableRow key={row.id} aria-rowindex={item.index + 1 + headerRows} className="h-16.5">
+              <TableRow
+                key={row.id}
+                ref={virtualizer.measureElement}
+                data-index={item.index}
+                aria-rowindex={item.index + 1 + headerRows}
+                className="h-16.5"
+              >
                 {row.getAllCells().map((cell) => (
                   <TableCell
                     key={cell.id}

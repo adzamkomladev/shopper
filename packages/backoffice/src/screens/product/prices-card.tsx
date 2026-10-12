@@ -60,7 +60,7 @@ export function PricesCard({ product, fetchedAt, setPriceRef, onSetPrice, onSche
             Set price
             <Kbd aria-hidden>P</Kbd>
           </Button>
-          <Button type="button" variant="ghost" onClick={onSchedule}>
+          <Button type="button" variant="outline" onClick={onSchedule}>
             Schedule price
           </Button>
         </div>

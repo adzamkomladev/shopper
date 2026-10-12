@@ -151,9 +151,7 @@ export function DetailsForm({ product, formRef }: Props) {
             aria-describedby={online ? undefined : OFFLINE_NOTE_ID}
           >
             {save.isPending ? "Saving…" : "Save changes"}
-            <Kbd aria-hidden className="bg-primary-foreground/20 text-primary-foreground">
-              {MOD_KEY} S
-            </Kbd>
+            <Kbd aria-hidden>{MOD_KEY} ↵</Kbd>
           </Button>
         </CardFooter>
       </Card>

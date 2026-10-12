@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { productPage } from "@shopper/core/schemas";
 import { apiFetch } from "../../api/client";
-import { sessionQuery, signOut } from "../../session/queries";
+import { isTenantQuery, sessionQuery, signOut } from "../../session/queries";
 import { currentShop, selectShop, type Shop } from "../../shops/shop-store";
 
 /** Switches shop. A shop without a session for this device goes to login with its code filled in. */
@@ -33,11 +33,6 @@ export function useSignOut() {
     },
     onError: (error) => toast.error(error.message),
   });
-}
-
-// Everything fetched for a shop and user; the public org lookup is not tenant data and stays.
-function isTenantQuery({ queryKey }: { queryKey: readonly unknown[] }) {
-  return queryKey[0] !== "org";
 }
 
 const PALETTE_RESULTS = 8;

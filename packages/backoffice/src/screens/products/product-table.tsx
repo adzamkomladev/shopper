@@ -21,6 +21,8 @@ export function ProductTable({ products, categories, onEndReached }: Props) {
     {
       id: "product",
       header: "Product",
+      // Wraps long names on phones, so the price column stays in view.
+      meta: { className: "whitespace-normal" },
       cell: ({ row }) => (
         <div className="flex flex-col">
           <Link

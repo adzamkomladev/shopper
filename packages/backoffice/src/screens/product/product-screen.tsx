@@ -33,10 +33,11 @@ export function ProductScreen() {
     const usable = opener instanceof HTMLElement && opener.isConnected && opener !== document.body;
     (usable ? opener : setPriceRef.current)?.focus();
   };
-  const shortcuts = useProductShortcuts({
-    save: () => !price.open && formRef.current?.requestSubmit(),
-    setPrice: () => !price.open && openPrice("set"),
-  });
+  const shortcuts = useProductShortcuts(
+    price.open
+      ? {}
+      : { save: () => formRef.current?.requestSubmit(), setPrice: () => openPrice("set") },
+  );
   return (
     <div ref={shortcuts} className="flex flex-col gap-6">
       <div className="flex flex-col gap-3">

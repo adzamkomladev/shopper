@@ -21,6 +21,25 @@ test.describe("the product page, as the owner of E2E Mart", () => {
     );
   });
 
+  test("Mod+Enter saves the details and then submits the price dialog", async ({
+    page,
+    request,
+  }) => {
+    const product = await openProduct(page, request, "Honey");
+    await card(page, "Details").getByLabel("Name", { exact: true }).fill(`${product.name} jar`);
+    await page.keyboard.press("ControlOrMeta+Enter");
+    await expect(page.getByText("Changes saved")).toBeVisible();
+    // Leave the field so the bare P shortcut is not typed into it.
+    await page.getByRole("heading", { level: 1 }).click();
+    await page.keyboard.press("p");
+    const dialog = sheet(page);
+    await dialog.getByLabel("Amount").fill("3.00");
+    await dialog.getByLabel("Reason").fill("Launch price");
+    await page.keyboard.press("ControlOrMeta+Enter");
+    await expect(dialog).toBeHidden();
+    await expect(card(page, "Prices")).toContainText("GH₵ 3.00");
+  });
+
   test("Save changes works with the button too", async ({ page, request }) => {
     const product = await openProduct(page, request, "Oil");
     await card(page, "Details").getByLabel("Name", { exact: true }).fill(`${product.name} bottle`);

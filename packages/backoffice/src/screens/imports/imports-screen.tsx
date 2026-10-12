@@ -103,9 +103,7 @@ export function ImportsScreen() {
               ) : (
                 <>
                   Check file
-                  <Kbd aria-hidden className="bg-primary-foreground/20 text-primary-foreground">
-                    {MOD_KEY} ↵
-                  </Kbd>
+                  <Kbd aria-hidden>{MOD_KEY} ↵</Kbd>
                 </>
               )}
             </Button>

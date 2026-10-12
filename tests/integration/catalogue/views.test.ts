@@ -8,6 +8,7 @@ import {
   branchView,
   categoryView,
   importPreview,
+  importResult,
   importRecord,
   orgSummary,
   priceView,
@@ -81,6 +82,7 @@ test("import preview and import record responses parse with the view schemas", a
   const sheet = toSpreadsheet(sheetRows(3), "csv");
   v.parse(importPreview, await json(await upload(sheet, "preview.csv", { dryRun: true })));
   const run = await importOk(sheet, "views.csv");
+  expect(v.parse(importResult, run).id).toBe(run.id);
   v.parse(importRecord, await json(await call(`/catalogue/imports/${run.id}`)));
 });
 

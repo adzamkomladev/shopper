@@ -78,6 +78,15 @@ export const importPreview = v.object({
   unchanged: count,
   pricesAdded: count,
 });
+export const importResult = v.object({
+  dryRun: v.literal(false),
+  id,
+  ...importCounts,
+  created: count,
+  updated: count,
+  unchanged: count,
+  pricesAdded: count,
+});
 export const importRecord = v.object({
   id,
   fileName: v.string(),

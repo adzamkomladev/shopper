@@ -34,3 +34,35 @@ jobs:
       - run: vp test --run
       - run: vp run build
       - run: vp run typecheck
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: shopper
+          POSTGRES_PASSWORD: shopper_ci_only
+          POSTGRES_DB: shopper
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U shopper -d shopper"
+          --health-interval 2s --health-timeout 5s --health-retries 30
+    env:
+      E2E_DATABASE_URL: postgresql://shopper:shopper_ci_only@127.0.0.1:5432/shopper_e2e
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "24.21.0"
+          version: "1.0.0"
+          run-install: false
+      - run: vp install --frozen-lockfile
+      - run: vp exec playwright install --with-deps chromium
+      - run: vp run e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results
+          path: test-results/

@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.64.0",
     "@shopper/adapters-box": "workspace:*",
     "@shopper/api": "workspace:*",
     "@shopper/audit": "workspace:*",
@@ -14,6 +16,7 @@
     "@shopper/db-pg": "workspace:*",
     "@shopper/money": "workspace:*",
     "@shopper/ports": "workspace:*",
-    "@shopper/tax": "workspace:*"
+    "@shopper/tax": "workspace:*",
+    "valibot": "1.1.0"
   }
 }

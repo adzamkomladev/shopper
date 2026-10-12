@@ -1,0 +1,155 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/geist";
+@source "../";
+
+/* Single token file. Values come from the Figma file 4MtEIWv8yBUBYgkrk4ubPk (frame 55:2263). */
+@theme inline {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-panel: calc(var(--radius) + 12px);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-kbd-foreground: var(--kbd-foreground);
+  --color-page: var(--page);
+  --color-backdrop-light: var(--backdrop-light);
+  --color-backdrop-mid: var(--backdrop-mid);
+  --color-backdrop-strong: var(--backdrop-strong);
+  --color-backdrop-deep: var(--backdrop-deep);
+}
+
+:root {
+  --radius: 0.5rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.1288 0.0406 264.7);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.1288 0.0406 264.7);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.1288 0.0406 264.7);
+  --primary: oklch(0.3981 0.0598 208.13);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.9683 0.0069 247.9);
+  --secondary-foreground: oklch(0.2077 0.0398 265.75);
+  --muted: oklch(0.9683 0.0069 247.9);
+  --muted-foreground: oklch(0.5544 0.0407 257.42);
+  /* slate-600: muted-foreground on the muted fill is only 4.3:1, which fails AA for small text. */
+  --kbd-foreground: oklch(0.4455 0.0374 257.28);
+  --accent: oklch(0.9683 0.0069 247.9);
+  --accent-foreground: oklch(0.2077 0.0398 265.75);
+  --destructive: oklch(0.5771 0.2152 27.33);
+  --success: oklch(0.6271 0.1699 149.21);
+  --success-foreground: oklch(1 0 0);
+  --border: oklch(0.9288 0.0126 255.51);
+  --input: oklch(0.9288 0.0126 255.51);
+  --ring: var(--primary);
+  --page: oklch(0.9819 0.0181 155.83);
+  --backdrop-light: oklch(0.8854 0.0542 196.22);
+  --backdrop-mid: oklch(0.6554 0.0981 197.63);
+  --backdrop-strong: oklch(0.5777 0.0981 197.47);
+  --backdrop-deep: oklch(0.3083 0.0484 201.35);
+}
+
+/* Slate dark with a lightened primary. Figma has no dark design, so this follows the OS only. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: oklch(0.1288 0.0406 264.7);
+    --foreground: oklch(0.9842 0.0034 247.86);
+    --card: oklch(0.1831 0.0309 263.38);
+    --card-foreground: oklch(0.9842 0.0034 247.86);
+    --popover: oklch(0.1831 0.0309 263.38);
+    --popover-foreground: oklch(0.9842 0.0034 247.86);
+    --primary: oklch(0.7306 0.0869 204.05);
+    --primary-foreground: oklch(0.1288 0.0406 264.7);
+    --secondary: oklch(0.2795 0.0368 260.03);
+    --secondary-foreground: oklch(0.9842 0.0034 247.86);
+    --muted: oklch(0.2795 0.0368 260.03);
+    --muted-foreground: oklch(0.7107 0.0351 256.79);
+    --kbd-foreground: var(--muted-foreground);
+    --accent: oklch(0.2795 0.0368 260.03);
+    --accent-foreground: oklch(0.9842 0.0034 247.86);
+    --destructive: oklch(0.6368 0.2078 25.33);
+    --success: oklch(0.7227 0.192 149.58);
+    --success-foreground: oklch(0.1288 0.0406 264.7);
+    --border: oklch(0.2795 0.0368 260.03);
+    --input: oklch(0.2795 0.0368 260.03);
+    --page: oklch(0.1744 0.0258 171.89);
+    --backdrop-light: oklch(0.3817 0.059 201.62);
+    --backdrop-mid: oklch(0.2816 0.0411 205.4);
+    --backdrop-strong: oklch(0.2837 0.0435 202.27);
+    --backdrop-deep: oklch(0.1679 0.0247 204.82);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+}
+
+/* Figma focus ring: 2px background gap, then 4px primary. Unlayered so it wins over each
+   component's own ring utilities. Invalid fields keep the destructive ring, and an input inside
+   an input group hands the ring to the group (see InputGroup), and the palette input sits inside
+   a bordered popover that needs none. */
+:focus-visible:not(
+  [aria-invalid="true"],
+  [tabindex="-1"],
+  [data-slot="input-group-control"],
+  [data-slot="command-input"]
+) {
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px var(--ring);
+}
+
+@utility focus-ring {
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px var(--ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@utility bg-backdrop {
+  background-image:
+    radial-gradient(ellipse 70% 60% at 80% 0%, var(--backdrop-deep) 0%, transparent 100%),
+    linear-gradient(
+      135deg,
+      var(--backdrop-light) 0%,
+      var(--backdrop-mid) 55%,
+      var(--backdrop-strong) 100%
+    );
+}

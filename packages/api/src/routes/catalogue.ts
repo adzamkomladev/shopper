@@ -24,6 +24,7 @@ import {
   updateProduct,
   schedulePrice,
 } from "@shopper/core/catalogue";
+import { problem } from "../middleware/problem";
 import { requirePermission } from "../middleware/require-permission";
 import { priceBody } from "../schemas/catalogue";
 import type { ApiAuthentication, ApiEnvironment } from "../types";
@@ -183,17 +184,7 @@ export function catalogueRoutes(options: {
     c.json(await readImport(db, org(c), c.req.param("id"))),
   );
 
-  app.onError((error, c) => {
-    if (v.isValiError(error))
-      return c.json({ error: "Invalid request data", detail: error.issues[0].message }, 400);
-    if (error instanceof ManagementError) return c.json({ error: error.message }, error.status);
-    const pg = error as { code?: string; cause?: { code?: string } };
-    const code = pg.code ?? pg.cause?.code;
-    if (code === "23505") return c.json({ error: "Already exists" }, 409);
-    if (code === "23503")
-      return c.json({ error: "Referenced record does not exist or is in use" }, 409);
-    throw error;
-  });
+  app.onError(problem);
   return app;
 }
 

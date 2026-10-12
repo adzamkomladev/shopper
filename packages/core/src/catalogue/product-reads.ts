@@ -1,5 +1,6 @@
 import * as v from "valibot";
-import { and, asc, desc, eq, gt, ilike, isNull, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, lt, isNull, or, sql, type SQL } from "drizzle-orm";
+import type { SelectedFields } from "drizzle-orm/pg-core";
 import { price, product, productBarcode, taxClass } from "@shopper/db-pg";
 import { managementJson } from "../management";
 import { uuidV7Schema } from "@shopper/ports";
@@ -18,9 +19,9 @@ const columns = {
   onlineVisible: product.onlineVisible,
   archivedAt: product.archivedAt,
 };
-const selectProducts = (db: Queryable) =>
+const selectProducts = <T extends SelectedFields = typeof columns>(db: Queryable, shape?: T) =>
   db
-    .select(columns)
+    .select((shape ?? columns) as T)
     .from(product)
     .innerJoin(
       taxClass,
@@ -55,14 +56,14 @@ export async function getProduct(db: Queryable, orgId: string, id: string) {
   return { ...row, barcodes, prices: prices.map(priceView) };
 }
 
-/** Active products, keyset-paged by id. `q` matches a name fragment, an exact sku or an exact barcode. */
+/** Active products, newest first, keyset-paged by id. `q` matches a name fragment, an exact sku or an exact barcode. */
 export async function listProducts(db: Queryable, orgId: string, rawQuery: unknown) {
   const { q, categoryId, cursor, limit } = v.parse(listQuery, rawQuery);
   const filters: (SQL | undefined)[] = [
     eq(product.orgId, orgId),
     isNull(product.archivedAt),
     categoryId ? eq(product.categoryId, categoryId) : undefined,
-    cursor ? gt(product.id, cursor) : undefined,
+    cursor ? lt(product.id, cursor) : undefined,
     q
       ? or(
           ilike(product.name, `%${q.replace(/[\\%_]/g, "\\$&")}%`),
@@ -71,9 +72,18 @@ export async function listProducts(db: Queryable, orgId: string, rawQuery: unkno
         )
       : undefined,
   ];
-  const rows = await selectProducts(db)
+  // The org-wide price in force now, by the priceAt rule with branch_id null only.
+  const current = sql<number | null>`(
+    select ${price.amount} from ${price}
+    where ${price.orgId} = ${product.orgId} and ${price.productId} = ${product.id}
+      and ${price.branchId} is null and ${price.validFrom} <= now()
+      and (${price.validTo} is null or ${price.validTo} > now())
+    order by ${price.validFrom} desc, ${price.id} desc limit 1)`.mapWith((value) =>
+    value === null ? null : Number(value),
+  );
+  const rows = await selectProducts(db, { ...columns, price: current })
     .where(and(...filters))
-    .orderBy(asc(product.id))
+    .orderBy(desc(product.id))
     .limit(limit + 1);
   const items = managementJson(rows.slice(0, limit));
   return { items, nextCursor: rows.length > limit ? items[limit - 1]!.id : null };

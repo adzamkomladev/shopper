@@ -135,6 +135,7 @@ const scheduleCommand = defineCommand({
         amount: money(input.data.amount),
         validFrom: input.data.startsAt,
         validTo: input.data.endsAt,
+        reason: context.reason,
       })
       .returning();
     const workflowId = priceChangeId(context.orgId, row!.id);
@@ -181,7 +182,17 @@ const publishPrice = defineCommand({
         v: 1,
         sequence: sequence.toString(),
         type: "price.changed",
-        payload: { priceId: view.id, productId: row.productId, phase: input.phase, ...view },
+        // Listed field by field: a new price column must not reach devices by accident (the reason stays in the back office).
+        payload: {
+          priceId: view.id,
+          productId: row.productId,
+          phase: input.phase,
+          id: view.id,
+          branchId: view.branchId,
+          amount: view.amount,
+          validFrom: view.validFrom,
+          validTo: view.validTo,
+        },
       };
       envelopes.push({ storeId, envelope });
     }

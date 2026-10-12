@@ -2,12 +2,18 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "paths": {
+      "#*": ["./src/*"]
+    }
   },
   "include": ["src"],
   "references": [
     {
       "path": "../../packages/config"
+    },
+    {
+      "path": "../../packages/money"
     }
   ]
 }

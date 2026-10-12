@@ -3,17 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": {
-    ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
-    }
-  },
   "scripts": {
     "dev": "vp dev"
   },
   "dependencies": {
+    "@shopper/backoffice": "workspace:*",
     "@shopper/ui": "workspace:*",
+    "@tanstack/react-query": "5.103.3",
     "@tanstack/react-router": "1.170.41",
     "react": "19.3.0",
     "react-dom": "19.3.0"

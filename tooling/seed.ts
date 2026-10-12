@@ -15,8 +15,10 @@ import { generateCatalogue, toSpreadsheet } from "./lib/catalogue-fixture";
 
 export const provisionOrg = defineCommand({
   name: "org.provision",
-  async run(tx, context, input: { name: string }) {
-    await tx.insert(org).values({ id: context.orgId, name: input.name });
+  async run(tx, context, input: { name: string; slug?: string }) {
+    await tx
+      .insert(org)
+      .values({ id: context.orgId, name: input.name, slug: input.slug?.trim().toLowerCase() });
     await tx.insert(taxClass).values([
       { orgId: context.orgId, code: "standard", name: "Standard" },
       { orgId: context.orgId, code: "zero-rated", name: "Zero-rated" },
@@ -39,6 +41,16 @@ export const provisionOrg = defineCommand({
     taxEffectiveFrom: ghana2026.effectiveFrom,
   }),
 });
+const DEV_SLUG = "dev";
+// A dev org seeded before shop codes existed has no slug; this gives it one so login works.
+const setDevSlug = defineCommand({
+  name: "org.set_slug",
+  async run(tx, context, input: { slug: string }) {
+    await tx.update(org).set({ slug: input.slug }).where(eq(org.id, context.orgId));
+    return { id: context.orgId, slug: input.slug };
+  },
+  audit: (input, output) => ({ orgId: output.id, slug: input.slug }),
+});
 export function provisioningContext(orgId = v7()): CommandContext {
   return { orgId, appVersion: JSON.parse(buildDefines.SHOPPER_VERSION) as string };
 }
@@ -47,9 +59,13 @@ export async function seedDevelopment(db: ShopperDatabase) {
   return db.transaction(async (tx) => {
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended('shopper.dev.seed', 0))`);
     const [existing] = await tx.select().from(org).where(eq(org.name, "Shopper development"));
-    if (existing) return { id: existing.id, created: false };
+    if (existing) {
+      if (existing.slug !== DEV_SLUG)
+        await setDevSlug(tx, provisioningContext(existing.id), { slug: DEV_SLUG });
+      return { id: existing.id, created: false };
+    }
     const context = provisioningContext();
-    const result = await provisionOrg(tx, context, { name: "Shopper development" });
+    const result = await provisionOrg(tx, context, { name: "Shopper development", slug: DEV_SLUG });
     return { ...result, created: true };
   });
 }

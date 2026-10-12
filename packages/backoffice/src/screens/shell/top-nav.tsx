@@ -5,7 +5,7 @@ import { Button } from "@shopper/ui/components/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@shopper/ui/components/input-group";
 import { Kbd, KbdGroup } from "@shopper/ui/components/kbd";
 import type { Shop } from "../../shops/shop-store";
-import { CommandPalette, type PaletteState } from "./command-palette";
+import { CommandPalette, closedPalette, type PaletteState } from "./command-palette";
 import { NAV_ITEMS } from "./nav-items";
 import { ShopSwitcher } from "./shop-switcher";
 import { UserMenu } from "./user-menu";
@@ -21,10 +21,10 @@ const MOD_KEY = /Mac|iPhone|iPad/.test(navigator.userAgent) ? "⌘" : "Ctrl";
 
 /** Figma 48:1473: shop switcher, links, search and the user menu in one bar, plus the palette it opens. */
 export function TopNav({ shops, currentId, user }: Props) {
-  const [palette, setPalette] = useState<PaletteState>({ open: false, query: "" });
+  const [palette, setPalette] = useState<PaletteState>(closedPalette);
   const searchRef = useRef<HTMLInputElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
-  const open = (query = "") => setPalette({ open: true, query });
+  const open = (query = "") => setPalette({ open: true, query, term: query });
   const shortcuts = useShellShortcuts({ openPalette: () => open(), focusSearch });
   // Below md the input is hidden, so the icon button stands in for it.
   function focusSearch() {
@@ -76,7 +76,7 @@ export function TopNav({ shops, currentId, user }: Props) {
             onChange={(event) => open(event.target.value)}
           />
           <InputGroupAddon align="inline-end">
-            <KbdGroup>
+            <KbdGroup aria-hidden>
               <Kbd>{MOD_KEY}</Kbd>
               <Kbd>K</Kbd>
             </KbdGroup>

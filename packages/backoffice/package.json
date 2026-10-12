@@ -16,6 +16,7 @@
   "dependencies": {
     "@shopper/config": "workspace:*",
     "@shopper/core": "workspace:*",
+    "@shopper/money": "workspace:*",
     "@shopper/ui": "workspace:*",
     "@tanstack/react-form": "1.33.5",
     "@tanstack/react-query": "5.103.3",

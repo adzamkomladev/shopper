@@ -21,6 +21,9 @@ test("the shell has no serious axe violations, closed or with its menus open", a
 test("slash focuses search, Mod+K opens the palette and closing returns focus to search", async ({
   page,
 }) => {
+  // Products has its own search, so "/" belongs to the page there; Import has none.
+  await page.goto("/imports");
+  await expect(page.getByRole("heading", { name: "Import", level: 1 })).toBeVisible();
   const search = page.getByRole("navigation").getByRole("textbox", { name: "Search" });
   await page.keyboard.press("/");
   await expect(search).toBeFocused();

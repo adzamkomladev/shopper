@@ -15,7 +15,9 @@ import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "#compone
 const ROW_HEIGHT = 66;
 const OVERSCAN_ROWS = 8;
 const END_REACHED_ROWS = 10;
-const features = tableFeatures({ columnMeta: metaHelper<{ align?: "right" }>() });
+const features = tableFeatures({
+  columnMeta: metaHelper<{ align?: "right"; className?: string }>(),
+});
 
 export type DataTableColumn<TData extends RowData> = ColumnDef<typeof features, TData>;
 type DataTableProps<TData extends RowData> = {
@@ -87,6 +89,7 @@ export function DataTable<TData extends RowData>({
                   className={cn(
                     "h-10 bg-muted/50 px-4 text-xs font-semibold text-muted-foreground",
                     header.column.columnDef.meta?.align === "right" && "text-right",
+                    header.column.columnDef.meta?.className,
                   )}
                 >
                   {header.isPlaceholder ? null : <table.FlexRender header={header} />}
@@ -107,6 +110,7 @@ export function DataTable<TData extends RowData>({
                     className={cn(
                       "px-4",
                       cell.column.columnDef.meta?.align === "right" && "text-right",
+                      cell.column.columnDef.meta?.className,
                     )}
                   >
                     <table.FlexRender cell={cell} />

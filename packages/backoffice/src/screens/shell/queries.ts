@@ -1,6 +1,8 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { productPage } from "@shopper/core/schemas";
+import { apiFetch } from "../../api/client";
 import { sessionQuery, signOut } from "../../session/queries";
 import { currentShop, selectShop, type Shop } from "../../shops/shop-store";
 
@@ -36,4 +38,25 @@ export function useSignOut() {
 // Everything fetched for a shop and user; the public org lookup is not tenant data and stays.
 function isTenantQuery({ queryKey }: { queryKey: readonly unknown[] }) {
   return queryKey[0] !== "org";
+}
+
+const PALETTE_RESULTS = 8;
+
+/** Products matching what the palette's search box says (name, SKU or barcode). */
+export function usePaletteProducts(term: string, online: boolean) {
+  const shop = currentShop();
+  const search = term.trim();
+  return useQuery({
+    queryKey: ["products", "palette", shop?.id ?? "box", search],
+    queryFn: () =>
+      apiFetch(
+        `/products?${new URLSearchParams({ q: search, limit: String(PALETTE_RESULTS) })}`,
+        productPage,
+        {
+          shopId: shop?.id ?? null,
+        },
+      ),
+    enabled: online && search.length > 0,
+    placeholderData: keepPreviousData,
+  });
 }

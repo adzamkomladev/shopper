@@ -6,5 +6,18 @@
     "types": ["node", "vite-plus/client"]
   },
   "include": ["src"],
-  "references": [{ "path": "../config" }, { "path": "../core" }, { "path": "../ui" }]
+  "references": [
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../money"
+    },
+    {
+      "path": "../ui"
+    }
+  ]
 }

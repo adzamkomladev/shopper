@@ -24,7 +24,7 @@ export const routeStates = {
 
 export function PageSkeleton() {
   return (
-    <div className="flex flex-col gap-6" role="status" aria-label="Loading">
+    <div className="flex flex-col gap-6" role="status" aria-busy="true" aria-label="Loading">
       <Skeleton className="h-9 w-48" />
       <Skeleton className="h-64 w-full" />
     </div>
@@ -33,7 +33,12 @@ export function PageSkeleton() {
 
 export function ShellSkeleton() {
   return (
-    <AppBackdrop className="flex flex-col gap-8" role="status" aria-label="Loading">
+    <AppBackdrop
+      className="flex flex-col gap-8"
+      role="status"
+      aria-busy="true"
+      aria-label="Loading"
+    >
       <div className="flex items-center gap-6">
         <Skeleton className="h-9 w-50" />
         <Skeleton className="h-5 w-32" />
@@ -50,6 +55,7 @@ export function LoginSkeleton() {
     <AppBackdrop
       className="grid place-items-center bg-transparent p-0 shadow-none"
       role="status"
+      aria-busy="true"
       aria-label="Loading"
     >
       <Card className="w-full max-w-3xl rounded-3xl border-0 p-10">

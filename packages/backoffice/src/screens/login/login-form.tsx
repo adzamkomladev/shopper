@@ -1,12 +1,11 @@
-import { useForm, type AnyFieldApi } from "@tanstack/react-form";
+import { useForm } from "@tanstack/react-form";
 import { CircleAlertIcon, Loader2Icon } from "lucide-react";
 import { Alert, AlertDescription } from "@shopper/ui/components/alert";
 import { Button } from "@shopper/ui/components/button";
 import { CardContent } from "@shopper/ui/components/card";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@shopper/ui/components/field";
-import { Input } from "@shopper/ui/components/input";
+import { FieldGroup } from "@shopper/ui/components/field";
 import { ApiError } from "../../api/client";
-import { focusOnMount } from "../../lib/focus";
+import { TextField } from "../../components/text-field";
 import { loginSchema } from "./login-schema";
 import { useSignIn } from "./queries";
 
@@ -61,6 +60,7 @@ export function LoginForm({ box, defaultShopCode, onSignedIn }: Props) {
                 <TextField
                   field={field}
                   label="Shop code"
+                  className="h-10"
                   serverError={shopCodeError}
                   autoFocus={focusFirst === "shopCode"}
                   autoComplete="organization"
@@ -75,6 +75,7 @@ export function LoginForm({ box, defaultShopCode, onSignedIn }: Props) {
               <TextField
                 field={field}
                 label="Email"
+                className="h-10"
                 type="email"
                 autoFocus={focusFirst === "email"}
                 autoComplete="username"
@@ -86,6 +87,7 @@ export function LoginForm({ box, defaultShopCode, onSignedIn }: Props) {
               <TextField
                 field={field}
                 label="Password"
+                className="h-10"
                 type="password"
                 autoComplete="current-password"
               />
@@ -104,35 +106,5 @@ export function LoginForm({ box, defaultShopCode, onSignedIn }: Props) {
         </Button>
       </form>
     </CardContent>
-  );
-}
-
-type TextFieldProps = Omit<React.ComponentProps<typeof Input>, "autoFocus"> & {
-  field: AnyFieldApi;
-  label: string;
-  serverError?: string;
-  autoFocus?: boolean;
-};
-
-function TextField({ field, label, serverError, autoFocus, ...input }: TextFieldProps) {
-  const message = serverError ?? field.state.meta.errors[0]?.message;
-  const errorId = `${field.name}-error`;
-  return (
-    <Field data-invalid={!!message}>
-      <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-      <Input
-        {...input}
-        id={field.name}
-        name={field.name}
-        className="h-10"
-        value={field.state.value}
-        onBlur={field.handleBlur}
-        onChange={(event) => field.handleChange(event.target.value)}
-        ref={autoFocus ? focusOnMount : undefined}
-        aria-invalid={!!message}
-        aria-describedby={message ? errorId : undefined}
-      />
-      {message && <FieldError id={errorId}>{message}</FieldError>}
-    </Field>
   );
 }

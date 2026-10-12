@@ -45,7 +45,8 @@ export default defineConfig({
     },
     {
       command: "vp run -F @shopper/portal dev -- --port 5183 --strictPort",
-      url: "http://localhost:5183",
+      // The entry module is only served once Vite has finished pre-bundling dependencies.
+      url: "http://localhost:5183/src/index.tsx",
       env: { SHOPPER_API_URL: "http://localhost:3101" },
       reuseExistingServer,
     },

@@ -1,6 +1,9 @@
 import { createRoute, lazyRouteComponent, redirect, type AnyRoute } from "@tanstack/react-router";
 import * as v from "valibot";
 import { LoginSkeleton, routeStates, ShellSkeleton } from "./components/route-states";
+import { productQuery } from "./screens/product/queries";
+import { ProductsSkeleton } from "./screens/products/product-states";
+import { categoriesQuery, productsQuery, type ProductSearch } from "./screens/products/queries";
 import { currentOrgQuery, requireSession } from "./session/queries";
 import type { BackofficeContext } from "./types";
 
@@ -35,9 +38,29 @@ export function createBackofficeRoutes(rootRoute: AnyRoute): AnyRoute {
   const productsRoute = createRoute({
     getParentRoute: () => shopRoute,
     path: "/products",
+    validateSearch: v.object({ q: v.optional(v.string()), categoryId: v.optional(v.string()) }),
+    loaderDeps: ({ search }) => search,
+    loader: async ({ context, deps }: { context: BackofficeContext; deps: ProductSearch }) => {
+      // Products are only started: the screen shows its own skeleton while they load, so the
+      // heading and toolbar are there at once and a new search never replaces them.
+      void context.queryClient.prefetchInfiniteQuery(productsQuery(deps));
+      await context.queryClient.ensureQueryData(categoriesQuery());
+    },
     component: lazyRouteComponent(
       () => import("./screens/products/products-screen"),
       "ProductsScreen",
+    ),
+    ...routeStates,
+    pendingComponent: ProductsSkeleton,
+  });
+  const productRoute = createRoute({
+    getParentRoute: () => shopRoute,
+    path: "/products/$productId",
+    loader: ({ context, params }: { context: BackofficeContext; params: { productId: string } }) =>
+      context.queryClient.ensureQueryData(productQuery(params.productId)),
+    component: lazyRouteComponent(
+      () => import("./screens/product/product-screen"),
+      "ProductScreen",
     ),
     ...routeStates,
   });
@@ -53,6 +76,6 @@ export function createBackofficeRoutes(rootRoute: AnyRoute): AnyRoute {
   return rootRoute.addChildren([
     indexRoute,
     loginRoute,
-    shopRoute.addChildren([productsRoute, importsRoute]),
+    shopRoute.addChildren([productsRoute, productRoute, importsRoute]),
   ]);
 }

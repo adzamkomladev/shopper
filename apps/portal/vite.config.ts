@@ -14,6 +14,9 @@ export default defineConfig({
   define: buildDefines,
   server: {
     port: 5173,
+    // Transform every screen at start-up, so the dependencies behind the lazy routes are found and
+    // pre-bundled now. Found later, Vite re-optimizes and reloads the page under whoever is using it.
+    warmup: { clientFiles: ["./src/index.tsx", "../../packages/backoffice/src/**/*.tsx"] },
     proxy: {
       "/api": {
         target: API_URL,

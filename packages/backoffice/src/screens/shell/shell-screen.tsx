@@ -15,10 +15,10 @@ export function ShellScreen() {
   if (!session) return <Navigate to="/login" search={{ shop: currentShop()?.slug || undefined }} />;
   return (
     <ShortcutRoot ref={focusIfIdle}>
-      <AppBackdrop className="flex flex-col gap-8 px-5 py-6 md:px-13 md:py-10">
+      <AppBackdrop fill className="flex flex-col gap-8 px-5 py-6 md:px-13 md:py-10">
         <OfflineBanner />
         <TopNav shops={shops} currentId={currentId} user={session.user} />
-        <main>
+        <main className="-mx-1 flex min-h-0 flex-1 flex-col overflow-y-auto px-1">
           <Outlet />
         </main>
       </AppBackdrop>

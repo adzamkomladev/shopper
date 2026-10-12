@@ -43,6 +43,13 @@
       "when": 1791720125277,
       "tag": "0005_catalogue",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791776033264,
+      "tag": "0006_price_reason",
+      "breakpoints": true
     }
   ]
 }

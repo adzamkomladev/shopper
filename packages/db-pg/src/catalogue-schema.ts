@@ -99,6 +99,7 @@ export const price = pgTable(
     amount: moneyColumn("amount").notNull(),
     validFrom: timestamp("valid_from", { withTimezone: true }).notNull(),
     validTo: timestamp("valid_to", { withTimezone: true }),
+    reason: text("reason"),
   },
   (t) => [
     unique().on(t.orgId, t.id),

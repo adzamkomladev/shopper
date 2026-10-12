@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { CheckIcon, ChevronsUpDownIcon, PlusIcon } from "lucide-react";
+import { CheckIcon, ChevronDownIcon, PlusIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import {
   Command,
@@ -41,7 +41,7 @@ export function CategoryCombobox({ id, value, onChange }: Props) {
           className="w-full justify-between font-normal"
         >
           {categories.find((item) => item.id === value)?.name ?? "No category"}
-          <ChevronsUpDownIcon aria-hidden className="opacity-50" />
+          <ChevronDownIcon aria-hidden className="opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent

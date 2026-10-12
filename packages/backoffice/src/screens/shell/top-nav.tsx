@@ -4,6 +4,7 @@ import { SearchIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@shopper/ui/components/input-group";
 import { Kbd, KbdGroup } from "@shopper/ui/components/kbd";
+import { MOD_KEY } from "../../lib/mod-key";
 import type { Shop } from "../../shops/shop-store";
 import { CommandPalette, closedPalette, type PaletteState } from "./command-palette";
 import { NAV_ITEMS } from "./nav-items";
@@ -16,8 +17,6 @@ type Props = {
   currentId: string | null;
   user: { name: string; email: string };
 };
-
-const MOD_KEY = /Mac|iPhone|iPad/.test(navigator.userAgent) ? "⌘" : "Ctrl";
 
 /** Figma 48:1473: shop switcher, links, search and the user menu in one bar, plus the palette it opens. */
 export function TopNav({ shops, currentId, user }: Props) {

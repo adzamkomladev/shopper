@@ -15,6 +15,7 @@ export const priceView = (row: Price) => ({
   amount: row.amount,
   validFrom: row.validFrom.toISOString(),
   validTo: row.validTo?.toISOString() ?? null,
+  reason: row.reason,
 });
 
 /** Appends a price version. The reason arrives as `context.reason`; versions are never edited. */
@@ -36,6 +37,7 @@ export const setPrice = defineCommand({
         branchId: data.branchId,
         amount: money(data.amount),
         validFrom: data.validFrom ?? new Date(),
+        reason: context.reason,
       })
       .returning();
     return managementJson({ productId, after: priceView(row!) });

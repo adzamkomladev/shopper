@@ -5,6 +5,7 @@ import { Field, FieldGroup, FieldLabel } from "@shopper/ui/components/field";
 import { SheetClose, SheetFooter } from "@shopper/ui/components/sheet";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { CircleAlertIcon } from "lucide-react";
+import { focusFirstInvalid } from "../../lib/focus";
 import { SelectField } from "../../components/select-field";
 import { TextField } from "../../components/text-field";
 import { CategoryCombobox } from "./category-combobox";
@@ -21,12 +22,7 @@ export function NewProductForm({ onCreated }: { onCreated: () => void }) {
     defaultValues: emptyProduct,
     validators: { onSubmit: newProductSchema },
     onSubmit: ({ value }) => create.mutate(value),
-    onSubmitInvalid: ({ formApi }) => {
-      const invalid = Object.entries(formApi.state.fieldMeta).find(
-        ([, meta]) => meta.errors.length,
-      );
-      if (invalid) document.getElementById(invalid[0])?.focus();
-    },
+    onSubmitInvalid: focusFirstInvalid,
   });
   // Editing after a failure clears it. A save still in flight must keep its pending state.
   const clearError = () => {

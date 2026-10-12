@@ -1,7 +1,8 @@
 import { createRoute, lazyRouteComponent, redirect, type AnyRoute } from "@tanstack/react-router";
 import * as v from "valibot";
 import { LoginSkeleton, routeStates, ShellSkeleton } from "./components/route-states";
-import { productQuery } from "./screens/product/queries";
+import { ProductSkeleton } from "./screens/product/product-states";
+import { branchesQuery, productQuery } from "./screens/product/queries";
 import { ProductsSkeleton } from "./screens/products/product-states";
 import { categoriesQuery, productsQuery, type ProductSearch } from "./screens/products/queries";
 import { currentOrgQuery, requireSession } from "./session/queries";
@@ -56,13 +57,26 @@ export function createBackofficeRoutes(rootRoute: AnyRoute): AnyRoute {
   const productRoute = createRoute({
     getParentRoute: () => shopRoute,
     path: "/products/$productId",
-    loader: ({ context, params }: { context: BackofficeContext; params: { productId: string } }) =>
-      context.queryClient.ensureQueryData(productQuery(params.productId)),
+    loader: async ({
+      context,
+      params,
+    }: {
+      context: BackofficeContext;
+      params: { productId: string };
+    }) => {
+      // Branch names only label prices, and a role without branch.read must still see the page.
+      void context.queryClient.prefetchQuery(branchesQuery());
+      await Promise.all([
+        context.queryClient.ensureQueryData(productQuery(params.productId)),
+        context.queryClient.ensureQueryData(categoriesQuery()),
+      ]);
+    },
     component: lazyRouteComponent(
       () => import("./screens/product/product-screen"),
       "ProductScreen",
     ),
     ...routeStates,
+    pendingComponent: ProductSkeleton,
   });
   const importsRoute = createRoute({
     getParentRoute: () => shopRoute,

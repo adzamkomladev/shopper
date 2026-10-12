@@ -17,3 +17,13 @@ export const cashierLoginInput = v.strictObject({
   pin,
 });
 export const revokeDeviceInput = v.strictObject({ deviceId: id });
+export const deviceListItem = v.strictObject({
+  id,
+  name: v.string(),
+  branchId: id,
+  branchName: v.string(),
+  createdAt: v.string(),
+  revokedAt: v.nullable(v.string()),
+  status: v.picklist(["active", "revoked"]),
+});
+export const deviceListResponse = v.array(deviceListItem);

@@ -9,6 +9,9 @@ export function deviceRoutes(
   authentication: ApiAuthentication | undefined,
 ) {
   const app = new Hono<ApiEnvironment>();
+  app.get("/devices", requirePermission(authentication, "device.read"), async (c) => {
+    return c.json(await devices.list(c.get("principal")));
+  });
   for (const [path, operation, permission] of [
     ["/devices/enrollment", "issueEnrollment", "device.enroll"],
     ["/devices/enroll", "enroll", null],

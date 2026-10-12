@@ -6,6 +6,7 @@
     "@cloudflare/vitest-plugin": "1.3.6",
     "@shopper/adapters-cf": "workspace:*",
     "@shopper/audit": "workspace:*",
+    "@shopper/auth": "workspace:*",
     "@shopper/config": "workspace:*",
     "@shopper/conformance": "workspace:*",
     "@shopper/core": "workspace:*",

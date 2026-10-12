@@ -46,3 +46,5 @@ export class PriceChangeWorkflow extends WorkflowEntrypoint<WorkflowEnv, Json> {
 const retries = (policy: RetryPolicy) => ({
   retries: { limit: policy.maxAttempts - 1, delay: policy.delayMs, backoff: policy.backoff },
 });
+
+export { AuthWorkflow } from "./auth-flow";

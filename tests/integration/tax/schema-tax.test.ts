@@ -52,12 +52,25 @@ test("current schema migrates twice, uses tenant UUIDv7 keys, and preserves bigi
     "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name",
   );
   expect(tables.rows.map((row) => row.table_name).join(" ")).toBe(
-    "account audit_log branch cashier_pin cashier_session category device device_credential device_enrollment enrollment_attempt invitation member org permission price product product_barcode product_import role role_permission session shopper_meta store supplier tax_class tax_rule user verification workflow_run workflow_step",
+    "account audit_log branch cashier_pin cashier_session category device device_credential device_enrollment enrollment_attempt invitation member org permission price product product_barcode product_import registration_audit_log registration_request registration_workflow_run registration_workflow_step role role_permission session shopper_meta store supplier tax_class tax_rule user verification workflow_run workflow_step",
   );
   const columns = await fixture.client.query<{ table_name: string }>(
     "SELECT table_name FROM information_schema.columns WHERE table_schema = 'public' AND column_name = 'org_id'",
   );
-  expect(columns.rowCount).toBe(30);
+  expect(columns.rowCount).toBe(34);
+  // Pre-shop registration rows reference their request; every customer table keeps an org FK.
+  const orgForeignKeys = await fixture.client.query<{ table_name: string; target: string }>(
+    `SELECT c.conrelid::regclass::text AS table_name, c.confrelid::regclass::text AS target
+     FROM pg_constraint c JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = c.conkey[1]
+     WHERE c.contype = 'f' AND a.attname = 'org_id' AND array_length(c.conkey, 1) = 1
+       AND c.connamespace = 'public'::regnamespace`,
+  );
+  const targets = new Map(orgForeignKeys.rows.map((row) => [row.table_name, row.target]));
+  for (const table of ["audit_log", "workflow_run", "workflow_step", "store", "branch"])
+    expect(targets.get(table)).toBe("org");
+  for (const table of ["audit_log", "workflow_run", "workflow_step"])
+    expect(targets.get(`registration_${table}`)).toBe("registration_request");
+  expect(targets.has("registration_request")).toBe(false);
   const serials = await fixture.client.query(
     "SELECT * FROM information_schema.columns WHERE table_schema IN ('public', 'drizzle') AND (column_default LIKE '%nextval%' OR is_identity = 'YES')",
   );

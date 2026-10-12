@@ -16,6 +16,7 @@
     "types": "wrangler types worker-configuration.d.ts --config ../../../apps/edge/wrangler.jsonc --include-env=false"
   },
   "dependencies": {
+    "@shopper/auth": "workspace:*",
     "@shopper/config": "workspace:*",
     "@shopper/core": "workspace:*",
     "@shopper/db-pg": "workspace:*",

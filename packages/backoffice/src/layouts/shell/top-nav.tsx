@@ -7,9 +7,9 @@ import { Kbd, KbdGroup } from "@shopper/ui/components/kbd";
 import { MOD_KEY } from "../../lib/mod-key";
 import type { Shop } from "../../shops/store";
 import { CommandPalette, closedPalette, type PaletteState } from "./command-palette";
-import { NAV_ITEMS } from "./nav-items";
 import { ShopSwitcher } from "./shop-switcher";
 import { UserMenu } from "./user-menu";
+import { useNavItems } from "./use-nav-items";
 import { useShellShortcuts } from "./use-shortcuts";
 
 type Props = {
@@ -21,6 +21,7 @@ type Props = {
 /** Figma 48:1473: shop switcher, links, search and the user menu in one bar, plus the palette it opens. */
 export function TopNav({ shops, currentId, user }: Props) {
   const [palette, setPalette] = useState<PaletteState>(closedPalette);
+  const navItems = useNavItems();
   const searchRef = useRef<HTMLInputElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const open = (query = "") => setPalette({ open: true, query, term: query });
@@ -34,13 +35,13 @@ export function TopNav({ shops, currentId, user }: Props) {
     <nav
       ref={shortcuts}
       aria-label="Main"
-      className="flex flex-wrap items-center gap-x-6 gap-y-3 md:flex-nowrap"
+      className="flex flex-wrap items-center gap-x-6 gap-y-3 xl:flex-nowrap"
     >
-      <div className="flex min-w-0 flex-1 items-center gap-x-6 md:flex-initial">
+      <div className="flex min-w-0 flex-1 items-center gap-x-6 xl:flex-initial">
         <ShopSwitcher shops={shops} currentId={currentId} />
       </div>
-      <div className="order-last flex w-full gap-6 md:order-none md:w-auto">
-        {NAV_ITEMS.map(({ to, label }) => (
+      <div className="order-last flex w-full flex-wrap gap-x-6 gap-y-1 xl:order-none xl:w-auto xl:flex-nowrap">
+        {navItems.map(({ to, label }) => (
           <Link
             key={to}
             to={to}
@@ -55,13 +56,13 @@ export function TopNav({ shops, currentId, user }: Props) {
           ref={searchButtonRef}
           variant="ghost"
           size="icon"
-          className="md:hidden"
+          className="xl:hidden"
           aria-label="Search"
           onClick={() => open()}
         >
           <SearchIcon aria-hidden />
         </Button>
-        <InputGroup className="hidden w-72 md:flex">
+        <InputGroup className="hidden w-72 xl:flex">
           <InputGroupAddon>
             <SearchIcon aria-hidden />
           </InputGroupAddon>

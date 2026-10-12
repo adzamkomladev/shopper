@@ -11,6 +11,7 @@
     "@shopper/audit": "workspace:*",
     "@shopper/auth": "workspace:*",
     "@shopper/box": "workspace:*",
+    "@shopper/config": "workspace:*",
     "@shopper/conformance": "workspace:*",
     "@shopper/core": "workspace:*",
     "@shopper/db-pg": "workspace:*",

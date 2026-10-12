@@ -6,7 +6,7 @@ import { uuidV7Schema } from "@shopper/ports";
 import { AuthRollback, mutating } from "./request";
 import { buildAuth } from "./better-auth";
 import { constantTimeEqual, response } from "./http";
-import { grantedCodes } from "../roles";
+import { grantedCodes } from "../roles/service";
 import type { AuthPrincipal, CreateAuthOptions } from "../types";
 
 export function createAuth(input: CreateAuthOptions) {

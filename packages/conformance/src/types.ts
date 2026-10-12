@@ -1,4 +1,4 @@
-import type { Blobs, Cache, Sequencer, Workflow } from "@shopper/ports";
+import type { Blobs, Cache, Json, Sequencer, Workflow, WorkflowLauncher } from "@shopper/ports";
 
 export interface AdapterFixture {
   orgId: string;
@@ -16,3 +16,12 @@ export interface AdapterFixture {
 
 export type ConformanceTest = (name: string, run: () => Promise<void>) => unknown;
 export type Fixture = () => Promise<AdapterFixture>;
+
+export interface WorkflowLauncherFixture {
+  launcher: WorkflowLauncher;
+  instanceId: string;
+  params: Json;
+  waitForEnd(): Promise<Record<string, unknown>>;
+  close(): Promise<void>;
+}
+export type LauncherFixture = (expired: boolean) => Promise<WorkflowLauncherFixture>;

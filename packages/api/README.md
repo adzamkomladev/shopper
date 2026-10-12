@@ -29,3 +29,17 @@ Cashier requests send `Authorization: Bearer <session token>` together with
 `X-Shopper-Device-Token`. Permissions are checked against PostgreSQL on each
 request. The device service uses the runtime cache for attempt counters and
 PostgreSQL as the authoritative lockout and revocation record.
+
+Cloud onboarding is mounted before tenant selection, after origin and trusted-peer checks:
+`POST /onboarding/start`, `/onboarding/verify`, `/onboarding/complete`, and
+`/onboarding/:id/resend`. `GET /onboarding/:id?token=...` previews verification state;
+`?resendToken=...` lets the requester inspect delivery without verifying email.
+Public onboarding requires an explicit runtime opt-in supplied only by the edge. Every box
+disables it and retains controlled bootstrap setup, even without a fixed `SHOPPER_ORG_ID`.
+Public mutations share a bounded per-isolate IP budget; distributed limiting remains the
+RateLimiter platform slice.
+
+Staff management uses `GET/POST /invitations` and `POST /invitations/:id/reissue|cancel`.
+`GET /invitations/:id/preview?token=...` never consumes; `POST /invitations/:id/accept`
+consumes once. The runtime derives the tenant from the validated invitation rather than a
+caller selector. Browser contracts are exported through `@shopper/auth/schemas`.

@@ -9,3 +9,8 @@ flows. `/health`, `/about`, and `/` remain available without authentication setu
 
 `src/worker.ts` owns the Worker request handler; `src/types.ts` owns local environment types.
 `src/index.ts` re-exports the handler and the platform classes required by Wrangler.
+
+Configure `SHOPPER_LINK_SECRET` (a dedicated secret of at least 32 characters),
+`MAILEROO_API_KEY` and `MAILEROO_FROM` for verified registration and invitations.
+`AUTH_FLOWS` runs the shared `AuthWorkflow`. `MAILEROO_ENDPOINT` is an optional trusted
+configuration override for network integration testing; production uses Maileroo's v2 API.

@@ -17,6 +17,7 @@ export const role = pgTable(
   {
     ...tenant(),
     name: text("name").notNull(),
+    protectedOwner: boolean("protected_owner").notNull().default(false),
   },
   (t) => [unique().on(t.orgId, t.id), unique().on(t.orgId, t.name)],
 );
@@ -115,9 +116,16 @@ export const invitation = pgTable(
     status: text("status").notNull().default("pending"),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     inviterId: uuid("inviter_id").notNull(),
+    roleId: uuid("role_id"),
+    tokenDigest: text("token_digest"),
+    channel: text("channel", { enum: ["email", "local"] })
+      .notNull()
+      .default("email"),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
   },
   (t) => [
     foreignKey({ columns: [t.orgId, t.organizationId], foreignColumns: [org.orgId, org.id] }),
     foreignKey({ columns: [t.orgId, t.inviterId], foreignColumns: [user.orgId, user.id] }),
+    foreignKey({ columns: [t.orgId, t.roleId], foreignColumns: [role.orgId, role.id] }),
   ],
 );

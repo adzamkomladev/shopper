@@ -9,6 +9,8 @@ import {
   productsQuery,
   type ProductSearch,
 } from "./screens/catalogue/list/queries";
+import { administrationRoutes } from "./routes/administration";
+import { publicAuthRoutes } from "./routes/public-auth";
 import { currentOrgQuery, requireSession } from "./session/queries";
 import type { BackofficeContext } from "./types";
 
@@ -94,6 +96,12 @@ export function createBackofficeRoutes(rootRoute: AnyRoute): AnyRoute {
   return rootRoute.addChildren([
     indexRoute,
     loginRoute,
-    shopRoute.addChildren([productsRoute, productRoute, importsRoute]),
+    ...publicAuthRoutes(rootRoute),
+    shopRoute.addChildren([
+      productsRoute,
+      productRoute,
+      importsRoute,
+      ...administrationRoutes(shopRoute),
+    ]),
   ]);
 }

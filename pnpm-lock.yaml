@@ -244,6 +244,9 @@ importers:
       '@shopper/api':
         specifier: workspace:*
         version: link:../../packages/api
+      '@shopper/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       hono:
         specifier: 4.13.13
         version: 4.13.13
@@ -322,6 +325,9 @@ importers:
 
   packages/adapters/box:
     dependencies:
+      '@shopper/auth':
+        specifier: workspace:*
+        version: link:../../auth
       '@shopper/config':
         specifier: workspace:*
         version: link:../../config
@@ -352,6 +358,9 @@ importers:
 
   packages/adapters/cf:
     dependencies:
+      '@shopper/auth':
+        specifier: workspace:*
+        version: link:../../auth
       '@shopper/config':
         specifier: workspace:*
         version: link:../../config
@@ -436,6 +445,9 @@ importers:
       '@shopper/config':
         specifier: workspace:*
         version: link:../config
+      '@shopper/core':
+        specifier: workspace:*
+        version: link:../core
       '@shopper/db-pg':
         specifier: workspace:*
         version: link:../db/pg
@@ -457,6 +469,9 @@ importers:
 
   packages/backoffice:
     dependencies:
+      '@shopper/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@shopper/config':
         specifier: workspace:*
         version: link:../config
@@ -516,6 +531,9 @@ importers:
       '@shopper/ports':
         specifier: workspace:*
         version: link:../ports
+      '@shopper/tax':
+        specifier: workspace:*
+        version: link:../tax
       drizzle-orm:
         specifier: 0.45.3
         version: 0.45.3(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.1)
@@ -651,6 +669,9 @@ importers:
       '@shopper/box':
         specifier: workspace:*
         version: link:../apps/box
+      '@shopper/config':
+        specifier: workspace:*
+        version: link:../packages/config
       '@shopper/conformance':
         specifier: workspace:*
         version: link:../packages/conformance
@@ -684,6 +705,9 @@ importers:
       '@shopper/audit':
         specifier: workspace:*
         version: link:../../packages/audit
+      '@shopper/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@shopper/config':
         specifier: workspace:*
         version: link:../../packages/config

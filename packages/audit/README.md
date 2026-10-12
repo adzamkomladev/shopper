@@ -32,4 +32,15 @@ leave no checkpoint. This protects the crash window between a committed database
 transaction and an engine checkpoint. Keep external side effects outside the
 transaction and use the partner's idempotency key.
 
+## Registration scope
+
+`defineCommand({ scope: "registration" })` is a trusted, definition-level choice (the default is the
+customer tenant). It appends to `registration_audit_log` and checkpoints to
+`registration_workflow_run`/`_step`, with the same locking, redaction and v1 hash as the customer chain;
+`verifyChain` verifies either. The context may carry only `orgId` (the reserved candidate id) and
+`appVersion`; actor, device, role, approver, branch, reason and device time are rejected. The command
+inserts the registration request in `run`, before the audit row. Registration commands may run inside an
+outer transaction with customer commands (Drizzle savepoints) under the same candidate lock. Never return
+secrets from a command: workflow outputs are stored as given.
+
 `@shopper/core` re-exports this wrapper for compatibility with provisioning code.

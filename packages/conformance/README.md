@@ -13,5 +13,12 @@ adapter objects proves independence from client memory; no DO-local cursor is
 used. Durable Cloudflare/Rivet engine wiring remains a later adapter concern;
 portable Workflow behavior is covered here against both adapters.
 
+`workflowLauncherConformance()` runs against the actual authentication launchers
+with PostgreSQL-backed registration fixtures. It proves invalid instance ids
+fail, retry/completion events buffer before waits, duplicate launches preserve
+delivery checkpoints, and expired registrations finish without another email.
+The Workers runtime also forces the native event timeout. The box fixture uses
+the shipped memory engine; restart recovery remains the day 36 boundary.
+
 `src/register.ts` registers the shared cases; `src/cases/` holds each port suite.
 `src/index.ts` only re-exports the public test registration API.

@@ -69,7 +69,7 @@ export function buildAuth(
             const [superadmin] = await database
               .select({ id: role.id })
               .from(role)
-              .where(and(eq(role.orgId, orgId), eq(role.name, "superadmin")))
+              .where(and(eq(role.orgId, orgId), eq(role.protectedOwner, true)))
               .limit(1);
             if (!superadmin) throw new Error("Default roles have not been seeded");
             await database.insert(member).values({

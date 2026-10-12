@@ -3,28 +3,46 @@ import * as v from "valibot";
 import { v7 } from "uuid";
 import {
   auditLog,
+  registrationAuditLog,
+  registrationWorkflowRun,
+  registrationWorkflowStep,
   workflowRun,
   workflowStep,
   type ShopperDatabase,
   type ShopperTransaction,
 } from "@shopper/db-pg";
 import { GENESIS_HASH, hashEntry, canonicalJson, redact, type AuditEntry } from "./chain";
-import { contextSchema } from "./schemas/command-context";
+import { contextSchema, registrationContextSchema } from "./schemas/command-context";
 import type { AuditDetails, CommandContext, WorkflowCheckpoint } from "./types";
+
+// Fixed internal table sets: a command's scope picks its chain, never the caller. The registration
+// tables share the customer columns, so the queries below run unchanged on either set.
+const storage = {
+  tenant: { schema: contextSchema, audit: auditLog, run: workflowRun, step: workflowStep },
+  registration: {
+    schema: registrationContextSchema,
+    audit: registrationAuditLog,
+    run: registrationWorkflowRun,
+    step: registrationWorkflowStep,
+  },
+};
 
 export function defineCommand<Input, Output>(definition: {
   name: string;
+  /** Trusted, definition-level choice; defaults to the customer tenant chain. */
+  scope?: "registration";
   run: (tx: ShopperTransaction, context: CommandContext, input: Input) => Promise<Output>;
   audit: (input: Input, output: Output) => Record<string, unknown>;
   details?: (input: Input, output: Output) => AuditDetails;
 }) {
+  const { schema, audit, run: runs, step: steps } = storage[definition.scope ?? "tenant"];
   return async (
     db: ShopperDatabase,
     context: CommandContext,
     input: Input,
     checkpoint?: WorkflowCheckpoint,
   ): Promise<Output> => {
-    context = v.parse(contextSchema, context);
+    context = v.parse(schema, context) as CommandContext;
     // PostgreSQL normalizes UUID text; hash and lock the same representation.
     context = {
       ...context,
@@ -47,23 +65,18 @@ export function defineCommand<Input, Output>(definition: {
       if (checkpoint) {
         const [run] = await tx
           .select()
-          .from(workflowRun)
-          .where(
-            and(
-              eq(workflowRun.orgId, context.orgId),
-              eq(workflowRun.instanceId, checkpoint.instanceId),
-            ),
-          );
+          .from(runs)
+          .where(and(eq(runs.orgId, context.orgId), eq(runs.instanceId, checkpoint.instanceId)));
         if (run && run.type !== checkpoint.type)
           throw new Error("Workflow business key already belongs to another type");
         const [saved] = await tx
           .select()
-          .from(workflowStep)
+          .from(steps)
           .where(
             and(
-              eq(workflowStep.orgId, context.orgId),
-              eq(workflowStep.instanceId, checkpoint.instanceId),
-              eq(workflowStep.name, checkpoint.step),
+              eq(steps.orgId, context.orgId),
+              eq(steps.instanceId, checkpoint.instanceId),
+              eq(steps.name, checkpoint.step),
             ),
           );
         if (saved) return saved.output as Output;
@@ -73,7 +86,7 @@ export function defineCommand<Input, Output>(definition: {
         // Workflow outputs must be JSON; checkpoint replay returns the same value after restart.
         canonicalJson(output);
         await tx
-          .insert(workflowRun)
+          .insert(runs)
           .values({
             orgId: context.orgId,
             instanceId: checkpoint.instanceId,
@@ -83,10 +96,10 @@ export function defineCommand<Input, Output>(definition: {
             status: checkpoint.status,
           })
           .onConflictDoUpdate({
-            target: [workflowRun.orgId, workflowRun.instanceId],
+            target: [runs.orgId, runs.instanceId],
             set: { currentStep: checkpoint.step, status: checkpoint.status },
           });
-        await tx.insert(workflowStep).values({
+        await tx.insert(steps).values({
           orgId: context.orgId,
           instanceId: checkpoint.instanceId,
           name: checkpoint.step,
@@ -95,9 +108,9 @@ export function defineCommand<Input, Output>(definition: {
       }
       const [last] = await tx
         .select()
-        .from(auditLog)
-        .where(and(eq(auditLog.orgId, context.orgId), sql`${auditLog.chainSeq} IS NOT NULL`))
-        .orderBy(desc(auditLog.chainSeq))
+        .from(audit)
+        .where(and(eq(audit.orgId, context.orgId), sql`${audit.chainSeq} IS NOT NULL`))
+        .orderBy(desc(audit.chainSeq))
         .limit(1);
       const details = definition.details?.(input, output);
       const [{ time }] = (
@@ -130,7 +143,7 @@ export function defineCommand<Input, Output>(definition: {
         updatedAt: new Date(time!),
       };
       entry.hash = await hashEntry(entry);
-      await tx.insert(auditLog).values(entry);
+      await tx.insert(audit).values(entry);
       return output;
     });
   };

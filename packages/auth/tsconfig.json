@@ -6,9 +6,20 @@
   },
   "include": ["src"],
   "references": [
-    { "path": "../audit" },
-    { "path": "../config" },
-    { "path": "../db/pg" },
-    { "path": "../ports" }
+    {
+      "path": "../audit"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../db/pg"
+    },
+    {
+      "path": "../ports"
+    },
+    {
+      "path": "../core"
+    }
   ]
 }

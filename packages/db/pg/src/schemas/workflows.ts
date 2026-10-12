@@ -15,18 +15,27 @@ import { branch, tenant } from "./base";
 import { user } from "./auth";
 import { device } from "./devices";
 
+export const workflowRunFields = () => ({
+  instanceId: text("instance_id").notNull(),
+  type: text("type").notNull(),
+  businessKey: text("business_key").notNull(),
+  status: text("status", {
+    enum: ["running", "waiting", "completed", "failed", "compensating", "compensated"],
+  }).notNull(),
+  currentStep: text("current_step").notNull(),
+});
+export const workflowStepFields = () => ({
+  instanceId: text("instance_id").notNull(),
+  name: text("name").notNull(),
+  output: jsonb("output").notNull(),
+});
+
 /** Durable workflow state mirrored into PostgreSQL, the record. */
 export const workflowRun = pgTable(
   "workflow_run",
   {
     ...tenant(),
-    instanceId: text("instance_id").notNull(),
-    type: text("type").notNull(),
-    businessKey: text("business_key").notNull(),
-    status: text("status", {
-      enum: ["running", "waiting", "completed", "failed", "compensating", "compensated"],
-    }).notNull(),
-    currentStep: text("current_step").notNull(),
+    ...workflowRunFields(),
   },
   (t) => [
     unique().on(t.orgId, t.instanceId),
@@ -41,9 +50,7 @@ export const workflowStep = pgTable(
   "workflow_step",
   {
     ...tenant(),
-    instanceId: text("instance_id").notNull(),
-    name: text("name").notNull(),
-    output: jsonb("output").notNull(),
+    ...workflowStepFields(),
   },
   (t) => [
     unique().on(t.orgId, t.instanceId, t.name),
@@ -55,27 +62,32 @@ export const workflowStep = pgTable(
   ],
 );
 
+/** Audit columns shared by the customer and registration chains; both hash the same projection. */
+export const auditFields = () => ({
+  command: text("command").notNull(),
+  role: text("role"),
+  deviceId: uuid("device_id"),
+  branchId: uuid("branch_id"),
+  entity: text("entity"),
+  entityId: uuid("entity_id"),
+  before: jsonb("before"),
+  after: jsonb("after"),
+  reason: text("reason"),
+  approverId: uuid("approver_id"),
+  deviceTime: timestamp("device_time", { withTimezone: true }),
+  chainSeq: bigint("chain_seq", { mode: "number" }),
+  prevHash: text("prev_hash"),
+  hash: text("hash"),
+  actorId: uuid("actor_id"),
+  appVersion: text("app_version").notNull(),
+  payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+});
+
 export const auditLog = pgTable(
   "audit_log",
   {
     ...tenant(),
-    command: text("command").notNull(),
-    role: text("role"),
-    deviceId: uuid("device_id"),
-    branchId: uuid("branch_id"),
-    entity: text("entity"),
-    entityId: uuid("entity_id"),
-    before: jsonb("before"),
-    after: jsonb("after"),
-    reason: text("reason"),
-    approverId: uuid("approver_id"),
-    deviceTime: timestamp("device_time", { withTimezone: true }),
-    chainSeq: bigint("chain_seq", { mode: "number" }),
-    prevHash: text("prev_hash"),
-    hash: text("hash"),
-    actorId: uuid("actor_id"),
-    appVersion: text("app_version").notNull(),
-    payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+    ...auditFields(),
   },
   (t) => [
     unique().on(t.orgId, t.chainSeq),

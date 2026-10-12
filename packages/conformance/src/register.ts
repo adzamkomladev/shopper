@@ -14,3 +14,5 @@ export function portConformance(name: string, test: ConformanceTest, fixture: Fi
   workflowCases(name, test, fixture);
 }
 export { realtimeConformance, type RealtimeFixture } from "./cases/realtime";
+export { workflowLauncherConformance } from "./cases/launcher";
+export type { WorkflowLauncherFixture } from "./types";

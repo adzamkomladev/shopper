@@ -17,7 +17,16 @@ export const buildDefines = {
   SHOPPER_VERSION: JSON.stringify(manifest.version),
   GIT_SHA: JSON.stringify(process.env.GITHUB_SHA ?? gitSha),
   BUILD_DATE: JSON.stringify(process.env.BUILD_DATE ?? new Date().toISOString()),
-  SCHEMA_VERSION: "6",
+  SCHEMA_VERSION: String(
+    (
+      JSON.parse(
+        readFileSync(
+          new URL("../../packages/db/pg/migrations/meta/_journal.json", import.meta.url),
+          "utf8",
+        ),
+      ) as { entries: Array<{ idx: number }> }
+    ).entries.at(-1)?.idx ?? 1,
+  ),
   SYNC_PROTOCOL: "1",
   ARCHIVE_FORMAT: "1",
 };

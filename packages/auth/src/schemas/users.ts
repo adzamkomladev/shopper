@@ -8,3 +8,14 @@ export const registerUserInput = v.strictObject({
   password: v.pipe(v.string(), v.minLength(8), v.maxLength(128)),
   roleId: uuidV7Schema,
 });
+
+export const userListItem = v.object({
+  id: uuidV7Schema,
+  name: v.string(),
+  email: v.string(),
+  emailVerified: v.boolean(),
+  roleId: uuidV7Schema,
+  roleName: v.string(),
+  protectedOwner: v.boolean(),
+});
+export const userListResponse = v.array(userListItem);

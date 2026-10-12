@@ -1,9 +1,19 @@
 import { Hono } from "hono";
+import { createMaileroo } from "@shopper/auth";
 import type { BoxBindings } from "./types";
-import { boxCache, boxDatabase, boxPool, boxPriceChange, boxRealtime } from "@shopper/adapters-box";
+import {
+  boxCache,
+  boxDatabase,
+  boxPool,
+  boxPriceChange,
+  boxRealtime,
+  boxAuthFlows,
+} from "@shopper/adapters-box";
 import { isPublicRequest, publicApi, runtimeUnavailable, serveRuntime } from "@shopper/api/runtime";
 export function createBoxApp(environment: Record<string, string | undefined> = process.env) {
+  let workflowPool: ReturnType<typeof boxPool> | undefined;
   let cache: ReturnType<typeof boxCache> | undefined;
+  let authFlows: ReturnType<typeof boxAuthFlows> | undefined;
   let priceChange: ReturnType<typeof boxPriceChange> | undefined;
   return new Hono<{ Bindings: BoxBindings }>().all("*", async (context) => {
     const request = context.req.raw;
@@ -18,11 +28,27 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
     if (!DATABASE_URL || !SHOPPER_AUTH_SECRET || !SHOPPER_AUTH_URL) return runtimeUnavailable();
     const connection = await boxDatabase(DATABASE_URL);
     cache ??= boxCache(environment.SHOPPER_CACHE_PATH ?? ".shopper/cache.sqlite");
+    workflowPool ??= boxPool(DATABASE_URL);
+    const workflowDatabase = workflowPool.db;
     // Created on first use, never at import: workflows outlive requests, so they get their own pool.
     priceChange ??= boxPriceChange({
-      database: boxPool(DATABASE_URL).db,
+      database: workflowDatabase,
       realtime: boxRealtime(),
     });
+    if (environment.SHOPPER_LINK_SECRET)
+      authFlows ??= boxAuthFlows({
+        withDatabase: (run) => run(workflowDatabase),
+        linkSecret: environment.SHOPPER_LINK_SECRET,
+        baseURL: SHOPPER_AUTH_URL,
+        mail:
+          environment.MAILEROO_API_KEY && environment.MAILEROO_FROM
+            ? createMaileroo({
+                apiKey: environment.MAILEROO_API_KEY,
+                from: environment.MAILEROO_FROM,
+                endpoint: environment.MAILEROO_ENDPOINT,
+              })
+            : undefined,
+      });
     try {
       return await serveRuntime(request, {
         database: connection.db,
@@ -33,6 +59,8 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
         bootstrapToken: SHOPPER_BOOTSTRAP_TOKEN,
         clientIP: context.env?.requestIP?.(request)?.address ?? "127.0.0.1",
         priceChange: priceChange.launcher,
+        authFlows,
+        linkSecret: environment.SHOPPER_LINK_SECRET,
       });
     } finally {
       await connection.close();

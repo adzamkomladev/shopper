@@ -10,8 +10,8 @@ import {
 } from "@shopper/ui/components/command";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { useDebouncedCallback } from "../../lib/use-debounced-callback";
-import { NAV_ITEMS } from "./nav-items";
 import { usePaletteProducts } from "./queries";
+import { useNavItems } from "./use-nav-items";
 
 const SEARCH_DEBOUNCE_MS = 200;
 
@@ -28,6 +28,7 @@ type Props = {
 
 export function CommandPalette({ state, onChange, onClosed }: Props) {
   const navigate = useNavigate();
+  const navItems = useNavItems();
   const online = useOnline();
   const { data, isFetching, isError } = usePaletteProducts(state.term, online);
   const setTerm = useDebouncedCallback(
@@ -84,7 +85,7 @@ export function CommandPalette({ state, onChange, onClosed }: Props) {
           </CommandGroup>
         )}
         <CommandGroup heading="Go to">
-          {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+          {navItems.map(({ to, label, icon: Icon }) => (
             <CommandItem
               key={to}
               onSelect={() => {

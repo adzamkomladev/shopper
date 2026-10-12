@@ -4,7 +4,7 @@ import * as v from "valibot";
 import { defineCommand } from "@shopper/audit";
 import { account, member, role, user } from "@shopper/db-pg";
 import { assignRoleInput, registerUserInput } from "./schemas/users";
-import { assertCanGrantRole, assertHasPermission } from "./roles";
+import { assertCanGrantRole, assertHasPermission, AdministrationError } from "./roles/service";
 
 export const assignMemberRole = defineCommand({
   name: "auth.member.assign-role",
@@ -17,24 +17,39 @@ export const assignMemberRole = defineCommand({
       .where(and(eq(user.orgId, context.orgId), eq(user.id, input.userId)))
       .limit(1);
     const [targetRole] = await tx
-      .select({ id: role.id, name: role.name })
+      .select({ id: role.id, name: role.name, protectedOwner: role.protectedOwner })
       .from(role)
       .where(and(eq(role.orgId, context.orgId), eq(role.id, input.roleId)))
       .limit(1);
-    if (!targetUser || !targetRole) throw new Error("User or role not found in this organization");
+    if (!targetUser || !targetRole)
+      throw new AdministrationError("User or role not found in this organization", 404);
     await assertCanGrantRole(tx, context, targetRole.id);
+    const [previous] = await tx
+      .select({ roleId: member.roleId, protectedOwner: role.protectedOwner })
+      .from(member)
+      .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
+      .where(and(eq(member.orgId, context.orgId), eq(member.userId, input.userId)));
+    if (previous?.protectedOwner && !targetRole.protectedOwner) {
+      const owners = await tx
+        .select({ id: member.id })
+        .from(member)
+        .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
+        .where(and(eq(member.orgId, context.orgId), eq(role.protectedOwner, true)));
+      if (owners.length <= 1)
+        throw new AdministrationError("The last owner cannot be demoted", 409);
+    }
     const [assigned] = await tx
       .insert(member)
       .values({
         orgId: context.orgId,
         organizationId: context.orgId,
         userId: input.userId,
-        role: "member",
+        role: targetRole.protectedOwner ? "owner" : "member",
         roleId: input.roleId,
       })
       .onConflictDoUpdate({
         target: [member.orgId, member.organizationId, member.userId],
-        set: { role: "member", roleId: input.roleId },
+        set: { role: targetRole.protectedOwner ? "owner" : "member", roleId: input.roleId },
       })
       .returning({ id: member.id });
     return {
@@ -55,11 +70,11 @@ export const registerOrganizationUser = defineCommand({
     await assertHasPermission(tx, context, "user.write");
     await assertHasPermission(tx, context, "role.write");
     const [targetRole] = await tx
-      .select({ id: role.id })
+      .select({ id: role.id, protectedOwner: role.protectedOwner })
       .from(role)
       .where(and(eq(role.orgId, context.orgId), eq(role.id, input.roleId)))
       .limit(1);
-    if (!targetRole) throw new Error("Role not found in this organization");
+    if (!targetRole) throw new AdministrationError("Role not found in this organization", 404);
     await assertCanGrantRole(tx, context, targetRole.id);
     const [created] = await tx
       .insert(user)
@@ -82,7 +97,7 @@ export const registerOrganizationUser = defineCommand({
         orgId: context.orgId,
         organizationId: context.orgId,
         userId: created!.id,
-        role: "member",
+        role: targetRole.protectedOwner ? "owner" : "member",
         roleId: targetRole.id,
       })
       .returning({ id: member.id });

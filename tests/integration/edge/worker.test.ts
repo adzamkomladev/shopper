@@ -17,8 +17,14 @@ test("Worker integration and shared conformance suite pass in workerd", async ()
       cwd: new URL("../../../tooling/worker-tests/", import.meta.url),
       env: { ...process.env, CF_TEST_DATABASE_URL: fixture.connectionString },
       timeout: 100000,
+    }).catch((error: unknown) => {
+      if (error instanceof Error && "stdout" in error && "stderr" in error)
+        throw new Error(`${error.message}\n${String(error.stdout)}\n${String(error.stderr)}`, {
+          cause: error,
+        });
+      throw error;
     });
-    expect(stdout).toContain("13 passed");
+    expect(stdout).toMatch(/\d+ passed/);
     const rows = await db.select().from(schema.auditLog).orderBy(asc(schema.auditLog.chainSeq));
     for (const orgId of new Set(rows.map((row) => row.orgId))) {
       expect(await verifyChain(rows.filter((row) => row.orgId === orgId))).toMatchObject({

@@ -73,6 +73,19 @@ Business code is written once and runs on Cloudflare (cloud) and on Rivet/Bun (o
   fixed org) are public and read-only. `@shopper/api` dispatches `/orgs/*` before the origin and
   tenant checks, so they need no session or tenant header. Keep them GET-only and minimal.
 
+## Pre-shop registration exception
+
+Every customer table carries an `org_id` foreign key to `org`. Registration is the one exception: before
+email verification no customer org exists, so `registration_request`, `registration_audit_log` and
+`registration_workflow_run`/`_step` store the server-reserved candidate UUIDv7 (`id` = `org_id`), and the
+three child tables reference the request instead of `org`. The request holds the proposed owner
+name and email; it creates no customer organisation, user or credentials and does not reserve the
+shop code. Completion creates the org with that same id in one outer
+transaction. Customer tenancy is unchanged.
+
+A command opts into this storage with `defineCommand({ scope: "registration" })`. The scope is part of
+the trusted definition, never of the request, so HTTP cannot select it.
+
 The full feature map is in [platforms.md](platforms.md).
 
 ## Where code goes

@@ -3,7 +3,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
 import { category, supplier } from "@shopper/db-pg";
 import { managementJson, ManagementError } from "../management";
-import { categoryInput, supplierInput } from "../schemas/catalogue";
+import { categoryInput, supplierInput } from "../schemas/catalogue/inputs";
 import type { Queryable } from "../types";
 import { nonEmpty, recordId } from "./records";
 

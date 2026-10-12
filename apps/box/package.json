@@ -15,6 +15,6 @@
   "dependencies": {
     "@shopper/adapters-box": "workspace:*",
     "@shopper/api": "workspace:*",
-    "elysia": "1.4.30"
+    "hono": "4.13.13"
   }
 }

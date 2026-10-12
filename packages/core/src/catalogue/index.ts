@@ -4,10 +4,15 @@ export {
   createProduct,
   removeBarcode,
   updateProduct,
-} from "./products";
-export { findByBarcode, getProduct, listProducts } from "./product-reads";
-export { priceAt, readPriceAt, setPrice } from "./prices";
+} from "./products/commands";
+export { findByBarcode, getProduct, listProducts } from "./products/queries";
+export { priceAt, readPriceAt, setPrice } from "./prices/commands";
 export { listCategories, listSuppliers, saveCategory, saveSupplier } from "./reference";
 export { previewImport, readImport, runImport } from "./import/run";
-export { priceChangeParams } from "../schemas/catalogue";
-export { priceChangeId, runPriceChange, schedulePrice, type PriceChangeDeps } from "./price-change";
+export { priceChangeParams } from "../schemas/catalogue/inputs";
+export {
+  priceChangeId,
+  runPriceChange,
+  schedulePrice,
+  type PriceChangeDeps,
+} from "./prices/workflow";

@@ -11,6 +11,7 @@ Read the doc for the area you are touching **before** you change it:
 | Doc                                                                 | Read when                                                    |
 | ------------------------------------------------------------------- | ------------------------------------------------------------ |
 | [architecture.md](docs/engineering/architecture.md)                 | Adding a file, package, dependency or import across projects |
+| [layout.md](docs/engineering/layout.md)                             | Shared folder changes and the full project inventory         |
 | [code-quality.md](docs/engineering/code-quality.md)                 | Writing any code (size limits, file shape, helpers, errors)  |
 | [testing.md](docs/engineering/testing.md)                           | Always: tests come first                                     |
 | [frontend.md](docs/engineering/frontend.md)                         | Any React, UI or UX work (no effects, design system, states) |
@@ -20,6 +21,18 @@ Read the doc for the area you are touching **before** you change it:
 | [ai-workflow.md](docs/engineering/ai-workflow.md)                   | Planning, subagents, models, the Codex review loop           |
 
 ## Non-negotiable rules
+
+- Folder names carry shared context. When several files repeat a prefix or suffix, group them
+  under that feature folder and remove the repeated words from filenames. Use
+  `schemas/base.ts`, `schemas/workflows.ts`, and `screens/auth/login/{screen,form,success}.tsx`.
+  This applies to database schemas, validation, components, hooks, commands, tests and tooling.
+  Preserve required framework filenames, generated files and published migration filenames.
+- `index.ts`/`index.tsx` only re-export (guard); implementations and types live in their owning
+  modules. Required framework route filenames are exempt. Audit every app and package when
+  applying a shared layout rule; do not stop after the first affected package.
+- Hono serves HTTP on both Workers and Bun. The box uses Bun’s native server; no second HTTP framework.
+- Never attribute commits or PRs to an AI assistant: no assistant authors, co-author trailers,
+  generated-by footers, signatures or session links. Preserve human authorship.
 
 - Money: integers only. 1 GHS = 10000. Use @shopper/money for ALL arithmetic. Never floats.
 - Quantities: integer thousandths. Rates: integer basis points.

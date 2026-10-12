@@ -24,12 +24,12 @@ export async function runStoreDay(workflow: Workflow, deps: StoreDayDeps, input:
 }
 ```
 
-The `Workflow` port (`packages/ports/src/index.ts`) defines `step`, `sleep`, `sleepUntil`,
+The `Workflow` port (`packages/ports/src/workflow.ts`) defines `step`, `sleep`, `sleepUntil`,
 `waitFor`, `send` and `compensate`. `adapters/cf` binds it to a `WorkflowEntrypoint`
 (`step.do`, `step.sleep`, `step.sleepUntil`, `step.waitForEvent`). `adapters/box` binds it to a
 Rivet workflow. The live example of this pattern is `nextStoreSequence()`, which is shared by the
 `StoreSequencer` Durable Object and `boxSequencer()`. The first real workflow is `runPriceChange()`
-(`packages/core/src/catalogue/price-change.ts`): `PriceChangeWorkflow` runs it on Cloudflare and
+(`packages/core/src/catalogue/prices/workflow.ts`): `PriceChangeWorkflow` runs it on Cloudflare and
 `boxPriceChange()` on the box (memory engine until Rivet, day 36).
 
 - Start workflows through a `WorkflowLauncher` (one per kind). `start` only acknowledges the launch;
@@ -47,7 +47,7 @@ Rivet workflow. The live example of this pattern is `nextStoreSequence()`, which
 
 | Concern                        | Cloud: Cloudflare                                                        | On-prem: Rivet / Bun                                             | Shared code                                     |
 | ------------------------------ | ------------------------------------------------------------------------ | ---------------------------------------------------------------- | ----------------------------------------------- |
-| HTTP API                       | Workers + Hono (`apps/edge`)                                             | Elysia `app.mount()` of the same Hono app (`apps/box`)           | `@shopper/api`                                  |
+| HTTP API                       | Workers + Hono (`apps/edge`)                                             | Hono on Bun’s native server (`apps/box`)                         | `@shopper/api`                                  |
 | Portal SPA                     | Workers Static Assets                                                    | Embedded in the box binary                                       | `@shopper/backoffice`                           |
 | Customer shop (SSR)            | TanStack Start on Workers, **service binding** to the API Worker         | (v1.5 online orders)                                             | `apps/shop`                                     |
 | System of record               | Neon PostgreSQL via **Hyperdrive**                                       | PostgreSQL 18                                                    | Drizzle + `@shopper/db-pg`                      |

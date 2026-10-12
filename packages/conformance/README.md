@@ -12,3 +12,6 @@ suite. The PostgreSQL cursor and its audit row are written atomically. Reopening
 adapter objects proves independence from client memory; no DO-local cursor is
 used. Durable Cloudflare/Rivet engine wiring remains a later adapter concern;
 portable Workflow behavior is covered here against both adapters.
+
+`src/register.ts` registers the shared cases; `src/cases/` holds each port suite.
+`src/index.ts` only re-exports the public test registration API.

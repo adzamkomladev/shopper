@@ -16,3 +16,5 @@ Create the dev shop's owner once, then log in at http://localhost:5173 with shop
 ```sh
 curl -s localhost:8787/api/auth/sign-up/email -H "Origin: http://localhost:5173" -H "X-Shopper-Org: $(curl -s localhost:8787/orgs/dev | jq -r .id)" -H "X-Shopper-Bootstrap-Token: dev-only-bootstrap-token" -H "Content-Type: application/json" -d '{"name":"Dev Owner","email":"owner@dev.local","password":"dev-owner-password"}'
 ```
+
+`src/app.tsx` mounts the router and query client. The HTML entry `src/index.tsx` only re-exports it.

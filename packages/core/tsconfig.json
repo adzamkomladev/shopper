@@ -10,7 +10,7 @@
       "path": "../audit"
     },
     {
-      "path": "../db-pg"
+      "path": "../db/pg"
     },
     {
       "path": "../money"

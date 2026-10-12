@@ -4,7 +4,7 @@ import { v7 } from "uuid";
 import * as schema from "@shopper/db-pg";
 import { createAuth, registerOrganizationUser } from "@shopper/auth";
 import { defineCommand } from "@shopper/audit";
-import { provisionOrg, provisioningContext } from "../../../tooling/seed";
+import { provisionOrg, provisioningContext } from "../../../tooling/database/seed";
 import {
   baseURL,
   secret,

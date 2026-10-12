@@ -8,8 +8,8 @@
     "typecheck": "tsc -b",
     "services:up": "docker compose -f tooling/docker-compose.dev.yml up -d",
     "services:down": "docker compose -f tooling/docker-compose.dev.yml down",
-    "db:migrate": "tsx tooling/database.ts migrate",
-    "db:seed": "tsx tooling/database.ts seed",
+    "db:migrate": "tsx tooling/database/cli.ts migrate",
+    "db:seed": "tsx tooling/database/cli.ts seed",
     "guard": "tsx tooling/guard.ts",
     "e2e": "playwright test"
   },

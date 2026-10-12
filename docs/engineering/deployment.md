@@ -35,7 +35,7 @@ vp -C apps/edge run deploy:staging         # deploys the generated staging confi
 
 ## Versions (never hard-code one)
 
-- `package.json` owns the product version (SemVer). `tooling/build-info.ts` injects
+- `package.json` owns the product version (SemVer). `tooling/build/info.ts` injects
   `SHOPPER_VERSION`, `GIT_SHA`, `BUILD_DATE`, `SCHEMA_VERSION`, `SYNC_PROTOCOL` and
   `ARCHIVE_FORMAT` into every build. Read these constants, never a string literal.
 - Every API response carries `Shopper-Version`. Every audit row and sale is stamped with
@@ -46,7 +46,7 @@ vp -C apps/edge run deploy:staging         # deploys the generated staging confi
 ## Database migrations
 
 - Forward-only and idempotent. Generate with
-  `vp exec drizzle-kit generate --config packages/db-pg/drizzle.config.ts`. Never edit an applied
+  `vp exec drizzle-kit generate --config packages/db/pg/drizzle.config.ts`. Never edit an applied
   migration.
 - Breaking changes use **expand → migrate → contract** across at least two releases. The server
   accepts sync protocol N and N−1. `min_till_version` forces old tills to update.

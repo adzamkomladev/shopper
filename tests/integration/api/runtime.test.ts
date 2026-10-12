@@ -4,8 +4,8 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
 import { createBoxApp } from "@shopper/box";
-import { migrateDatabase } from "../../../tooling/migrate";
-import { provisionOrg, provisioningContext } from "../../../tooling/seed";
+import { migrateDatabase } from "../../../tooling/database/migrate";
+import { provisionOrg, provisioningContext } from "../../../tooling/database/seed";
 import { postgresFixture } from "../../fixtures/postgres";
 let fixture: Awaited<ReturnType<typeof postgresFixture>>;
 let pool: Pool;
@@ -40,7 +40,7 @@ test("box sessions and device HTTP flow enforce origin, tenant, branch, and till
     headers: Record<string, string> = {},
     method = data === undefined ? "GET" : "POST",
   ) =>
-    host.handle(
+    host.fetch(
       new Request(`http://localhost${path}`, {
         method,
         headers: { "content-type": "application/json", ...headers },
@@ -133,7 +133,7 @@ test("box sessions and device HTTP flow enforce origin, tenant, branch, and till
     SHOPPER_CACHE_PATH: ":memory:",
     SHOPPER_ORG_ID: other.orgId,
   });
-  const cross = await crossTenantHost.handle(
+  const cross = await crossTenantHost.fetch(
     new Request("http://localhost/cashiers/login", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -160,7 +160,7 @@ test("box ignores caller IP spoofing when limiting password attempts", async () 
   });
   let status = 0;
   for (let attempt = 0; attempt < 4; attempt++) {
-    const response = await runtime.handle(
+    const response = await runtime.fetch(
       new Request("http://localhost/api/auth/sign-in/email", {
         method: "POST",
         headers: {
@@ -170,9 +170,19 @@ test("box ignores caller IP spoofing when limiting password attempts", async () 
         },
         body: JSON.stringify({ email: "nonexistent@runtime.invalid", password: "wrong-password" }),
       }),
+      { requestIP: () => ({ address: "192.0.2.40" }) },
     );
     status = response.status;
     expect([401, 429]).toContain(status);
   }
   expect(status).toBe(429);
+  const differentPeer = await runtime.fetch(
+    new Request("http://localhost/api/auth/sign-in/email", {
+      method: "POST",
+      headers: { "content-type": "application/json", "X-Shopper-Client-IP": "192.0.2.40" },
+      body: JSON.stringify({ email: "nonexistent@runtime.invalid", password: "wrong-password" }),
+    }),
+    { requestIP: () => ({ address: "192.0.2.41" }) },
+  );
+  expect(differentPeer.status).toBe(401);
 });

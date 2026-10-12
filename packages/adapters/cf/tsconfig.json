@@ -13,10 +13,10 @@
       "path": "../../core"
     },
     {
-      "path": "../../db-pg"
+      "path": "../../db/pg"
     },
     {
-      "path": "../../db-sqlite"
+      "path": "../../db/sqlite"
     },
     {
       "path": "../../config"

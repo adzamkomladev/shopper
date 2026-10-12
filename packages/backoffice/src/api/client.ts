@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { currentShop } from "../shops/shop-store";
+import { currentShop } from "../shops/store";
 
 const API_BASE = "/api";
 

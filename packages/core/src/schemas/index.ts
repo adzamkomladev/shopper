@@ -1,2 +1,2 @@
-export * from "./catalogue";
-export * from "./catalogue-views";
+export * from "./catalogue/inputs";
+export * from "./catalogue/views";

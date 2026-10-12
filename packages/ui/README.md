@@ -8,3 +8,7 @@ shadcn/ui (new-york, slate) on Tailwind v4, shared by the till, the portal and t
   `app-backdrop`, `about`. Never copy a component into an app; restyle through tokens and variants.
 - `src/hooks/` holds `use-online` and the `shortcuts` registry (`ShortcutRoot`, `useShortcuts`).
 - Import by subpath: `@shopper/ui/components/button`, `@shopper/ui/hooks/use-online`.
+
+Related input components live in `src/components/input/{control,group}.tsx`; table components
+live in `src/components/table/{primitive,data}.tsx`. Explicit package export mappings preserve
+existing `components/input`, `components/input-group`, `components/table` and `components/data-table` imports.

@@ -8,7 +8,7 @@
   "references": [
     { "path": "../audit" },
     { "path": "../config" },
-    { "path": "../db-pg" },
+    { "path": "../db/pg" },
     { "path": "../ports" }
   ]
 }

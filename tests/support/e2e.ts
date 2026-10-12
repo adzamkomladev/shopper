@@ -5,6 +5,10 @@ import { expect, type Page } from "@playwright/test";
 
 /** Fails on serious or critical axe violations and names each rule and target. */
 export async function expectNoSeriousAxe(page: Page) {
+  // Popovers fade in; contrast measured mid-fade is a false failure.
+  await page.waitForFunction(() =>
+    document.getAnimations().every((animation) => animation.playState !== "running"),
+  );
   const { violations } = await new AxeBuilder({ page }).analyze();
   const serious = violations
     .filter((violation) => violation.impact === "serious" || violation.impact === "critical")

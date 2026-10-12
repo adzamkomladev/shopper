@@ -50,10 +50,10 @@ If none of these fit, stop and ask. Do not work around the guard with a custom w
 
   ```text
   screens/sale/
-    sale-screen.tsx         composition only: layout + parts
+    screen.tsx              composition only: layout + parts
     basket.tsx              basket list and line actions
     tender-panel.tsx        payment entry
-    use-sale-shortcuts.ts   key bindings for this screen
+    use-shortcuts.ts        key bindings for this screen
     queries.ts              query options and mutations
   ```
 

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { build } from "esbuild";
 import { defineConfig } from "vitest/config";
 import { cloudflareTest } from "@cloudflare/vitest-plugin";
-import { buildDefines } from "../build-info";
+import { buildDefines } from "../build/info";
 
 // Rolldown lifts pg's optional pg-native require into an eager ESM import.
 // esbuild preserves that lazy require, as it must for Workers without native addons.

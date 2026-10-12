@@ -84,7 +84,7 @@ Servers already running are reused outside CI. One worker, no parallelism.
 
 - **Projects:** `setup` (`auth.setup.ts`) runs first. `portal` depends on it and reuses its saved
   `storageState`. `till-ui` has no dependencies.
-- **Database:** `tooling/e2e-database.ts` drops, recreates, migrates and provisions the two e2e
+- **Database:** `tooling/database/e2e.ts` drops, recreates, migrates and provisions the two e2e
   shops (`e2e-mart`, `e2e-annex`) on every start. It refuses any database not named `*_e2e`, and
   any non-local host outside CI, because dropping is irreversible. Override with `E2E_DATABASE_URL`.
 - **Helpers** are in `tests/support/e2e.ts`: shop fixtures, `typeCredentials`, `signInWithKeyboard`

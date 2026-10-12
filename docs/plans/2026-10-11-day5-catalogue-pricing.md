@@ -27,9 +27,9 @@ Today nothing exists for this:
 
 An owner or admin can create and import products with several barcodes, units/pack conversions, categories, suppliers and tax classes. They can price products by version with branch overrides, and schedule a time-boxed price change that publishes to stores at start and end. Every write is audited. All of this is exposed as API on both cloud and box.
 
-## Data model: migration `0005_catalogue` (packages/db-pg)
+## Data model: migration `0005_catalogue` (packages/db/pg)
 
-New file `packages/db-pg/src/catalogue-schema.ts`, re-exported from `schema.ts`.
+New file `packages/db/pg/src/schemas/catalogue.ts`, re-exported from `schemas/index.ts`.
 
 **Conventions:**
 
@@ -57,7 +57,7 @@ New file `packages/db-pg/src/catalogue-schema.ts`, re-exported from `schema.ts`.
 
 A scheduled window price therefore "reverts" by itself when `valid_to` passes. The workflow only tells the tills.
 
-Also: bump `SCHEMA_VERSION` to `"5"` in `tooling/build-info.ts`.
+Also: bump `SCHEMA_VERSION` to `"5"` in `tooling/build/info.ts`.
 
 ## Changes by package
 
@@ -70,16 +70,16 @@ Also: bump `SCHEMA_VERSION` to `"5"` in `tooling/build-info.ts`.
 
 | File                   | Contents                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `products.ts`          | Commands `product.create`, `product.update`, `product.archive`, `barcode.add`, `barcode.remove`, `category.save`, `supplier.save`                                                                                                                                                                                                                                                                                                                                                    |
-| `prices.ts`            | Command `price.set` (reason required, goes to the audit `reason` column) and command `price.schedule` (inserts the windowed row). Also `priceAt(db, {orgId, productId, branchId?, at})` and `findByBarcode(db, orgId, code, branchId?, at)`, which returns product + quantity + price.                                                                                                                                                                                               |
+| `products/commands.ts` | Commands `product.create`, `product.update`, `product.archive`, `barcode.add`, `barcode.remove`, `category.save`, `supplier.save`                                                                                                                                                                                                                                                                                                                                                    |
+| `prices/commands.ts`   | Command `price.set` (reason required, goes to the audit `reason` column) and command `price.schedule` (inserts the windowed row). Also `priceAt(db, {orgId, productId, branchId?, at})` and `findByBarcode(db, orgId, code, branchId?, at)`, which returns product + quantity + price.                                                                                                                                                                                               |
 | `import/parse.ts`      | SheetJS `read()` → rows (CSV and XLSX). Header aliases are case- and space-insensitive (`sku/code`, `name/description`, `barcode(s)` split on `; , \|`, `pack barcode` + `pack qty`, `unit`, `category`, `department`, `supplier`, `tax class/vat`, `price/selling price` → `fromDecimal`, `online`).                                                                                                                                                                                |
 | `import/validate.ts`   | Per-row Valibot validation plus cross-row checks: duplicate SKU or barcode in the file, a barcode owned by another product in the DB, bad EAN check digit, unknown tax class, price ≤ 0. Output is `{row, column, value, message}`. Bad rows never stop good ones.                                                                                                                                                                                                                   |
 | `import/apply.ts`      | Command `catalogue.import`: one transaction and one audit row (payload: sha256, counts, import id). Upserts by SKU in chunks of 1000. Creates missing categories and suppliers by name. Inserts a price version only when the price changed. Writes the `product_import` row with the report. `dryRun` returns the report and writes nothing.                                                                                                                                        |
-| `price-change-flow.ts` | `runPriceChange(flow: Workflow, deps, params)`, the one shared function: `sleepUntil(start)` → step `publish-start` → `sleepUntil(end)` → step `publish-end`. Each publish step runs the audited `price.publish` command through `defineCommand`'s workflow checkpoint (records `workflow_run`/`workflow_step` plus audit), then `realtime.publish(orgId, storeId, {type:"price.changed", v:1, ...})` for each of the org's stores. Instance id is `price-change:<orgId>:<priceId>`. |
+| `prices/workflow.ts`   | `runPriceChange(flow: Workflow, deps, params)`, the one shared function: `sleepUntil(start)` → step `publish-start` → `sleepUntil(end)` → step `publish-end`. Each publish step runs the audited `price.publish` command through `defineCommand`'s workflow checkpoint (records `workflow_run`/`workflow_step` plus audit), then `realtime.publish(orgId, storeId, {type:"price.changed", v:1, ...})` for each of the org's stores. Instance id is `price-change:<orgId>:<priceId>`. |
 
 **@shopper/ports**
 
-- Add a launcher: `WorkflowLauncher.start(kind, instanceId, params)`. Before adding it, confirm none exists in `packages/ports/src/index.ts`.
+- Add a launcher: `WorkflowLauncher.start(kind, instanceId, params)`. Before adding it, confirm none exists in `packages/ports/src/workflow.ts`.
 - The Realtime port (`publish`/`subscribe`) already exists. Implement it; leave its shape alone.
 
 **@shopper/conformance**
@@ -90,10 +90,10 @@ New cases, run against both adapters:
 
 **@shopper/adapters-cf** (load the `durable-objects`, `workers-best-practices` and `wrangler` skills first)
 
-| File                       | Contents                                                                                                                                                                                                                           |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `store-hub.ts`             | `StoreHub` DO, keyed `org:store`, using WebSocket hibernation: `ctx.acceptWebSocket`, an RPC `broadcast(envelope)` that runs `ctx.getWebSockets()` and sends to each. About 20 lines. Exports `cloudflareRealtime(env.STORE_HUB)`. |
-| `price-change-workflow.ts` | `PriceChangeWorkflow extends WorkflowEntrypoint`, which adapts `step.do` and `step.sleepUntil` to the port and calls `runPriceChange`. Exports `cloudflareLauncher(env)`, which wraps `env.PRICE_CHANGE.create({ id, params })`.   |
+| File              | Contents                                                                                                                                                                                                                           |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `coordination.ts` | `StoreHub` DO, keyed `org:store`, using WebSocket hibernation: `ctx.acceptWebSocket`, an RPC `broadcast(envelope)` that runs `ctx.getWebSockets()` and sends to each. About 20 lines. Exports `cloudflareRealtime(env.STORE_HUB)`. |
+| `workflows.ts`    | `PriceChangeWorkflow extends WorkflowEntrypoint`, which adapts `step.do` and `step.sleepUntil` to the port and calls `runPriceChange`. Exports `cloudflareLauncher(env)`, which wraps `env.PRICE_CHANGE.create({ id, params })`.   |
 
 In `apps/edge/wrangler.jsonc`:
 
@@ -107,11 +107,11 @@ Then run `vp -C apps/edge run types` and export both classes from `apps/edge/src
 
 - `boxRealtime()`: an in-process listener set keyed by org and store.
 - `boxLauncher`: `memoryWorkflow` running `runPriceChange`. Mark the ceiling with a `ponytail:` comment: in-flight schedules are lost on restart until Rivet Workflows land on day 36.
-- Wire both in `apps/box/src/index.ts`.
+- Wire both in `apps/box/src/app.ts`.
 
 **@shopper/api**
 
-- New `src/catalogue-routes.ts`: a Hono sub-app mounted in `createApi`, keeping `index.ts` small. Problems are mapped once at the boundary: `CatalogueError` → status, Valibot → 400, PG `23505`/`23503` → 409.
+- New `src/routes/catalogue.ts`: a Hono sub-app mounted in `createApi` in `src/app.ts`; `src/index.ts` only re-exports. Problems are mapped once at the boundary: `CatalogueError` → status, Valibot → 400, PG `23505`/`23503` → 409.
 - Add `products|categories|suppliers|prices|barcodes|catalogue` to the `isPublicRequest` regex in `src/runtime.ts`. Without that, the routes fall through to the public API.
 
 | Route                                                                                                                         | Permission   |
@@ -132,7 +132,7 @@ Then run `vp -C apps/edge run types` and export both classes from `apps/edge/src
 
 **Tooling**
 
-- `tooling/catalogue-fixture.ts`: a deterministic generator (seeded PRNG) of realistic Ghanaian supermarket SKUs. Brands, departments, sizes and weighed produce, with valid EAN-13s, about 10% pack barcodes and about 5% `kg` items. It can write CSV and XLSX, and can inject messy rows (bad price, blank name, duplicate SKU or barcode, bad check digit, unknown tax class, stray whitespace and "GH₵ 12.50" price text).
+- `tooling/lib/catalogue-fixture.ts`: a deterministic generator (seeded PRNG) of realistic Ghanaian supermarket SKUs. Brands, departments, sizes and weighed produce, with valid EAN-13s, about 10% pack barcodes and about 5% `kg` items. It can write CSV and XLSX, and can inject messy rows (bad price, blank name, duplicate SKU or barcode, bad check digit, unknown tax class, stray whitespace and "GH₵ 12.50" price text).
 - Seed: `vp run db:seed` also imports 20,000 SKUs into the dev org **through the import command**, so the seed exercises the real path. The dev DB is reset first, since data is disposable.
 
 ## Behaviours as tests (written first)
@@ -157,7 +157,7 @@ All files go in `tests/integration/catalogue/` unless noted.
 - "a price change writes an audit row with its reason"
 - "a non-positive or fractional price is rejected"
 
-**`import.test.ts`**
+**`import/run.test.ts`**
 
 - "20,000 SKUs import in one go within the time budget" (generated XLSX)
 - "bad rows are reported by row and column while good rows land"
@@ -182,18 +182,18 @@ All files go in `tests/integration/catalogue/` unless noted.
 
 ## Rules at risk
 
-| Rule                     | How the plan keeps it                                                                                                                                                                                        |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Money**                | Prices go in through `fromDecimal` only. The column is `moneyColumn`. No floats anywhere: SheetJS numeric cells are read as their formatted text (`raw:false`).                                              |
-| **Quantities**           | Pack size is stored in thousandths. Weight-embedded barcodes stay on day 10.                                                                                                                                 |
-| **Audit**                | Every mutation is a `defineCommand`. The import is **one command with one audit row** (hash plus counts, with the full report in `product_import`), not 20k chained rows. Flagged for the reviewer.          |
-| **Tenancy**              | Every table has `org_id`, composite FKs and org-scoped queries, proven by the org-B test.                                                                                                                    |
-| **Platform boundary**    | `WorkflowEntrypoint` and the DO stay in `adapters-cf`. Core only sees the ports.                                                                                                                             |
-| **Coordination classes** | StoreHub is one of the five; no sixth is added.                                                                                                                                                              |
-| **No polling or cron**   | `sleepUntil`.                                                                                                                                                                                                |
-| **Cache**                | No read-after-write.                                                                                                                                                                                         |
-| **File size**            | The catalogue is split into small files and `api/index.ts` only mounts the sub-app. Watch the guard baseline files (`auth/src/index.ts` 647, already over); don't grow them, put role changes in `roles.ts`. |
-| **Synced envelope**      | `price.changed` carries `v: 1`.                                                                                                                                                                              |
+| Rule                     | How the plan keeps it                                                                                                                                                                               |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Money**                | Prices go in through `fromDecimal` only. The column is `moneyColumn`. No floats anywhere: SheetJS numeric cells are read as their formatted text (`raw:false`).                                     |
+| **Quantities**           | Pack size is stored in thousandths. Weight-embedded barcodes stay on day 10.                                                                                                                        |
+| **Audit**                | Every mutation is a `defineCommand`. The import is **one command with one audit row** (hash plus counts, with the full report in `product_import`), not 20k chained rows. Flagged for the reviewer. |
+| **Tenancy**              | Every table has `org_id`, composite FKs and org-scoped queries, proven by the org-B test.                                                                                                           |
+| **Platform boundary**    | `WorkflowEntrypoint` and the DO stay in `adapters-cf`. Core only sees the ports.                                                                                                                    |
+| **Coordination classes** | StoreHub is one of the five; no sixth is added.                                                                                                                                                     |
+| **No polling or cron**   | `sleepUntil`.                                                                                                                                                                                       |
+| **Cache**                | No read-after-write.                                                                                                                                                                                |
+| **File size**            | The catalogue is split into small files and `api/app.ts` mounts the sub-app; `index.ts` only re-exports. Keep role changes in `roles.ts` and split implementations by responsibility.               |
+| **Synced envelope**      | `price.changed` carries `v: 1`.                                                                                                                                                                     |
 
 ## Agents, skills and MCPs
 
@@ -212,13 +212,13 @@ All files go in `tests/integration/catalogue/` unless noted.
 
 **Codex subagents.** `codex exec` with the project's `.codex/agents/*.toml` roles. Each is run in the background, given an explicit file scope so it never touches the same files as a Claude agent, and its result is verified by me before it's kept.
 
-| Codex role    | Model                 | Used for                                                                                                                                                                                                                               |
-| ------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `planner`     | `gpt-6-astra`         | An independent second opinion on this plan alongside the Claude `planner`. The two are diffed and only real gaps are taken.                                                                                                            |
-| `test-author` | `gpt-6-luna`, high    | Adversarial import cases in slice 4 (messy cells, encodings, Excel date/number quirks), appended to `import.test.ts`. Also the workflow timing edge cases in slice 6: start already in the past, end before start, duplicate schedule. |
-| `implementer` | `gpt-6.1-sol`, medium | `tooling/catalogue-fixture.ts`, the 20k SKU generator, in slice 4. It runs in parallel with the Claude `implementer` on core, because their files are disjoint.                                                                        |
-| `reviewer`    | `gpt-6.1-sol`, medium | `codex review --uncommitted` per slice (through the Claude `reviewer`). Run with effort medium for the whole-branch review in slice 8.                                                                                                 |
-| `checker`     | `gpt-6.1-sol`, low    | Cross-checks the final full run in slice 8.                                                                                                                                                                                            |
+| Codex role    | Model                 | Used for                                                                                                                                                                                                                                   |
+| ------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `planner`     | `gpt-6-astra`         | An independent second opinion on this plan alongside the Claude `planner`. The two are diffed and only real gaps are taken.                                                                                                                |
+| `test-author` | `gpt-6-luna`, high    | Adversarial import cases in slice 4 (messy cells, encodings, Excel date/number quirks), appended to `import/run.test.ts`. Also the workflow timing edge cases in slice 6: start already in the past, end before start, duplicate schedule. |
+| `implementer` | `gpt-6.1-sol`, medium | `tooling/lib/catalogue-fixture.ts`, the 20k SKU generator, in slice 4. It runs in parallel with the Claude `implementer` on core, because their files are disjoint.                                                                        |
+| `reviewer`    | `gpt-6.1-sol`, medium | `codex review --uncommitted` per slice (through the Claude `reviewer`). Run with effort medium for the whole-branch review in slice 8.                                                                                                     |
+| `checker`     | `gpt-6.1-sol`, low    | Cross-checks the final full run in slice 8.                                                                                                                                                                                                |
 
 **Skills:**
 
@@ -249,7 +249,7 @@ Branch: `claude/day5-catalogue-pricing`. Each slice runs `tdd-slice`:
 7. **Schema + permissions.** Migration 0005, tables, `product.read`, schema version 5, db test. Reset the dev DB.
 8. **Products, barcodes, categories, suppliers.** Commands, routes and `products.test.ts`.
 9. **Versioned prices.** `priceAt`, `findByBarcode`, `price.set` and `prices.test.ts`.
-10. **Import.** SheetJS dependency, parse/validate/apply, the route, `import.test.ts` (20k). In parallel, the Codex `implementer` builds the fixture generator and the Codex `test-author` writes the adversarial cases. `silent-failure-hunter` checks the error paths.
+10. **Import.** SheetJS dependency, parse/validate/apply, the route, `import/run.test.ts` (20k). In parallel, the Codex `implementer` builds the fixture generator and the Codex `test-author` writes the adversarial cases. `silent-failure-hunter` checks the error paths.
 11. **StoreHub + Realtime + launcher** (`cloud-box-parity` skill): conformance first, then the CF and box shells, then workerd tests. `type-design-analyzer` checks the port types.
 12. **Scheduled price change.** `runPriceChange`, `PriceChangeWorkflow`, the schedule route, `price-schedule.test.ts` and the workerd workflow test. The Codex `test-author` writes the timing edge cases.
 13. **20k seed** through import, plus the `db:seed` wiring.
@@ -340,4 +340,4 @@ These override the sections above where they conflict.
 
 **Guard**
 
-- The baseline numbers in the plan were stale; every file is under 250 lines now. Don't extend `pin-login.test.ts` (234), `permissions.test.ts` (216) or `api/index.ts` (189).
+- The baseline numbers in the plan were stale. Keep the 250-line limit; device tests live in `auth/devices/`, and API composition lives in `api/app.ts` with a re-export-only `index.ts`.

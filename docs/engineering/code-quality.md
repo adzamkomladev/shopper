@@ -34,9 +34,9 @@ Never add to it.
 
 Grow a project with folders, not new packages. Each app or package uses the same layout:
 
-- **`index.ts` only re-exports.** No logic, no routes, no schemas, no interfaces. Code inside the
+- **`index.ts`/`index.tsx` only re-export (guard).** No logic, no routes, no schemas, no interfaces. Code inside the
   project never imports its own `./index`. It imports the file that holds the code it needs.
-- **`schemas/`** holds the project's Valibot schemas, one file per domain (`schemas/catalogue.ts`,
+- **`schemas/`** holds the project's database and Valibot schemas, one file per domain (`schemas/catalogue.ts`,
   `schemas/devices.ts`). Fields shared by several schemas go in `schemas/fields.ts`.
 - **`types.ts`** holds the project's interfaces and type aliases. Types inferred from a schema stay
   next to that schema.
@@ -44,6 +44,20 @@ Grow a project with folders, not new packages. Each app or package uses the same
   mounted in `app.ts`), `middleware/`, `cases/`, or a domain folder such as `catalogue/`.
 - **Adapters mirror each other.** `adapters/cf` and `adapters/box` use the same file names
   (`storage`, `sequencer`, `realtime`, the workflow and launcher files).
+
+Shared filename prefixes or suffixes belong in a folder. Use `schemas/base.ts` and
+`schemas/workflows.ts`, never `base-schema.ts` and `workflow-schema.ts`. Use
+`screens/auth/login/{screen,form,success}.tsx`, never `screens/login/login-form.tsx`.
+Apply the same rule to hooks, commands, queries, tests and tooling when they form a feature.
+Keep conventional markers such as `use-`, `.test` and `.spec`; avoid repeating the enclosing
+feature name. Do not rename framework entry points, generated files or published migrations.
+Keep exported symbols descriptive for callers; this rule concerns file paths.
+
+Apply shared layout changes across all apps and packages, including both adapters. Trace
+imports, dynamic routes, package subpaths, build/runtime entries and docs before moving files.
+Preserve published package subpaths through export mappings where needed. Framework route
+filenames and generated files remain unchanged. The current workspace inventory is in
+[layout.md](layout.md).
 
 ## Shared helpers live in one place
 
@@ -74,7 +88,7 @@ Use the standard library or the platform before writing a helper: `Intl`, `struc
 - Prefer `type` aliases and plain functions. Use a class only when the platform requires one
   (Durable Object, `WorkflowEntrypoint`, `Error` subclasses).
 - Prefer discriminated unions over boolean flags and optional fields that only make sense together.
-- Use named exports only. A package's public surface is its `index.ts` plus subpaths in `exports`.
+- Use named exports only, except runtime-required entry configurations (the Bun server default export). A package's public surface is its `index.ts` plus subpaths in `exports`.
 
 ## Errors
 

@@ -3,7 +3,7 @@ import { redirect } from "@tanstack/react-router";
 import * as v from "valibot";
 import { orgSummary } from "@shopper/core/schemas";
 import { ApiError, apiFetch } from "../api/client";
-import { currentShop } from "../shops/shop-store";
+import { currentShop } from "../shops/store";
 
 const SESSION_MS = 60_000;
 const session = v.nullable(

@@ -1,5 +1,5 @@
 import { defineConfig } from "@playwright/test";
-import { E2E_DATABASE_URL } from "./tooling/e2e-database";
+import { E2E_DATABASE_URL } from "./tooling/database/e2e";
 
 const reuseExistingServer = !process.env.CI;
 const boxEnvironment = {
@@ -37,7 +37,7 @@ export default defineConfig({
   webServer: [
     {
       command:
-        "tsx tooling/e2e-database.ts && vp run -F @shopper/box build && bun apps/box/dist/index.js",
+        "tsx tooling/database/e2e.ts && vp run -F @shopper/box build && bun apps/box/dist/index.js",
       url: "http://localhost:3101/orgs/e2e-mart",
       env: boxEnvironment,
       reuseExistingServer,

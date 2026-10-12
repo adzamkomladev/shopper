@@ -1,5 +1,5 @@
 import { defineConfig } from "vite-plus";
-import { buildDefines } from "./tooling/build-info";
+import { buildDefines } from "./tooling/build/info";
 export default defineConfig({
   define: buildDefines,
   fmt: {

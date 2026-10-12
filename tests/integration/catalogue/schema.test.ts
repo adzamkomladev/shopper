@@ -2,8 +2,8 @@ import { readFile } from "node:fs/promises";
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "@shopper/db-pg";
-import { migrateDatabase } from "../../../tooling/migrate";
-import { provisionOrg, provisioningContext } from "../../../tooling/seed";
+import { migrateDatabase } from "../../../tooling/database/migrate";
+import { provisionOrg, provisioningContext } from "../../../tooling/database/seed";
 import { postgresFixture } from "../../fixtures/postgres";
 
 let fixture: Awaited<ReturnType<typeof postgresFixture>>;
@@ -33,7 +33,7 @@ const product = async (sku: string) =>
   ).rows[0]!;
 
 test("migration 0005 can run a second time without changing anything", async () => {
-  const file = new URL("../../../packages/db-pg/migrations/0005_catalogue.sql", import.meta.url);
+  const file = new URL("../../../packages/db/pg/migrations/0005_catalogue.sql", import.meta.url);
   const statements = (await readFile(file, "utf8")).split("--> statement-breakpoint");
   for (const statement of statements) await fixture.client.query(statement);
 });

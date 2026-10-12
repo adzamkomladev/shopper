@@ -1,10 +1,14 @@
 import { createRoute, lazyRouteComponent, redirect, type AnyRoute } from "@tanstack/react-router";
 import * as v from "valibot";
 import { LoginSkeleton, routeStates, ShellSkeleton } from "./components/route-states";
-import { ProductSkeleton } from "./screens/product/product-states";
-import { branchesQuery, productQuery } from "./screens/product/queries";
-import { ProductsSkeleton } from "./screens/products/product-states";
-import { categoriesQuery, productsQuery, type ProductSearch } from "./screens/products/queries";
+import { ProductSkeleton } from "./screens/catalogue/detail/states";
+import { branchesQuery, productQuery } from "./screens/catalogue/detail/queries";
+import { ProductsSkeleton } from "./screens/catalogue/list/states";
+import {
+  categoriesQuery,
+  productsQuery,
+  type ProductSearch,
+} from "./screens/catalogue/list/queries";
 import { currentOrgQuery, requireSession } from "./session/queries";
 import type { BackofficeContext } from "./types";
 
@@ -23,7 +27,7 @@ export function createBackofficeRoutes(rootRoute: AnyRoute): AnyRoute {
     validateSearch: v.object({ shop: v.optional(v.string()) }),
     loader: ({ context }: { context: BackofficeContext }) =>
       context.queryClient.ensureQueryData(currentOrgQuery),
-    component: lazyRouteComponent(() => import("./screens/login/login-screen"), "LoginScreen"),
+    component: lazyRouteComponent(() => import("./screens/auth/login/screen"), "LoginScreen"),
     ...routeStates,
     pendingComponent: LoginSkeleton,
   });
@@ -32,7 +36,7 @@ export function createBackofficeRoutes(rootRoute: AnyRoute): AnyRoute {
     id: "_shop",
     beforeLoad: ({ context }: { context: BackofficeContext }) =>
       requireSession(context.queryClient),
-    component: lazyRouteComponent(() => import("./screens/shell/shell-screen"), "ShellScreen"),
+    component: lazyRouteComponent(() => import("./layouts/shell/screen"), "ShellScreen"),
     ...routeStates,
     pendingComponent: ShellSkeleton,
   });
@@ -48,7 +52,7 @@ export function createBackofficeRoutes(rootRoute: AnyRoute): AnyRoute {
       await context.queryClient.ensureQueryData(categoriesQuery());
     },
     component: lazyRouteComponent(
-      () => import("./screens/products/products-screen"),
+      () => import("./screens/catalogue/list/screen"),
       "ProductsScreen",
     ),
     ...routeStates,
@@ -72,7 +76,7 @@ export function createBackofficeRoutes(rootRoute: AnyRoute): AnyRoute {
       ]);
     },
     component: lazyRouteComponent(
-      () => import("./screens/product/product-screen"),
+      () => import("./screens/catalogue/detail/screen"),
       "ProductScreen",
     ),
     ...routeStates,
@@ -82,7 +86,7 @@ export function createBackofficeRoutes(rootRoute: AnyRoute): AnyRoute {
     getParentRoute: () => shopRoute,
     path: "/imports",
     component: lazyRouteComponent(
-      () => import("./screens/imports/imports-screen"),
+      () => import("./screens/catalogue/imports/screen"),
       "ImportsScreen",
     ),
     ...routeStates,

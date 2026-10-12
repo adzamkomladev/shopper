@@ -9,8 +9,8 @@
       "default": "./src/index.ts"
     },
     "./devices": {
-      "types": "./src/devices.ts",
-      "default": "./src/devices.ts"
+      "types": "./src/devices/index.ts",
+      "default": "./src/devices/index.ts"
     }
   },
   "scripts": {

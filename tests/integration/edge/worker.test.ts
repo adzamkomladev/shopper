@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { expect, test } from "vite-plus/test";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { migrateDatabase } from "../../../tooling/migrate";
+import { migrateDatabase } from "../../../tooling/database/migrate";
 import { postgresFixture } from "../../fixtures/postgres";
 import * as schema from "@shopper/db-pg";
 import { asc } from "drizzle-orm";

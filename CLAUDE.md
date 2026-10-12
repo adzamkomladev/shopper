@@ -11,3 +11,6 @@
   baseline to get past it.
 - For Cloudflare work, load the `cloudflare`, `workers-best-practices`, `durable-objects` or
   `wrangler` skill before writing code.
+
+- Never add Claude or another assistant as an author/contributor, co-author trailer, generated-by
+  footer or session link in commits or PRs. Project settings disable all automatic attribution.

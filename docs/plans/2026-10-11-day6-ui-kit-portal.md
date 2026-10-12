@@ -154,7 +154,7 @@ shadcn itself is never a dependency. It runs as `vp dlx shadcn@<pin from .mcp.js
 **@shopper/core**
 
 - `src/orgs.ts`: `findOrgBySlug` and `findOrg`.
-- `src/schemas/catalogue-views.ts`: response schemas (`productSummary`, `productPage`, `productDetail`, `priceView`, `categoryView`, `supplierView`, `importPreview`, `importRecord`, `orgSummary`).
+- `src/schemas/catalogue/views.ts`: response schemas (`productSummary`, `productPage`, `productDetail`, `priceView`, `categoryView`, `supplierView`, `importPreview`, `importRecord`, `orgSummary`).
 - New `"./schemas"` export with re-exports only.
 - `listProducts`: add the current org-wide price (lateral join) and a newest-first keyset.
 
@@ -165,7 +165,7 @@ shadcn itself is never a dependency. It runs as `vp dlx shadcn@<pin from .mcp.js
 - Catalogue `onError` adds `field`. Move the mapping to `src/middleware/problem.ts` if `catalogue.ts` would pass 250 lines.
 - The edge and box shells are unchanged.
 
-**tooling/seed.ts:** `provisionOrg` takes `slug`, and the dev org gets `slug: "dev"`. Reset the dev DB.
+**tooling/database/seed.ts:** `provisionOrg` takes `slug`, and the dev org gets `slug: "dev"`. Reset the dev DB.
 
 **@shopper/ui (shadcn/ui, presentation only)**
 
@@ -193,7 +193,7 @@ shadcn itself is never a dependency. It runs as `vp dlx shadcn@<pin from .mcp.js
   - calls same-origin `/api` with credentials and `X-Shopper-Org`
   - parses responses with the view schemas
   - throws `ApiError {status, message, field}`
-- `src/shops/shop-store.ts`: shops kept in localStorage, read with `useSyncExternalStore`.
+- `src/shops/store.ts`: shops kept in localStorage, read with `useSyncExternalStore`.
 - `src/schemas/forms.ts`: the price form maps a decimal string through `fromDecimal` to Money. Product forms reuse `productInput` and `productPatch`.
 - Screen folders, each with `*-screen.tsx`, part files, `queries.ts` and `use-*-shortcuts.ts`:
 
@@ -211,7 +211,7 @@ Search state lives in `?q&categoryId`, validated by Valibot.
 
 - `apps/portal`:
   - `vite.config.ts`: tailwind and React with the compiler. A proxy sends `/api` → `SHOPPER_API_URL ?? :8787`, stripping `/api` except for `/api/auth`, and keeps Origin.
-  - `src/index.tsx`: root route with context, a `QueryClient`, and `createBackofficeRoutes`.
+  - `src/app.tsx`: root route with context, a `QueryClient`, and `createBackofficeRoutes`; `src/index.tsx` only re-exports it.
   - `src/styles.css`: imports the ui and backoffice styles.
 - `apps/till-ui`: tailwind and styles, and renders `About` in a shadcn `Card` with a `Button`.
 - Drop the broken `exports` from the portal and till-ui.
@@ -224,7 +224,7 @@ Search state lives in `?q&categoryId`, validated by Valibot.
   - projects `setup` → `portal`, plus `till-ui`
   - workers 1
   - `webServer` starts the box API (Bun) on :3101 against `shopper_e2e`, the portal on :5183 and till-ui on :5184
-- `tooling/e2e-database.ts`: drop and recreate the database, migrate, and provision `e2e-mart` and `e2e-annex`.
+- `tooling/database/e2e.ts`: drop and recreate the database, migrate, and provision `e2e-mart` and `e2e-annex`.
 - `tests/support/e2e.ts`: shared e2e helpers.
 - Root script `e2e`, `.gitignore` for `tests/e2e/.auth/`, and a CI job (setup-bun, playwright chromium, `vp run e2e`).
 

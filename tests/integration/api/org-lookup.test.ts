@@ -5,8 +5,8 @@ import { eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
 import { boxCache } from "@shopper/adapters-box";
 import { serveRuntime, type RuntimeOptions } from "@shopper/api/runtime";
-import { migrateDatabase } from "../../../tooling/migrate";
-import { provisionOrg, provisioningContext } from "../../../tooling/seed";
+import { migrateDatabase } from "../../../tooling/database/migrate";
+import { provisionOrg, provisioningContext } from "../../../tooling/database/seed";
 import { postgresFixture } from "../../fixtures/postgres";
 
 let fixture: Awaited<ReturnType<typeof postgresFixture>>;

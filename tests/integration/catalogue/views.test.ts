@@ -20,7 +20,7 @@ import {
 import { toSpreadsheet } from "../../../tooling/lib/catalogue-fixture";
 import { baseURL, secret } from "../auth/setup";
 import { barcode, call, context, createProduct, db, postOk, unique } from "./support";
-import { importOk, sheetRows, upload } from "./import-support";
+import { importOk, sheetRows, upload } from "./import/support";
 
 type Page = { items: { id: string; price: number | null }[]; nextCursor: string | null };
 const json = async (response: Response, status = 200) => {

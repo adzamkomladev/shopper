@@ -24,7 +24,7 @@
       "d1_databases": [
         {
           "binding": "CACHE_DB",
-          "migrations_dir": "../../packages/db-sqlite/migrations",
+          "migrations_dir": "../../packages/db/sqlite/migrations",
           "database_name": "shopper-cache-staging",
           "database_id": "44230678-333c-446c-af51-22fe0c8eb20e",
         },
@@ -80,7 +80,7 @@
   "d1_databases": [
     {
       "binding": "CACHE_DB",
-      "migrations_dir": "../../packages/db-sqlite/migrations",
+      "migrations_dir": "../../packages/db/sqlite/migrations",
       "database_name": "shopper-cache-dev",
       "database_id": "2485dba5-588e-49e3-8bf5-bd2cd5fbce16",
     },

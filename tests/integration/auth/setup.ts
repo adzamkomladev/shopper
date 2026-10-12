@@ -7,8 +7,8 @@ import type { ShopperDatabase } from "@shopper/db-pg";
 import { createAuth, registerOrganizationUser, seedAuthRoles } from "@shopper/auth";
 import { createApi } from "@shopper/api";
 import { boxCache } from "@shopper/adapters-box";
-import { migrateDatabase } from "../../../tooling/migrate";
-import { provisionOrg, provisioningContext } from "../../../tooling/seed";
+import { migrateDatabase } from "../../../tooling/database/migrate";
+import { provisionOrg, provisioningContext } from "../../../tooling/database/seed";
 import { postgresFixture } from "../../fixtures/postgres";
 
 export const baseURL = "http://localhost:8787";

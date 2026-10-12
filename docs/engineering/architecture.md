@@ -19,7 +19,7 @@ Rules:
   Valibot-checked message contract (IPC, WebSocket or HTTP), never by importing each other.
 - **A package never imports an app (guard).** Packages do not know who deploys them.
 - **Nothing shipped imports tooling (guard).** The one exception is build configuration
-  (`*.config.ts`), which may read `tooling/build-info.ts` and use build plugins.
+  (`*.config.ts`), which may read `tooling/build/info.ts` and use build plugins.
 - **Package dependencies are acyclic (guard).** If two packages need each other, the shared part is
   a third, lower package.
 - **Import packages by name (guard).** Write `@shopper/auth/devices`, never `../../packages/auth/src/devices`.
@@ -37,7 +37,7 @@ never a higher one. The current dependency graph follows this table; keep it tha
 5  adapters/cf, adapters/box               platform code (the only place for Cloudflare and Rivet)
 4  api, backoffice, sync, export           use cases exposed over HTTP, UI or files
 3  core, auth, audit, hardware             commands, policies, domain rules
-2  ports, db-pg, db-sqlite, conformance    contracts and schemas
+2  ports, db/pg, db/sqlite, conformance    contracts and schemas
 1  money, tax, config, ui                  leaves: pure logic, constants, components
 ```
 

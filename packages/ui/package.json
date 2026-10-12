@@ -19,7 +19,23 @@
       "types": "./src/hooks/*.ts",
       "default": "./src/hooks/*.ts"
     },
-    "./styles.css": "./src/styles/theme.css"
+    "./styles.css": "./src/styles/theme.css",
+    "./components/input": {
+      "types": "./src/components/input/control.tsx",
+      "default": "./src/components/input/control.tsx"
+    },
+    "./components/input-group": {
+      "types": "./src/components/input/group.tsx",
+      "default": "./src/components/input/group.tsx"
+    },
+    "./components/table": {
+      "types": "./src/components/table/primitive.tsx",
+      "default": "./src/components/table/primitive.tsx"
+    },
+    "./components/data-table": {
+      "types": "./src/components/table/data.tsx",
+      "default": "./src/components/table/data.tsx"
+    }
   },
   "scripts": {
     "build": "tsc -b"

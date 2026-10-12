@@ -23,6 +23,7 @@ jobs:
       TEST_DATABASE_URL: postgresql://shopper:shopper_ci_only@127.0.0.1:5432/shopper
     steps:
       - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
       - uses: voidzero-dev/setup-vp@v1
         with:
           node-version: "24.21.0"

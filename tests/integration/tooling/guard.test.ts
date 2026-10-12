@@ -18,7 +18,11 @@ test("guard reports each boundary, size and React rule it enforces", () => {
   write("apps/till-ui/package.json", pkg("@shopper/till-ui", ["@shopper/tests"]));
   write("tests/package.json", pkg("@shopper/tests", []));
   write("packages/money/package.json", pkg("@shopper/money", ["@shopper/core"]));
-  write("packages/adapters-cf/package.json", pkg("@shopper/adapters-cf", []));
+  write("packages/adapters/cf/package.json", pkg("@shopper/adapters-cf", []));
+  write("packages/db/pg/package.json", pkg("@shopper/db-pg", []));
+  write("packages/db/sqlite/package.json", pkg("@shopper/db-sqlite", []));
+  write("packages/db/pg/src/sneaky.ts", 'import { cache } from "../../sqlite/src/cache";\n');
+  write("packages/db/sqlite/src/phantom.ts", 'import { money } from "@shopper/money";\n');
   write(
     "packages/core/package.json",
     JSON.stringify({
@@ -51,11 +55,19 @@ test("guard reports each boundary, size and React rule it enforces", () => {
     'import { DurableObject } from "cloudflare:workers";\n',
   );
 
+  write("packages/core/src/index.ts", "export const misplaced = 1;\n");
+  write("apps/portal/src/index.tsx", 'import "./app";\n');
+  write("packages/money/src/index.ts", 'export { add } from "./arithmetic";\n');
+  write("apps/shop/src/routes/index.tsx", "export const Route = {};\n");
+
   const found = guard(workspace).map(({ rule, file }) => `${rule} ${file}`);
 
   expect(found.sort()).toEqual(
     [
       "app-imports-app apps/portal/package.json",
+      "index-implementation packages/core/src/index.ts",
+      "index-implementation apps/portal/src/index.tsx",
+      "index-implementation packages/adapters/cf/src/index.ts",
       "imports-tests apps/till-ui/package.json",
       "package-imports-app packages/core/package.json",
       "package-cycle packages/core/package.json",
@@ -71,6 +83,8 @@ test("guard reports each boundary, size and React rule it enforces", () => {
       "escapes-package packages/core/src/sneaky.ts",
       "escapes-package packages/core/src/devtool.ts",
       "undeclared-dependency packages/core/src/phantom.ts",
+      "escapes-package packages/db/pg/src/sneaky.ts",
+      "undeclared-dependency packages/db/sqlite/src/phantom.ts",
     ].sort(),
   );
 });

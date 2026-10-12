@@ -48,9 +48,9 @@ Before you push, run: `vp check && vp run guard && vp test --run`.
 ## The `tooling/` folder
 
 Tooling is anything that makes development faster or safer and never ships: `guard.ts`, database
-`migrate`/`seed`, `build-info.ts`, the virtual printer, `docker-compose.dev.yml`, the Workers test
+`database/{cli,migrate,seed,e2e}.ts`, `build/info.ts`, the virtual printer, `docker-compose.dev.yml`, the Workers test
 runner. Shared script helpers go in `tooling/lib/`. Apps and packages never import tooling. The only
-exception is build config reading `build-info.ts`.
+exception is build config reading `build/info.ts`.
 
 ## Git
 
@@ -59,6 +59,9 @@ exception is build config reading `build-info.ts`.
   `docs:`, `chore:`), written in the imperative.
 - The PR description says what changed, why, how it was tested, and anything the reviewer should
   look at first. UI PRs include screenshots at till, desktop and mobile widths.
+- AI tools are not contributors. Never add assistant authors, `Co-Authored-By` trailers,
+  generated-by footers or session links to commits or PRs. `.claude/settings.json` disables
+  commit/PR attribution and session links.
 - Never commit secrets, `.env`, captures, `dist/`, or generated `.wrangler/` state.
 
 ## AI tooling in this repo
@@ -79,10 +82,10 @@ Claude Code, Codex and OpenCode all read the same rules and skills. See
 
 ### MCP servers (configured for all three tools)
 
-| Server            | Use it for                                                                    |
-| ----------------- | ----------------------------------------------------------------------------- |
-| `figma`           | Design frames, tokens, components. Needs a one-time OAuth login.              |
-| `shadcn`          | Finding and adding shadcn/ui components into `@shopper/ui`                    |
-| `playwright`      | Running the app, screenshots, checking keyboard flows                         |
-| `cloudflare-docs` | Current Cloudflare product docs and limits                                    |
-| `context7`        | Current docs for TanStack, Drizzle, Hono, Valibot, Rivet, Better Auth, Elysia |
+| Server            | Use it for                                                            |
+| ----------------- | --------------------------------------------------------------------- |
+| `figma`           | Design frames, tokens, components. Needs a one-time OAuth login.      |
+| `shadcn`          | Finding and adding shadcn/ui components into `@shopper/ui`            |
+| `playwright`      | Running the app, screenshots, checking keyboard flows                 |
+| `cloudflare-docs` | Current Cloudflare product docs and limits                            |
+| `context7`        | Current docs for TanStack, Drizzle, Hono, Valibot, Rivet, Better Auth |

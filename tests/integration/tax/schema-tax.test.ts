@@ -17,8 +17,8 @@ import {
   formatGHS,
 } from "@shopper/money";
 import { snapshotLine } from "@shopper/tax";
-import { migrateDatabase } from "../../../tooling/migrate";
-import { provisionOrg, provisioningContext, seedDevelopment } from "../../../tooling/seed";
+import { migrateDatabase } from "../../../tooling/database/migrate";
+import { provisionOrg, provisioningContext, seedDevelopment } from "../../../tooling/database/seed";
 import { postgresFixture } from "../../fixtures/postgres";
 
 let fixture: Awaited<ReturnType<typeof postgresFixture>>;

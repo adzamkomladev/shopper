@@ -43,3 +43,6 @@ Session and organization GET routes use a read-only adapter and disable/defer
 session refresh. Expired sessions therefore remain in PostgreSQL after a read;
 the GET path never deletes them. If cleanup is added, it must use a bounded,
 audited command rather than auth read traffic.
+
+Source layout: browser sessions live in `src/session/`; device enrollment and PIN sessions live in
+`src/devices/`. Public package imports remain `@shopper/auth` and `@shopper/auth/devices`.

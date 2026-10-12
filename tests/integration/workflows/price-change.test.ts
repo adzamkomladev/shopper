@@ -47,7 +47,7 @@ test("scheduling returns the price-change workflow and one price.schedule audit 
   const reason = unique("Easter promotion");
   const scheduled = await scheduleOk(product.id, { reason });
   expect(scheduled.workflowId).toBe(`price-change_${context.orgId}_${scheduled.price.id}`);
-  expect(scheduled.price).toMatchObject({ amount: 7000, branchId: null });
+  expect(scheduled.price).toMatchObject({ amount: 7000, branchId: null, reason });
   expect(Date.parse(scheduled.price.validFrom)).toBe(Date.parse(scheduled.startsAt));
   expect(Date.parse(scheduled.price.validTo)).toBe(Date.parse(scheduled.endsAt));
   const rows = await auditFor("price.schedule", scheduled.price.id);
@@ -82,6 +82,8 @@ test("at the start every store of the org hears price.changed and a store of ano
       amount: 7000,
     },
   });
+  // The reason is back-office history; devices never need it.
+  expect(heardOne[0]!.payload).not.toHaveProperty("reason");
   expect(heardOne[0]!.id).toMatch(UUID_V7);
   expect(heardOne[0]!.sequence).toMatch(/^\d+$/);
   const payload = heardOne[0]!.payload as { validFrom: string; validTo: string };

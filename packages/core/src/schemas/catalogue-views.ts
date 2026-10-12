@@ -8,12 +8,15 @@ const count = v.pipe(v.number(), v.safeInteger());
 
 export const orgSummary = v.object({ id, name: v.string() });
 
+export const branchView = v.object({ id, name: v.string(), storeId: id });
+
 export const priceView = v.object({
   id,
   branchId: v.nullable(id),
   amount: money,
   validFrom: iso,
   validTo: v.nullable(iso),
+  reason: v.nullable(v.string()),
 });
 
 const productFields = {

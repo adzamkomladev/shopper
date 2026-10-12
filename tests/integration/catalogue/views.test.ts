@@ -5,6 +5,7 @@ import * as schema from "@shopper/db-pg";
 import { boxCache } from "@shopper/adapters-box";
 import { serveRuntime } from "@shopper/api/runtime";
 import {
+  branchView,
   categoryView,
   importPreview,
   importRecord,
@@ -45,6 +46,13 @@ test("price, category and supplier responses parse with the view schemas", async
   v.parse(priceView, await json(await setPrice(product.id, { amount: 9000 }), 201));
   const now = encodeURIComponent(new Date().toISOString());
   v.parse(priceView, await json(await call(`/prices/at?productId=${product.id}&at=${now}`)));
+  const store = await postOk("/stores", { name: unique("Views store") });
+  const branch = await postOk("/branches", { name: unique("Views branch"), storeId: store.id });
+  expect(v.parse(v.array(branchView), await json(await call("/branches")))).toContainEqual({
+    id: branch.id,
+    name: branch.name,
+    storeId: store.id,
+  });
   v.parse(categoryView, await postOk("/categories", { name: unique("Views cat") }));
   v.parse(
     supplierView,
@@ -52,6 +60,21 @@ test("price, category and supplier responses parse with the view schemas", async
   );
   expect(v.parse(v.array(categoryView), await json(await call("/categories")))).not.toHaveLength(0);
   expect(v.parse(v.array(supplierView), await json(await call("/suppliers")))).not.toHaveLength(0);
+});
+
+test("a price carries its reason in the set response, the product detail and the price lookup", async () => {
+  const product = await createProduct();
+  const reason = unique("Supplier raised cost");
+  const set = v.parse(
+    priceView,
+    await json(await setPrice(product.id, { amount: 12500, reason }), 201),
+  );
+  expect(set.reason).toBe(reason);
+  const detail = v.parse(productDetail, await json(await call(`/products/${product.id}`)));
+  expect(detail.prices.map((price) => price.reason)).toEqual([reason]);
+  const now = encodeURIComponent(new Date().toISOString());
+  const at = await json(await call(`/prices/at?productId=${product.id}&at=${now}`));
+  expect(v.parse(priceView, at).reason).toBe(reason);
 });
 
 test("import preview and import record responses parse with the view schemas", async () => {

@@ -77,6 +77,26 @@ with an e2e test that covers:
 - a screenshot comparison at till (1366×768), desktop (1440×900) and mobile (390×844) sizes for
   the portal and shop.
 
+### The harness
+
+`playwright.config.ts` (repo root, `vp run e2e`) starts the real stack: the box binary on Bun (port 3101) against PostgreSQL 18, the portal on 5183 and the till-ui on 5184, all with `--strictPort`.
+Servers already running are reused outside CI. One worker, no parallelism.
+
+- **Projects:** `setup` (`auth.setup.ts`) runs first. `portal` depends on it and reuses its saved
+  `storageState`. `till-ui` has no dependencies.
+- **Database:** `tooling/e2e-database.ts` drops, recreates, migrates and provisions the two e2e
+  shops (`e2e-mart`, `e2e-annex`) on every start. It refuses any database not named `*_e2e`, and
+  any non-local host outside CI, because dropping is irreversible. Override with `E2E_DATABASE_URL`.
+- **Helpers** are in `tests/support/e2e.ts`: shop fixtures, `typeCredentials`, `signInWithKeyboard`
+  and `expectNoSeriousAxe` (fails on serious or critical axe violations and names the rule and
+  target). Domain builders sit beside it (`catalogue.ts`, `import.ts`).
+- **The sign-in pacer:** Better Auth allows 3 sign-in or sign-up requests per IP, in a chain that
+  only restarts after a 10 s gap, and the dev proxy gives every browser the same IP. Call
+  `waitForAuthSlot()` before every request that signs in or up. It counts in a file because each
+  project runs in its own worker. Never raise or disable the limit for tests.
+- **Fault injection:** `page.route` may fake only a response the real API cannot produce, such as
+  an unreadable 2xx. Never use it to fake a feature, a data set or a happy path.
+
 E2E tests use roles and labels (`getByRole("button", { name: "Charge" })`), never CSS classes or
 test IDs, unless no accessible name exists, and then the missing name is the bug.
 

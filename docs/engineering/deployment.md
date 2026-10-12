@@ -53,7 +53,8 @@ vp -C apps/edge run deploy:staging         # deploys the generated staging confi
 - Every migration is exercised by `tests/integration/db` against a fresh PG18 database, rerun to
   prove idempotency.
 - Synced events carry `v`. Changing an event's shape bumps `v` and adds an upcaster. Old events and
-  archives are upcast, never rejected.
+  archives are upcast, never rejected. `price.changed` v1 deliberately leaves out the price
+  `reason`: it stays in the back office, and the payload lists its fields one by one.
 
 ## Release checklist
 

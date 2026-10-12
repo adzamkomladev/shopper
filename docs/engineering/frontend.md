@@ -26,10 +26,20 @@ Every common reason for an effect has a better tool:
 | Submit a form or write data                                                                       | TanStack Form + `useMutation`, with optimistic updates through the query cache                                                               |
 | Subscribe to something outside React (online status, till-host socket, scale, clock, media query) | `useSyncExternalStore` in a hook in `@shopper/ui` or the app's store module                                                                  |
 | Focus, measure, or attach a non-React widget                                                      | A ref callback that returns its cleanup function (React 19), or `autoFocus`                                                                  |
-| Global keyboard shortcuts                                                                         | The shortcut registry at the app root (`onKeyDownCapture` on the root element)                                                               |
+| Global keyboard shortcuts                                                                         | The shortcut registry at the app root (`onKeyDownCapture` on the root element). See below.                                                   |
 | Keep a hidden screen alive (till tabs, held sales)                                                | `<Activity mode="hidden">`                                                                                                                   |
 | Save something to storage                                                                         | Write it in the handler that changed it                                                                                                      |
 | Track a page view                                                                                 | The router's navigation events, not the component                                                                                            |
+
+- **Shortcuts:** wrap the app in `ShortcutRoot` (`@shopper/ui/hooks/shortcuts`). Each screen calls
+  `useShortcuts({ "Mod+K": handler, N: handler })`. Combos are unique per screen, and the latest
+  registered map wins a clash. Plain keys are ignored while the user types in a field.
+- **Focus:** after a route or step change, move focus with the `focusOnMount` ref callback
+  (`backoffice/lib/focus.ts`; `focusIfIdle` when something may already hold it). A dialog or sheet
+  with no trigger button must set `onCloseAutoFocus` to put focus somewhere useful, or focus is lost
+  to `<body>`.
+- **Online status and the clock:** `useOnline` and `useNow(intervalMs)` in `@shopper/ui/hooks`, both
+  `useSyncExternalStore`. Use `useNow` for anything "in force now" on a page left open.
 
 If none of these fit, stop and ask. Do not work around the guard with a custom wrapper hook.
 
@@ -50,10 +60,21 @@ If none of these fit, stop and ask. Do not work around the guard with a custom w
 - Components receive data and callbacks through props. They do not fetch inside leaf components.
 - Use `@shopper/ui` primitives first. Add a new shadcn component with the shadcn CLI or MCP into
   `@shopper/ui`, then style it from tokens. Never copy a component into an app.
+- Add a shadcn component from `packages/ui`, with the CLI pinned in `.mcp.json`:
+  `vp dlx shadcn@<pin> add <name>`. The CLI writes imports with the `#` alias
+  and a `.tsx` suffix (`#components/button.tsx`). Strip the suffix after every `shadcn add`, or
+  `tsc` fails. `cn` comes from the `cn` package, not a local util. Then restyle through tokens.
 - Back-office screens live in `@shopper/backoffice` and must run in the portal **and** Electron:
   no Node APIs, no direct `window.electron`. Use the bridge contract.
 
 ## Design system
+
+- **`@shopper/ui` is imported by subpath:** `@shopper/ui/components/<name>`, `/hooks/<name>`,
+  `/lib/<name>` and `/styles.css`. There is no barrel file.
+- **`src/styles/theme.css` is the only token file.** Light and dark values, `@theme inline`, Geist,
+  and the shared utilities live there. Use `--kbd-foreground` for key hints, `--success` for
+  positive states, and the `focus-ring` utility (2px background + 4px ring) for custom focusable
+  surfaces. Never define tokens in an app.
 
 - **The Figma file is the source of truth** for color, type scale, spacing, radius, shadows and
   components. Read it through the Figma MCP before building a screen. Map values to Tailwind v4
@@ -65,6 +86,19 @@ If none of these fit, stop and ask. Do not work around the guard with a custom w
   accessible label or visible text.
 - Money is always shown through the shared formatter: `GH₵ 1,234.50`, 2 dp, tabular numbers,
   right-aligned in tables. Per-kg unit prices may show 4 dp.
+
+## Tables and data
+
+- `DataTable` columns take `meta: { align?: "right", className? }`. Money columns use
+  `align: "right"`. The file starts with `"use no memo"` because TanStack Table and Virtual return
+  unstable functions the React Compiler would cache. Keep it there.
+- Call the API with `apiFetch(path, schema, options)` from `@shopper/backoffice`. It validates the
+  reply with Valibot and throws `ApiError` (`status`, `message`, optional `field`). Show `field`
+  errors on that field (`focusFirstInvalid` moves focus to it) and the rest as a form error.
+- Query keys always include the shop id (`["session", shop.id]`), so switching shops never shows
+  another shop's data.
+- Shop time is UTC (Ghana is GMT all year). Read and show dates through `lib/shop-time.ts`, never in
+  the browser's zone.
 
 ## UX rules
 

@@ -62,6 +62,17 @@ Business code is written once and runs on Cloudflare (cloud) and on Rivet/Bun (o
   Cache, Blobs, Renderer.
 - **A port change updates `packages/conformance` and passes against both adapters.**
 
+## Back office and the public routes
+
+- `@shopper/backoffice` exports `createBackofficeRoutes(rootRoute)`. The host owns the router, root
+  route and query client and mounts these routes: the portal today, Electron on day 13. The package
+  never creates a router or reads a host global.
+- From `@shopper/core`, backoffice may import only `@shopper/core/schemas` (Valibot schemas and
+  inferred types, no server code).
+- `GET /orgs/:slug` (shop code lookup, returns `{ id, name }`) and `GET /orgs/current` (the box's
+  fixed org) are public and read-only. `@shopper/api` dispatches `/orgs/*` before the origin and
+  tenant checks, so they need no session or tenant header. Keep them GET-only and minimal.
+
 The full feature map is in [platforms.md](platforms.md).
 
 ## Where code goes

@@ -23,6 +23,14 @@
     "./catalogue": {
       "types": "./src/catalogue/index.ts",
       "default": "./src/catalogue/index.ts"
+    },
+    "./till": {
+      "types": "./src/till/index.ts",
+      "default": "./src/till/index.ts"
+    },
+    "./sales": {
+      "types": "./src/sales/index.ts",
+      "default": "./src/sales/index.ts"
     }
   },
   "scripts": {
@@ -31,6 +39,7 @@
   "dependencies": {
     "@shopper/audit": "workspace:*",
     "@shopper/db-pg": "workspace:*",
+    "@shopper/db-sqlite": "workspace:*",
     "@shopper/money": "workspace:*",
     "@shopper/ports": "workspace:*",
     "@shopper/tax": "workspace:*",

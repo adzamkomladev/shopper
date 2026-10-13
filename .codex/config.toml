@@ -14,8 +14,8 @@ command = "vp"
 args = ["dlx", "shadcn@4.21.4", "mcp"]
 
 [mcp_servers.playwright]
-command = "vp"
-args = ["dlx", "@playwright/mcp@0.0.83", "--headless"]
+command = "node"
+args = ["tooling/mcp/playwright.mjs"]
 
 [mcp_servers.cloudflare-docs]
 url = "https://docs.mcp.cloudflare.com/mcp"

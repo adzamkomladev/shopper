@@ -3,5 +3,9 @@ import { buildDefines } from "./info.ts";
 await build({
   configFile: false,
   define: buildDefines,
-  build: { ssr: "src/index.ts", outDir: "dist" },
+  ssr: { noExternal: /^@shopper\// },
+  build: {
+    ssr: process.argv[2] === "till-host" ? "src/server.ts" : "src/index.ts",
+    outDir: "dist",
+  },
 });

@@ -8,6 +8,9 @@
   "references": [
     {
       "path": "../../packages/config"
+    },
+    {
+      "path": "../../packages/adapters/box"
     }
   ]
 }

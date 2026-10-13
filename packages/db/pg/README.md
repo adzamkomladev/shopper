@@ -18,3 +18,10 @@ state and its audit record. `src/types.ts` holds database and transaction types.
 
 Drizzle reads `src/schemas/index.ts`. These source moves do not change the table
 definitions or existing SQL migrations.
+
+`sales.ts` owns accepted sales and lines. Forward migration `0010_till_sales.sql` adds immutable
+JSON payloads, canonical content hashes, device/local identity uniqueness, positive unique store
+sequences, and cashier-session issuance/grant snapshots. Sale payloads/lines cannot be updated
+or deleted; the sale permits only its first null-to-positive sequence assignment. The migration
+can be reapplied. Existing cashier sessions default to no historical sale grant and must log in
+again to capture one. `accepted_at` is server time; `device_time` remains untrusted capture time.

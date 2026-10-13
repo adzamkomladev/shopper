@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./support/till/pending-sale": "./support/till/pending-sale.ts"
+  },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.64.0",
@@ -15,9 +18,14 @@
     "@shopper/conformance": "workspace:*",
     "@shopper/core": "workspace:*",
     "@shopper/db-pg": "workspace:*",
+    "@shopper/db-sqlite": "workspace:*",
     "@shopper/money": "workspace:*",
     "@shopper/ports": "workspace:*",
+    "@shopper/sync": "workspace:*",
     "@shopper/tax": "workspace:*",
-    "valibot": "1.1.0"
+    "@types/ws": "8.18.2",
+    "hono": "4.13.13",
+    "valibot": "1.1.0",
+    "ws": "8.22.0"
   }
 }

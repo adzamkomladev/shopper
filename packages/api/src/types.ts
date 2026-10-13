@@ -5,7 +5,7 @@ import type {
   createInvitations,
 } from "@shopper/auth";
 import type { ShopperDatabase } from "@shopper/db-pg";
-import type { WorkflowLauncher } from "@shopper/ports";
+import type { Sequencer, WorkflowLauncher } from "@shopper/ports";
 
 export type ApiPrincipal = AuthPrincipal;
 export interface ApiAuthentication {
@@ -18,6 +18,7 @@ export type ApiEnvironment = { Variables: { principal: ApiPrincipal } };
 export interface ApiOptions {
   authentication?: ApiAuthentication;
   database?: ShopperDatabase;
+  sequencer?: Sequencer;
   devices?: ReturnType<typeof createDeviceService>;
   // Populated by the authenticated session adapter; never derive this from request parameters.
   resolveOrgId?: (request: Request) => Promise<string | null>;

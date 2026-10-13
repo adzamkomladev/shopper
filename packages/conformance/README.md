@@ -7,6 +7,11 @@ persistence, signed URL tampering/expiry, concurrent sequences, archive
 continuity above JavaScript's safe integer range, event buffering before a wait,
 typed timeouts, and idempotent named-step retries.
 
+Sale sequencing uses an accepted, unassigned sale fixture. Both adapters prove
+that duplicate concurrent assignments retain one sequence and one assignment
+audit across reopen, scope mismatches and missing sales do not assign, and a
+failed assignment audit rolls back the sale and store cursor together.
+
 Root `vp test --run` runs the Node/SQLite/fs/PG suite and the workerd/D1/R2/DO/PG
 suite. The PostgreSQL cursor and its audit row are written atomically. Reopening
 adapter objects proves independence from client memory; no DO-local cursor is

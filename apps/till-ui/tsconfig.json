@@ -8,6 +8,12 @@
   "include": ["src"],
   "references": [
     {
+      "path": "../../packages/config"
+    },
+    {
+      "path": "../../packages/sync"
+    },
+    {
       "path": "../../packages/ui"
     }
   ]

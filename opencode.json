@@ -78,7 +78,7 @@
     },
     "playwright": {
       "type": "local",
-      "command": ["vp", "dlx", "@playwright/mcp@0.0.83", "--headless"]
+      "command": ["node", "tooling/mcp/playwright.mjs"]
     },
     "cloudflare-docs": {
       "type": "remote",

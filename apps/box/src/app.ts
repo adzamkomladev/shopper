@@ -3,6 +3,7 @@ import { createMaileroo } from "@shopper/auth";
 import type { BoxBindings } from "./types";
 import {
   boxCache,
+  boxSequencer,
   boxDatabase,
   boxPool,
   boxPriceChange,
@@ -52,6 +53,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
     try {
       return await serveRuntime(request, {
         database: connection.db,
+        sequencer: boxSequencer(connection.db),
         cache: cache.cache,
         secret: SHOPPER_AUTH_SECRET,
         baseURL: SHOPPER_AUTH_URL,

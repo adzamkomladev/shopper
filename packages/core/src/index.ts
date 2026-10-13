@@ -2,3 +2,4 @@ export { defineCommand, type CommandContext, type AuditDetails } from "@shopper/
 export { allocateStoreSequence, nextStoreSequence } from "./sequence";
 export type { Queryable } from "./types";
 export { provisionOrg } from "./provisioning";
+export { assignSaleSequence } from "./sales/sequence";

@@ -32,6 +32,11 @@ leave no checkpoint. This protects the crash window between a committed database
 transaction and an engine checkpoint. Keep external side effects outside the
 transaction and use the partner's idempotency key.
 
+Ordinary commands may supply a read-only `replay(tx, context, input)` hook. It runs under
+the existing tenant advisory lock and returns `{ output }` for an identical persisted result,
+or `undefined` to execute the mutation and audit. A replay must check identity/content/scope
+and never write. Workflow commands continue to use their existing checkpoint replay.
+
 ## Registration scope
 
 `defineCommand({ scope: "registration" })` is a trusted, definition-level choice (the default is the

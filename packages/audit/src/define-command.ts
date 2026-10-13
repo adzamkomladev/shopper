@@ -32,6 +32,11 @@ export function defineCommand<Input, Output>(definition: {
   /** Trusted, definition-level choice; defaults to the customer tenant chain. */
   scope?: "registration";
   run: (tx: ShopperTransaction, context: CommandContext, input: Input) => Promise<Output>;
+  replay?: (
+    tx: ShopperTransaction,
+    context: CommandContext,
+    input: Input,
+  ) => Promise<{ output: Output } | undefined>;
   audit: (input: Input, output: Output) => Record<string, unknown>;
   details?: (input: Input, output: Output) => AuditDetails;
 }) {
@@ -81,6 +86,8 @@ export function defineCommand<Input, Output>(definition: {
           );
         if (saved) return saved.output as Output;
       }
+      const replay = checkpoint ? undefined : await definition.replay?.(tx, context, input);
+      if (replay) return replay.output;
       const output = await definition.run(tx, context, input);
       if (checkpoint) {
         // Workflow outputs must be JSON; checkpoint replay returns the same value after restart.

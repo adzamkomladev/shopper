@@ -4,6 +4,7 @@ import type { Json, RetryPolicy } from "./schemas/primitives";
 export interface Sequencer {
   // Per store, strictly increasing bigint. Gaps are allowed. floor supports archive restore.
   next(orgId: string, storeId: string, floor?: bigint): Promise<bigint>;
+  assignSale(orgId: string, storeId: string, deviceId: string, localId: string): Promise<bigint>;
 }
 export interface CacheReader {
   get(orgId: string, key: string): Promise<Json | null>;

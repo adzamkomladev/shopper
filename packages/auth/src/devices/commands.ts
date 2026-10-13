@@ -1,11 +1,9 @@
 import * as v from "valibot";
 import { and, eq, isNull, gt } from "drizzle-orm";
-import { verifyPassword } from "better-auth/crypto";
 import { defineCommand } from "@shopper/audit";
 import {
   branch,
   device,
-  role,
   member,
   org,
   deviceEnrollment,
@@ -14,7 +12,7 @@ import {
   cashierSession,
   enrollmentAttempt,
 } from "@shopper/db-pg";
-import { enrollmentIssueInput, enrollmentInput, cashierLoginInput } from "../schemas/devices";
+import { enrollmentIssueInput, enrollmentInput } from "../schemas/devices";
 
 export class DeviceError extends Error {
   constructor(
@@ -150,72 +148,4 @@ export const assign = defineCommand({
     return { userId: input.userId };
   },
   audit: (input) => ({ userId: input.userId }),
-});
-export const loginCommand = defineCommand({
-  name: "cashier.login",
-  async run(tx, c, input: v.InferOutput<typeof cashierLoginInput>) {
-    const [registered] = await tx
-      .select()
-      .from(deviceCredential)
-      .where(
-        and(
-          eq(deviceCredential.orgId, c.orgId),
-          eq(deviceCredential.deviceId, input.deviceId),
-          eq(deviceCredential.tokenHash, await digest(input.deviceToken)),
-          isNull(deviceCredential.revokedAt),
-        ),
-      );
-    if (!registered) return { error: "Invalid device credential", status: 401 as const };
-    const [record] = await tx
-      .select()
-      .from(cashierPin)
-      .where(and(eq(cashierPin.orgId, c.orgId), eq(cashierPin.userId, input.userId)));
-    if (!record) return { error: "Invalid PIN", status: 401 as const };
-    if (record.lockedUntil && record.lockedUntil > new Date())
-      return {
-        error: "PIN temporarily locked",
-        status: 429 as const,
-        attempts: record.attempts,
-        lockedUntil: record.lockedUntil.toISOString(),
-      };
-    const attempts = record.lockedUntil ? 0 : record.attempts;
-    if (!(await verifyPassword({ hash: record.pinHash, password: input.pin }))) {
-      const lockedUntil = attempts + 1 >= 5 ? minutes(15) : null;
-      await tx
-        .update(cashierPin)
-        .set({ attempts: attempts + 1, lockedUntil })
-        .where(eq(cashierPin.id, record.id));
-      return {
-        error: "Invalid PIN",
-        status: 401 as const,
-        attempts: attempts + 1,
-        lockedUntil: lockedUntil?.toISOString() ?? null,
-      };
-    }
-    const [membership] = await tx
-      .select({ roleId: member.roleId, roleName: role.name })
-      .from(member)
-      .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
-      .where(and(eq(member.orgId, c.orgId), eq(member.userId, input.userId)));
-    if (!membership) return { error: "Invalid PIN", status: 401 as const };
-    c.actorId = input.userId;
-    c.role = membership.roleName;
-    await tx
-      .update(cashierPin)
-      .set({ attempts: 0, lockedUntil: null })
-      .where(eq(cashierPin.id, record.id));
-    const token = randomToken();
-    const expiresAt = minutes(8 * 60);
-    await tx.insert(cashierSession).values({
-      orgId: c.orgId,
-      deviceId: input.deviceId,
-      branchId: c.branchId!,
-      userId: input.userId,
-      roleId: membership.roleId,
-      tokenHash: await digest(token),
-      expiresAt,
-    });
-    return { token, expiresAt, attempts: 0, lockedUntil: null };
-  },
-  audit: (input, result) => ({ userId: input.userId, success: !("error" in result) }),
 });

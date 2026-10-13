@@ -7,10 +7,20 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
-    }
+    },
+    "./versions": "./src/versions.ts",
+    "./bridge": "./src/bridge/index.ts"
   },
   "scripts": {
     "build": "tsc -b"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@shopper/audit": "workspace:*",
+    "@shopper/core": "workspace:*",
+    "@shopper/db-sqlite": "workspace:*",
+    "@shopper/ports": "workspace:*",
+    "drizzle-orm": "0.45.3",
+    "uuid": "14.0.2",
+    "valibot": "1.1.0"
+  }
 }

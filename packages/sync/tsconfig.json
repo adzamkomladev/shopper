@@ -4,5 +4,19 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src"]
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../audit"
+    },
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../db/sqlite"
+    },
+    {
+      "path": "../ports"
+    }
+  ]
 }

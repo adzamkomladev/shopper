@@ -23,7 +23,9 @@
     "@shopper/ports": "workspace:*",
     "@shopper/sync": "workspace:*",
     "@shopper/tax": "workspace:*",
+    "@types/ws": "8.18.2",
     "hono": "4.13.13",
-    "valibot": "1.1.0"
+    "valibot": "1.1.0",
+    "ws": "8.22.0"
   }
 }

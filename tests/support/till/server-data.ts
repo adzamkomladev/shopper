@@ -6,7 +6,7 @@ import { buildInfo } from "@shopper/config";
 import { money } from "@shopper/money";
 import { migrateDatabase } from "../../../tooling/database/migrate";
 import { provisionOrg, provisioningContext } from "../../../tooling/database/seed";
-import { ids, config as saleConfig } from "./sales";
+import { ids, config as saleConfig, references } from "./sales";
 
 export const appVersion = buildInfo.version;
 export const context = provisioningContext(ids.org);
@@ -49,16 +49,8 @@ const seed = defineCommand({
       roleId: role.id,
       role: "member",
     });
-    await tx.insert(schema.taxRule).values({
-      id: ids.oldTax,
-      orgId: ctx.orgId,
-      effectiveFrom: "2025-01-01",
-      vatBps: 1_500,
-      nhilBps: 250,
-      getfundBps: 250,
-      covidBps: 0,
-      source: "sync test",
-    });
+    await tx.delete(schema.taxRule).where(eq(schema.taxRule.orgId, ctx.orgId));
+    await tx.insert(schema.taxRule).values(references.taxRules);
     await tx.insert(schema.product).values({
       id: ids.product,
       orgId: ctx.orgId,

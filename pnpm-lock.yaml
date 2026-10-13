@@ -307,6 +307,9 @@ importers:
 
   apps/till-host:
     dependencies:
+      '@shopper/adapters-box':
+        specifier: workspace:*
+        version: link:../../packages/adapters/box
       '@shopper/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -325,6 +328,9 @@ importers:
 
   packages/adapters/box:
     dependencies:
+      '@hono/node-server':
+        specifier: 2.1.4
+        version: 2.1.4(hono@4.13.13)
       '@shopper/auth':
         specifier: workspace:*
         version: link:../../auth
@@ -343,9 +349,15 @@ importers:
       '@shopper/ports':
         specifier: workspace:*
         version: link:../../ports
+      '@shopper/sync':
+        specifier: workspace:*
+        version: link:../../sync
       drizzle-orm:
         specifier: 0.45.3
         version: 0.45.3(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.1)
+      hono:
+        specifier: 4.13.13
+        version: 4.13.13
       pg:
         specifier: 8.23.1
         version: 8.23.1
@@ -355,6 +367,13 @@ importers:
       valibot:
         specifier: 1.1.0
         version: 1.1.0(typescript@7.0.2)
+      ws:
+        specifier: 8.22.0
+        version: 8.22.0
+    devDependencies:
+      '@types/ws':
+        specifier: 8.18.2
+        version: 8.18.2
 
   packages/adapters/cf:
     dependencies:
@@ -727,12 +746,18 @@ importers:
       '@shopper/tax':
         specifier: workspace:*
         version: link:../packages/tax
+      '@types/ws':
+        specifier: 8.18.2
+        version: 8.18.2
       hono:
         specifier: 4.13.13
         version: 4.13.13
       valibot:
         specifier: 1.1.0
         version: 1.1.0(typescript@7.0.2)
+      ws:
+        specifier: 8.22.0
+        version: 8.22.0
 
   tooling/worker-tests:
     devDependencies:
@@ -1472,6 +1497,12 @@ packages:
 
   '@fontsource-variable/geist@5.3.0':
     resolution: {integrity: sha512-j0m+vLQuG5XAYoHtGCVu0spvlGreR3EzpECUVzkFmI1mTVnAO38l/NEPDCFgZ177JxzYJCLSmTQibIiYPilGrA==}
+
+  '@hono/node-server@2.1.4':
+    resolution: {integrity: sha512-2g1qeHl4BduwDn6L8nkAvDrPUWPMlkQ//a5NhP/zIyaXKMjZNRV+cG9Csu+BiJFf6+68pqzjf4Hi5sJGKHuS1g==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      hono: ^4 || ^5.0.0-0
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -3119,6 +3150,9 @@ packages:
 
   '@types/react@19.3.0':
     resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
+
+  '@types/ws@8.18.2':
+    resolution: {integrity: sha512-67MQl+fpWKVTT1NYdnmo3U4sc/xPo/zQBncVnI74qmQa0z/b+1g6iYqNmGCPbxO+zz2aklb08a0oHfegiVd0/w==}
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     resolution: {integrity: sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==}
@@ -5549,6 +5583,10 @@ snapshots:
 
   '@fontsource-variable/geist@5.3.0': {}
 
+  '@hono/node-server@2.1.4(hono@4.13.13)':
+    dependencies:
+      hono: 4.13.13
+
   '@img/colour@1.1.0': {}
 
   '@img/sharp-darwin-arm64@0.35.4':
@@ -7135,6 +7173,10 @@ snapshots:
   '@types/react@19.3.0':
     dependencies:
       csstype: 3.2.3
+
+  '@types/ws@8.18.2':
+    dependencies:
+      '@types/node': 24.19.1
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     optional: true

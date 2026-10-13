@@ -1,6 +1,9 @@
+import { onboardingRoutes } from "./routes/onboarding";
+import { invitationRoutes } from "./routes/invitations";
 import { Hono } from "hono";
 import { buildInfo } from "@shopper/config";
 import { catalogueRoutes } from "./routes/catalogue";
+import { administrationRoutes } from "./routes/administration";
 import { deviceRoutes } from "./routes/devices";
 import { managementRoutes } from "./routes/management";
 import { systemRoutes } from "./routes/system";
@@ -14,6 +17,9 @@ export function createApi(options: ApiOptions = {}) {
     c.header("Shopper-Version", buildInfo.version);
   });
   app.route("/", systemRoutes());
+  if (options.onboarding) app.route("/", onboardingRoutes(options.onboarding));
+  if (options.invitations)
+    app.route("/", invitationRoutes(options.invitations, options.authentication));
   app.route("/", taxRuleRoutes(options));
   if (options.database)
     app.route(
@@ -27,6 +33,7 @@ export function createApi(options: ApiOptions = {}) {
   if (options.authentication?.handler)
     app.all("/api/auth/*", (c) => options.authentication!.handler!(c.req.raw));
   app.route("/", managementRoutes(options));
+  app.route("/", administrationRoutes(options));
   if (options.devices) app.route("/", deviceRoutes(options.devices, options.authentication));
   return app;
 }

@@ -4,6 +4,7 @@ import { hashPassword } from "better-auth/crypto";
 import { defineCommand, type CommandContext } from "@shopper/audit";
 import {
   device,
+  branch,
   role,
   member,
   deviceCredential,
@@ -11,7 +12,7 @@ import {
   type ShopperDatabase,
 } from "@shopper/db-pg";
 import type { Cache } from "@shopper/ports";
-import type { AuthPrincipal } from "../roles";
+import type { AuthPrincipal } from "../roles/service";
 import { DeviceError, assign, consume, digest, issue, loginCommand } from "./commands";
 import {
   cashierLoginInput,
@@ -77,6 +78,28 @@ export function createDeviceService(
     return row.device;
   };
   return {
+    async list(p: DevicePrincipal) {
+      const rows = await db
+        .select({
+          id: device.id,
+          name: device.name,
+          branchId: device.branchId,
+          branchName: branch.name,
+          createdAt: device.createdAt,
+          revokedAt: deviceCredential.revokedAt,
+        })
+        .from(device)
+        .innerJoin(branch, and(eq(branch.orgId, device.orgId), eq(branch.id, device.branchId)))
+        .innerJoin(
+          deviceCredential,
+          and(eq(deviceCredential.orgId, device.orgId), eq(deviceCredential.deviceId, device.id)),
+        )
+        .where(eq(device.orgId, p.orgId));
+      return rows.map((row) => ({
+        ...row,
+        status: row.revokedAt ? ("revoked" as const) : ("active" as const),
+      }));
+    },
     issueEnrollment: (p: DevicePrincipal, input: unknown) =>
       issue(db, ctx(p), v.parse(enrollmentIssueInput, input)),
     async enroll(input: unknown) {

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { captureSizes } from "../../support/admin";
 import {
   ANNEX,
   expectNoSeriousAxe,
@@ -22,20 +23,28 @@ test("keyboard-only sign-in lands on products", async ({ page }) => {
   await expect(page.getByRole("navigation")).toBeVisible();
 });
 
-test("an unknown shop code is reported on the Shop code field", async ({ page }) => {
+test("an unknown shop code is reported on the Shop code field", async ({ page }, info) => {
   await typeCredentials(page, { ...MART, code: "no-such-shop" });
   const field = page.getByLabel("Shop code");
   await expect(field).toHaveAttribute("aria-invalid", "true");
   await expect(field).toHaveAccessibleDescription(/\S/);
   await expect(page).toHaveURL(/\/login/);
+  await captureSizes(page, info, "login-unknown-shop", async () => {
+    await expect(field).toHaveAttribute("aria-invalid", "true");
+    await expectNoSeriousAxe(page);
+  });
 });
 
-test("a wrong password keeps the shop code and shows a form error", async ({ page }) => {
+test("a wrong password keeps the shop code and shows a form error", async ({ page }, info) => {
   await typeCredentials(page, MART, "not-the-password-1");
   await expect(page.getByRole("alert")).toContainText(/invalid|incorrect/i);
   await expect(page.getByLabel("Shop code")).toHaveValue(MART.code);
   await expect(page.getByLabel("Shop code")).not.toHaveAttribute("aria-invalid", "true");
   await expect(page).toHaveURL(/\/login/);
+  await captureSizes(page, info, "login-wrong-password", async () => {
+    await expect(page.getByRole("alert")).toContainText(/invalid|incorrect/i);
+    await expectNoSeriousAxe(page);
+  });
 });
 
 test("sign out returns to login with the shop code prefilled", async ({ page }) => {
@@ -58,15 +67,21 @@ test("the shop switcher lists remembered shops and opens login for the other one
   await expect(page.getByLabel("Shop code")).toHaveValue(MART.code);
 });
 
-test("submitting an empty form focuses the first field that needs attention", async ({ page }) => {
+test("submitting an empty form focuses the first field that needs attention", async ({
+  page,
+}, info) => {
   await page.goto("/login");
   await page.getByLabel("Email").focus();
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page.getByLabel("Shop code")).toBeFocused();
   await expect(page.getByLabel("Shop code")).toHaveAttribute("aria-invalid", "true");
+  await captureSizes(page, info, "login-empty-validation", async () => {
+    await expect(page.getByLabel("Shop code")).toHaveAttribute("aria-invalid", "true");
+    await expectNoSeriousAxe(page);
+  });
 });
 
-test("signing in offline says the server can't be reached", async ({ page, context }) => {
+test("signing in offline says the server can't be reached", async ({ page, context }, info) => {
   await page.goto("/login");
   await expect(page.getByLabel("Shop code")).toBeFocused();
   await page.getByLabel("Shop code").fill(MART.code);
@@ -75,6 +90,10 @@ test("signing in offline says the server can't be reached", async ({ page, conte
   await context.setOffline(true);
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page.getByRole("alert")).toContainText(/can't reach the server/i);
+  await captureSizes(page, info, "login-offline", async () => {
+    await expect(page.getByRole("alert")).toContainText(/can't reach the server/i);
+    await expectNoSeriousAxe(page);
+  });
 });
 
 test("login has no serious axe violations and renders at three sizes", async ({ page }, info) => {

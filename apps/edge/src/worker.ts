@@ -18,6 +18,9 @@ export default {
         bootstrapToken: env.SHOPPER_BOOTSTRAP_TOKEN,
         clientIP: request.headers.get("CF-Connecting-IP") ?? undefined,
         priceChange: cloudflareLauncher(env.PRICE_CHANGE),
+        authFlows: env.AUTH_FLOWS ? cloudflareLauncher(env.AUTH_FLOWS) : undefined,
+        linkSecret: env.SHOPPER_LINK_SECRET,
+        publicOnboarding: true,
       });
     } finally {
       await connection.close();

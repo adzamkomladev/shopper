@@ -90,3 +90,23 @@ Before using a Cloudflare product that is not in this table, load the `cloudflar
   date kept current with tests run on change.
 - **Serialization differs per transport** (Queues, Workflow step outputs, DO storage, WebSockets).
   Step outputs must be `Json` (the port enforces this). Check limits per API before sending large data.
+
+## Registration and invitation workflows
+
+`AuthWorkflow` is the cloud shell behind `AUTH_FLOWS`; `boxAuthFlows` is the on-prem
+launcher. Both run `runAuthFlow` from `@shopper/auth`, using business UUIDs as instance IDs.
+The launcher port delivers typed events as well as starting instances. `auth-action` carries
+only `retry` or `completed`; passwords and secret links never enter workflow parameters,
+step outputs or audit records.
+
+Public registration uses the dedicated registration tables until completion. Its verification
+link expires after 24 hours and invitation links after seven days. Links are reconstructed with
+purpose-separated HMACs using `SHOPPER_LINK_SECRET`; only their digests are stored.
+Registration's separate resend capability cannot verify email. Maileroo delivery uses the same
+fetch client on both platforms; PostgreSQL checkpoints retain success/failure for management.
+An explicit requester retry or invitation reissue recovers a delivery failure without polling.
+
+The box currently uses memory workflow timers. Deadlines and consumed/replaced/cancelled state
+remain in PostgreSQL and are checked on every request after restart; recovering waiting engine
+instances automatically remains scheduled for day 36. LAN invitation setup works without WAN
+and does not mark the new account's email verified.

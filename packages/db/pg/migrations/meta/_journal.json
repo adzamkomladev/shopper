@@ -50,6 +50,27 @@
       "when": 1791776033264,
       "tag": "0006_price_reason",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791825924978,
+      "tag": "0007_registration_storage",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791826094292,
+      "tag": "0008_owner_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791826378316,
+      "tag": "0009_invitation_links",
+      "breakpoints": true
     }
   ]
 }

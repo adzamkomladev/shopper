@@ -33,6 +33,7 @@
     "@shopper/db-pg": "workspace:*",
     "@shopper/money": "workspace:*",
     "@shopper/ports": "workspace:*",
+    "@shopper/tax": "workspace:*",
     "drizzle-orm": "0.45.3",
     "uuid": "14.0.2",
     "valibot": "1.1.0",

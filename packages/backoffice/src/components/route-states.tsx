@@ -124,7 +124,9 @@ function Message({
   return (
     <Empty>
       <EmptyHeader>
-        <EmptyTitle>{title}</EmptyTitle>
+        <EmptyTitle>
+          <h1>{title}</h1>
+        </EmptyTitle>
         <EmptyDescription>{description}</EmptyDescription>
       </EmptyHeader>
       {children && <EmptyContent>{children}</EmptyContent>}

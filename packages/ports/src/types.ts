@@ -53,6 +53,7 @@ export interface Workflow {
 // One launcher per workflow kind. Acknowledges the launch only; starting an existing id is a no-op.
 export interface WorkflowLauncher {
   start(instanceId: string, params: Json): Promise<void>;
+  send(instanceId: string, type: string, payload: Json): Promise<void>;
 }
 export interface UtcCron {
   expression: string;

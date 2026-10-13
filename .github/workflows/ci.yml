@@ -37,7 +37,7 @@ jobs:
       - run: vp run typecheck
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     services:
       postgres:
         image: postgres:18
@@ -62,8 +62,9 @@ jobs:
       - run: vp install --frozen-lockfile
       - run: vp exec playwright install --with-deps chromium
       - run: vp run e2e
+      - run: vp exec playwright test --config playwright.public.config.ts --output test-results/public
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
           name: playwright-results
           path: test-results/

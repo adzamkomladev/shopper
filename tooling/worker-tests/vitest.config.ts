@@ -34,6 +34,7 @@ export default defineConfig({
           SHOPPER_AUTH_SECRET: "integration-secret-with-at-least-32-characters",
           SHOPPER_AUTH_URL: "https://shopper.test",
           SHOPPER_BOOTSTRAP_TOKEN: "integration-bootstrap-token",
+          SHOPPER_LINK_SECRET: "integration-link-secret-with-at-least-32-characters",
         },
         hyperdrives: {
           HYPERDRIVE:
@@ -44,5 +45,7 @@ export default defineConfig({
       },
     }),
   ],
-  test: { include: ["worker.test.ts", "realtime.test.ts", "price-change.test.ts"] },
+  test: {
+    include: ["worker.test.ts", "realtime.test.ts", "price-change.test.ts", "launcher.test.ts"],
+  },
 });

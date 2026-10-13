@@ -11,6 +11,10 @@ const signedIn = v.object({ user: v.object({ id: v.string() }) });
 export function useSignIn(box: { id: string; name: string } | null, onSignedIn: () => void) {
   const queryClient = useQueryClient();
   return useMutation({
+    gcTime: 0,
+    onSettled: (_data, _error, values) => {
+      values.password = "";
+    },
     mutationFn: async ({ shopCode, email, password }: LoginValues) => {
       const org = box ?? (await lookupShop(shopCode));
       rememberShop({ ...org, slug: box ? "" : shopCode.trim().toLowerCase() });

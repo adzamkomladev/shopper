@@ -15,6 +15,7 @@
   "dependencies": {
     "@shopper/adapters-box": "workspace:*",
     "@shopper/api": "workspace:*",
+    "@shopper/auth": "workspace:*",
     "hono": "4.13.13"
   }
 }

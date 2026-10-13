@@ -1,46 +1,29 @@
 import { eq, sql } from "drizzle-orm";
-import { v7 } from "uuid";
 import { defineCommand, type CommandContext } from "../../packages/core/src/index";
-import { runImport } from "../../packages/core/src/catalogue/index";
-import {
-  org,
-  shopperMeta,
-  taxClass,
-  taxRule,
-  type ShopperDatabase,
-} from "../../packages/db/pg/src/index";
-import { ghana2026 } from "../../packages/tax/src/index";
+import { provisionOrg as provision } from "../../packages/core/src/provisioning";
+import { v7 } from "uuid";
 import { buildDefines } from "../build/info";
+import { runImport } from "../../packages/core/src/catalogue/index";
+import { org, type ShopperDatabase } from "../../packages/db/pg/src/index";
 import { generateCatalogue, toSpreadsheet } from "../lib/catalogue-fixture";
 
-export const provisionOrg = defineCommand({
-  name: "org.provision",
-  async run(tx, context, input: { name: string; slug?: string }) {
-    await tx
-      .insert(org)
-      .values({ id: context.orgId, name: input.name, slug: input.slug?.trim().toLowerCase() });
-    await tx.insert(taxClass).values([
-      { orgId: context.orgId, code: "standard", name: "Standard" },
-      { orgId: context.orgId, code: "zero-rated", name: "Zero-rated" },
-      { orgId: context.orgId, code: "exempt", name: "Exempt" },
-    ]);
-    await tx.insert(taxRule).values({ orgId: context.orgId, ...ghana2026 });
-    await tx.insert(shopperMeta).values({
-      orgId: context.orgId,
-      productVersion: context.appVersion,
-      event: "install",
+export function provisionOrg(
+  db: ShopperDatabase,
+  context: CommandContext,
+  input: { name: string; slug?: string },
+) {
+  return provision(db, context, {
+    ...input,
+    metadata: {
       schemaVersion: Number(buildDefines.SCHEMA_VERSION),
       syncProtocol: Number(buildDefines.SYNC_PROTOCOL),
       archiveFormat: Number(buildDefines.ARCHIVE_FORMAT),
-    });
-    return { id: context.orgId };
-  },
-  audit: (input, output) => ({
-    name: input.name,
-    orgId: output.id,
-    taxEffectiveFrom: ghana2026.effectiveFrom,
-  }),
-});
+    },
+  });
+}
+export function provisioningContext(orgId = v7()): CommandContext {
+  return { orgId, appVersion: JSON.parse(buildDefines.SHOPPER_VERSION) as string };
+}
 const DEV_SLUG = "dev";
 // A dev org seeded before shop codes existed has no slug; this gives it one so login works.
 const setDevSlug = defineCommand({
@@ -51,9 +34,6 @@ const setDevSlug = defineCommand({
   },
   audit: (input, output) => ({ orgId: output.id, slug: input.slug }),
 });
-export function provisioningContext(orgId = v7()): CommandContext {
-  return { orgId, appVersion: JSON.parse(buildDefines.SHOPPER_VERSION) as string };
-}
 export async function seedDevelopment(db: ShopperDatabase) {
   // Serialize provisioning, including the existence check, across concurrent CLI runs.
   return db.transaction(async (tx) => {

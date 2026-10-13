@@ -16,3 +16,8 @@ export const contextSchema = v.object({
   deviceTime: v.optional(v.date()),
   appVersion: v.pipe(v.string(), v.minLength(1)),
 });
+// Pre-shop commands have no customer identity, device, role, approver or branch to report.
+export const registrationContextSchema = v.strictObject({
+  orgId: uuid,
+  appVersion: v.pipe(v.string(), v.minLength(1)),
+});

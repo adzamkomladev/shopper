@@ -1,5 +1,5 @@
 import type { AnyFieldApi } from "@tanstack/react-form";
-import { Field, FieldLabel } from "@shopper/ui/components/field";
+import { Field, FieldError, FieldLabel } from "@shopper/ui/components/field";
 import {
   Select,
   SelectContent,
@@ -7,21 +7,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@shopper/ui/components/select";
+import { focusOnMount } from "../../lib/focus";
 
 type Props = {
   field: AnyFieldApi;
   label: string;
   options: readonly { value: string; label: string }[];
+  /** Shown while nothing is chosen. */
+  placeholder?: string;
+  /** Focuses the select when it mounts. */
+  autoFocus?: boolean;
 };
 
 /** A labelled Select bound to a TanStack Form field; the label names the combobox. */
-export function SelectField({ field, label, options }: Props) {
+export function SelectField({ field, label, options, placeholder, autoFocus }: Props) {
+  const message = field.state.meta.errors[0]?.message;
+  const errorId = `${field.name}-error`;
   return (
-    <Field>
+    <Field data-invalid={!!message}>
       <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
       <Select value={field.state.value} onValueChange={field.handleChange}>
-        <SelectTrigger id={field.name} className="w-full">
-          <SelectValue />
+        <SelectTrigger
+          id={field.name}
+          ref={autoFocus ? focusOnMount : undefined}
+          className="w-full"
+          aria-invalid={!!message}
+          aria-describedby={message ? errorId : undefined}
+        >
+          <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
           {options.map((option) => (
@@ -31,6 +44,7 @@ export function SelectField({ field, label, options }: Props) {
           ))}
         </SelectContent>
       </Select>
+      {message && <FieldError id={errorId}>{message}</FieldError>}
     </Field>
   );
 }

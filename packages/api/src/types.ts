@@ -1,4 +1,9 @@
-import type { AuthPrincipal, createDeviceService } from "@shopper/auth";
+import type {
+  AuthPrincipal,
+  createDeviceService,
+  createOnboarding,
+  createInvitations,
+} from "@shopper/auth";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { WorkflowLauncher } from "@shopper/ports";
 
@@ -17,4 +22,6 @@ export interface ApiOptions {
   // Populated by the authenticated session adapter; never derive this from request parameters.
   resolveOrgId?: (request: Request) => Promise<string | null>;
   priceChange?: WorkflowLauncher;
+  onboarding?: ReturnType<typeof createOnboarding>;
+  invitations?: ReturnType<typeof createInvitations>;
 }

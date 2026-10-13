@@ -7,7 +7,13 @@ import { expect, type Page } from "@playwright/test";
 export async function expectNoSeriousAxe(page: Page) {
   // Popovers fade in; contrast measured mid-fade is a false failure.
   await page.waitForFunction(() =>
-    document.getAnimations().every((animation) => animation.playState !== "running"),
+    document
+      .getAnimations()
+      .every(
+        (animation) =>
+          animation.effect?.getTiming().iterations === Infinity ||
+          animation.playState !== "running",
+      ),
   );
   const { violations } = await new AxeBuilder({ page }).analyze();
   const serious = violations
@@ -18,8 +24,8 @@ export async function expectNoSeriousAxe(page: Page) {
   expect(serious).toEqual([]);
 }
 
-export const BOX_API = "http://localhost:3101";
-export const PORTAL_ORIGIN = "http://localhost:5183";
+export const BOX_API = process.env.E2E_BOX_URL ?? "http://localhost:3101";
+export const PORTAL_ORIGIN = process.env.E2E_PORTAL_URL ?? "http://localhost:5183";
 export const BOOTSTRAP_TOKEN = "e2e-only-bootstrap-token";
 export const OWNER_PASSWORD = "e2e-owner-password-123";
 export const OWNER_NAME = "E2E Owner";

@@ -66,3 +66,23 @@ vp -C apps/edge run deploy:staging         # deploys the generated staging confi
 6. Release notes written for owners: what changed, in plain language.
 
 The `release` skill walks through this list.
+
+## Auth link and email configuration
+
+The edge requires `AUTH_FLOWS` bound to the exported `AuthWorkflow` class. Set a dedicated
+`SHOPPER_LINK_SECRET` of at least 32 characters alongside `SHOPPER_AUTH_SECRET` and
+`SHOPPER_AUTH_URL`; do not reuse the authentication secret. Set `MAILEROO_API_KEY` and
+`MAILEROO_FROM` to a sender on a domain verified in Maileroo. The sender is trusted runtime
+configuration, never request input. `MAILEROO_ENDPOINT` is optional for the local network
+integration fake; production defaults to `https://smtp.maileroo.com/api/v2/emails`.
+`SHOPPER_AUTH_URL` also supplies the trusted origin and setup-link base URL.
+
+Use Worker secrets for these values and sealed box configuration on-prem. No sender configuration
+makes delivery fail visibly in its checkpoint and leaves explicit retry available. Every box closes public onboarding and keeps the controlled bootstrap-token path;
+only the edge explicitly enables `publicOnboarding` in the shared runtime.
+The box's current memory workflow engine cannot recover waiting timers on restart; PostgreSQL
+still rejects expired/consumed links. Automatic engine recovery is the day 36 slice.
+
+Provisioning reads compiled metadata in shipped callers and explicit build metadata in tooling.
+`SCHEMA_VERSION` is derived from the final migration-journal index, so CLI and shipped install
+records agree without requiring injected globals in raw TypeScript tooling.

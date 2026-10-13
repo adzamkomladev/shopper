@@ -18,6 +18,10 @@ export function boxPriceChange(options: { database: ShopperDatabase; realtime: R
     appVersion: buildInfo.version,
   };
   const launcher: WorkflowLauncher = {
+    send: (id, type, payload) => {
+      v.parse(workflowInstanceIdSchema, id);
+      return memoryWorkflow(id).send(id, type, payload);
+    },
     async start(instanceId, params) {
       v.parse(workflowInstanceIdSchema, instanceId);
       v.parse(priceChangeParams, params);

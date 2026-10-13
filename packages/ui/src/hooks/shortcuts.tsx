@@ -63,6 +63,9 @@ const isPlainKey = (combo: string) => combo.length === 1;
 
 function isTyping(target: EventTarget) {
   return (
-    target instanceof HTMLElement && target.matches("input, textarea, select, [contenteditable]")
+    target instanceof HTMLElement &&
+    target.matches(
+      'input, textarea, select, [contenteditable], [role="combobox"], [role="listbox"], [role="option"]',
+    )
   );
 }

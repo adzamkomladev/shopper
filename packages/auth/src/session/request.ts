@@ -5,7 +5,7 @@ import { member, org, role, user } from "@shopper/db-pg";
 import { uuidV7Schema } from "@shopper/ports";
 import { buildAuth } from "./better-auth";
 import { response } from "./http";
-import { seedRoleRows } from "../roles";
+import { seedRoleRows } from "../roles/service";
 
 export class AuthRollback extends Error {
   constructor(public readonly response: Response) {

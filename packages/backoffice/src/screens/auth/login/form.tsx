@@ -1,4 +1,5 @@
 import { useForm } from "@tanstack/react-form";
+import { Link } from "@tanstack/react-router";
 import { CircleAlertIcon, Loader2Icon } from "lucide-react";
 import { Alert, AlertDescription } from "@shopper/ui/components/alert";
 import { Button } from "@shopper/ui/components/button";
@@ -20,7 +21,7 @@ export function LoginForm({ box, defaultShopCode, onSignedIn }: Props) {
   const form = useForm({
     defaultValues: { shopCode: defaultShopCode, email: "", password: "" },
     validators: { onSubmit: loginSchema(!box) },
-    onSubmit: ({ value }) => signIn.mutate(value),
+    onSubmit: ({ value }) => signIn.mutate({ ...value }),
     onSubmitInvalid: ({ formApi }) => {
       const invalid = Object.entries(formApi.state.fieldMeta).find(
         ([, meta]) => meta.errors.length,
@@ -104,6 +105,18 @@ export function LoginForm({ box, defaultShopCode, onSignedIn }: Props) {
           {signIn.isPending && <Loader2Icon className="animate-spin" />}
           {signIn.isPending ? "Logging in…" : "Log in"}
         </Button>
+        {/* Only the cloud lets a shop be created: a box serves the one shop it was set up for. */}
+        {!box && (
+          <p className="text-center text-sm text-muted-foreground">
+            New to Shopper?{" "}
+            <Link
+              to="/signup"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Create a shop
+            </Link>
+          </p>
+        )}
       </form>
     </CardContent>
   );

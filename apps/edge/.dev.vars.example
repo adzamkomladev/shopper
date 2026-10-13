@@ -2,3 +2,8 @@
 SHOPPER_AUTH_SECRET=dev-only-secret-at-least-32-characters-long
 SHOPPER_AUTH_URL=http://localhost:5173
 SHOPPER_BOOTSTRAP_TOKEN=dev-only-bootstrap-token
+# Dedicated auth-link signing key; keep separate from SHOPPER_AUTH_SECRET.
+SHOPPER_LINK_SECRET=dev-only-link-secret-at-least-32-characters-long
+# Use a verified Maileroo sending domain; blank values keep delivery visibly retryable.
+MAILEROO_API_KEY=
+MAILEROO_FROM=

@@ -9,6 +9,9 @@ import {
   type ShopperTransaction,
 } from "@shopper/db-pg";
 
+import { permissionNames } from "../schemas/permissions";
+import { rolePermissions, tillPermissions } from "./defaults";
+
 /** Every principal the API, the auth service and the device service hand around. */
 export interface AuthPrincipal {
   orgId: string;
@@ -18,50 +21,6 @@ export interface AuthPrincipal {
   deviceId?: string;
   branchId?: string;
 }
-
-const permissionNames = [
-  "sale.create",
-  "refund.approve",
-  "refund.request",
-  "shift.read",
-  "shift.write",
-  "stock.read",
-  "stock.write",
-  "product.read",
-  "product.write",
-  "product.propose",
-  "tax.read",
-  "tax.write",
-  "report.read",
-  "audit.read",
-  "user.write",
-  "role.write",
-  "store.read",
-  "store.write",
-  "branch.read",
-  "branch.write",
-  "device.enroll",
-  "device.revoke",
-  "cashier.pin.assign",
-] as const;
-
-const rolePermissions: Record<string, readonly string[]> = {
-  superadmin: permissionNames,
-  admin: permissionNames.filter(
-    (code) => !code.startsWith("store.") && !code.startsWith("branch.") && code !== "tax.write",
-  ),
-  accountant: ["product.read", "shift.read", "stock.read", "tax.read", "report.read", "audit.read"],
-  inventory: ["product.read", "stock.read", "stock.write", "product.propose"],
-  cashier: ["product.read", "sale.create", "refund.request", "shift.read", "shift.write"],
-};
-const tillPermissions = new Set([
-  "product.read",
-  "sale.create",
-  "refund.approve",
-  "refund.request",
-  "shift.read",
-  "shift.write",
-]);
 
 export async function seedRoleRows(tx: ShopperTransaction, orgId: string) {
   await tx
@@ -73,19 +32,41 @@ export async function seedRoleRows(tx: ShopperTransaction, orgId: string) {
       target: [permission.orgId, permission.code],
       set: { tillAllowed: sql`excluded.till_allowed` },
     });
-  await tx
+  const createdRoles = await tx
     .insert(role)
-    .values(Object.keys(rolePermissions).map((name) => ({ orgId, name })))
-    .onConflictDoNothing();
+    .values(
+      Object.keys(rolePermissions).map((name) => ({
+        orgId,
+        name,
+        protectedOwner: name === "superadmin",
+      })),
+    )
+    .onConflictDoNothing()
+    .returning({ id: role.id });
   const [permissionRows, roleRows] = await Promise.all([
     tx
       .select({ id: permission.id, code: permission.code })
       .from(permission)
       .where(eq(permission.orgId, orgId)),
-    tx.select({ id: role.id, name: role.name }).from(role).where(eq(role.orgId, orgId)),
+    tx
+      .select({ id: role.id, name: role.name, protectedOwner: role.protectedOwner })
+      .from(role)
+      .where(eq(role.orgId, orgId)),
   ]);
   const permissionIds = new Map(permissionRows.map((row) => [row.code, row.id]));
-  const roleIds = new Map(roleRows.map((row) => [row.name, row.id]));
+  const newIds = new Set(createdRoles.map(({ id }) => id));
+  const roleIds = new Map(
+    roleRows
+      .filter((row) => row.protectedOwner || newIds.has(row.id))
+      .map((row) => [row.name, row.id]),
+  );
+  const ownerLinks = roleRows
+    .filter((row) => row.protectedOwner)
+    .flatMap((row) =>
+      permissionRows
+        .filter(({ code }) => permissionNames.includes(code as (typeof permissionNames)[number]))
+        .map(({ id }) => ({ orgId, roleId: row.id, permissionId: id })),
+    );
   const links = Object.entries(rolePermissions).flatMap(([roleName, codes]) =>
     codes.flatMap((code) => {
       const permissionId = permissionIds.get(code);
@@ -93,7 +74,11 @@ export async function seedRoleRows(tx: ShopperTransaction, orgId: string) {
       return permissionId && roleId ? [{ orgId, roleId, permissionId }] : [];
     }),
   );
-  if (links.length) await tx.insert(rolePermission).values(links).onConflictDoNothing();
+  if (links.length || ownerLinks.length)
+    await tx
+      .insert(rolePermission)
+      .values([...links, ...ownerLinks])
+      .onConflictDoNothing();
   return {
     roleCount: Object.keys(rolePermissions).length,
     permissionCount: permissionNames.length,
@@ -139,12 +124,12 @@ export async function assertHasPermission(
   context: CommandContext,
   code: string,
 ) {
-  if (!context.actorId) throw new Error("An authenticated actor is required");
+  if (!context.actorId) throw new AdministrationError("An authenticated actor is required", 401);
   const found = await grantedCodes(tx, context.orgId, context.actorId, {
     code,
     deviceId: context.deviceId,
   }).limit(1);
-  if (!found.length) throw new Error("Permission denied");
+  if (!found.length) throw new AdministrationError("Permission denied", 403);
 }
 
 export async function assertCanGrantRole(
@@ -152,6 +137,7 @@ export async function assertCanGrantRole(
   context: CommandContext,
   targetRoleId: string,
 ) {
+  await assertHasPermission(tx, context, "role.write");
   const [actorRows, grantRows] = await Promise.all([
     grantedCodes(tx, context.orgId, context.actorId!, { deviceId: context.deviceId }),
     tx
@@ -167,6 +153,32 @@ export async function assertCanGrantRole(
       .where(and(eq(rolePermission.orgId, context.orgId), eq(rolePermission.roleId, targetRoleId))),
   ]);
   const actorCodes = new Set(actorRows.map(({ code }) => code));
+  const [target] = await tx
+    .select({ protectedOwner: role.protectedOwner })
+    .from(role)
+    .where(and(eq(role.orgId, context.orgId), eq(role.id, targetRoleId)));
+  const [owner] = await tx
+    .select({ id: member.id })
+    .from(member)
+    .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
+    .where(
+      and(
+        eq(member.orgId, context.orgId),
+        eq(member.userId, context.actorId!),
+        eq(role.protectedOwner, true),
+      ),
+    );
   if (grantRows.some(({ code }) => !actorCodes.has(code)))
-    throw new Error("Cannot grant permissions you do not hold");
+    throw new AdministrationError("Cannot grant permissions you do not hold", 403);
+  if (target?.protectedOwner && !owner)
+    throw new AdministrationError("Only an owner can grant the owner role", 403);
+}
+
+export class AdministrationError extends Error {
+  constructor(
+    message: string,
+    public readonly status: 400 | 401 | 403 | 404 | 409,
+  ) {
+    super(message);
+  }
 }

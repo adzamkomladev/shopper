@@ -1,0 +1,103 @@
+import { and, eq } from "drizzle-orm";
+import * as v from "valibot";
+import { defineCommand, canonicalJson } from "@shopper/audit";
+import { sale, saleLine, type ShopperDatabase } from "@shopper/db-pg";
+import { saleEvent, saleSnapshot, type SaleEvent } from "../schemas/till/sale";
+import { validateAuthority, validateReferences, type UploadPrincipal } from "./validate";
+import { SaleError } from "./error";
+
+export async function acceptSale(
+  db: ShopperDatabase,
+  principal: UploadPrincipal,
+  raw: unknown,
+  proof: string,
+) {
+  const event = v.parse(saleEvent, raw);
+  const contentHash = await digest(canonicalJson(event.sale));
+  return accept(
+    db,
+    {
+      orgId: principal.orgId,
+      deviceId: principal.deviceId,
+      branchId: principal.branchId,
+      actorId: event.sale.cashierId,
+      appVersion: event.sale.appVersion,
+      deviceTime: new Date(event.sale.deviceTime),
+    },
+    { principal, event, proofHash: await digest(proof), contentHash },
+  );
+}
+
+const accept = defineCommand({
+  name: "sale.accept",
+  async replay(
+    tx,
+    ctx,
+    input: { principal: UploadPrincipal; event: SaleEvent; proofHash: string; contentHash: string },
+  ) {
+    const [saved] = await tx
+      .select()
+      .from(sale)
+      .where(
+        and(
+          eq(sale.orgId, ctx.orgId),
+          eq(sale.deviceId, input.principal.deviceId),
+          eq(sale.localId, input.event.sale.localId),
+        ),
+      );
+    if (!saved) return undefined;
+    await validateAuthority(
+      tx,
+      ctx,
+      input.principal,
+      v.parse(saleSnapshot, saved.payload),
+      input.proofHash,
+    );
+    if (saved.contentHash !== input.contentHash)
+      throw new SaleError("CONFLICT", "Sale identity already has different content");
+    return { output: { localId: saved.localId } };
+  },
+  async run(tx, ctx, input) {
+    const snapshot = input.event.sale;
+    await validateAuthority(tx, ctx, input.principal, snapshot, input.proofHash);
+    await validateReferences(tx, ctx.orgId, snapshot);
+    const [saved] = await tx
+      .insert(sale)
+      .values({
+        id: snapshot.id,
+        orgId: ctx.orgId,
+        deviceId: snapshot.deviceId,
+        localId: snapshot.localId,
+        storeId: snapshot.storeId,
+        branchId: snapshot.branchId,
+        cashierId: snapshot.cashierId,
+        sessionId: snapshot.sessionId,
+        appVersion: snapshot.appVersion,
+        eventVersion: input.event.v,
+        deviceTime: new Date(snapshot.deviceTime),
+        payload: snapshot,
+        contentHash: input.contentHash,
+      })
+      .onConflictDoNothing({ target: [sale.deviceId, sale.localId] })
+      .returning();
+    if (!saved) throw new SaleError("CONFLICT", "Sale identity already exists");
+    await tx.insert(saleLine).values(
+      snapshot.lines.map((line) => ({
+        id: line.id,
+        orgId: ctx.orgId,
+        saleId: saved.id,
+        productId: line.productId,
+        priceId: line.priceId,
+        taxRuleId: line.tax.rule.id,
+        payload: line,
+      })),
+    );
+    return { localId: saved.localId };
+  },
+  audit: (_input, output) => output,
+  details: (_input, output) => ({ entity: "sale", entityId: output.localId }),
+});
+async function digest(value: string) {
+  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}

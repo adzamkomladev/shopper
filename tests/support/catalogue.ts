@@ -62,7 +62,13 @@ export async function openProduct(page: Page, request: APIRequestContext, name: 
   const tag = tagOf();
   const draft = { name: `${name} ${tag}`, sku: `${name.slice(0, 3).toUpperCase()}-${tag}` };
   const { id } = await seed(request, draft);
+  const loaded = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === `/api/products/${id}` &&
+      response.request().method() === "GET",
+  );
   await page.goto(`/products/${id}`);
+  expect((await loaded).status()).toBe(200);
   await expect(page.getByRole("heading", { name: draft.name, level: 1 })).toBeVisible();
   return { ...draft, id };
 }

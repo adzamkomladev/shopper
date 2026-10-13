@@ -13,7 +13,9 @@ import {
 } from "@shopper/db-pg";
 import type { Cache } from "@shopper/ports";
 import type { AuthPrincipal } from "../roles/service";
-import { DeviceError, assign, consume, digest, issue, loginCommand } from "./commands";
+import { loginCommand } from "./login";
+import { resolveUploadPrincipal } from "./upload";
+import { DeviceError, assign, consume, digest, issue } from "./commands";
 import {
   cashierLoginInput,
   enrollmentInput,
@@ -78,6 +80,7 @@ export function createDeviceService(
     return row.device;
   };
   return {
+    resolveUploadPrincipal: (request: Request) => resolveUploadPrincipal(db, request, orgId),
     async list(p: DevicePrincipal) {
       const rows = await db
         .select({
@@ -146,7 +149,14 @@ export function createDeviceService(
         }
       }
       if ("error" in result) throw new DeviceError(result.error!, result.status!);
-      return { token: result.token!, expiresAt: result.expiresAt! };
+      return {
+        id: result.id!,
+        token: result.token!,
+        issuedAt: result.issuedAt!,
+        expiresAt: result.expiresAt!,
+        permissions: result.permissions!,
+        roleName: result.roleName!,
+      };
     },
     revoke: (p: DevicePrincipal, input: unknown) =>
       revokeCommand(db, ctx(p), v.parse(revokeDeviceInput, input)),

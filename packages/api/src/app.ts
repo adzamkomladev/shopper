@@ -1,3 +1,4 @@
+import { createSyncRoutes } from "./sync/routes";
 import { onboardingRoutes } from "./routes/onboarding";
 import { invitationRoutes } from "./routes/invitations";
 import { Hono } from "hono";
@@ -17,6 +18,15 @@ export function createApi(options: ApiOptions = {}) {
     c.header("Shopper-Version", buildInfo.version);
   });
   app.route("/", systemRoutes());
+  if (options.database && options.devices && options.sequencer)
+    app.route(
+      "/",
+      createSyncRoutes({
+        database: options.database,
+        devices: options.devices,
+        sequencer: options.sequencer,
+      }),
+    );
   if (options.onboarding) app.route("/", onboardingRoutes(options.onboarding));
   if (options.invitations)
     app.route("/", invitationRoutes(options.invitations, options.authentication));

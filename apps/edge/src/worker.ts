@@ -1,4 +1,9 @@
-import { cloudflareCache, cloudflareDatabase, cloudflareLauncher } from "@shopper/adapters-cf";
+import {
+  cloudflareCache,
+  cloudflareDatabase,
+  cloudflareLauncher,
+  cloudflareSequencer,
+} from "@shopper/adapters-cf";
 import { isPublicRequest, publicApi, runtimeUnavailable, serveRuntime } from "@shopper/api/runtime";
 
 import type { AuthEnvironment } from "./types";
@@ -12,6 +17,7 @@ export default {
     try {
       return await serveRuntime(request, {
         database: connection.db,
+        sequencer: cloudflareSequencer(env.STORE_SEQUENCER),
         cache: cloudflareCache(env.CACHE_DB),
         secret: env.SHOPPER_AUTH_SECRET,
         baseURL: env.SHOPPER_AUTH_URL,

@@ -43,6 +43,7 @@ export const taxRule = pgTable(
     source: text("source").notNull(),
   },
   (t) => [
+    unique().on(t.orgId, t.id),
     unique().on(t.orgId, t.effectiveFrom),
     check(
       "tax_rates",

@@ -13,6 +13,7 @@ import { portConformance, realtimeConformance } from "@shopper/conformance";
 import { migrateDatabase } from "../../../tooling/database/migrate";
 import { provisionOrg, provisioningContext } from "../../../tooling/database/seed";
 import { postgresFixture } from "../../fixtures/postgres";
+import { provisionPendingSale } from "../../support/till/pending-sale";
 let fixture: Awaited<ReturnType<typeof postgresFixture>>;
 let pool: Pool;
 let db: import("@shopper/db-pg").ShopperDatabase;
@@ -79,6 +80,7 @@ portConformance("box development adapters", test, async () => {
       const [row] = await db.select().from(schema.store).where(eq(schema.store.id, storeId));
       return row!.lastSeq;
     },
+    provisionPendingSale: () => provisionPendingSale(db, ctx, storeId, other.orgId, ctx.appVersion),
   };
 });
 realtimeConformance("box broadcaster", test, async () => ({

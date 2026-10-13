@@ -1,16 +1,18 @@
-import type { Cache, WorkflowLauncher } from "@shopper/ports";
+import type { Cache, Sequencer, WorkflowLauncher } from "@shopper/ports";
 import * as v from "valibot";
 import { buildInfo } from "@shopper/config";
 import { AuthLinkError, createAuth, createOnboarding, createInvitations } from "@shopper/auth";
 import { createDeviceService } from "@shopper/auth/devices";
 import { managementId } from "@shopper/core/management";
 import type { ShopperDatabase } from "@shopper/db-pg";
+import { createSyncRoutes } from "./sync/routes";
 import { createApi } from "./app";
 import { orgRoutes } from "./routes/orgs";
 import { allowPublicAuth } from "./middleware/public-auth";
 
 export interface RuntimeOptions {
   database: ShopperDatabase;
+  sequencer?: Sequencer;
   cache: Cache;
   secret: string;
   baseURL: string;
@@ -25,7 +27,7 @@ export interface RuntimeOptions {
 export const publicApi = createApi();
 export function isPublicRequest(request: Request) {
   const path = new URL(request.url).pathname;
-  return !/^\/(?:api\/auth(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|devices(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
+  return !/^\/(?:api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|devices(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
     path,
   );
 }
@@ -47,6 +49,19 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     origin !== new URL(options.baseURL).origin
   )
     return Response.json({ error: "Origin is not allowed" }, { status: 403 });
+  if (/^\/sync(?:\/|$)/.test(url.pathname)) {
+    if (!options.sequencer) return runtimeUnavailable();
+    return createSyncRoutes({
+      database: options.database,
+      devices: createDeviceService(
+        options.database,
+        options.cache,
+        buildInfo.version,
+        options.orgId,
+      ),
+      sequencer: options.sequencer,
+    }).fetch(request);
+  }
   const linkOptions =
     options.authFlows && options.linkSecret
       ? {

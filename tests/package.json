@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./support/till/pending-sale": "./support/till/pending-sale.ts"
+  },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.64.0",
@@ -19,6 +22,7 @@
     "@shopper/money": "workspace:*",
     "@shopper/ports": "workspace:*",
     "@shopper/tax": "workspace:*",
+    "hono": "4.13.13",
     "valibot": "1.1.0"
   }
 }

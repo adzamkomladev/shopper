@@ -13,6 +13,7 @@
     "@shopper/db-pg": "workspace:*",
     "@shopper/db-sqlite": "workspace:*",
     "@shopper/ports": "workspace:*",
+    "@shopper/tests": "workspace:*",
     "esbuild": "0.28.1",
     "vitest": "4.1.9"
   }

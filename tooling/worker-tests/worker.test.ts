@@ -30,6 +30,8 @@ import {
 import { cacheMigration } from "@shopper/db-sqlite";
 import { portConformance } from "@shopper/conformance";
 import { buildInfo } from "@shopper/config";
+import { provisionOrg } from "@shopper/core";
+import { provisionPendingSale } from "@shopper/tests/support/till/pending-sale";
 const provision = defineCommand({
   name: "conformance.provision",
   async run(tx, ctx) {
@@ -39,6 +41,18 @@ const provision = defineCommand({
       .values({ orgId: ctx.orgId, name: "Worker store" })
       .returning();
     return row!.id;
+  },
+  audit: (_input, storeId) => ({ storeId }),
+});
+const createStore = defineCommand({
+  name: "conformance.create-store",
+  async run(tx, ctx) {
+    const [row] = await tx
+      .insert(schema.store)
+      .values({ orgId: ctx.orgId, name: "Worker conformance" })
+      .returning();
+    if (!row) throw new Error("Expected Worker store");
+    return row.id;
   },
   audit: (_input, storeId) => ({ storeId }),
 });
@@ -57,7 +71,31 @@ portConformance("Cloudflare adapters in workerd", test, async () => {
   const connection = await cloudflareDatabase(bindings.HYPERDRIVE.connectionString);
   let storeId: string;
   try {
-    storeId = await provision(connection.db, { orgId, appVersion: buildInfo.version }, undefined);
+    await provisionOrg(
+      connection.db,
+      { orgId, appVersion: buildInfo.version },
+      {
+        name: "Worker conformance",
+        metadata: {
+          schemaVersion: buildInfo.schemaVersion,
+          syncProtocol: buildInfo.syncProtocol,
+          archiveFormat: buildInfo.archiveFormat,
+        },
+      },
+    );
+    await provisionOrg(
+      connection.db,
+      { orgId: otherOrgId, appVersion: buildInfo.version },
+      {
+        name: "Other Worker conformance",
+        metadata: {
+          schemaVersion: buildInfo.schemaVersion,
+          syncProtocol: buildInfo.syncProtocol,
+          archiveFormat: buildInfo.archiveFormat,
+        },
+      },
+    );
+    storeId = await createStore(connection.db, { orgId, appVersion: buildInfo.version }, undefined);
   } finally {
     await connection.close();
   }
@@ -94,6 +132,28 @@ portConformance("Cloudflare adapters in workerd", test, async () => {
           .from(schema.store)
           .where(eq(schema.store.id, storeId));
         return row!.lastSeq;
+      } finally {
+        await connection.close();
+      }
+    },
+    async provisionPendingSale() {
+      const connection = await cloudflareDatabase(bindings.HYPERDRIVE.connectionString);
+      try {
+        return await provisionPendingSale(
+          connection.db,
+          { orgId, appVersion: buildInfo.version },
+          storeId,
+          otherOrgId,
+          buildInfo.version,
+          async (run) => {
+            const live = await cloudflareDatabase(bindings.HYPERDRIVE.connectionString);
+            try {
+              return await run(live.db);
+            } finally {
+              await live.close();
+            }
+          },
+        );
       } finally {
         await connection.close();
       }

@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { nextStoreSequence } from "@shopper/core";
+import { assignSaleSequence, nextStoreSequence } from "@shopper/core";
 import { buildInfo } from "@shopper/config";
 import * as v from "valibot";
 import {
@@ -14,6 +14,28 @@ import { cloudflareDatabase } from "./database";
 // PG is the durable record. The DO provides one hot coordination address per store;
 // it keeps no second cursor that could disagree with a committed PG transaction.
 export class StoreSequencer extends DurableObject<{ HYPERDRIVE: Hyperdrive }> {
+  async assignSale(
+    orgId: string,
+    storeId: string,
+    deviceId: string,
+    localId: string,
+  ): Promise<string> {
+    scopedKey(orgId, storeId);
+    const connection = await cloudflareDatabase(this.env.HYPERDRIVE.connectionString);
+    try {
+      return (
+        await assignSaleSequence(
+          connection.db,
+          { orgId, appVersion: buildInfo.version },
+          storeId,
+          deviceId,
+          localId,
+        )
+      ).toString();
+    } finally {
+      await connection.close();
+    }
+  }
   async next(orgId: string, storeId: string, floor = "0"): Promise<string> {
     scopedKey(orgId, storeId);
     if (!/^\d+$/.test(floor)) throw new RangeError("Invalid sequence floor");

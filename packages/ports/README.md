@@ -21,6 +21,11 @@ gaps, and accepts an archive floor. PostgreSQL's audited `store.last_seq` is the
 authoritative cursor. Engine coordination does not introduce a second stored
 cursor that could disagree with the transaction.
 
+`Sequencer.assignSale(orgId, storeId, deviceId, localId)` assigns an accepted sale exactly once.
+The shared command updates `store.last_seq`, `sale.store_sequence` and its audit atomically.
+Replays return the persisted bigint without allocating another sequence or audit. Both shells
+call this command and retain no private cursor.
+
 Blob keys are validated and tenant-prefixed. Binary payloads go through
 unstorage. `blobUrlAccess()` issues HMAC URLs and validates their signature and
 expiry before retrieving bytes. Configure a stable secret of at least 32 bytes

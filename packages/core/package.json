@@ -27,6 +27,10 @@
     "./till": {
       "types": "./src/till/index.ts",
       "default": "./src/till/index.ts"
+    },
+    "./sales": {
+      "types": "./src/sales/index.ts",
+      "default": "./src/sales/index.ts"
     }
   },
   "scripts": {

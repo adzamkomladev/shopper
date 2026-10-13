@@ -43,3 +43,23 @@ Staff management uses `GET/POST /invitations` and `POST /invitations/:id/reissue
 `GET /invitations/:id/preview?token=...` never consumes; `POST /invitations/:id/accept`
 consumes once. The runtime derives the tenant from the validated invitation rather than a
 caller selector. Browser contracts are exported through `@shopper/auth/schemas`.
+
+Sync routes are exported as `@shopper/api/sync` and composed by both runtimes before browser
+session tenant resolution. `POST /sync/handshake` accepts `{requestId, appVersion, protocol}`
+and returns the server build version/protocol. `POST /sync/push` accepts
+`{requestId, protocol, events, proofs: [{sessionId, proof}]}` with at most 200 events and 1 MiB.
+Uploads require `Authorization: Bearer <enrolled device token>` and `X-Shopper-Device`.
+Optional org/store/branch headers must match the enrolled device; browser sessions cannot upload.
+The host keeps cashier proofs separately from sale events. Login captures issuance, expiry,
+role name and till-allowed grants from `role_permission`; upload verifies the original session
+window and grant even after expiry, while revoked sessions/devices are rejected.
+
+Acceptance persists immutable sale/line snapshots and a canonical content hash, then assigns
+one persistent store sequence in a separate audited transaction. Identical retries emit no
+new acceptance or assignment audit. Changed content returns a per-event `CONFLICT`.
+Responses contain `{requestId, accepted: [{localId, sequence}], rejected: [{localId, code, message}]}`;
+sequences are positive decimal strings. Sequencing failure returns 503 without acknowledgements;
+the accepted pending sale survives for retry. Malformed envelopes return 400, oversized bodies
+413, invalid device credentials 401, and incompatible protocols 409. Initial protocol 1 supports
+only 1; later servers support N and N-1. Event version dispatch is independent: unsupported
+versions with recoverable local IDs produce per-event `UNSUPPORTED_EVENT_VERSION`.

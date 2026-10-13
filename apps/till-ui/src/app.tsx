@@ -1,19 +1,16 @@
 import { createRoot } from "react-dom/client";
-import { About } from "@shopper/ui/components/about";
 import { AppBackdrop } from "@shopper/ui/components/app-backdrop";
-import { Button } from "@shopper/ui/components/button";
-import { Card, CardContent, CardFooter } from "@shopper/ui/components/card";
+import { ShortcutRoot } from "@shopper/ui/hooks/shortcuts";
+import { ConnectionScreen } from "./screens/connection/screen";
+import { initializeConnection } from "./connection/store";
 import "./styles.css";
 
+initializeConnection();
+
 createRoot(document.getElementById("root")!).render(
-  <AppBackdrop className="grid place-items-center">
-    <Card className="w-full max-w-md">
-      <CardContent>
-        <About />
-      </CardContent>
-      <CardFooter>
-        <Button onClick={() => location.reload()}>Reload till</Button>
-      </CardFooter>
-    </Card>
-  </AppBackdrop>,
+  <ShortcutRoot>
+    <AppBackdrop className="min-w-0 flex-1 px-4 py-5 sm:px-8 sm:py-8 lg:px-13 lg:py-10">
+      <ConnectionScreen />
+    </AppBackdrop>
+  </ShortcutRoot>,
 );

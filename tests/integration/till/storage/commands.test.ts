@@ -12,7 +12,7 @@ import {
   type CommandContext,
   type TillDatabase,
   type TillSqlite,
-} from "../../support/till/storage";
+} from "../../../support/till/storage";
 
 let folder: string;
 let path: string;

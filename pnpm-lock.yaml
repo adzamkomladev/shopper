@@ -528,6 +528,9 @@ importers:
       '@shopper/db-pg':
         specifier: workspace:*
         version: link:../db/pg
+      '@shopper/db-sqlite':
+        specifier: workspace:*
+        version: link:../db/sqlite
       '@shopper/money':
         specifier: workspace:*
         version: link:../money

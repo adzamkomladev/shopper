@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { and, eq, sql } from "drizzle-orm";
 import { v7 } from "uuid";
 import { localSale, outbox, reference, saleLine, tillAudit, tillState } from "@shopper/db-sqlite";
-import { openTillDatabase, type TillDatabase } from "../../support/till/storage";
+import { openTillDatabase, type TillDatabase } from "../../../support/till/storage";
 
 let directory: string;
 let db: TillDatabase | undefined;

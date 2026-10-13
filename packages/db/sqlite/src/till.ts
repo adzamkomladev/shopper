@@ -38,4 +38,9 @@ CREATE TABLE IF NOT EXISTS till_audit (
  before TEXT, after TEXT, app_version TEXT NOT NULL, command TEXT NOT NULL, payload TEXT NOT NULL,
  chain_seq INTEGER, prev_hash TEXT, hash TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
  UNIQUE(org_id,chain_seq)
+ );
+CREATE TABLE IF NOT EXISTS host_session (
+ id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, device_id TEXT NOT NULL,
+ branch_id TEXT NOT NULL, user_id TEXT NOT NULL, role_name TEXT NOT NULL,
+ issued_at TEXT NOT NULL, expires_at TEXT NOT NULL, permissions TEXT NOT NULL, proof TEXT NOT NULL
 );`;

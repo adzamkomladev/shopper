@@ -1,0 +1,1 @@
+export { openTillDatabase } from "./database";

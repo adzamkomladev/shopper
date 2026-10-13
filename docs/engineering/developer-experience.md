@@ -89,3 +89,15 @@ Claude Code, Codex and OpenCode all read the same rules and skills. See
 | `playwright`      | Running the app, screenshots, checking keyboard flows                 |
 | `cloudflare-docs` | Current Cloudflare product docs and limits                            |
 | `context7`        | Current docs for TanStack, Drizzle, Hono, Valibot, Rivet, Better Auth |
+
+### Till host and browser connection
+
+The compiled Node till host starts with a private configuration file or process IPC; see
+[the host README](../../apps/till-host/README.md). Configure the browser Origin explicitly, then
+open its connection link. Vite proxies `/bridge` to the loopback host through
+`SHOPPER_TILL_HOST_URL`. The per-start capability leaves the URL immediately and is kept in
+memory; device credentials never enter browser configuration.
+
+The Playwright MCP configurations use `tooling/mcp/playwright.mjs`. This launcher adds
+`--no-sandbox` only when the process runs as root, allowing browser review in the development
+container without changing non-root launches.

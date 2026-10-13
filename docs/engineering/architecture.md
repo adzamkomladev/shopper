@@ -101,3 +101,27 @@ The full feature map is in [platforms.md](platforms.md).
 | A generic helper with no domain meaning  | See "Shared helpers" in [code-quality.md](code-quality.md)      |
 | Anything that touches a platform API     | `packages/adapters/cf` and `packages/adapters/box`, both        |
 | A dev script                             | `tooling/`                                                      |
+
+## Till storage and sync push
+
+`@shopper/core/till` owns immutable sale snapshots and audited local recording; core never imports
+sync. `@shopper/db-sqlite` owns schemas, and `@shopper/adapters-box/till` owns the Node SQLite
+driver and host transports. The driver serializes the whole asynchronous transaction, including
+reads, so a concurrent operation cannot enter another command's transaction.
+
+`@shopper/sync` delivers the outbox outside local transactions. Its `./bridge` export contains only
+browser-safe Valibot contracts. The till UI subscribes to WebSocket state and sends explicit
+actions; credentials and cashier-session proofs stay in the host. Browser connections require an
+allowed Origin and a per-start capability kept in memory. Private process IPC also supports local
+sale recording; the status-only browser screen cannot record sales.
+
+Both HTTP hosts compose `@shopper/api/sync`. An enrolled-device principal establishes upload
+scope, independently of browser and expired cashier sessions. Acceptance stores the captured sale
+and lines in one audited PostgreSQL transaction; `Sequencer.assignSale` assigns its store sequence
+in another. Both adapters call the shared assignment command. Replays recover persisted results
+without another mutation or audit, and acknowledgment waits for sequence assignment.
+
+Protocol negotiation and event decoding are separate contracts. Protocol 1 has no published
+predecessor; from protocol 2 onward, negotiation supports N and N−1. The producer owns event
+versions and upcasters; the original application version stays on the sale. Reference provisioning
+is explicit tooling in Day 8; automatic bootstrap, pull and realtime remain Day 9.

@@ -141,9 +141,10 @@ outside this milestone.
   terminal expired invitations showing unavailable actions. Three failing PostgreSQL/Maileroo
   regressions preceded a shared live eligibility read; a failing browser regression preceded the
   explicit closed expired state. Already-saved delivery outcomes still replay without sending.
-- The complete standard browser run passed 129 of 130 cases. Its remaining LAN acceptance
-  assertion did not scroll to the virtualized member row; the corrected keyboard scroll and new
-  expired-state case pass in a focused follow-up (four tests including setup).
+- Browser regression fixes scroll to virtualized members through the real keyboard path and
+  reuse the existing public-auth request pacing helper for staff fixture acceptance. The completion
+  run exposed an HTTP 429 fixture failure; the corrected user suite passes all 28 tests without
+  weakening the production rate limit or adding Playwright retries.
 
 ### Verification
 
@@ -162,20 +163,28 @@ conformance suites and the delivery-state/replayed-eligibility regressions
 The final workflow regression/conformance run passes six files and eleven tests, including the
 real Workers wrapper and both launchers. The complete invitation browser folder passes **12 tests**
 including setup, the corrected LAN keyboard path and the new terminal expired state. Its final
-evidence is preserved in `/tmp/shopper-day7/admin-invitations-final-evidence`. The standard
-portal/till run passed 129 of 130 cases before that corrected case was rerun; these are separate
-runs, not a claimed aggregate full-suite pass.
+evidence is preserved in `/tmp/shopper-day7/admin-invitations-final-evidence`. The final complete
+portal/till run passes **131 of 131 tests**, exit code 0, after the fixture pacing correction.
+Its log and screenshots are preserved in `/tmp/shopper-day7/day7-completion-e2e-final.log` and
+`/tmp/shopper-day7/day7-completion-e2e-final-evidence`. The focused user suite also passes
+**28 of 28 tests** (`/tmp/shopper-day7/day7-users-pacing-green.log`).
 
 Codex `gpt-6.1-sol` at medium effort reviewed the whole change and then reviewed the fixes; the
 final review found no actionable defects. The consolidated UI review found no confirmed visual
 defect against the supplied Figma references in the captured states. Reports are preserved in
 `/tmp/shopper-day7/codex-review-fixes-final.log` and `/tmp/shopper-day7/ui-final-review.md`.
-All required checks and the end-to-end milestone pass. The implementation is ready to commit
-and record as complete in Day 7; the weekly schedule-review checkboxes remain unperformed.
+Implementation commit: `cb779f2`. The end-to-end milestone and required checks pass.
+Codex `gpt-6.1-sol` at low effort reviewed the final fixture/evidence update without actionable
+findings (`/tmp/shopper-day7/day7-completion-review.log`). The weekly schedule-review checkboxes
+remain unperformed.
 
 ### Boundaries
 
-Live Maileroo sender configuration is unverified; delivery contracts use the local Maileroo server.
+`MAILEROO_API_KEY` and `MAILEROO_FROM` are configured on `shopper-edge-staging` through the
+Cloudflare CLI. The shared Maileroo client sent a live verification email as
+**Shopper <shopper@tix4u.net>**, and the user confirmed receipt in Gmail. Automated delivery
+contracts continue to use the local Maileroo server. Live verification evidence is preserved in
+`/tmp/shopper-day7/live-maileroo-verification.txt`.
 Automatic recovery of waiting box workflows remains deferred to Day 36. PostgreSQL preserves
 workflow state and enforces expiry after restart. Role deletion and staff-account deletion remain
 deferred as approved. No deployment is included in this milestone.

@@ -1,6 +1,7 @@
 import { expect, type APIRequestContext, type Page } from "@playwright/test";
 import { BOX_API, MART, signInWithKeyboard, type Shop } from "./e2e";
 import { post, shopHeaders, unique } from "./admin";
+import { waitForPublicSlot } from "./publicauth/slots";
 
 export type RoleRow = {
   id: string;
@@ -63,6 +64,7 @@ export function linkParts(setupLink: string) {
 
 export async function acceptSetupLink(request: APIRequestContext, setupLink: string, name: string) {
   const { id, token } = linkParts(setupLink);
+  await waitForPublicSlot();
   const response = await request.post(`${BOX_API}/invitations/${id}/accept`, {
     headers: await shopHeaders(request),
     data: { token, name, password: STAFF_PASSWORD },

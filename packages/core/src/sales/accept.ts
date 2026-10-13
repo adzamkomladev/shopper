@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import * as v from "valibot";
 import { defineCommand, canonicalJson } from "@shopper/audit";
 import { sale, saleLine, type ShopperDatabase } from "@shopper/db-pg";
-import { saleEvent, saleSnapshot, type SaleEvent } from "../schemas/till/sale";
+import { decodeSaleEvent, saleSnapshot, type SaleEvent } from "../schemas/till/sale";
 import { validateAuthority, validateReferences, type UploadPrincipal } from "./validate";
 import { SaleError } from "./error";
 
@@ -12,7 +12,7 @@ export async function acceptSale(
   raw: unknown,
   proof: string,
 ) {
-  const event = v.parse(saleEvent, raw);
+  const event = decodeSaleEvent(raw);
   const contentHash = await digest(canonicalJson(event.sale));
   return accept(
     db,

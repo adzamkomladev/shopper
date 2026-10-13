@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import * as v from "valibot";
+import { negotiateProtocol } from "@shopper/sync/versions";
 import { buildInfo } from "@shopper/config";
 import { acceptSale, SaleError } from "@shopper/core/sales";
 import { managementId } from "@shopper/core/management";
@@ -55,7 +56,7 @@ export function createSyncRoutes(options: {
     const principal = await options.devices.resolveUploadPrincipal(c.req.raw);
     if (!principal) return c.json({ error: "Invalid device credential" }, 401);
     const data = v.parse(handshake, await c.req.json());
-    if (!compatible(data.protocol, protocol))
+    if (negotiateProtocol(protocol, data.protocol) === undefined)
       return c.json({ error: "Incompatible sync protocol" }, 409);
     return c.json({
       requestId: data.requestId,
@@ -67,7 +68,7 @@ export function createSyncRoutes(options: {
     const principal = await options.devices.resolveUploadPrincipal(c.req.raw);
     if (!principal) return c.json({ error: "Invalid device credential" }, 401);
     const data = v.parse(envelope, await c.req.json());
-    if (!compatible(data.protocol, protocol))
+    if (negotiateProtocol(protocol, data.protocol) === undefined)
       return c.json({ error: "Incompatible sync protocol" }, 409);
     // Correlate the entire envelope before accepting any event.
     const ids = data.events.map((event) => v.parse(identity, event).sale.localId);
@@ -134,7 +135,4 @@ export function createSyncRoutes(options: {
     return c.json({ requestId: data.requestId, accepted, rejected });
   });
   return app;
-}
-function compatible(requested: number, current: number) {
-  return requested === current || (current >= 2 && requested === current - 1);
 }

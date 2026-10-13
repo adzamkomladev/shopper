@@ -1,5 +1,6 @@
 import * as v from "valibot";
 import { money } from "@shopper/money";
+import { createEventDecoder } from "../events";
 import { tillId } from "./fields";
 import { dateSchema, taxClassSchema, taxRuleSchema } from "@shopper/tax";
 
@@ -69,3 +70,7 @@ export const recordSaleInput = v.strictObject({
 });
 export type SaleEvent = v.InferOutput<typeof saleEvent>;
 export type SaleSnapshot = v.InferOutput<typeof saleSnapshot>;
+
+export const decodeSaleEvent = createEventDecoder(saleEvent.entries.v.literal, (raw) =>
+  v.parse(saleEvent, raw),
+);

@@ -26,6 +26,7 @@
     "@shopper/core": "workspace:*",
     "@shopper/db-pg": "workspace:*",
     "@shopper/ports": "workspace:*",
+    "@shopper/sync": "workspace:*",
     "@shopper/tax": "workspace:*",
     "drizzle-orm": "0.45.3",
     "hono": "4.13.13",

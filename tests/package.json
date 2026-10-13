@@ -21,6 +21,7 @@
     "@shopper/db-sqlite": "workspace:*",
     "@shopper/money": "workspace:*",
     "@shopper/ports": "workspace:*",
+    "@shopper/sync": "workspace:*",
     "@shopper/tax": "workspace:*",
     "hono": "4.13.13",
     "valibot": "1.1.0"

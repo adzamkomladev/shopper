@@ -15,6 +15,7 @@ import {
 import { add } from "@shopper/money";
 import { recordSaleInput, saleEvent, saleTotals } from "../schemas/till/sale";
 import { tillSession, type TillSession } from "../schemas/till/session";
+import { checkSession, hostTime } from "./session";
 import { TillError } from "./error";
 import { quoteFrom, readQuoteReference } from "./quotation";
 import { tillConfiguration } from "../schemas/till/config";
@@ -31,31 +32,8 @@ export async function recordLocalSale(
   const session = v.parse(tillSession, rawSession);
   const data = v.parse(recordSaleInput, input);
   const deviceTime = config.now?.() ?? new Date();
-  const clockOffsetMs = await db.read(async (tx) => {
-    const [state] = await tx
-      .select()
-      .from(tillState)
-      .where(and(eq(tillState.orgId, config.orgId), eq(tillState.deviceId, config.deviceId)));
-    return state?.clockOffsetMs ?? 0;
-  });
-  const time = new Date(deviceTime.valueOf() - clockOffsetMs);
-  if (
-    session.orgId !== config.orgId ||
-    session.deviceId !== config.deviceId ||
-    session.branchId !== config.branchId
-  )
-    throw new TillError(
-      "scope",
-      "Cashier session is outside the configured tenant/device/branch scope",
-    );
-  if (!session.permissions.includes("sale.create"))
-    throw new TillError("permission", "Session lacks sale.create permission");
-  if (
-    !Number.isFinite(time.valueOf()) ||
-    time < new Date(session.issuedAt) ||
-    time >= new Date(session.expiresAt)
-  )
-    throw new TillError("session", "Cashier session is expired or not yet valid");
+  const time = await hostTime(db, config, deviceTime);
+  checkSession(session, config, "sale.create", time);
   return record(
     db,
     {

@@ -8,8 +8,10 @@
   },
   "dependencies": {
     "@shopper/config": "workspace:*",
+    "@shopper/money": "workspace:*",
     "@shopper/sync": "workspace:*",
     "@shopper/ui": "workspace:*",
+    "cn": "0.4.0",
     "lucide-react": "1.55.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",

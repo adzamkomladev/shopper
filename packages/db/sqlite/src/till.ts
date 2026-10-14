@@ -60,5 +60,18 @@ INSERT OR REPLACE INTO product_barcode(org_id,code,product_id,quantity_thousandt
  FROM reference r, json_each(r.payload,'$.barcodes') b
  WHERE r.entity='product' AND json_extract(r.payload,'$.archivedAt') IS NULL;`;
 
+const drafts = `
+CREATE TABLE sale_draft (
+ id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, device_id TEXT NOT NULL, branch_id TEXT NOT NULL,
+ cashier_id TEXT NOT NULL, revision INTEGER NOT NULL, totals TEXT NOT NULL,
+ created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+ UNIQUE(org_id,device_id,branch_id,cashier_id), UNIQUE(org_id,id)
+);
+CREATE TABLE sale_draft_line (
+ id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, draft_id TEXT NOT NULL, position INTEGER NOT NULL,
+ product_id TEXT NOT NULL, quantity_thousandths INTEGER NOT NULL, label TEXT,
+ UNIQUE(draft_id,position), FOREIGN KEY(org_id,draft_id) REFERENCES sale_draft(org_id,id)
+);`;
+
 /** Ordered till SQLite steps driven by PRAGMA user_version. Shipped steps are never edited; append new ones. */
-export const tillMigrations: string[] = [initial, lookup];
+export const tillMigrations: string[] = [initial, lookup, drafts];

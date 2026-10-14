@@ -33,9 +33,14 @@ export default defineConfig({
       timeout: 60_000,
     },
     {
-      command: "vp run -F @shopper/portal dev -- --port 5185 --strictPort",
-      url: "http://localhost:5185/src/index.tsx",
-      env: { SHOPPER_API_URL: "http://localhost:3102" },
+      command: "node tooling/build/portal/e2e.mjs && bun .shopper/portal/e2e/server.js",
+      url: "http://localhost:5185/api/orgs/e2e-mart",
+      env: {
+        E2E_DATABASE_URL,
+        SHOPPER_AUTH_URL: "http://localhost:5185",
+        E2E_PUBLIC_ONBOARDING: "1",
+        SHOPPER_API_URL: "http://127.0.0.1:1",
+      },
       timeout: 180_000,
       reuseExistingServer,
     },

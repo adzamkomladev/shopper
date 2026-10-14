@@ -4,6 +4,7 @@ import {
   GitBranchIcon,
   MonitorSmartphoneIcon,
   PackageIcon,
+  ScanBarcodeIcon,
   ShieldCheckIcon,
   StoreIcon,
   UploadIcon,
@@ -20,6 +21,7 @@ type NavItem = {
 
 export const NAV_ITEMS: readonly NavItem[] = [
   { to: "/products", label: "Products", icon: PackageIcon },
+  { to: "/barcodes", label: "Barcodes", icon: ScanBarcodeIcon, permission: "product.read" },
   { to: "/imports", label: "Import", icon: UploadIcon },
   { to: "/stores", label: "Stores", icon: StoreIcon, permission: "store.read" },
   { to: "/branches", label: "Branches", icon: GitBranchIcon, permission: "branch.read" },

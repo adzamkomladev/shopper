@@ -1,5 +1,5 @@
 export { recordLocalSale } from "./record";
-export type { ScanResult, TillConfig } from "./types";
+export type { DraftView, QuoteLine, ScanResult, TillConfig } from "./types";
 export { provisionTillReference } from "./reference";
 export { TillError } from "./error";
 
@@ -12,3 +12,7 @@ export { searchCatalogue, lookupCode } from "./lookup/search";
 
 export { quoteLine } from "./quotation";
 export { resolveScan } from "./basket/scan";
+
+export { validateSession } from "./session";
+export { readDraft } from "./drafts/queries";
+export { addToDraft, setDraftQuantity, removeDraftLine } from "./drafts/commands";

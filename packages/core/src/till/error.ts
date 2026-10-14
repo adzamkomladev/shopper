@@ -14,7 +14,9 @@ export class TillError extends Error {
       | "CHECKSUM_INVALID"
       | "MAPPING_MISSING"
       | "UNIT_INVALID"
-      | "AMOUNT_INVALID",
+      | "AMOUNT_INVALID"
+      | "REVISION_STALE"
+      | "LINE_UNKNOWN",
     message: string,
   ) {
     super(message);

@@ -280,6 +280,9 @@ importers:
       '@tanstack/react-router':
         specifier: 1.170.41
         version: 1.170.41(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-start':
+        specifier: 1.168.60
+        version: 1.168.60(@types/node@24.19.1)(esbuild@0.28.1)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(rolldown@1.2.13)(supports-color@10.2.2)(tsx@4.20.6)(typescript@7.0.2)(yaml@2.9.1)
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -325,12 +328,18 @@ importers:
       '@shopper/config':
         specifier: workspace:*
         version: link:../../../packages/config
+      '@shopper/money':
+        specifier: workspace:*
+        version: link:../../../packages/money
       '@shopper/sync':
         specifier: workspace:*
         version: link:../../../packages/sync
       '@shopper/ui':
         specifier: workspace:*
         version: link:../../../packages/ui
+      cn:
+        specifier: 0.4.0
+        version: 0.4.0
       lucide-react:
         specifier: 1.55.0
         version: 1.55.0(@types/react@19.3.0)(react@19.3.0)
@@ -398,6 +407,9 @@ importers:
 
   packages/adapters/cf:
     dependencies:
+      '@shopper/api':
+        specifier: workspace:*
+        version: link:../../api
       '@shopper/auth':
         specifier: workspace:*
         version: link:../../auth

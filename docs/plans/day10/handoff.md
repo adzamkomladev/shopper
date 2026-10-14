@@ -35,6 +35,13 @@ Implement (decisions already made):
 - Never write `local_sale`, `sale_line`, `outbox` or receipt state.
 - Commit: `feat: persist audited unpaid baskets`.
 
+## Figma work (Claude, in progress 14 Oct)
+
+Done in Claude because OpenCode has no Figma access. Ordering changed: Slice 7 UI is built before Slices 5–6.
+
+- Backoffice mapping screen (full CRUD on the Slice 1 API) — `packages/backoffice/src/{screens,components,queries}/catalogue/mappings/`, e2e `tests/e2e/portal/catalogue/mappings.spec.ts`. Status: building.
+- Till sale screen as presentational components with a seam for Slice 6 — `apps/till/ui/src/{screens,components}/sale/`, `hooks/scanner.ts`; spec `docs/plans/day10/figma.md`; screenshots `docs/plans/day10/screenshots/`. Status: building.
+
 ## Remaining slices
 
 - **6 Bridge** — `packages/sync/src/schemas/bridge/contracts.ts` add correlated (request id) ops: `search`,

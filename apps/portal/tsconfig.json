@@ -7,7 +7,9 @@
   },
   "include": ["src"],
   "references": [
-    { "path": "../../packages/adapters/cf" },
+    {
+      "path": "../../packages/adapters/cf"
+    },
     {
       "path": "../../packages/backoffice"
     },

@@ -11,6 +11,9 @@
       "path": "../../../packages/config"
     },
     {
+      "path": "../../../packages/money"
+    },
+    {
       "path": "../../../packages/sync"
     },
     {

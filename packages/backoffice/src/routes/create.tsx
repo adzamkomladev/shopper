@@ -6,6 +6,9 @@ import { ProductSkeleton } from "../components/catalogue/detail/states";
 import { branchesQuery, productQuery } from "../queries/catalogue/detail";
 import { ProductsSkeleton } from "../components/catalogue/list/states";
 import { categoriesQuery, productsQuery, type ProductSearch } from "../queries/catalogue/list";
+import { ListSkeleton } from "../components/admin/states";
+import { mappingsQuery } from "../queries/catalogue/mappings";
+import { permissionsQuery } from "../queries/session/permissions";
 import { administrationRoutes } from "./administration";
 import { publicAuthRoutes } from "./auth/public";
 import { currentOrgQuery, requireSession } from "../queries/session/session";
@@ -81,6 +84,21 @@ export function createBackofficeRoutes(rootRoute: AnyRoute): AnyRoute {
     ...routeStates,
     pendingComponent: ProductSkeleton,
   });
+  const mappingsRoute = createRoute({
+    getParentRoute: () => shopRoute,
+    path: "/barcodes",
+    loader: ({ context }: { context: BackofficeContext }) =>
+      Promise.all([
+        context.queryClient.ensureQueryData(mappingsQuery()),
+        context.queryClient.ensureQueryData(permissionsQuery()),
+      ]),
+    component: lazyRouteComponent(
+      () => import("../screens/catalogue/mappings/screen"),
+      "MappingsScreen",
+    ),
+    ...routeStates,
+    pendingComponent: () => <ListSkeleton label="Loading barcode layouts" />,
+  });
   const importsRoute = createRoute({
     getParentRoute: () => shopRoute,
     path: "/imports",
@@ -97,6 +115,7 @@ export function createBackofficeRoutes(rootRoute: AnyRoute): AnyRoute {
     shopRoute.addChildren([
       productsRoute,
       productRoute,
+      mappingsRoute,
       importsRoute,
       ...administrationRoutes(shopRoute),
     ]),

@@ -15,6 +15,10 @@
     "./sync": {
       "types": "./src/sync/index.ts",
       "default": "./src/sync/index.ts"
+    },
+    "./portal": {
+      "types": "./src/portal.ts",
+      "default": "./src/portal.ts"
     }
   },
   "scripts": {

@@ -11,25 +11,43 @@ import {
   type TaxRule,
 } from "./schemas/tax/rule";
 
-export function snapshotLine(input: {
+type Input = {
   rule: TaxRule;
   on: string;
   taxClass: TaxClass;
   priceMode: "inclusive" | "exclusive";
   unitPrice: Money;
   quantityThousandths: number;
-  discount?: Money;
-}) {
+};
+
+export function snapshotLine(input: Input & { discount?: Money }) {
+  const amount = mulQty(input.unitPrice, input.quantityThousandths);
+  const discount = money(input.discount ?? 0);
+  if (discount < 0 || discount > amount) throw new RangeError("Invalid line discount");
+  const taxable = sub(amount, discount);
+  if (input.priceMode === "inclusive")
+    return Object.freeze({ ...snapshotAmount({ ...input, gross: taxable }), discount });
+  return breakdown(input, taxable, discount);
+}
+
+/** Tax breakdown extracted from an authoritative inclusive gross; unit price and quantity are recorded as given. */
+export function snapshotAmount(input: Input & { gross: Money }) {
+  if (input.priceMode !== "inclusive")
+    throw new RangeError("Only inclusive amounts can be extracted");
+  const gross = money(input.gross);
+  if (gross < 0) throw new RangeError("Gross must not be negative");
+  const unitPrice = money(input.unitPrice);
+  if (unitPrice < 0) throw new RangeError("Unit price must not be negative");
+  return breakdown({ ...input, unitPrice }, gross, money(0));
+}
+
+function breakdown(input: Input, taxable: Money, discount: Money) {
   const rule = v.parse(taxRuleSchema, input.rule);
   const on = v.parse(dateSchema, input.on);
   const taxClass = v.parse(taxClassSchema, input.taxClass);
   if (rule.effectiveFrom > on) throw new RangeError("Tax rule is not yet effective");
   v.parse(priceModeSchema, input.priceMode);
   v.parse(quantitySchema, input.quantityThousandths);
-  const amount = mulQty(input.unitPrice, input.quantityThousandths);
-  const discount = money(input.discount ?? 0);
-  if (discount < 0 || discount > amount) throw new RangeError("Invalid line discount");
-  const taxable = sub(amount, discount);
   const rates =
     taxClass === "standard" ? rule : { vatBps: 0, nhilBps: 0, getfundBps: 0, covidBps: 0 };
   const sum = rates.vatBps + rates.nhilBps + rates.getfundBps + rates.covidBps;

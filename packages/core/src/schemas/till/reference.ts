@@ -54,6 +54,7 @@ export const tillReference = v.strictObject({
   products: v.array(v.strictObject({ ...productFields, barcodes: v.optional(barcodes, []) })),
   prices: v.array(tillPrice),
   taxRules: v.array(tillTaxRule),
+  barcodeMappings: v.optional(v.array(tillMapping), []),
 });
 const tillReferenceV2 = v.strictObject({
   products: v.array(tillProduct),

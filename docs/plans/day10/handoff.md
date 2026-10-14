@@ -4,6 +4,12 @@ Read first: `AGENTS.md`, [plan.md](plan.md) (approved plan, grounding resolution
 docs AGENTS.md lists for the area you touch. Branch `codex/portal-start`. Work slice by slice: failing tests →
 implement → whole integration suite → manual review → commit. **Do not push** until every slice is done.
 
+## Status (14 Oct, end of day)
+
+Slices 1–7 are done and pushed; see [verification.md](verification.md) for commits, results and gaps. Open:
+the Codex branch review (from 21 Oct), the backoffice mapping e2e (blocked by the in-progress portal e2e
+server), and the Notion Day 10 status. The sections below are the earlier hand-off, kept for history.
+
 ## Done (committed locally, not pushed)
 
 | Commit    | Slice | What                                                                                                                                                                                                                                                                                                                                                                                                    |

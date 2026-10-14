@@ -29,7 +29,8 @@ test.describe("as the owner of E2E Mart", () => {
     page,
     request,
   }) => {
-    const member = await createStaff(request, "cashier", "Kofi");
+    // Members are listed by name; End reaches this one because its name sorts after every other.
+    const member = await createStaff(request, "cashier", "Zuberi");
     await page.reload();
     const trigger = page.getByRole("button", { name: `Change role for ${member.name}` });
     const members = page.getByRole("region", { name: "Members" });

@@ -9,6 +9,7 @@ import {
 import { serveRuntime } from "@shopper/api/runtime";
 import { servePortal } from "@shopper/api/portal";
 import { createMaileroo } from "@shopper/auth";
+import { sha256 } from "@shopper/utils";
 import { readFile } from "node:fs/promises";
 import { extname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -45,8 +46,9 @@ const blobs = await boxBlobs(".shopper/portal/blobs", {
   },
 });
 const server = await import(pathToFileURL(resolve("apps/portal/dist/server/server.js")).href);
-const portalRuntime = (request: Request) =>
-  servePortal(request, (request) =>
+const portalRuntime = async (request: Request) => {
+  const clientIP = await clientAddress(request);
+  return servePortal(request, (request) =>
     serveRuntime(request, {
       database: database.db,
       cache: cache.cache,
@@ -57,10 +59,24 @@ const portalRuntime = (request: Request) =>
       authFlows,
       priceChange,
       publicOnboarding,
-      clientIP: "127.0.0.1",
+      clientIP,
       blobs: blobs.blobs,
     }),
   );
+};
+
+/**
+ * Every browser in the suite connects from 127.0.0.1, so Better Auth's per-address limits would
+ * pool the whole run into one client. A signed-in browser gets its own address from its session
+ * cookie; anonymous requests (sign-in, onboarding) still share 127.0.0.1 and keep their limits.
+ */
+async function clientAddress(request: Request) {
+  const session = request.headers.get("cookie")?.match(/better-auth\.session_token=([^;]+)/)?.[1];
+  if (!session) return "127.0.0.1";
+  const digest = await sha256(session);
+  const octet = (index: number) => Number.parseInt(digest.slice(index * 2, index * 2 + 2), 16);
+  return `10.${octet(0)}.${octet(1)}.${octet(2)}`;
+}
 
 const assets = resolve("apps/portal/dist/client");
 const contentTypes: Record<string, string> = {

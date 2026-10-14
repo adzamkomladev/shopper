@@ -59,7 +59,7 @@ function totalsOf(quotes: QuoteLine[]): SaleTotals {
     roundingAdjustment: zero,
   };
   for (const line of quotes) {
-    if (line.error) continue;
+    if (line.error !== undefined) continue;
     const { gross, rule } = line.tax;
     const sum = rule.vatBps + rule.nhilBps + rule.getfundBps + rule.covidBps;
     const base = mulRatio(gross, 10_000, 10_000 + sum);

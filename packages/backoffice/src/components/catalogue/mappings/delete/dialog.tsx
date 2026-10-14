@@ -22,7 +22,7 @@ export function DeleteMappingDialog({ mapping, open, onOpenChange, restoreFocus 
       title={`Delete the layout for prefix ${prefix}?`}
       description="Tills will no longer read weights or prices from labels with this prefix. Scanning those labels will no longer add products."
       confirmLabel="Delete layout"
-      error={remove.error && mappingFailure(remove.error, String(prefix)).message}
+      error={remove.error ? mappingFailure(remove.error, String(prefix)).message : undefined}
       pending={remove.isPending}
       onConfirm={() => mapping && remove.mutate(mapping)}
       restoreFocus={restoreFocus}

@@ -1,6 +1,6 @@
 import type { KeyboardEvent, Ref } from "react";
 import { Line } from "./line";
-import type { Row } from "../../sale/rows";
+import type { Row } from "../../sale/types";
 
 type Props = {
   rows: Row[];

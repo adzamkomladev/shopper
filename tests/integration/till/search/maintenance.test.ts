@@ -34,7 +34,7 @@ afterEach(async () => {
   worker = upstream = undefined;
 });
 
-const search = (query: string, orgId = ids.org) =>
+const search = (query: string, orgId: string = ids.org) =>
   searchCatalogue(till.database, { orgId, query }).then((rows) => rows.map((row) => row.name));
 const sync = async () => {
   worker ??= pullWorker(till.database, upstream!.url);

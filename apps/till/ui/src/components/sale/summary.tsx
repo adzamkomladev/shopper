@@ -1,6 +1,7 @@
 import { CreditCard } from "lucide-react";
 import { formatGHS, type Money } from "@shopper/money";
-import { isPriced, type Row } from "../../sale/rows";
+import { isPriced } from "../../sale/rows";
+import type { Row } from "../../sale/types";
 import type { SaleTotals, TaxRates } from "../../sale/types";
 
 /** 250 -> "2.5%", 1500 -> "15%". Integer maths only. */

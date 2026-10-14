@@ -1,3 +1,4 @@
+/// <reference types="vite-plus/client" />
 import "../src/styles.css";
 import { createRoot } from "react-dom/client";
 import { AppBackdrop } from "@shopper/ui/components/app-backdrop";

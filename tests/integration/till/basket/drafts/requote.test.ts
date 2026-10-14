@@ -67,7 +67,7 @@ test("a price-label line keeps its encoded gross when the unit price changes", a
       taxRules: [],
     });
     const view = await read(db);
-    expect(view.quote.lines[0]?.tax.gross).toBe(10_000);
+    expect(view.quote.lines[0]?.tax?.gross).toBe(10_000);
     expect(view.quote.totals.gross).toBe(10_000);
     expect(view.draft?.lines[0]?.label).toMatchObject({ kind: "price", gross: 10_000 });
   });

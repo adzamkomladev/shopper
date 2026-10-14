@@ -53,7 +53,7 @@ test("each price-label scan is its own line that keeps the encoded gross, never 
         quantityThousandths: 333,
         label: { kind: "price", code: priceLabel, gross: 10_000 },
       });
-    expect(view.quote.lines.map((l) => l.tax.gross)).toEqual([10_000, 10_000]);
+    expect(view.quote.lines.map((l) => l.tax?.gross)).toEqual([10_000, 10_000]);
     expect(view.quote.totals.gross).toBe(20_000);
   });
 });
@@ -83,13 +83,16 @@ test("editing a price-label quantity scales the encoded gross by integer ratio a
       quantityThousandths: 500,
       label: { kind: "price", gross: 10_000 },
     });
-    expect(up.quote.lines[0]?.tax.gross).toBe(15_015); // 10 000 x 500 / 333, half-up
+    expect(up.quote.lines[0]?.tax?.gross).toBe(15_015); // 10 000 x 500 / 333, half-up
     expect(up.quote.totals.gross).toBe(15_015);
     expect(up.quote.totals).toEqual(
       Object.fromEntries(
         Object.keys(up.quote.totals).map((key) => [
           key,
-          up.quote.lines.reduce((sum, l) => sum + (l.tax as Record<string, number>)[key]!, 0),
+          up.quote.lines.reduce(
+            (sum, l) => sum + (l.tax as unknown as Record<string, number>)[key]!,
+            0,
+          ),
         ]),
       ),
     );
@@ -114,7 +117,7 @@ test("editing a weight-label quantity requotes the product at its unit price", a
       label: { kind: "weight", code: weightLabel },
     });
     expect(view.quote.totals.gross).toBe(60_000);
-    expect(view.quote.lines[0]?.tax.gross).toBe(60_000);
+    expect(view.quote.lines[0]?.tax?.gross).toBe(60_000);
   });
 });
 

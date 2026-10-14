@@ -9,7 +9,7 @@ beforeEach(async () => {
 });
 afterEach(() => till.close());
 
-const index = (rows: ProductRow[], orgId = ids.org) =>
+const index = (rows: ProductRow[], orgId: string = ids.org) =>
   till.database.transaction((tx) => projectProducts(tx, orgId, rows));
 const search = (query: string, extra: { limit?: number; orgId?: string } = {}) =>
   searchCatalogue(till.database, { orgId: ids.org, query, ...extra });

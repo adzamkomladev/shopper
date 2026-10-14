@@ -5,13 +5,14 @@ import { Button } from "@shopper/ui/components/button";
 import { Input } from "@shopper/ui/components/input";
 import { Money } from "@shopper/ui/components/money";
 import { formatQuantity, parseQuantity } from "../../sale/quantity";
-import { isPriced, lineProblem, type Row } from "../../sale/rows";
+import { isPriced, lineProblem } from "../../sale/rows";
+import type { Row } from "../../sale/types";
 
 export const QUANTITY_STEP = 1000;
 // Scrolls a row into view when it becomes the selected one (a ref change calls this again).
 export const reveal = (node: HTMLElement | null) => node?.scrollIntoView({ block: "nearest" });
 
-export type LineProps = {
+type LineProps = {
   row: Row;
   selected: boolean;
   editing: boolean;

@@ -1,7 +1,4 @@
-import type { DraftLine, DraftView, LineErrorCode, QuoteLine } from "./types";
-
-export type Row = QuoteLine & { line: DraftLine };
-export type PricedRow = Row & { error?: undefined };
+import type { DraftView, LineErrorCode, PricedRow, Row } from "./types";
 
 /** Joins the stored draft lines with their quote, in basket order. */
 export function rowsOf(view: DraftView | null): Row[] {

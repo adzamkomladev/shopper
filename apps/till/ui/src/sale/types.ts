@@ -44,6 +44,10 @@ export type DraftLine = {
   label?: { kind: "weight" | "price"; code: string };
 };
 
+/** A draft line joined with its quote, in basket order. */
+export type Row = QuoteLine & { line: DraftLine };
+export type PricedRow = Row & { error?: undefined };
+
 export type DraftView = {
   draft: { id: string; revision: number; lines: DraftLine[] } | null;
   quote: { lines: QuoteLine[]; totals: SaleTotals };

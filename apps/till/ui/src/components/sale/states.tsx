@@ -20,7 +20,8 @@ import {
 } from "@shopper/ui/components/empty";
 import { Kbd } from "@shopper/ui/components/kbd";
 import { Skeleton } from "@shopper/ui/components/skeleton";
-import { isPriced, type Row } from "../../sale/rows";
+import { isPriced } from "../../sale/rows";
+import type { Row } from "../../sale/types";
 import type { SaleActions, SaleFailure, SaleSnapshot } from "../../sale/types";
 
 type Tone = "problem" | "warning" | "pending";

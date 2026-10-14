@@ -87,8 +87,12 @@ async function weight(
   m: Extract<Mapping, { kind: "weight" }>,
   value: number,
 ) {
-  const product = (await readRows(database, input, "product", tillProductBase)).find(
-    (p) => p.id === productId,
+  const [product] = await readRows(
+    database,
+    input,
+    "product",
+    tillProductBase,
+    sql`json_extract(${reference.payload}, '$.id') = ${productId}`,
   );
   if (product?.baseUnit !== "kg" && product?.baseUnit !== "g")
     throw new TillError("UNIT_INVALID", `Product ${productId} is not sold by weight`);

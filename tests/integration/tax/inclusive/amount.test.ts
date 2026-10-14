@@ -7,7 +7,7 @@ import { mulQty, type Money } from "@shopper/money";
 import { snapshotAmount, snapshotLine, type TaxClass, type TaxRule } from "@shopper/tax";
 import { goldenSale, references } from "../../../fixtures/sales/golden";
 
-const [oldRule, currentRule] = references.taxRules as [TaxRule, TaxRule];
+const [oldRule, currentRule]: TaxRule[] = references.taxRules;
 const covidRule = { ...oldRule, id: "019a0000-0000-7000-8000-0000000000ff", covidBps: 100 };
 const rules = [oldRule, currentRule, covidRule];
 const classes: TaxClass[] = ["standard", "zero-rated", "exempt"];

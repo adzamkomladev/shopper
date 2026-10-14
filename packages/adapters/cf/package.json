@@ -9,6 +9,7 @@
       "default": "./src/index.ts"
     },
     "./coordination": "./src/coordination.ts",
+    "./portal": "./src/portal.ts",
     "./workflows": "./src/workflows/index.ts"
   },
   "scripts": {

@@ -18,3 +18,18 @@ curl -s localhost:8787/api/auth/sign-up/email -H "Origin: http://localhost:5173"
 ```
 
 `src/app.tsx` mounts the router and query client. The HTML entry `src/index.tsx` only re-exports it.
+
+## Deploy staging
+
+```sh
+vp -C apps/portal run build:staging
+cd apps/portal
+cf deploy --prebuilt
+```
+
+The build uses the existing SPA configuration and writes a portable Cloudflare build output under
+the ignored `.cloudflare/output/` directory. `cloudflare.config.json` declares the staging domain,
+Static Assets SPA fallback and an `API` service binding to `shopper-edge-staging`. The Worker
+forwards `/api/auth` unchanged and strips `/api` from other API paths, preserving request bodies,
+cookies and Origin. API failures never fall back to SPA HTML. The API must trust the portal origin
+in `SHOPPER_AUTH_URL`; upload bucket CORS must allow that same origin.

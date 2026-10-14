@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vp dev"
+    "dev": "vp dev",
+    "build:staging": "tsx ../../tooling/cloudflare/portal.ts"
   },
   "dependencies": {
+    "@shopper/adapters-cf": "workspace:*",
     "@shopper/backoffice": "workspace:*",
     "@shopper/ui": "workspace:*",
     "@tanstack/react-query": "5.103.3",

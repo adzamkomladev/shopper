@@ -63,8 +63,13 @@ async function load() {
   update({ loading: false, failure: failureOf(reply) ?? "storage" });
 }
 
+// The bridge refuses longer codes as an invalid message, which would end the connection.
+const MAX_CODE_LENGTH = 64;
+
 function enqueue(edit: Edit) {
   if (connectionSnapshot().host !== "connected" || state.failure) return;
+  if ("code" in edit && edit.code.length > MAX_CODE_LENGTH)
+    return update({ feedback: { kind: "unknown", code: edit.code } });
   queue.push(edit);
   if (!state.busy) void drain();
 }

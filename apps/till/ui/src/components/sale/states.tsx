@@ -56,7 +56,7 @@ export function Banner({
     >
       <Icon aria-hidden="true" className="size-5 shrink-0" />
       <div className="min-w-0 flex-1">
-        <p className="font-medium">{title}</p>
+        <p className="font-medium wrap-anywhere">{title}</p>
         <p className={tone === "problem" ? "text-foreground" : undefined}>{children}</p>
       </div>
       {action}

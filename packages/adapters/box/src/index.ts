@@ -6,3 +6,4 @@ export { boxRealtime } from "./realtime";
 export { boxPriceChange } from "./price-change";
 export { boxAuthFlows } from "./auth-flow";
 export { openTillDatabase } from "./till/database";
+export { boxLive, type BoxWebSocketServer } from "./live";

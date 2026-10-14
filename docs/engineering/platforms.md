@@ -110,3 +110,16 @@ The box currently uses memory workflow timers. Deadlines and consumed/replaced/c
 remain in PostgreSQL and are checked on every request after restart; recovering waiting engine
 instances automatically remains scheduled for day 36. LAN invitation setup works without WAN
 and does not mark the new account's email verified.
+
+### Till realtime transport (Day 9)
+
+`/sync/live` authenticates the Bearer token and device header before upgrading. The cloud forwards
+the trusted device scope to the hibernating StoreHub; the box shares one in-process realtime hub
+with its Bun WebSocket and price workflow. The Rivet StoreHub actor replaces this hub on day 36.
+This avoids adding RivetKit and its engine/compiled-binary verification on sync gate day.
+
+Store feed commands send `store.changed` nudges after commit. Nudges contain only sequences;
+PostgreSQL pull remains authoritative. Transport fallback is the exception to the no-poll rule:
+a disconnected till pulls and reconnects after 30 seconds, with backoff capped at five minutes.
+A healthy idle socket also pulls every five minutes to repair lost nudges. These timers repair
+transport delivery; business processes still use Workflows.

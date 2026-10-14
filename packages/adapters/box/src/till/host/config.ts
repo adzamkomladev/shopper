@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { tillReference, tillSession } from "@shopper/core/schemas";
+import { tillReceiptCodes, tillReference, tillSession } from "@shopper/core/schemas";
 import { registerIdentity } from "@shopper/sync/bridge";
 
 export const hostConfiguration = v.strictObject({
@@ -9,6 +9,7 @@ export const hostConfiguration = v.strictObject({
   deviceToken: v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/)),
   session: v.nullable(tillSession),
   references: v.optional(tillReference),
+  receiptCodes: v.optional(tillReceiptCodes),
   origins: v.pipe(v.array(v.pipe(v.string(), v.url())), v.minLength(1)),
   port: v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(65535)),
 });

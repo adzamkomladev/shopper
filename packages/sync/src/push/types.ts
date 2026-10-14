@@ -10,6 +10,7 @@ export type PushOptions = {
   database: TillDatabase;
   config: {
     orgId: string;
+    storeId?: string;
     deviceId: string;
     appVersion: string;
     protocol: number;
@@ -20,4 +21,5 @@ export type PushOptions = {
   random?: () => number;
   timeoutMs?: number;
   onStatus?: (status: PushStatus) => void;
+  onAcknowledgment?: () => void;
 };

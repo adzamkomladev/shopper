@@ -25,6 +25,7 @@ export function createApi(options: ApiOptions = {}) {
         database: options.database,
         devices: options.devices,
         sequencer: options.sequencer,
+        blobs: options.blobs,
       }),
     );
   if (options.onboarding) app.route("/", onboardingRoutes(options.onboarding));
@@ -38,6 +39,7 @@ export function createApi(options: ApiOptions = {}) {
         database: options.database,
         authentication: options.authentication,
         priceChange: options.priceChange,
+        realtime: options.realtime,
       }),
     );
   if (options.authentication?.handler)

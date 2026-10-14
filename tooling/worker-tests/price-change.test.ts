@@ -82,7 +82,7 @@ test("a scheduled price change runs as a Cloudflare Workflow and tells the store
     expect(run).toMatchObject({
       type: "price-change",
       status: "completed",
-      currentStep: "publish-end",
+      currentStep: "notify-end",
     });
     await subscription.close();
   } finally {

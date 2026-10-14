@@ -3,6 +3,7 @@ import { and, desc, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
 import { price, product } from "@shopper/db-pg";
 import { money } from "@shopper/money";
+import { affectedStores, priceUpsert, recordChanges } from "../../changes";
 import { managementJson, ManagementError } from "../../management";
 import { priceAtQuery, priceInput } from "../../schemas/catalogue/inputs";
 import type { Queryable } from "../../types";
@@ -40,6 +41,12 @@ export const setPrice = defineCommand({
         reason: context.reason,
       })
       .returning();
+    await recordChanges(
+      tx,
+      context.orgId,
+      [priceUpsert(row!)],
+      await affectedStores(tx, context.orgId, row!.branchId),
+    );
     return managementJson({ productId, after: priceView(row!) });
   },
   audit: (input, result) => ({ productId: result.productId, priceId: result.after.id }),

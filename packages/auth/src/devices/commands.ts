@@ -121,7 +121,17 @@ export const consume = defineCommand({
     await tx
       .insert(deviceCredential)
       .values({ orgId: c.orgId, deviceId: row!.id, tokenHash: await digest(deviceToken) });
-    return { deviceId: row!.id, branchId: challenge.branchId, deviceToken };
+    const [location] = await tx
+      .select({ code: branch.code })
+      .from(branch)
+      .where(and(eq(branch.orgId, c.orgId), eq(branch.id, challenge.branchId)));
+    if (!row || !location) throw new DeviceError("Enrollment location not found", 404);
+    return {
+      deviceId: row.id,
+      branchId: challenge.branchId,
+      deviceToken,
+      receiptCodes: { branchCode: location.code, deviceCode: row.code },
+    };
   },
   audit: (_input, result) =>
     "error" in result ? { success: false } : { success: true, deviceId: result.deviceId },

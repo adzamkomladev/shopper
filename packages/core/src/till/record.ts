@@ -19,6 +19,7 @@ import { tillPrice, tillProduct, tillTaxRule } from "../schemas/till/reference";
 import { tillSession, type TillSession } from "../schemas/till/session";
 import { TillError } from "./error";
 import { tillConfiguration } from "../schemas/till/config";
+import { assignReceipt } from "./receipts/assign";
 import type { TillConfig } from "./types";
 
 export async function recordLocalSale(
@@ -30,7 +31,15 @@ export async function recordLocalSale(
   config = { ...v.parse(tillConfiguration, config), now: config.now };
   const session = v.parse(tillSession, rawSession);
   const data = v.parse(recordSaleInput, input);
-  const time = config.now?.() ?? new Date();
+  const deviceTime = config.now?.() ?? new Date();
+  const clockOffsetMs = await db.read(async (tx) => {
+    const [state] = await tx
+      .select()
+      .from(tillState)
+      .where(and(eq(tillState.orgId, config.orgId), eq(tillState.deviceId, config.deviceId)));
+    return state?.clockOffsetMs ?? 0;
+  });
+  const time = new Date(deviceTime.valueOf() - clockOffsetMs);
   if (
     session.orgId !== config.orgId ||
     session.deviceId !== config.deviceId ||
@@ -57,9 +66,9 @@ export async function recordLocalSale(
       actorId: session.userId,
       role: session.roleName,
       appVersion: config.appVersion,
-      deviceTime: time,
+      deviceTime,
     },
-    { config, session, data, time },
+    { config, session, data, time, deviceTime },
   );
 }
 
@@ -73,9 +82,11 @@ const record = defineCommand({
       session: TillSession;
       data: v.InferOutput<typeof recordSaleInput>;
       time: Date;
+      deviceTime: Date;
     },
   ) {
-    const { config, session, data, time } = input;
+    const { config, session, data, time, deviceTime } = input;
+    const receipt = await assignReceipt(tx, context.orgId, config.deviceId, config.receiptCodes);
     const references = await tx.select().from(reference).where(eq(reference.orgId, context.orgId));
     const products = references
       .filter((row) => row.entity === "product")
@@ -148,7 +159,7 @@ const record = defineCommand({
     }
     const id = v7();
     const event = v.parse(saleEvent, {
-      v: 1,
+      v: 2,
       type: "sale.recorded",
       sale: {
         id,
@@ -160,7 +171,9 @@ const record = defineCommand({
         cashierId: context.actorId,
         sessionId: session.id,
         appVersion: config.appVersion,
-        deviceTime: time.toISOString(),
+        deviceTime: deviceTime.toISOString(),
+        ...receipt,
+        clockOffsetMs: deviceTime.valueOf() - time.valueOf(),
         lines,
         totals,
       },

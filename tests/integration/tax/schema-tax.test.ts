@@ -52,12 +52,12 @@ test("current schema migrates twice, uses tenant UUIDv7 keys, and preserves bigi
     "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name",
   );
   expect(tables.rows.map((row) => row.table_name).join(" ")).toBe(
-    "account audit_log branch cashier_pin cashier_session category device device_credential device_enrollment enrollment_attempt invitation member org permission price product product_barcode product_import registration_audit_log registration_request registration_workflow_run registration_workflow_step role role_permission sale sale_line session shopper_meta store supplier tax_class tax_rule user verification workflow_run workflow_step",
+    "account audit_log branch cashier_pin cashier_session category device device_credential device_enrollment enrollment_attempt invitation member org permission price product product_barcode product_import receipt_block registration_audit_log registration_request registration_workflow_run registration_workflow_step role role_permission sale sale_line session shopper_meta store store_change supplier tax_class tax_rule user verification workflow_run workflow_step",
   );
   const columns = await fixture.client.query<{ table_name: string }>(
     "SELECT table_name FROM information_schema.columns WHERE table_schema = 'public' AND column_name = 'org_id'",
   );
-  expect(columns.rowCount).toBe(36);
+  expect(columns.rowCount).toBe(38);
   // Pre-shop registration rows reference their request; every customer table keeps an org FK.
   const orgForeignKeys = await fixture.client.query<{ table_name: string; target: string }>(
     `SELECT c.conrelid::regclass::text AS table_name, c.confrelid::regclass::text AS target
@@ -68,6 +68,7 @@ test("current schema migrates twice, uses tenant UUIDv7 keys, and preserves bigi
   const targets = new Map(orgForeignKeys.rows.map((row) => [row.table_name, row.target]));
   for (const table of ["audit_log", "workflow_run", "workflow_step", "store", "branch"])
     expect(targets.get(table)).toBe("org");
+  expect(targets.get("receipt_block")).toBe("org");
   for (const table of ["audit_log", "workflow_run", "workflow_step"])
     expect(targets.get(`registration_${table}`)).toBe("registration_request");
   expect(targets.has("registration_request")).toBe(false);

@@ -46,6 +46,12 @@ export default defineConfig({
     }),
   ],
   test: {
-    include: ["worker.test.ts", "realtime.test.ts", "price-change.test.ts", "launcher.test.ts"],
+    include: [
+      "worker.test.ts",
+      "pull.test.ts",
+      "realtime.test.ts",
+      "price-change.test.ts",
+      "launcher.test.ts",
+    ],
   },
 });

@@ -1,10 +1,11 @@
-import type { Cache, Sequencer, WorkflowLauncher } from "@shopper/ports";
+import type { Realtime, Blobs, Cache, Sequencer, WorkflowLauncher } from "@shopper/ports";
 import * as v from "valibot";
 import { buildInfo } from "@shopper/config";
 import { AuthLinkError, createAuth, createOnboarding, createInvitations } from "@shopper/auth";
 import { createDeviceService } from "@shopper/auth/devices";
 import { managementId } from "@shopper/core/management";
 import type { ShopperDatabase } from "@shopper/db-pg";
+import type { LiveUpgrade } from "./sync/live";
 import { createSyncRoutes } from "./sync/routes";
 import { createApi } from "./app";
 import { orgRoutes } from "./routes/orgs";
@@ -13,6 +14,9 @@ import { allowPublicAuth } from "./middleware/public-auth";
 export interface RuntimeOptions {
   database: ShopperDatabase;
   sequencer?: Sequencer;
+  blobs?: Blobs;
+  live?: LiveUpgrade;
+  realtime?: Realtime;
   cache: Cache;
   secret: string;
   baseURL: string;
@@ -41,7 +45,8 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
   const headers = new Headers(request.headers);
   headers.delete("X-Shopper-Client-IP");
   if (options.clientIP) headers.set("X-Shopper-Client-IP", options.clientIP);
-  request = new Request(request, { headers });
+  // Bun upgrades require the original request carrying the server connection.
+  if (url.pathname !== "/sync/live") request = new Request(request, { headers });
   const origin = request.headers.get("Origin");
   if (
     !["GET", "HEAD", "OPTIONS"].includes(request.method) &&
@@ -60,6 +65,8 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
         options.orgId,
       ),
       sequencer: options.sequencer,
+      blobs: options.blobs,
+      live: options.live,
     }).fetch(request);
   }
   const linkOptions =
@@ -142,6 +149,7 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     authentication: { ...authentication, resolvePrincipal },
     devices,
     priceChange: options.priceChange,
+    realtime: options.realtime,
     invitations,
   }).fetch(request);
 }

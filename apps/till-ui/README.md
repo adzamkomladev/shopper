@@ -31,13 +31,12 @@ session proofs stay with the host and are never sent to browser storage.
 
 ## Screen states and actions
 
-The screen covers disconnected, connecting, connected with an empty queue, queued uploads, upstream
-offline, blocked upload, revoked device, and incompatible protocol states. It distinguishes local
-host availability from the server's upload status and shows pending and blocked counts with recovery
-guidance where relevant.
+The screen covers disconnected, connecting, live, polling, offline, syncing, low and exhausted
+receipt blocks, blocked uploads, revoked devices, and a required register upgrade. It distinguishes
+local host availability from server status and shows pending and blocked sales with recovery guidance.
 
 - **Connect / Reconnect** opens or restores the local host connection (`C`).
-- **Retry upload** asks the host to retry eligible queued sales (`R`).
+- **Sync now** asks the host to upload eligible sales and pull server changes (`Y`).
 - **About** shows the register application details (`A`).
 
 Sales remain on the register after upload. This screen reports connection and sync status; it does

@@ -1,11 +1,21 @@
 import * as v from "valibot";
 import { and, eq } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
-import { product, productBarcode } from "@shopper/db-pg";
+import { product, productBarcode, type ShopperTransaction } from "@shopper/db-pg";
+import { affectedStores, deleted, productUpsert, recordChanges } from "../../changes";
 import { managementJson, ManagementError } from "../../management";
 import { loadProduct } from "./queries";
 import { barcodeInput, productInput, productPatch } from "../../schemas/catalogue/inputs";
 import { nonEmpty, recordId, taxClassId } from "../records";
+
+/** Tells every store's till about the product's current state (or its removal). */
+async function feedProduct(
+  tx: ShopperTransaction,
+  orgId: string,
+  row: NonNullable<Awaited<ReturnType<typeof loadProduct>>>,
+) {
+  await recordChanges(tx, orgId, [productUpsert(orgId, row)], await affectedStores(tx, orgId));
+}
 
 const productDetails = (
   _input: unknown,
@@ -31,6 +41,7 @@ export const createProduct = defineCommand({
           barcodes.map((barcode) => ({ ...barcode, orgId: context.orgId, productId: row!.id })),
         );
     const after = await loadProduct(tx, context.orgId, row!.id);
+    await feedProduct(tx, context.orgId, after!);
     return { id: row!.id, before: null, after: { ...after, barcodes } };
   },
   audit: (_input, result) => ({ productId: result.id }),
@@ -51,7 +62,9 @@ export const updateProduct = defineCommand({
         ...(taxClass ? { taxClassId: await taxClassId(tx, context.orgId, taxClass) } : {}),
       })
       .where(and(eq(product.orgId, context.orgId), eq(product.id, id)));
-    return { id, before, after: await loadProduct(tx, context.orgId, id) };
+    const after = await loadProduct(tx, context.orgId, id);
+    await feedProduct(tx, context.orgId, after!);
+    return { id, before, after };
   },
   audit: (_input, result) => ({ productId: result.id }),
   details: productDetails,
@@ -64,11 +77,18 @@ export const archiveProduct = defineCommand({
     const id = recordId(input.id);
     const before = await loadProduct(tx, context.orgId, id, true);
     if (!before) throw new ManagementError("Record not found");
-    if (!before.archivedAt)
+    if (!before.archivedAt) {
       await tx
         .update(product)
         .set({ archivedAt: new Date() })
         .where(and(eq(product.orgId, context.orgId), eq(product.id, id)));
+      await recordChanges(
+        tx,
+        context.orgId,
+        [deleted("product", id)],
+        await affectedStores(tx, context.orgId),
+      );
+    }
     return { id, before, after: await loadProduct(tx, context.orgId, id) };
   },
   audit: (_input, result) => ({ productId: result.id }),

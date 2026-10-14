@@ -9,6 +9,7 @@ import { provisionOrg, provisioningContext } from "../../../tooling/database/see
 import { ids, config as saleConfig, references } from "./sales";
 
 export const appVersion = buildInfo.version;
+export const syncProtocol = buildInfo.syncProtocol;
 export const context = provisioningContext(ids.org);
 
 const seed = defineCommand({

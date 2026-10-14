@@ -12,10 +12,28 @@ export type ConnectionState =
   | "blocked"
   | "revoked"
   | "incompatible";
+export type StatusScenario =
+  | "live"
+  | "polling"
+  | "offline"
+  | "syncing"
+  | "upgrade"
+  | "revoked"
+  | "receipts";
 
 export const connectionScenario = {
-  async start(state: ConnectionState, appOrigin: string, statusFault?: StatusFault) {
-    const server = await createConnectionServer(state);
+  async start(
+    state: ConnectionState | StatusScenario,
+    appOrigin: string,
+    statusFault?: StatusFault,
+  ) {
+    const serverState =
+      state === "upgrade"
+        ? "incompatible"
+        : ["live", "polling", "offline", "syncing", "receipts"].includes(state)
+          ? "connected-empty"
+          : state;
+    const server = await createConnectionServer(serverState);
     let upstream: Awaited<ReturnType<typeof startHostUpstream>> | undefined;
     let fixture: Awaited<ReturnType<typeof createConnectionHost>> | undefined;
     let host:
@@ -23,9 +41,13 @@ export const connectionScenario = {
       | undefined;
     let bridge: Awaited<ReturnType<typeof startBridgeProxy>> | undefined;
     let gate: ReturnType<Awaited<ReturnType<typeof startHostUpstream>>["holdNextPush"]> | undefined;
+    let pullGate:
+      | ReturnType<Awaited<ReturnType<typeof startHostUpstream>>["holdNextPull"]>
+      | undefined;
     let stopped = false;
     const cleanup = async () => {
       gate?.release();
+      pullGate?.release();
       bridge?.release();
       const failures: unknown[] = [];
       try {
@@ -47,6 +69,9 @@ export const connectionScenario = {
     try {
       upstream = await startHostUpstream(server.api);
       if (state === "queued") gate = upstream.holdNextPush();
+      if (state === "syncing") pullGate = upstream.holdNextPull();
+      if (state === "polling" || state === "offline") upstream.setLiveAvailable(false);
+      if (state === "offline") upstream.setPullAvailable(false);
       if (state === "upstream-offline" || state === "blocked" || state === "revoked")
         upstream.setAvailable(false);
       fixture = await createConnectionHost(server, upstream.url, appOrigin);
@@ -61,8 +86,18 @@ export const connectionScenario = {
         if (result.type !== "result" || result.kind !== "sale")
           throw new Error("Host did not record the fixture sale");
       };
-      if (state !== "connecting" && state !== "incompatible")
+      const recordSales = async (count: number) => {
+        for (let index = 0; index < count; index += 1) await recordSale();
+      };
+      if (
+        state !== "connecting" &&
+        state !== "offline" &&
+        state !== "incompatible" &&
+        state !== "upgrade"
+      )
         await host.waitForStatus((status) => status.server === "online");
+      if (state === "live")
+        await host.waitForStatus((status) => status.mode === "live" && status.lastPullAt !== null);
       if (state === "queued") {
         await recordSale();
         await gate?.entered;
@@ -79,8 +114,20 @@ export const connectionScenario = {
           await host.waitForStatus((status) => status.server === state);
         }
       }
-      if (state === "incompatible")
+      if (state === "incompatible" || state === "upgrade")
         await host.waitForStatus((status) => status.server === "incompatible");
+      if (state === "polling") await host.waitForStatus((status) => status.mode === "polling");
+      if (state === "offline") await host.waitForStatus((status) => status.mode === "offline");
+      if (state === "syncing") {
+        await pullGate?.entered;
+        await host.waitForStatus((status) => status.syncing === true);
+      }
+      if (state === "receipts") {
+        await host.waitForStatus((status) => status.receiptsLeft === 2_000);
+        upstream.setAvailable(false);
+        await fixture.recordSales(1_901);
+        await host.request({ type: "retry" });
+      }
       return {
         url: `${appOrigin}/#${encodeURIComponent(host.ready.capability)}`,
         shopName: server.identity.shopName,
@@ -93,6 +140,11 @@ export const connectionScenario = {
         holdNextBridgeConnection: () => bridge!.holdNextConnection(),
         pushRequestCount: () =>
           upstream!.requests.filter((request) => request.path === "/sync/push").length,
+        pullRequestCount: () => upstream!.pullRequestCount(),
+        waitForPull(call: number) {
+          return upstream!.waitForPull(call);
+        },
+        recordSales,
         async waitForPushSuccess(call: number) {
           const request = await upstream!.waitForPush(call);
           if (request.status !== 200)
@@ -130,7 +182,7 @@ export const connectionScenario = {
   },
 };
 
-function labelFor(state: ConnectionState) {
+function labelFor(state: ConnectionState | StatusScenario) {
   return {
     disconnected: "Connected",
     connecting: "Connecting",
@@ -140,5 +192,11 @@ function labelFor(state: ConnectionState) {
     blocked: "Upload blocked",
     revoked: "Device revoked",
     incompatible: "Version incompatible",
+    live: "Live",
+    polling: "Polling",
+    offline: "Offline",
+    syncing: "Syncing",
+    upgrade: "Upgrade needed",
+    receipts: "Receipts low",
   }[state];
 }

@@ -11,6 +11,7 @@ import {
   devices,
   principal,
   routeFactory,
+  syncProtocol,
   type SaleEvent,
 } from "./server";
 
@@ -36,7 +37,7 @@ export async function push(
     headers: syncHeaders(org),
     body: JSON.stringify({
       requestId,
-      protocol: 1,
+      protocol: syncProtocol,
       events: [event],
       proofs: [{ sessionId, proof }],
     }),
@@ -53,12 +54,12 @@ export async function pushEvents(
   return target.request("/sync/push", {
     method: "POST",
     headers: syncHeaders(org),
-    body: JSON.stringify({ requestId, protocol: 1, events, proofs }),
+    body: JSON.stringify({ requestId, protocol: syncProtocol, events, proofs }),
   });
 }
 
 export async function createSyncApi(
-  protocol = 1,
+  protocol = syncProtocol,
   sequencing: ReturnType<typeof boxSequencer> = boxSequencer(databases().db),
 ): Promise<HttpClient> {
   return serveHono(

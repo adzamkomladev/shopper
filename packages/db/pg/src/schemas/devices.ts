@@ -18,9 +18,13 @@ export const device = pgTable(
     ...baseTenant(),
     branchId: uuid("branch_id").notNull(),
     name: text("name").notNull(),
+    code: text("code").notNull().default(""),
+    receiptLast: integer("receipt_last").notNull().default(0),
+    receiptUsed: integer("receipt_used").notNull().default(0),
   },
   (t) => [
     unique().on(t.orgId, t.id),
+    unique().on(t.branchId, t.code),
     foreignKey({ columns: [t.orgId, t.branchId], foreignColumns: [branch.orgId, branch.id] }),
   ],
 );
@@ -110,5 +114,19 @@ export const enrollmentAttempt = pgTable(
   (t) => [
     unique().on(t.orgId),
     check("enrollment_attempt_attempts_check", sql`${t.attempts} >= 0`),
+  ],
+);
+
+export const receiptBlock = pgTable(
+  "receipt_block",
+  {
+    ...tenant(),
+    deviceId: uuid("device_id").notNull(),
+    start: integer("start").notNull(),
+    end: integer("end").notNull(),
+  },
+  (t) => [
+    unique().on(t.deviceId, t.start),
+    foreignKey({ columns: [t.orgId, t.deviceId], foreignColumns: [device.orgId, device.id] }),
   ],
 );

@@ -7,6 +7,7 @@ export function createBatch(
   requestId: string,
   protocol: number,
   now: number,
+  receiptLastUsed = 0,
 ) {
   const events: v.InferOutput<typeof saleEvent>[] = [];
   const proofs: Array<{ sessionId: string; proof: string }> = [];
@@ -31,6 +32,7 @@ export function createBatch(
     const body = JSON.stringify({
       requestId,
       protocol,
+      receiptLastUsed,
       events: [...events, parsed.output],
       proofs: newProofs,
     });
@@ -49,5 +51,5 @@ export function createBatch(
     if (newProofs !== proofs) proofs.push(proof);
     if (events.length === 200) break;
   }
-  return { rows, blocked, body: { requestId, protocol, events, proofs } };
+  return { rows, blocked, body: { requestId, protocol, receiptLastUsed, events, proofs } };
 }

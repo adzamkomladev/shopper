@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import { createMaileroo } from "@shopper/auth";
 import type { BoxBindings } from "./types";
 import {
+  boxBlobs,
+  boxLive,
   boxCache,
   boxSequencer,
   boxDatabase,
@@ -12,6 +14,7 @@ import {
 } from "@shopper/adapters-box";
 import { isPublicRequest, publicApi, runtimeUnavailable, serveRuntime } from "@shopper/api/runtime";
 export function createBoxApp(environment: Record<string, string | undefined> = process.env) {
+  const realtime = boxRealtime();
   let workflowPool: ReturnType<typeof boxPool> | undefined;
   let cache: ReturnType<typeof boxCache> | undefined;
   let authFlows: ReturnType<typeof boxAuthFlows> | undefined;
@@ -34,7 +37,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
     // Created on first use, never at import: workflows outlive requests, so they get their own pool.
     priceChange ??= boxPriceChange({
       database: workflowDatabase,
-      realtime: boxRealtime(),
+      realtime,
     });
     if (environment.SHOPPER_LINK_SECRET)
       authFlows ??= boxAuthFlows({
@@ -55,6 +58,17 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
         database: connection.db,
         sequencer: boxSequencer(connection.db),
         cache: cache.cache,
+        realtime,
+        live: boxLive(
+          realtime,
+          context.env?.upgrade ? { upgrade: context.env.upgrade.bind(context.env) } : undefined,
+        ),
+        blobs: (
+          await boxBlobs(environment.SHOPPER_BLOBS_PATH ?? ".shopper/blobs", {
+            baseUrl: SHOPPER_AUTH_URL,
+            secret: new TextEncoder().encode(SHOPPER_AUTH_SECRET),
+          })
+        ).blobs,
         secret: SHOPPER_AUTH_SECRET,
         baseURL: SHOPPER_AUTH_URL,
         orgId: SHOPPER_ORG_ID,

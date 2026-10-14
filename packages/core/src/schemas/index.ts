@@ -5,3 +5,4 @@ export * from "./till/sale";
 export * from "./events";
 export * from "./till/reference";
 export * from "./till/session";
+export { tillReceiptCodes } from "./till/config";

@@ -111,7 +111,7 @@ test("push rejects oversized batches and bodies before accepting any event", asy
 
 test("event versions outside the supported shape are rejected without persistence", async () => {
   const captured = await recordSale();
-  for (const version of [0, 2]) {
+  for (const version of [0, 3]) {
     const unsupported = { ...captured.event, v: version };
     const response = await pushEvents(
       api,

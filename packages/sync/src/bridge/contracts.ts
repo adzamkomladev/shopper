@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { uuidV7Schema } from "@shopper/ports";
+import { uuidV7Schema, sequenceSchema } from "@shopper/ports";
 import { recordSaleInput, saleEvent } from "@shopper/core/schemas";
 
 const identityId = v.pipe(
@@ -21,6 +21,15 @@ export const hostStatus = v.strictObject({
   server: v.picklist(["connecting", "online", "offline", "blocked", "revoked", "incompatible"]),
   pendingCount: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
   blockedCount: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
+  mode: v.picklist(["live", "polling", "offline"]),
+  cursor: v.nullable(sequenceSchema),
+  head: v.nullable(sequenceSchema),
+  lastPullAt: v.nullable(
+    v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(8_640_000_000_000_000)),
+  ),
+  receiptsLeft: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
+  overflow: v.boolean(),
+  syncing: v.boolean(),
   lastError: v.nullable(v.strictObject({ code: v.string(), message: v.string() })),
   lastSuccessfulPushAt: v.nullable(
     v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(8_640_000_000_000_000)),

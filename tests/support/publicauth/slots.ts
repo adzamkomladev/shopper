@@ -1,9 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-// The public onboarding and invitation POSTs are limited to 3 per 10s per IP, in a window that starts
-// at the first request. Every browser here shares one IP, so wait for a fresh window instead of being
-// refused. The count lives in a file because Playwright may restart the worker.
+// Browser requests share one IP; a quiet window prevents shifted server windows from overlapping groups.
+// Persist the count because Playwright may restart its worker.
 const LIMIT = 3;
 // The request leaves the browser a little after this is called, so the window gets some slack.
 const WINDOW_MS = 10_000 + 3_000;
@@ -21,8 +20,6 @@ export async function waitForPublicSlot(requests = 1) {
   mkdirSync(dirname(COUNT_FILE), { recursive: true });
   writeFileSync(
     COUNT_FILE,
-    JSON.stringify(
-      stillOpen ? { count: count + requests, start } : { count: requests, start: Date.now() },
-    ),
+    JSON.stringify({ count: stillOpen ? count + requests : requests, start: Date.now() }),
   );
 }

@@ -22,9 +22,9 @@ completion remarks are recorded on the Day 9 Notion page after CI passes.
 
 | Command                   | Result                                                                             |
 | ------------------------- | ---------------------------------------------------------------------------------- |
-| `vp check`                | Passed; no warnings, lint errors or type errors in 559 files.                      |
+| `vp check`                | Passed; no warnings, lint errors or type errors in 560 files.                      |
 | `vp run guard`            | Passed.                                                                            |
-| `vp test --run`           | Passed; 324 tests in 92 files, 22.2 minutes.                                       |
+| `vp test --run`           | Passed; 325 tests in 93 files, 25.8 minutes.                                       |
 | Offline-hour gate alone   | Passed; one test, 266.82 seconds.                                                  |
 | Review-fix suites         | Passed; 11 tests in two files.                                                     |
 | `vp exec playwright test` | Passed; 153 tests, 29.1 minutes, including seven new status tests and 24 captures. |
@@ -76,6 +76,21 @@ It found no remaining compression defect. Its two retained-data findings—backf
 branch/device codes and upgrading previously stored v1 sale hashes/times—are excluded by the
 explicit disposable-data/no-backfill decision in the handoff. Incoming v1 events remain covered
 by upcasting and replay tests. No confirmed finding remains within the approved scope.
+
+## CI fixture follow-up
+
+Fresh PR #11 CI passed all 324 integration, 153 main browser and 28 public browser tests.
+The independent push browser run failed two existing portal grant-policy cases with invitation
+acceptance HTTP 429s; that failure was missed before #11 merged. The fixture anchored its budget
+to the first reservation, while the server could start a later window between requests.
+A five-invitation real HTTP/PostgreSQL regression reproduced `[200, 200, 200, 200, 429]`.
+The helper now records the last reservation, ensuring a quiet period before the next group.
+All five acceptances, their user rows and acceptance audits, and the tenant audit chain pass.
+Production rate limits are unchanged; no test retries were added.
+The affected portal file passes all six tests, including both previously failing cases.
+The full follow-up suite passes 325 tests in 93 files; all 28 public browser tests also pass.
+Check, guard, build and project typecheck pass. The required Codex review found no concrete defects.
+Final follow-up CI is recorded on the Day 9 Notion page.
 
 ## Resets and boundaries
 

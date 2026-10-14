@@ -3,9 +3,16 @@ import { Hono } from "hono";
 import { WebSocketServer, type WebSocket } from "ws";
 import * as v from "valibot";
 import { uuidV7Schema } from "@shopper/ports";
-import { bridgeRequest, type BridgeMessage, type BridgeRequest } from "@shopper/sync/bridge";
+import {
+  basketRequestTypes,
+  bridgeRequest,
+  type BridgeMessage,
+  type BridgeRequest,
+} from "@shopper/sync/bridge";
 
 type Dispatch = (request: BridgeRequest, trusted: boolean) => Promise<BridgeMessage>;
+// What the capability holder may ask; recordSale and shutdown stay on the trusted IPC channel.
+const browserRequests: readonly string[] = ["hello", "status", "retry", ...basketRequestTypes];
 export async function openHostTransport(options: {
   port: number;
   origins: string[];
@@ -85,7 +92,7 @@ export async function openHostTransport(options: {
         authorizedSockets.add(socket);
         clearTimeout(timer);
       }
-      if (!["hello", "status", "retry"].includes(request.type)) {
+      if (!browserRequests.includes(request.type)) {
         socket.send(
           JSON.stringify(
             error(request, "FORBIDDEN", "This action requires the private till connection"),

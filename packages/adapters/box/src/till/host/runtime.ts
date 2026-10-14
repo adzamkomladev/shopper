@@ -3,27 +3,18 @@ import * as v from "valibot";
 import { and, eq } from "drizzle-orm";
 import { outbox } from "@shopper/db-sqlite";
 import { buildInfo } from "@shopper/config";
-import { recordLocalSale, provisionTillReference, TillError } from "@shopper/core/till";
+import { provisionTillReference } from "@shopper/core/till";
 import { createHostSync } from "./sync";
-import {
-  bridgeRequest,
-  type BridgeMessage,
-  type BridgeRequest,
-  type HostStatus,
-} from "@shopper/sync/bridge";
+import { bridgeRequest, type BridgeMessage, type HostStatus } from "@shopper/sync/bridge";
 import { openTillDatabase } from "../database";
 import { hostConfiguration } from "./config";
+import { createDispatch } from "./dispatch";
 import { openHostTransport, error } from "./transport";
 
 export async function startTillHost(raw: unknown, send: (message: unknown) => void) {
   const config = v.parse(hostConfiguration, raw);
   const database = openTillDatabase(config.sqlitePath);
   const identity = config.identity;
-  const localConfig = {
-    ...identity,
-    appVersion: buildInfo.version,
-    receiptCodes: config.receiptCodes,
-  };
   try {
     if (config.references && config.session)
       await provisionTillReference(
@@ -100,37 +91,14 @@ export async function startTillHost(raw: unknown, send: (message: unknown) => vo
     send(message);
     transport?.broadcast(message);
   }
-  async function dispatch(request: BridgeRequest, trusted: boolean): Promise<BridgeMessage> {
-    try {
-      if (request.type === "recordSale") {
-        if (!trusted || !config.session)
-          return error(
-            request,
-            "SESSION_REQUIRED",
-            "Sign in on this register before recording sales",
-          );
-        const event = await recordLocalSale(database, localConfig, config.session, request.input);
-        await publishStatus();
-        void worker.trigger();
-        return { id: request.id, type: "result", kind: "sale", event };
-      }
-      if (request.type === "retry") await worker.trigger();
-      if (request.type === "shutdown") {
-        if (!trusted)
-          return error(request, "FORBIDDEN", "This action requires the private till connection");
-        setImmediate(() => void close());
-      }
-      return { id: request.id, type: "result", kind: "status", status: await status() };
-    } catch (caught) {
-      return error(
-        request,
-        caught instanceof TillError ? "SALE_REJECTED" : "STORAGE_FAILED",
-        caught instanceof TillError
-          ? caught.message
-          : "Register storage is unavailable. Reconnect and retry.",
-      );
-    }
-  }
+  const dispatch = createDispatch({
+    database,
+    config,
+    status,
+    publishStatus,
+    sync: () => worker.trigger(),
+    close: () => void close(),
+  });
   const capability = randomBytes(32).toString("hex");
   try {
     transport = await openHostTransport({

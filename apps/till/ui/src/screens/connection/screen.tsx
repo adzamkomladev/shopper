@@ -31,7 +31,8 @@ import {
   serverState,
 } from "./details";
 import { StatusCard } from "./status/card";
-import { canSyncNow, SyncStatus } from "./sync/status";
+import { canSyncNow } from "../../connection/sync";
+import { SyncStatus } from "./sync/status";
 
 export function ConnectionScreen() {
   const connection = useConnectionSnapshot();

@@ -4,6 +4,7 @@ import { Kbd } from "@shopper/ui/components/kbd";
 import { useNow } from "@shopper/ui/hooks/use-now";
 import { StatusBadge } from "../status/card";
 import type { HostConnection } from "../../../connection/store";
+import { canSyncNow } from "../../../connection/sync";
 
 // Warn at the final 10% of the active 1,000-number receipt block.
 const receiptWarningAt = 100;
@@ -61,16 +62,6 @@ export function SyncStatus({
         </p>
       )}
     </section>
-  );
-}
-
-export function canSyncNow(host: HostConnection, status: HostStatus | null) {
-  return (
-    host === "connected" &&
-    status !== null &&
-    !status.syncing &&
-    status.server !== "revoked" &&
-    status.server !== "incompatible"
   );
 }
 

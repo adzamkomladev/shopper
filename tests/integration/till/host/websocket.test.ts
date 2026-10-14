@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vite-plus/test";
 import { v7 } from "uuid";
 import WebSocket from "ws";
 import { createHostFixture } from "../../../support/till/host/fixture";
+import { connectBrowser } from "../../../support/till/host/socket";
 
 let fixture: Awaited<ReturnType<typeof createHostFixture>> | undefined;
 afterEach(async () => fixture?.close());
@@ -59,6 +60,35 @@ describe("till host WebSocket bridge", () => {
     await host.kill();
     await closed;
     await expect(openSocket(host.ready.port, "http://127.0.0.1:5184")).rejects.toThrow();
+  });
+
+  it("serves basket operations after the handshake and keeps the socket open on a domain error", async () => {
+    fixture = await createHostFixture({ freshSession: true });
+    const host = await fixture.start();
+    const browser = await connectBrowser(host.ready);
+    const productId = fixture.config.references.products[0].id;
+    expect(await browser.ask({ type: "readDraft" })).toMatchObject({ kind: "draft" });
+    expect(await browser.ask({ type: "add", expectedRevision: 0, productId })).toMatchObject({
+      kind: "draft",
+      view: { draft: { revision: 1 } },
+    });
+    expect(await browser.ask({ type: "add", expectedRevision: 0, productId })).toMatchObject({
+      type: "error",
+      code: "REVISION_STALE",
+    });
+    expect(browser.open).toBe(true);
+    expect(await browser.ask({ type: "add", expectedRevision: 1, productId })).toMatchObject({
+      view: { draft: { revision: 2 } },
+    });
+
+    const sale = { lines: [{ productId, quantityThousandths: 1_000 }] };
+    expect(await browser.ask({ type: "recordSale", input: sale })).toMatchObject({
+      type: "error",
+      code: "FORBIDDEN",
+    });
+    expect(await browser.ask({ type: "shutdown" })).toMatchObject({ code: "FORBIDDEN" });
+    expect(await fixture.localSales()).toEqual([]);
+    browser.socket.close();
   });
 
   it("reports upstream failure while retaining queued work and exposes a retry action", async () => {

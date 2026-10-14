@@ -13,6 +13,6 @@ export { searchCatalogue, lookupCode } from "./lookup/search";
 export { quoteLine } from "./quotation";
 export { resolveScan } from "./basket/scan";
 
-export { validateSession } from "./session";
+export { hostTime, validateSession } from "./session";
 export { readDraft } from "./drafts/queries";
 export { addToDraft, setDraftQuantity, removeDraftLine } from "./drafts/commands";

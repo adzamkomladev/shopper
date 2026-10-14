@@ -16,27 +16,35 @@ export function cloudflareCache(binding: D1Database, now = Date.now) {
 }
 export async function cloudflareBlobs(
   binding: R2Bucket,
-  options: BlobUrlOptions & { objectStorage?: ObjectStorageOptions },
+  options: BlobUrlOptions & { imports?: R2Bucket; objectStorage?: ObjectStorageOptions },
 ) {
   const access = await blobUrlAccess(options);
   const objects = options.objectStorage ? objectStorage(options.objectStorage) : undefined;
+  const target = (orgId: string, key: string) => {
+    const scoped = scopedKey(orgId, key);
+    if (key.startsWith("imports/")) {
+      if (!options.imports) throw new Error("Imports R2 binding is required");
+      return { bucket: options.imports, key: scoped };
+    }
+    return { bucket: binding, key: scoped.replaceAll("/", ":") };
+  };
   const blobs: Blobs = {
     async put(orgId, key, value) {
-      if (key.startsWith("imports/") && objects) return objects.put(orgId, key, value);
-      await binding.put(scopedKey(orgId, key).replaceAll("/", ":"), new Uint8Array(value));
+      const object = target(orgId, key);
+      await object.bucket.put(object.key, new Uint8Array(value));
     },
     async get(orgId, key, maxBytes) {
-      if (key.startsWith("imports/") && objects) return objects.get(orgId, key, maxBytes);
-      const value = await binding.get(scopedKey(orgId, key).replaceAll("/", ":"));
+      const object = target(orgId, key);
+      const value = await object.bucket.get(object.key);
       return value ? readBlobBody(value.body, value.size, maxBytes) : null;
     },
     async delete(orgId, key) {
-      if (key.startsWith("imports/") && objects) return objects.delete(orgId, key);
-      await binding.delete(scopedKey(orgId, key).replaceAll("/", ":"));
+      const object = target(orgId, key);
+      await object.bucket.delete(object.key);
     },
     async createUpload(orgId, key, input) {
       if (!key.startsWith("imports/")) throw new Error("Direct uploads require an imports key");
-      if (!objects) throw new BlobUploadUnavailable();
+      if (!objects || !options.imports) throw new BlobUploadUnavailable();
       return objects.createUpload(orgId, key, input);
     },
     signedUrl: access.sign,

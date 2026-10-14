@@ -265,6 +265,9 @@ importers:
 
   apps/portal:
     dependencies:
+      '@shopper/adapters-cf':
+        specifier: workspace:*
+        version: link:../../packages/adapters/cf
       '@shopper/backoffice':
         specifier: workspace:*
         version: link:../../packages/backoffice

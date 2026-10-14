@@ -1,0 +1,15 @@
+{
+  "name": "shopper-portal-staging",
+  "compatibilityDate": "2026-10-05",
+  "domains": ["shopper-staging.temtem.dev"],
+  "workersDev": true,
+  "assets": {
+    "notFoundHandling": "single-page-application",
+    "runWorkerFirst": ["/api", "/api/*"]
+  },
+  "env": {
+    "API": { "type": "worker", "worker": "shopper-edge-staging" },
+    "ASSETS": { "type": "assets" }
+  },
+  "observability": { "enabled": true }
+}

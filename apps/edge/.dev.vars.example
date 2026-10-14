@@ -7,3 +7,11 @@ SHOPPER_LINK_SECRET=dev-only-link-secret-at-least-32-characters-long
 # Use a verified Maileroo sending domain; blank values keep delivery visibly retryable.
 MAILEROO_API_KEY=
 MAILEROO_FROM=
+
+# R2 direct upload signing; IMPORTS uses the remote dev bucket in wrangler.jsonc.
+# Endpoint format: https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+SHOPPER_S3_ENDPOINT=
+SHOPPER_S3_BUCKET=shopper-imports-dev
+SHOPPER_S3_REGION=auto
+SHOPPER_S3_ACCESS_KEY_ID=
+SHOPPER_S3_SECRET_ACCESS_KEY=

@@ -34,6 +34,7 @@
           "binding": "BLOBS",
           "bucket_name": "shopper-assets-staging",
         },
+        { "binding": "IMPORTS", "bucket_name": "shopper-imports-staging" },
       ],
       "queues": {
         "producers": [
@@ -95,6 +96,7 @@
       "binding": "BLOBS",
       "bucket_name": "shopper-assets-dev",
     },
+    { "binding": "IMPORTS", "bucket_name": "shopper-imports-dev", "remote": true },
   ],
   "queues": {
     "producers": [

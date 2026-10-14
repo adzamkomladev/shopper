@@ -27,6 +27,7 @@ export default {
         realtime: cloudflareRealtime(env.STORE_HUB),
         blobs: (
           await cloudflareBlobs(env.BLOBS, {
+            imports: env.IMPORTS,
             baseUrl: env.SHOPPER_AUTH_URL,
             secret: new TextEncoder().encode(env.SHOPPER_AUTH_SECRET),
             objectStorage: env.SHOPPER_S3_ENDPOINT

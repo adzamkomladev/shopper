@@ -5,7 +5,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { branch, store, storeChange, type ShopperTransaction } from "@shopper/db-pg";
 
 const ROWS_PER_INSERT = 1000;
-const FEED_VERSION = 1;
+export const FEED_VERSION = 2;
 
 /**
  * Appends changes to each store's feed: one contiguous seq range per store, the sequence taken

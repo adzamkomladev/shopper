@@ -21,7 +21,11 @@ export const applyPage = (now?: () => number) =>
             eq(reference.entity, change.entity),
             eq(reference.id, change.entityId),
           );
-          if (change.op === "delete") await tx.delete(reference).where(key);
+          // ponytail: tills hold no archived products until Slice 3's lookup projections.
+          const archived =
+            change.entity === "product" &&
+            !!(change.payload as { archivedAt?: unknown })?.archivedAt;
+          if (change.op === "delete" || archived) await tx.delete(reference).where(key);
           else
             await tx
               .insert(reference)

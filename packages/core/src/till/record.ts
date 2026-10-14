@@ -16,7 +16,7 @@ import {
 import { add } from "@shopper/money";
 import { snapshotLine } from "@shopper/tax";
 import { recordSaleInput, saleEvent, saleTotals } from "../schemas/till/sale";
-import { tillPrice, tillProduct, tillTaxRule } from "../schemas/till/reference";
+import { tillPrice, tillProductBase, tillTaxRule } from "../schemas/till/reference";
 import { tillSession, type TillSession } from "../schemas/till/session";
 import { TillError } from "./error";
 import { tillConfiguration } from "../schemas/till/config";
@@ -91,7 +91,7 @@ const record = defineCommand({
     const references = await tx.select().from(reference).where(eq(reference.orgId, context.orgId));
     const products = references
       .filter((row) => row.entity === "product")
-      .map((row) => v.parse(tillProduct, row.payload));
+      .map((row) => v.parse(tillProductBase, row.payload));
     const prices = references
       .filter((row) => row.entity === "price")
       .map((row) => v.parse(tillPrice, row.payload));

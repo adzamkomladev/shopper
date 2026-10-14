@@ -11,4 +11,6 @@ export type PullStatus = {
 export const snapshot = v.object({ snapshot: v.literal(true), head: sequenceSchema });
 
 import { KNOWN_VERSION } from "./apply";
-export const snapshotVersionSchema = v.object({ v: v.literal(KNOWN_VERSION) });
+export const snapshotVersionSchema = v.object({
+  v: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(KNOWN_VERSION)),
+});

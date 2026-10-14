@@ -21,3 +21,5 @@ export type Change = {
   op: "upsert" | "delete";
   payload: unknown;
 };
+
+export type ProductBarcode = { code: string; quantityThousandths: number };

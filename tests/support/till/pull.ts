@@ -89,7 +89,7 @@ export async function bulkRows(
   );
   const last = BigInt(bumped.rows[0]!.head);
   await db.execute(sql`INSERT INTO store_change (org_id, store_id, seq, entity, entity_id, op, v, payload)
-    SELECT ${orgId}::uuid, ${forStore}::uuid, s, 'product', uuidv7(), 'upsert', 1, '{}'::jsonb
+    SELECT ${orgId}::uuid, ${forStore}::uuid, s, 'product', uuidv7(), 'upsert', 2, '{}'::jsonb
     FROM generate_series(${(last - BigInt(count) + 1n).toString()}::bigint, ${last.toString()}::bigint) AS s`);
   return last;
 }

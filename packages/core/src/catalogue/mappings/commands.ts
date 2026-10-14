@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { and, eq, ne } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
 import { barcodeMapping } from "@shopper/db-pg";
-import { affectedStores, deleted, recordChanges, type Change } from "../../changes";
+import { affectedStores, deleted, mappingUpsert, recordChanges } from "../../changes";
 import { ManagementError } from "../../management";
 import { mappingInput, mappingPatch, type MappingInput } from "../../schemas/catalogue/mappings";
 import type { Queryable } from "../../types";
@@ -18,12 +18,6 @@ const columns = (m: MappingInput) => ({
   kind: m.kind,
   unit: m.kind === "weight" ? m.unit : null,
   decimals: m.decimals,
-});
-const upsert = (view: ReturnType<typeof mappingView>): Change => ({
-  entity: "barcode-mapping",
-  entityId: view.id,
-  op: "upsert",
-  payload: view,
 });
 const owned = (orgId: string, id: string) =>
   and(eq(barcodeMapping.orgId, orgId), eq(barcodeMapping.id, id));
@@ -68,7 +62,7 @@ const createCommand = defineCommand({
     await recordChanges(
       tx,
       context.orgId,
-      [upsert(after)],
+      [mappingUpsert(after)],
       await affectedStores(tx, context.orgId),
     );
     return { id: after.id, before: null, after };
@@ -97,7 +91,7 @@ const updateCommand = defineCommand({
     await recordChanges(
       tx,
       context.orgId,
-      [upsert(after)],
+      [mappingUpsert(after)],
       await affectedStores(tx, context.orgId),
     );
     return { id, before, after };

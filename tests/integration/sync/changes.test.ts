@@ -37,7 +37,7 @@ test("creating or updating a product writes one till-shaped upsert per store, af
   const rows = await feed.changes(orgId);
   expect(rows.map((row) => row.store_id).sort()).toEqual([...stores].sort());
   for (const row of rows) {
-    expect(row).toMatchObject({ entity: "product", entity_id: created.id, op: "upsert", v: 1 });
+    expect(row).toMatchObject({ entity: "product", entity_id: created.id, op: "upsert", v: 2 });
     expect(BigInt(row.seq)).toBe(1n);
     expect(keys(row.payload)).toEqual(keys(tillProduct.entries));
     expect(row.payload).toMatchObject({ id: created.id, orgId, taxClass: "standard" });
@@ -71,7 +71,7 @@ test("the product, its audit row and its feed rows roll back together", async ()
   expect(await feed.lastSeq(orgId, stores[0]!)).toBe(0n);
 });
 
-test("archiving a product emits a delete to every store", async () => {
+test("archiving a product emits an archived upsert to every store", async () => {
   const { context, orgId, stores } = await feed.world();
   const { id } = await createProduct(feed.db, context, draft());
   await archiveProduct(feed.db, context, { id });
@@ -79,8 +79,9 @@ test("archiving a product emits a delete to every store", async () => {
     const rows = await feed.changes(orgId, { storeId });
     expect(rows.map((row) => [row.seq, row.op, row.entity_id])).toEqual([
       ["1", "upsert", id],
-      ["2", "delete", id],
+      ["2", "upsert", id],
     ]);
+    expect(rows[1]!.payload).toMatchObject({ archivedAt: expect.any(String) });
   }
 });
 
@@ -91,7 +92,7 @@ test("a branch price reaches only its store and an org-wide price reaches all of
   await setPrice(feed.db, context, { productId, data: { amount: 8000, branchId, validFrom } });
   let rows = await feed.changes(orgId, { entity: "price" });
   expect(rows).toHaveLength(1);
-  expect(rows[0]).toMatchObject({ store_id: stores[0], op: "upsert", v: 1 });
+  expect(rows[0]).toMatchObject({ store_id: stores[0], op: "upsert", v: 2 });
   expect(rows[0]!.payload).toMatchObject({
     productId,
     branchId,
@@ -130,7 +131,7 @@ test("a scheduled price window ends with a delete for that price in every store"
     const rows = (await feed.changes(orgId, { storeId, entity: "price" })).filter(
       (row) => row.entity_id === price.id,
     );
-    expect(rows.at(-1)).toMatchObject({ op: "delete", v: 1 });
+    expect(rows.at(-1)).toMatchObject({ op: "delete", v: 2 });
     expect(rows.filter((row) => row.op === "delete")).toHaveLength(1);
   }
 });

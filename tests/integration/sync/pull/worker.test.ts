@@ -81,6 +81,7 @@ test("every page is one audited till.sync.pull command and a long feed is pulled
         baseUnit: "each",
         taxClass: "standard",
         archivedAt: null,
+        barcodes: [],
       },
     };
   });
@@ -141,7 +142,7 @@ test("an unknown payload version halts the pull with upgrade needed and applies 
   };
   await appendRows([
     known("Same page, before"),
-    { v: 2, payload: { shape: "future" } },
+    { v: 3, payload: { shape: "future" } },
     known("Same page, after"),
   ]);
   await worker!.trigger();

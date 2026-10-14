@@ -10,7 +10,8 @@ import { tillState } from "@shopper/db-sqlite";
 import { retryDeadline } from "../push/backoff";
 import { createPushTransport } from "../push/http";
 
-import { applySnapshot, snapshotSchema } from "./snapshot";
+import { applySnapshot } from "./snapshot";
+import { decodeReferenceChange, decodeSnapshot } from "@shopper/core/schemas";
 import { applyPage, KNOWN_VERSION, page, type Page } from "./apply";
 
 const HALTED = new Set<PullStatus["state"]>(["upgrade", "revoked", "incompatible"]);
@@ -73,7 +74,7 @@ export function createPullWorker(options: PullOptions) {
         publish({ state: "upgrade" });
         return undefined;
       }
-      const data = v.parse(snapshotSchema, rawSnapshot);
+      const data = decodeSnapshot(rawSnapshot);
       if (data.orgId !== config.orgId || (config.storeId && data.storeId !== config.storeId))
         throw new Error("Snapshot outside device scope");
       await bootstrap(
@@ -91,12 +92,13 @@ export function createPullWorker(options: PullOptions) {
       bootstrapped = true;
       return data.cursor;
     }
-    const data = v.parse(page, body);
+    const parsed = v.parse(page, body);
     // Validate the whole page first: an unknown version applies nothing and never skips a row.
-    if (data.changes.some((change) => change.v !== KNOWN_VERSION)) {
+    if (parsed.changes.some((change) => change.v > KNOWN_VERSION)) {
       publish({ state: "upgrade", cursor });
       return undefined;
     }
+    const data = { ...parsed, changes: parsed.changes.map(decodeReferenceChange) };
     if (!ordered(cursor, data)) {
       publish({ state: "incompatible", cursor });
       return undefined;

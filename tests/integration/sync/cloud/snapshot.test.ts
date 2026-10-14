@@ -69,5 +69,5 @@ test("Cloudflare returns a single-decompressed snapshot over external HTTP", asy
     headers: pullHeaders(),
   });
   expect(response.status).toBe(200);
-  expect(await response.json()).toMatchObject({ orgId: context.orgId, storeId, v: 1 });
+  expect(await response.json()).toMatchObject({ orgId: context.orgId, storeId, v: 2 });
 });

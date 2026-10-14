@@ -9,12 +9,18 @@ import {
   productImport,
   type ShopperTransaction,
 } from "@shopper/db-pg";
-import { affectedStores, priceUpsert, productUpsert, recordChanges } from "../../changes";
+import {
+  affectedStores,
+  loadBarcodes,
+  priceUpsert,
+  productUpsert,
+  recordChanges,
+} from "../../changes";
 import { loadProductViews } from "../products/queries";
 import { readImportedAsset } from "./replay";
 import { ManagementError } from "../../management";
 
-import { fieldSet, planImport, type FieldSet } from "./plan";
+import { fieldSet, isChanged, planImport, type FieldSet } from "./plan";
 import { categoryOf, chunks, ensureRefs, loadRefs, supplierOf } from "./refs";
 import type { CleanRow } from "./validate";
 
@@ -135,13 +141,16 @@ async function importRun(tx: ShopperTransaction, context: CommandContext, input:
   for (const part of chunks(prices))
     priceRows.push(...(await tx.insert(price).values(part).returning()));
   const touched = planned
-    .filter((p) => !p.existingId || p.fieldsChanged)
+    .filter((p) => !p.existingId || isChanged(p))
     .map((p) => ids.get(p.row.sku)!);
+  const barcodes = await loadBarcodes(tx, orgId, touched);
   await recordChanges(
     tx,
     orgId,
     [
-      ...(await loadProductViews(tx, orgId, touched)).map((row) => productUpsert(orgId, row)),
+      ...(await loadProductViews(tx, orgId, touched)).map((row) =>
+        productUpsert(orgId, { ...row, barcodes: barcodes.get(row.id)! }),
+      ),
       ...priceRows.map(priceUpsert),
     ],
     await affectedStores(tx, orgId),

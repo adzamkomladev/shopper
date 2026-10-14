@@ -1,5 +1,7 @@
 import type { BaseUnit, price, taxRule } from "@shopper/db-pg";
 import type { Change } from "./record";
+import { mappingView } from "../catalogue/mappings/queries";
+import type { ProductBarcode } from "./types";
 
 type Product = {
   id: string;
@@ -8,6 +10,7 @@ type Product = {
   baseUnit: BaseUnit;
   taxClass: string;
   archivedAt: Date | string | null;
+  barcodes: ProductBarcode[];
 };
 const iso = (value: Date | string) => new Date(value).toISOString();
 
@@ -25,6 +28,7 @@ export function productUpsert(orgId: string, row: Product): Change {
       baseUnit: row.baseUnit,
       taxClass: row.taxClass,
       archivedAt: row.archivedAt ? iso(row.archivedAt) : null,
+      barcodes: row.barcodes,
     },
   };
 }
@@ -63,6 +67,13 @@ export function taxRuleUpsert(row: typeof taxRule.$inferSelect): Change {
     },
   };
 }
+
+export const mappingUpsert = (row: ReturnType<typeof mappingView>): Change => ({
+  entity: "barcode-mapping",
+  entityId: row.id,
+  op: "upsert",
+  payload: row,
+});
 
 export const deleted = (entity: Change["entity"], id: string): Change => ({
   entity,

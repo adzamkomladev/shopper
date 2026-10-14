@@ -18,6 +18,7 @@ import {
   deviceToken,
   devices,
   principal,
+  syncProtocol,
 } from "./server";
 import { syncHeaders } from "./requests";
 
@@ -25,7 +26,7 @@ export const storeId = config.storeId;
 type Client = { request(path: string, init?: RequestInit): Promise<Response> };
 export type FeedInput = { v?: number; entity?: "product"; entityId?: string; payload?: unknown };
 
-export const pullHeaders = (protocol = 1) => ({
+export const pullHeaders = (protocol = syncProtocol) => ({
   ...syncHeaders(),
   "X-Shopper-Protocol": String(protocol),
 });
@@ -183,7 +184,15 @@ export const tillAuditCommands = async (database: TillDatabase) =>
 export function pullOptions(database: TillDatabase, upstream: string, clock: { now: number }) {
   return {
     database,
-    config: { orgId: context.orgId, deviceId, appVersion, protocol: 1, upstream, deviceToken },
+    config: {
+      orgId: context.orgId,
+      storeId,
+      deviceId,
+      appVersion,
+      protocol: syncProtocol,
+      upstream,
+      deviceToken,
+    },
     now: () => clock.now,
     random: () => 0,
   };

@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { v7 } from "uuid";
 import { defineCommand } from "@shopper/audit";
 import * as schema from "@shopper/db-pg";
-import { cloudflareDatabase } from "@shopper/adapters-cf";
+import { cloudflareBlobs, cloudflareDatabase } from "@shopper/adapters-cf";
 import { cacheMigration } from "@shopper/db-sqlite";
 import { buildInfo } from "@shopper/config";
 import { provisionOrg } from "@shopper/core";
@@ -43,6 +43,7 @@ test("GET /sync/changes in workerd serves a device's store feed in the shared JS
   const connection = await cloudflareDatabase(bindings.HYPERDRIVE.connectionString);
   let deviceId: string;
   const products: string[] = [];
+  let storeId = "";
   try {
     await provisionOrg(connection.db, context, {
       name: "Worker pull",
@@ -57,6 +58,7 @@ test("GET /sync/changes in workerd serves a device's store feed in the shared JS
       action: "create",
       data: { name: "Worker pull store" },
     });
+    storeId = store.id;
     const branch = await mutateManagement(connection.db, context, {
       kind: "branch",
       action: "create",
@@ -88,6 +90,27 @@ test("GET /sync/changes in workerd serves a device's store feed in the shared JS
   const snapshot = await pull("cursor=0");
   expect(snapshot.status).toBe(200);
   expect(await snapshot.json()).toEqual({ snapshot: true, head: "2" });
+
+  const downloaded = await SELF.fetch("https://shopper.test/sync/snapshot", { headers });
+  expect(downloaded.status).toBe(200);
+  expect(downloaded.headers.get("content-encoding")).toBe("gzip");
+  const storage = await cloudflareBlobs((env as Cloudflare.Env).BLOBS, {
+    baseUrl: "https://shopper.test",
+    secret: new Uint8Array(32).fill(7),
+  });
+  const key = `snapshots/${orgId}/${storeId}/v1/2.json.gz`;
+  const bytes = await storage.blobs.get(orgId, key);
+  if (!bytes) throw new Error("Snapshot was not stored in R2");
+  expect(Array.from(bytes.slice(0, 2))).toEqual([31, 139]);
+  const decoded = await new Response(
+    new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip")),
+  ).json();
+  expect(decoded).toMatchObject({ orgId, storeId, cursor: "2", v: 1 });
+  expect(decoded.reference.products.map((row: { id: string }) => row.id).sort()).toEqual(
+    [...products].sort(),
+  );
+  expect((await SELF.fetch("https://shopper.test/sync/snapshot", { headers })).status).toBe(200);
+  expect(await storage.blobs.get(orgId, key)).toEqual(bytes);
 
   const page = await pull("cursor=1&limit=500");
   expect(page.status).toBe(200);

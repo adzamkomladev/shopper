@@ -10,6 +10,7 @@ export type PushOptions = {
   database: TillDatabase;
   config: {
     orgId: string;
+    storeId?: string;
     deviceId: string;
     appVersion: string;
     protocol: number;

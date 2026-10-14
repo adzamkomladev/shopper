@@ -8,6 +8,7 @@ import type { createDeviceService } from "@shopper/auth/devices";
 
 const query = v.object({
   cursor: sequenceSchema,
+  bootstrapped: v.optional(v.picklist(["true", "false"]), "false"),
   limit: v.optional(
     v.pipe(
       v.string(),
@@ -42,6 +43,7 @@ export function createPullRoutes(options: {
         principal,
         BigInt(parsed.output.cursor),
         parsed.output.limit,
+        parsed.output.bootstrapped === "true",
       ),
     );
   });

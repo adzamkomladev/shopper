@@ -5,7 +5,7 @@ import * as schema from "@shopper/db-pg";
 import * as apiPackage from "@shopper/api";
 import { createSyncRoutes } from "@shopper/api/sync";
 import { createDeviceService } from "@shopper/auth/devices";
-import { boxCache, boxSequencer, openTillDatabase } from "@shopper/adapters-box";
+import { boxBlobs, boxCache, boxSequencer, openTillDatabase } from "@shopper/adapters-box";
 import { recordLocalSale, provisionTillReference } from "@shopper/core/till";
 import * as v from "valibot";
 import { saleEvent } from "@shopper/core/schemas";
@@ -40,6 +40,7 @@ export let api: HttpClient;
 export let devices: ReturnType<typeof createDeviceService>;
 export let principal: { orgId: string; userId: string; roleId: string; roleName: string };
 export let sequencer: ReturnType<typeof boxSequencer>;
+export let blobs: Awaited<ReturnType<typeof boxBlobs>>["blobs"];
 let local: Awaited<ReturnType<typeof openTillDatabase>>;
 let localDirectory: string;
 export const routeFactory = createSyncRoutes;
@@ -88,8 +89,13 @@ beforeAll(async () => {
     proof: login.token,
   };
   sequencer = boxSequencer(db);
-  api = await serveHono(apiPackage.createApi({ database: db, devices, sequencer }));
   localDirectory = await mkdtemp(join(tmpdir(), "shopper-sync-host-"));
+  const storage = await boxBlobs(join(localDirectory, "blobs"), {
+    baseUrl: "http://127.0.0.1",
+    secret: new Uint8Array(32).fill(7),
+  });
+  blobs = storage.blobs;
+  api = await serveHono(apiPackage.createApi({ database: db, devices, sequencer, blobs }));
   local = openTillDatabase(join(localDirectory, "till.sqlite"));
   await provisionReferences(cashier.branchId);
 });
@@ -182,6 +188,10 @@ export function databases() {
   return { db, context, local };
 }
 
+export function databaseConnectionString() {
+  return fixture.connectionString;
+}
+
 export function cashierSessionProof() {
   return { id: session.id, proof: session.proof };
 }
@@ -207,4 +217,4 @@ async function provisionReferences(branchId: string) {
   );
 }
 
-export { appVersion, context } from "./server-data";
+export { appVersion, context, syncProtocol } from "./server-data";

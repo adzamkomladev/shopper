@@ -1,4 +1,4 @@
-import type { Cache, Sequencer, WorkflowLauncher } from "@shopper/ports";
+import type { Blobs, Cache, Sequencer, WorkflowLauncher } from "@shopper/ports";
 import * as v from "valibot";
 import { buildInfo } from "@shopper/config";
 import { AuthLinkError, createAuth, createOnboarding, createInvitations } from "@shopper/auth";
@@ -13,6 +13,7 @@ import { allowPublicAuth } from "./middleware/public-auth";
 export interface RuntimeOptions {
   database: ShopperDatabase;
   sequencer?: Sequencer;
+  blobs?: Blobs;
   cache: Cache;
   secret: string;
   baseURL: string;
@@ -60,6 +61,7 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
         options.orgId,
       ),
       sequencer: options.sequencer,
+      blobs: options.blobs,
     }).fetch(request);
   }
   const linkOptions =

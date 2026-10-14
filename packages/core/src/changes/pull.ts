@@ -32,6 +32,7 @@ export function pullChanges(
   scope: { orgId: string; storeId: string },
   cursor: bigint,
   limit: number,
+  bootstrapped = false,
 ): Promise<PullPage> {
   return database.transaction(
     async (tx) => {
@@ -41,7 +42,8 @@ export function pullChanges(
         .where(and(eq(store.orgId, scope.orgId), eq(store.id, scope.storeId)));
       if (!row) throw new Error("Store does not belong to this organization");
       const head = row.head;
-      if (cursor === 0n || cursor > head) return { snapshot: true, head: String(head) };
+      if ((!bootstrapped && cursor === 0n) || cursor > head)
+        return { snapshot: true, head: String(head) };
       const pending = and(
         eq(storeChange.orgId, scope.orgId),
         eq(storeChange.storeId, scope.storeId),

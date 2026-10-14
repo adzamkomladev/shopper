@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { createMaileroo } from "@shopper/auth";
 import type { BoxBindings } from "./types";
 import {
+  boxBlobs,
   boxCache,
   boxSequencer,
   boxDatabase,
@@ -55,6 +56,12 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
         database: connection.db,
         sequencer: boxSequencer(connection.db),
         cache: cache.cache,
+        blobs: (
+          await boxBlobs(environment.SHOPPER_BLOBS_PATH ?? ".shopper/blobs", {
+            baseUrl: SHOPPER_AUTH_URL,
+            secret: new TextEncoder().encode(SHOPPER_AUTH_SECRET),
+          })
+        ).blobs,
         secret: SHOPPER_AUTH_SECRET,
         baseURL: SHOPPER_AUTH_URL,
         orgId: SHOPPER_ORG_ID,

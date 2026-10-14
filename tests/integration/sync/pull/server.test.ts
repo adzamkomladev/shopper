@@ -224,7 +224,7 @@ test("another store or another organisation's changes are never visible", async 
 test("an incompatible protocol header is rejected with 409 and N and N-1 are both accepted", async () => {
   const cursor = String(await head());
   expect((await pull(api, { cursor }, pullHeaders(0))).status).toBe(409);
-  expect((await pull(api, { cursor }, pullHeaders(2))).status).toBe(409);
+  expect((await pull(api, { cursor }, pullHeaders(3))).status).toBe(409);
   const later = await createSyncApi(2);
   try {
     for (const [protocol, status] of [

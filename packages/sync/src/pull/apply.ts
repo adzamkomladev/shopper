@@ -58,10 +58,11 @@ export const applyPage = (now?: () => number) =>
             orgId: context.orgId,
             deviceId: context.deviceId!,
             pullCursor: input.cursor,
+            pullInitialized: true,
           })
           .onConflictDoUpdate({
             target: [tillState.orgId, tillState.deviceId],
-            set: { pullCursor: input.cursor },
+            set: { pullCursor: input.cursor, pullInitialized: true },
           });
         return { count: input.changes.length };
       },

@@ -1,19 +1,26 @@
 import * as v from "valibot";
+import { sequenceSchema } from "@shopper/ports";
 import { and, eq } from "drizzle-orm";
 import { tillState } from "@shopper/db-sqlite";
 import { retryDeadline } from "../push/backoff";
 import { createPushTransport } from "../push/http";
 import type { PushOptions } from "../push/types";
+import { applySnapshot, snapshotSchema } from "./snapshot";
 import { applyPage, KNOWN_VERSION, page, type Page } from "./apply";
 
 export type PullStatus = {
   state: "idle" | "offline" | "upgrade" | "snapshot" | "revoked" | "incompatible";
   cursor: string | null;
+  head: string | null;
+  syncing: boolean;
   lastPullAt: number | null;
 };
-export type PullOptions = Omit<PushOptions, "onStatus"> & { onStatus?: (s: PullStatus) => void };
+export type PullOptions = Omit<PushOptions, "onStatus"> & {
+  onStatus?: (s: PullStatus) => void;
+  retry?: boolean;
+};
 
-const snapshot = v.object({ snapshot: v.literal(true), head: v.string() });
+const snapshot = v.object({ snapshot: v.literal(true), head: sequenceSchema });
 const HALTED = new Set<PullStatus["state"]>(["upgrade", "revoked", "incompatible"]);
 
 export function createPullWorker(options: PullOptions) {
@@ -21,12 +28,20 @@ export function createPullWorker(options: PullOptions) {
   const now = options.now ?? Date.now;
   const random = options.random ?? Math.random;
   const apply = applyPage(options.now);
+  const bootstrap = applySnapshot(options.now);
   const transport = createPushTransport(options);
   const listeners = new Set<() => void>();
-  let status: PullStatus = { state: "idle", cursor: null, lastPullAt: null };
+  let status: PullStatus = {
+    state: "idle",
+    cursor: null,
+    head: null,
+    syncing: false,
+    lastPullAt: null,
+  };
   let running: Promise<void> | undefined;
   let rerun = false;
   let stopped = false;
+  let bootstrapped = false;
   let attempts = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const publish = (update: Partial<PullStatus>) => {
@@ -38,13 +53,15 @@ export function createPullWorker(options: PullOptions) {
     (
       await database.read((tx) =>
         tx
-          .select({ cursor: tillState.pullCursor })
+          .select({ cursor: tillState.pullCursor, initialized: tillState.pullInitialized })
           .from(tillState)
           .where(and(eq(tillState.orgId, config.orgId), eq(tillState.deviceId, config.deviceId))),
       )
-    )[0]?.cursor ?? "0";
+    )[0];
   const pullOnce = async (cursor: string) => {
-    const { response, raw } = await transport.request(`/sync/changes?cursor=${cursor}&limit=500`);
+    const { response, raw } = await transport.request(
+      `/sync/changes?cursor=${cursor}&limit=500&bootstrapped=${bootstrapped}`,
+    );
     if (response.status === 401 || response.status === 409) {
       publish({ state: response.status === 401 ? "revoked" : "incompatible" });
       return undefined;
@@ -52,8 +69,35 @@ export function createPullWorker(options: PullOptions) {
     if (!response.ok) throw new Error("Pull unavailable");
     const body = JSON.parse(raw);
     if (v.is(snapshot, body)) {
-      publish({ state: "snapshot", cursor }); // bootstrap arrives with the snapshot slice
-      return undefined;
+      publish({ state: "snapshot", cursor, head: body.head });
+      const downloaded = await transport.request("/sync/snapshot");
+      if (downloaded.response.status === 401 || downloaded.response.status === 409) {
+        publish({ state: downloaded.response.status === 401 ? "revoked" : "incompatible" });
+        return undefined;
+      }
+      if (!downloaded.response.ok) throw new Error("Snapshot unavailable");
+      const rawSnapshot = JSON.parse(downloaded.raw);
+      if (!v.is(v.object({ v: v.literal(KNOWN_VERSION) }), rawSnapshot)) {
+        publish({ state: "upgrade" });
+        return undefined;
+      }
+      const data = v.parse(snapshotSchema, rawSnapshot);
+      if (data.orgId !== config.orgId || (config.storeId && data.storeId !== config.storeId))
+        throw new Error("Snapshot outside device scope");
+      await bootstrap(
+        database,
+        { orgId: config.orgId, deviceId: config.deviceId, appVersion: config.appVersion },
+        data,
+      );
+      attempts = 0;
+      publish({
+        state: "idle",
+        cursor: data.cursor,
+        head: body.head,
+        lastPullAt: now(),
+      });
+      bootstrapped = true;
+      return data.cursor;
     }
     const data = v.parse(page, body);
     // Validate the whole page first: an unknown version applies nothing and never skips a row.
@@ -73,20 +117,30 @@ export function createPullWorker(options: PullOptions) {
         data,
       );
     attempts = 0;
-    publish({ state: "idle", cursor: data.cursor, lastPullAt: now() });
+    publish({
+      state: "idle",
+      cursor: data.cursor,
+      head: data.head,
+      lastPullAt: now(),
+    });
     return data.hasMore ? data.cursor : undefined;
   };
   const run = async () => {
-    let cursor: string | undefined = await readCursor();
-    publish({ cursor });
+    const saved = await readCursor();
+    bootstrapped = saved?.initialized ?? false;
+    let cursor: string | undefined = saved?.cursor ?? "0";
+    publish({ cursor, syncing: true });
     try {
-      while (cursor && !stopped && !HALTED.has(status.state) && status.state !== "snapshot")
-        cursor = await pullOnce(cursor);
+      while (cursor && !stopped && !HALTED.has(status.state)) cursor = await pullOnce(cursor);
     } catch {
       if (stopped) return;
       publish({ state: "offline" });
       clearTimeout(timer);
-      timer = setTimeout(() => void trigger(), retryDeadline(now(), attempts++, random()) - now());
+      if (options.retry !== false)
+        timer = setTimeout(
+          () => void trigger(),
+          retryDeadline(now(), attempts++, random()) - now(),
+        );
     }
   };
   const trigger = (): Promise<void> => {
@@ -107,6 +161,7 @@ export function createPullWorker(options: PullOptions) {
       .catch(() => publish({ state: "offline" }))
       .finally(() => {
         running = undefined;
+        publish({ syncing: false });
       });
     return running;
   };

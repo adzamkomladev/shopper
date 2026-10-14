@@ -1,4 +1,6 @@
-import { afterEach, beforeAll, expect, test } from "vite-plus/test";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
+import { afterEach, beforeAll, expect, test, vi } from "vite-plus/test";
 import { v7 } from "uuid";
 import { createPullWorker } from "@shopper/sync";
 import { archiveProduct, createProduct } from "@shopper/core/catalogue";
@@ -161,4 +163,57 @@ test("a caught-up poll changes nothing, so it writes no audit row", async () => 
   await worker!.trigger();
   expect(await tillAuditCommands(till.database)).toHaveLength(audits);
   expect(worker!.getStatus()).toMatchObject({ state: "idle", cursor: String(await head()) });
+});
+
+test("a host-controlled pull waits for its coordinator instead of retrying below thirty seconds", async () => {
+  await start();
+  await worker!.stop();
+  let requests = 0;
+  const server = createServer((_request, response) => {
+    requests++;
+    response.writeHead(503);
+    response.end();
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const upstream = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  worker = createPullWorker({ ...pullOptions(till.database, upstream, clock), retry: false });
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    await worker.trigger();
+    expect(worker.getStatus().state).toBe("offline");
+    await vi.advanceTimersByTimeAsync(29_999);
+    expect(requests).toBe(1);
+    vi.useRealTimers();
+    await worker.trigger();
+    expect(requests).toBe(2);
+  } finally {
+    await worker.stop();
+    vi.useRealTimers();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
+
+test("a malformed snapshot head preserves valid bridge status and the saved cursor", async () => {
+  const cursor = await start();
+  await worker!.stop();
+  const audits = await tillAuditCommands(till.database);
+  let requests = 0;
+  const server = createServer((_request, response) => {
+    requests++;
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify({ snapshot: true, head: "bad" }));
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const upstream = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  worker = createPullWorker({ ...pullOptions(till.database, upstream, clock), retry: false });
+  try {
+    await worker.trigger();
+    expect(worker.getStatus()).toMatchObject({ state: "offline", cursor, head: null });
+    expect(await tillCursor(till.database)).toBe(cursor);
+    expect(await tillAuditCommands(till.database)).toEqual(audits);
+    expect(requests).toBe(1);
+  } finally {
+    await worker.stop();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
 });

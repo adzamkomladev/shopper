@@ -1,29 +1,35 @@
 // Basket operations over the host bridge. Scope and cashier come from the host configuration only; every reply is
 // correlated by request id and a domain rejection is an error reply, never a closed connection.
 import { afterEach, describe, expect, it } from "vite-plus/test";
+import * as v from "valibot";
+import { bridgeMessage } from "@shopper/sync/bridge";
 import { createHostFixture } from "../../../../support/till/host/fixture";
 
 let fixture: Awaited<ReturnType<typeof createHostFixture>> | undefined;
 afterEach(async () => fixture?.close());
 
 const productOf = (f: NonNullable<typeof fixture>) => f.config.references.products[0].id;
+// Every reply must parse as the browser parses it, or the till UI drops the connection.
+const parsed = (reply: unknown) => {
+  const result = v.safeParse(bridgeMessage, reply);
+  if (!result.success) throw new Error(JSON.stringify(v.flatten(result.issues)));
+  return reply;
+};
 
 describe("till host basket bridge", () => {
   it("reads, adds, edits and removes draft lines for the configured cashier", async () => {
     fixture = await createHostFixture({ freshSession: true });
     const host = await fixture.start();
-    const empty = await host.request({ type: "readDraft" });
+    const empty = parsed(await host.request({ type: "readDraft" }));
     expect(empty).toMatchObject({
       type: "result",
       kind: "draft",
       view: { draft: null, quote: { lines: [], totals: { gross: 0 }, changed: false } },
     });
 
-    const added = await host.request({
-      type: "add",
-      expectedRevision: 0,
-      productId: productOf(fixture),
-    });
+    const added = parsed(
+      await host.request({ type: "add", expectedRevision: 0, productId: productOf(fixture) }),
+    );
     expect(added).toMatchObject({
       type: "result",
       kind: "draft",
@@ -57,6 +63,30 @@ describe("till host basket bridge", () => {
     });
     expect(await fixture.localSales()).toEqual([]);
     expect(await fixture.queued()).toEqual([]);
+  });
+
+  it("adds a scanned barcode and replies in the shape the browser accepts", async () => {
+    fixture = await createHostFixture({ freshSession: true });
+    const { references } = fixture.config;
+    const [product] = references.products;
+    const host = await fixture.start({
+      ...fixture.config,
+      references: {
+        ...references,
+        products: [
+          { ...product, barcodes: [{ code: "6001234000006", quantityThousandths: 1000 }] },
+        ],
+      },
+    });
+    const scanned = parsed(
+      await host.request({ type: "add", expectedRevision: 0, code: "6001234000006" }),
+    );
+    expect(scanned).toMatchObject({
+      kind: "draft",
+      view: { draft: { lines: [{ productId: product.id }] } },
+    });
+    parsed(await host.request({ type: "search", query: "6001234000006" }));
+    parsed(await host.request({ type: "add", expectedRevision: 0, productId: product.id }));
   });
 
   it("answers a stale revision or an unknown code with its TillError code and keeps serving", async () => {

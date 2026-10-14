@@ -27,6 +27,7 @@ const actions: SaleActions = {
   syncNow: record("syncNow"),
   reconnect: record("reconnect"),
 };
+const onRegister = record("register");
 
 const name = new URLSearchParams(location.search).get("scenario") ?? "lines";
 const snapshot = scenarios[name];
@@ -35,7 +36,7 @@ if (!snapshot) throw new Error(`Unknown sale scenario ${name}`);
 createRoot(document.getElementById("root")!).render(
   <ShortcutRoot>
     <AppBackdrop className="px-11 py-8" fill>
-      <SaleScreen actions={actions} snapshot={snapshot} />
+      <SaleScreen actions={actions} onRegister={onRegister} snapshot={snapshot} />
     </AppBackdrop>
   </ShortcutRoot>,
 );

@@ -121,7 +121,8 @@ export const tableCounts = (db: TillDatabase) =>
   }));
 
 export function ean13(body: string) {
-  const sum = [...body].reduce((acc, d, i) => acc + Number(d) * (i % 2 ? 3 : 1), 0);
+  let sum = 0;
+  for (let i = 0; i < body.length; i += 1) sum += Number(body[i]) * (i % 2 ? 3 : 1);
   return `${body}${(10 - (sum % 10)) % 10}`;
 }
 /** A default-layout embedded label: 2-digit prefix, 5 product digits, 5 value digits, check digit. */

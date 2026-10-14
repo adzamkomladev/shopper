@@ -29,7 +29,6 @@ export const addInputFor = (match: CatalogueMatch): AddInput =>
 type EntryProps = {
   fieldRef: Ref<HTMLInputElement>;
   value: string;
-  searching: boolean;
   activeIndex: number | null;
   disabled: boolean;
   describedBy: string | undefined;
@@ -46,7 +45,6 @@ type EntryProps = {
 export function ScanEntry({
   fieldRef,
   value,
-  searching,
   activeIndex,
   disabled,
   describedBy,
@@ -60,9 +58,10 @@ export function ScanEntry({
         {...fieldProps}
         aria-activedescendant={activeIndex === null ? undefined : optionId(activeIndex)}
         aria-autocomplete="list"
-        aria-controls={searching ? resultsId : undefined}
+        // The listbox exists only while there are matches to choose from.
+        aria-controls={activeIndex === null ? undefined : resultsId}
         aria-describedby={describedBy}
-        aria-expanded={searching}
+        aria-expanded={activeIndex !== null}
         aria-keyshortcuts="F2"
         aria-label="Scan barcode or search items"
         autoCapitalize="off"
@@ -94,6 +93,8 @@ type ResultsProps = {
 };
 
 const matchLabel = { barcode: "Barcode", sku: "SKU", name: "Name" } as const;
+// Muted text on the tinted active row drops below 4.5:1; slate-600 keeps AA.
+const quiet = (active: boolean) => (active ? "text-kbd-foreground" : "text-muted-foreground");
 
 /** Takes the place of the basket lines while the cashier searches. */
 export function SearchResults({ query, search, activeIndex, onPick }: ResultsProps) {
@@ -142,7 +143,7 @@ export function SearchResults({ query, search, activeIndex, onPick }: ResultsPro
     );
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <p className="flex h-7 shrink-0 items-center bg-muted px-4 text-xs font-bold text-muted-foreground">
+      <p className="flex h-7 shrink-0 items-center bg-muted px-4 text-xs font-bold text-kbd-foreground">
         {matches.length} match{matches.length === 1 ? "" : "es"} · Up and Down to choose, Enter to
         add
       </p>
@@ -169,12 +170,14 @@ export function SearchResults({ query, search, activeIndex, onPick }: ResultsPro
           >
             <div className="min-w-0 flex-1">
               <p className="truncate text-base leading-none font-medium">{match.name}</p>
-              <p className="mt-1 truncate text-xs text-muted-foreground">
+              <p className={cn("mt-1 truncate text-xs", quiet(index === activeIndex))}>
                 {[match.sku, match.barcode].filter(Boolean).join(" · ")}
               </p>
             </div>
             {match.quantityThousandths !== undefined && match.quantityThousandths !== 1000 && (
-              <span className="text-sm font-medium text-muted-foreground tabular-nums">
+              <span
+                className={cn("text-sm font-medium tabular-nums", quiet(index === activeIndex))}
+              >
                 × {formatQuantity(match.quantityThousandths)}
               </span>
             )}

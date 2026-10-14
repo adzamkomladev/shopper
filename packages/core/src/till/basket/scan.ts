@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import { and, eq, sql, type SQL } from "drizzle-orm";
 import { reference, type TillDatabase } from "@shopper/db-sqlite";
-import { money, mulRatio, type Money } from "@shopper/money";
+import { money, mulRatio } from "@shopper/money";
 import { tillMapping, tillPrice, tillProductBase } from "../../schemas/till/reference";
 import { TillError } from "../error";
 import { lookupCode } from "../lookup/search";
@@ -57,7 +57,8 @@ export async function resolveScan(database: TillDatabase, input: Scan): Promise<
 const unknown = (code: string) => new TillError("PRODUCT_UNKNOWN", `Unknown product code ${code}`);
 
 function validChecksum(code: string) {
-  const sum = [...code.slice(0, 12)].reduce((acc, d, i) => acc + Number(d) * (i % 2 ? 3 : 1), 0);
+  let sum = 0;
+  for (let i = 0; i < 12; i += 1) sum += Number(code[i]) * (i % 2 ? 3 : 1);
   return (10 - (sum % 10)) % 10 === Number(code[12]);
 }
 

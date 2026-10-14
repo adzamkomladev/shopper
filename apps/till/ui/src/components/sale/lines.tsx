@@ -45,7 +45,7 @@ export function Lines({
     <div className="flex min-h-0 flex-1 flex-col">
       <div
         aria-hidden="true"
-        className="flex h-7 items-center gap-3 bg-muted px-4 text-xs font-bold text-muted-foreground"
+        className="flex h-7 items-center gap-3 bg-muted px-4 text-xs font-bold text-kbd-foreground"
       >
         <span className="flex-1 pl-1">Item</span>
         <span className="w-36 text-center">Qty</span>
@@ -59,7 +59,8 @@ export function Lines({
         data-zone="basket"
         onKeyDown={onKeyDown}
         ref={listRef}
-        tabIndex={-1}
+        // In the tab order so the list can scroll by keyboard even while every line is disabled.
+        tabIndex={0}
       >
         {rows.map((row) => (
           <Line

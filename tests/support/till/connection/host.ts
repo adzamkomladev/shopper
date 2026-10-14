@@ -6,7 +6,12 @@ import { startTillHost } from "../host/process";
 
 type Server = Awaited<ReturnType<typeof createConnectionServer>>;
 
-export async function createConnectionHost(server: Server, upstream: string, origin: string) {
+export async function createConnectionHost(
+  server: Server,
+  upstream: string,
+  origin: string,
+  references: unknown = server.references,
+) {
   const [{ openTillDatabase }, { provisionTillReference }] = await Promise.all([
     import("@shopper/adapters-box/till"),
     import("@shopper/core/till"),
@@ -20,7 +25,7 @@ export async function createConnectionHost(server: Server, upstream: string, ori
     deviceToken: server.deviceToken,
     receiptCodes: server.receiptCodes,
     session: server.session,
-    references: server.references,
+    references,
     upstream,
     origins: [origin],
     port: 0,
@@ -36,7 +41,7 @@ export async function createConnectionHost(server: Server, upstream: string, ori
         branchId: server.identity.branchId,
         appVersion: server.appVersion,
       },
-      server.references,
+      references,
     );
   } catch (error) {
     await database.close();

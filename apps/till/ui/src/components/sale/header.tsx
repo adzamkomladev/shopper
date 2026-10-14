@@ -14,10 +14,12 @@ export function SaleHeader({
   host,
   sync,
   onSyncNow,
+  onRegister,
 }: {
   host: HostConnection;
   sync: SaleSync;
   onSyncNow: () => void;
+  onRegister: () => void;
 }) {
   const reason =
     sync.canSync || sync.syncing
@@ -32,6 +34,9 @@ export function SaleHeader({
         <p className="text-sm font-medium text-muted-foreground" id="sale-sync-note">
           {reason ?? syncSummary(sync)}
         </p>
+        <Button aria-keyshortcuts="F10" onClick={onRegister} size="touch" variant="outline">
+          Register <Kbd className="pointer-coarse:inline-flex">F10</Kbd>
+        </Button>
         <Button
           aria-describedby="sale-sync-note"
           aria-keyshortcuts="F8"

@@ -8,6 +8,7 @@ const hints = [
   ["F4", "Quantity"],
   ["Delete", "Remove line"],
   ["F8", "Sync now"],
+  ["F10", "Register"],
   ["Esc", "Clear"],
 ] as const;
 

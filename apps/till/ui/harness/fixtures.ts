@@ -28,7 +28,6 @@ function quote(spec: Spec): { line: DraftLine; quote: QuoteLine } {
   const unitPrice = pesewas(spec.unitGhs);
   const gross = mulQty(unitPrice, quantity);
   const rule = { ...rates, covidBps: spec.covidBps ?? 0 };
-  const sum = rule.vatBps + rule.nhilBps + rule.getfundBps + rule.covidBps;
   return {
     line: {
       id: spec.id,
@@ -81,7 +80,7 @@ function totalsOf(quotes: QuoteLine[]): SaleTotals {
 
 export function basket(specs: Spec[], broken: { id: string; error: string }[] = []): DraftView {
   const built = specs.map(quote);
-  const lines = [...built.map((entry) => entry.line)];
+  const lines = built.map((entry) => entry.line);
   const quotes: QuoteLine[] = built.map((entry) => entry.quote);
   for (const { id, error } of broken) {
     lines.push({ id, productId: `p-${id}`, quantityThousandths: 1000 });

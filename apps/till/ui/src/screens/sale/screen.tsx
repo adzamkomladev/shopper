@@ -21,14 +21,16 @@ const bannerId = "sale-banner";
 
 /**
  * The cashier workspace. It draws one snapshot and reports intent through `actions`; it fetches
- * nothing, so the Slice 6 bridge store is the only thing to wire.
+ * nothing. `onRegister` returns to the register connection screen.
  */
 export function SaleScreen({
   snapshot,
   actions,
+  onRegister,
 }: {
   snapshot: SaleSnapshot;
   actions: SaleActions;
+  onRegister: () => void;
 }) {
   const { host, view, failure, busy, search, loading, sync } = snapshot;
   const [activeIndex, setActiveIndex] = useState(0);
@@ -110,14 +112,21 @@ export function SaleScreen({
     field.props.onKeyDown(event);
   }
 
-  const shortcuts = useShortcuts({
+  const registerShortcuts = useShortcuts({
     F2: focusScan,
     F3: () => listRef.current?.focus(),
     F4: startEdit,
     F8: () => sync.canSync && actions.syncNow(),
     F9: actions.reconnect,
+    F10: onRegister,
     Escape: escape,
   });
+  // With the scan field disabled nothing else takes focus, so the screen holds it for its keys.
+  const shortcuts = (node: HTMLElement | null) => {
+    const cleanup = registerShortcuts(node);
+    if (node && document.activeElement === document.body) node.focus();
+    return cleanup;
+  };
 
   return (
     <main
@@ -126,7 +135,7 @@ export function SaleScreen({
       ref={shortcuts}
       tabIndex={-1}
     >
-      <SaleHeader host={host} onSyncNow={actions.syncNow} sync={sync} />
+      <SaleHeader host={host} onRegister={onRegister} onSyncNow={actions.syncNow} sync={sync} />
       <SaleBanners actions={actions} describedBy={bannerId} rows={rows} snapshot={snapshot} />
       <div className="grid min-h-0 flex-1 grid-cols-12 gap-6">
         <section
@@ -140,7 +149,6 @@ export function SaleScreen({
             fieldProps={{ ...field.props, onKeyDown: onScanKeyDown }}
             fieldRef={scanRef}
             onLookup={focusScan}
-            searching={searching}
             value={field.query}
           />
           {searching ? (

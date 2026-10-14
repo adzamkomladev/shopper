@@ -34,7 +34,8 @@ import { StatusCard } from "./status/card";
 import { canSyncNow } from "../../connection/sync";
 import { SyncStatus } from "./sync/status";
 
-export function ConnectionScreen() {
+/** `onSell` opens the sale screen; it is offered once the register host is connected. */
+export function ConnectionScreen({ onSell }: { onSell: () => void }) {
   const connection = useConnectionSnapshot();
   const status = connection.status;
   const [aboutOpen, setAboutOpen] = useState(false);
@@ -45,6 +46,7 @@ export function ConnectionScreen() {
     C: connectRegister,
     Y: syncNow,
     A: () => setAboutOpen(true),
+    S: () => connection.host === "connected" && onSell(),
   });
   const shortcuts = (node: HTMLElement | null) => {
     const cleanup = registerShortcuts(node);
@@ -91,18 +93,28 @@ export function ConnectionScreen() {
               </p>
             </div>
           </div>
-          <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
-            <DialogTrigger asChild>
-              <Button aria-label="About" aria-keyshortcuts="A" variant="outline" size="touch">
-                About <Kbd className="pointer-coarse:inline-flex">A</Kbd>
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogTitle>About Shopper</DialogTitle>
-              <DialogDescription>Register application details.</DialogDescription>
-              <About />
-            </DialogContent>
-          </Dialog>
+          <div className="flex items-center gap-3">
+            <Button
+              aria-keyshortcuts="S"
+              disabled={connection.host !== "connected"}
+              onClick={onSell}
+              size="touch"
+            >
+              Start selling <Kbd className="pointer-coarse:inline-flex">S</Kbd>
+            </Button>
+            <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
+              <DialogTrigger asChild>
+                <Button aria-label="About" aria-keyshortcuts="A" variant="outline" size="touch">
+                  About <Kbd className="pointer-coarse:inline-flex">A</Kbd>
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogTitle>About Shopper</DialogTitle>
+                <DialogDescription>Register application details.</DialogDescription>
+                <About />
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
         <SyncStatus host={connection.host} status={status} onSyncNow={syncNow} />
       </header>

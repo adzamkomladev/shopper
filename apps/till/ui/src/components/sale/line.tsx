@@ -112,7 +112,11 @@ export function Line({
         <>
           <Money
             amount={row.tax.unitPrice}
-            className="w-24 text-sm font-medium text-muted-foreground"
+            // On the tinted selected row muted text drops below 4.5:1; slate-600 keeps AA.
+            className={cn(
+              "w-24 text-sm font-medium",
+              selected ? "text-kbd-foreground" : "text-muted-foreground",
+            )}
           />
           <Money amount={row.tax.gross} className="w-28 text-base font-bold" />
         </>

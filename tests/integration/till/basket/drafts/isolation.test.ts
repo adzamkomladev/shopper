@@ -14,7 +14,6 @@ import {
   otherCashier,
   otherDevice,
   read,
-  scope,
   weightLabel,
   withTill,
   world,

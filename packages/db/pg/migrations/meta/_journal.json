@@ -99,6 +99,13 @@
       "when": 1791972000000,
       "tag": "0013_assets",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792058400000,
+      "tag": "0014_barcode_mappings",
+      "breakpoints": true
     }
   ]
 }

@@ -29,6 +29,7 @@ import {
   updateProduct,
   schedulePrice,
 } from "@shopper/core/catalogue";
+import { mappingRoutes } from "./catalogue/mappings";
 import { problem } from "../middleware/problem";
 import { requirePermission } from "../middleware/require/permission";
 import { priceBody } from "../schemas/catalogue";
@@ -202,6 +203,8 @@ export function catalogueRoutes(options: {
   app.get("/catalogue/imports/:id", async (c) =>
     c.json(await readImport(db, org(c), c.req.param("id"))),
   );
+
+  app.route("/catalogue/barcodes/mappings", mappingRoutes(db, context, body));
 
   app.onError(problem);
   return app;

@@ -1,13 +1,8 @@
+import type { LiveSocket, LiveMode } from "./types";
+export type { LiveSocket, LiveMode } from "./types";
+import { nudge } from "./schemas/live";
 import * as v from "valibot";
-import { sequenceSchema } from "@shopper/ports";
 
-export type LiveSocket = {
-  on(event: "open" | "close" | "error", listener: () => void): unknown;
-  on(event: "message", listener: (data: unknown) => void): unknown;
-  close(): void;
-};
-export type LiveMode = "live" | "polling" | "offline";
-const nudge = v.object({ type: v.literal("store.changed"), sequence: sequenceSchema });
 const FALLBACK_MS = 30_000;
 const MAX_FALLBACK_MS = 300_000;
 

@@ -1,5 +1,5 @@
 import { expect, test } from "vite-plus/test";
-import { toSpreadsheet } from "../../../../tooling/lib/catalogue-fixture";
+import { toSpreadsheet } from "../../../../tooling/lib/catalogue/fixture";
 import { barcode, call, createProduct, unique } from "../support";
 import { csv, detail, ean13, footprint, importOk, productRow, sheetRows, upload } from "./support";
 

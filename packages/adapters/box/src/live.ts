@@ -1,10 +1,7 @@
+import type { BoxWebSocketServer } from "./types";
+export type { BoxWebSocketServer } from "./types";
 import { Hono } from "hono";
-import type { BunWebSocketData } from "hono/bun";
 import type { Realtime } from "@shopper/ports";
-
-export type BoxWebSocketServer = {
-  upgrade(request: Request, options: { data: BunWebSocketData }): boolean;
-};
 
 export function boxLive(realtime: Realtime, server: BoxWebSocketServer | undefined) {
   return async (

@@ -11,7 +11,7 @@ import {
   listInvitations,
   listUsers,
   row,
-} from "../../../../support/admin-people";
+} from "../../../../support/admin/people";
 import { ANNEX, expectNoSeriousAxe, signInWithKeyboard } from "../../../../support/e2e";
 
 const SETUP_LINK = /\/accept-invitation\?.*id=.*token=/;

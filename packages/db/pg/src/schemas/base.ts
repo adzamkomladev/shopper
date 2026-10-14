@@ -10,6 +10,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { fromBigInt, money, type Money } from "@shopper/money";
@@ -88,7 +89,9 @@ export const branch = pgTable(
   },
   (t) => [
     unique().on(t.orgId, t.id),
-    unique().on(t.orgId, t.code),
+    uniqueIndex("branch_org_code_unique")
+      .on(t.orgId, t.code)
+      .where(sql`${t.code} <> ''`),
     foreignKey({ columns: [t.orgId, t.storeId], foreignColumns: [store.orgId, store.id] }),
   ],
 );

@@ -1,3 +1,4 @@
+import { sha256 } from "@shopper/utils";
 import { constantTimeEqual } from "../session/http";
 
 export async function createLinkToken(
@@ -22,7 +23,7 @@ export async function createLinkToken(
   );
 }
 export async function linkDigest(token: string) {
-  return hex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token)));
+  return sha256(token);
 }
 export async function assertLink(digest: string, token: string, expiresAt: Date, now: number) {
   if (expiresAt.getTime() <= now || !constantTimeEqual(digest, await linkDigest(token)))

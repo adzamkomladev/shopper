@@ -47,7 +47,7 @@ test("a missing tax class is a row error on the tax column; dry run and apply ag
   expect(await detail(`${tag}-2`)).toBeDefined();
 });
 
-test("a multipart upload without a file field says so; an unreadable body says that instead", async () => {
+test("multipart bodies are rejected without parsing uploaded bytes", async () => {
   const form = new FormData();
   form.set("other", "x");
   const { api, cookies } = await import("../support");
@@ -56,15 +56,15 @@ test("a multipart upload without a file field says so; an unreadable body says t
     headers: { cookie: cookies.get("superadmin")! },
     body: form,
   });
-  expect(missing.status).toBe(400);
-  expect(await missing.json()).toEqual({ error: "Send the spreadsheet as a file field" });
+  expect(missing.status).toBe(415);
+  expect(await missing.json()).toEqual({ error: "Send an uploaded asset reference as JSON" });
   const broken = await api.request("/catalogue/imports", {
     method: "POST",
     headers: { cookie: cookies.get("superadmin")!, "content-type": "multipart/form-data" },
     body: "not multipart",
   });
-  expect(broken.status).toBe(400);
-  expect((await broken.json()).error).toMatch(/^Could not read the upload/);
+  expect(broken.status).toBe(415);
+  expect(await broken.json()).toEqual({ error: "Send an uploaded asset reference as JSON" });
 });
 
 test("empty sheets, non-UTF-8 CSVs and ambiguous headers get their own 400s", async () => {

@@ -125,8 +125,7 @@ export const connectionScenario = {
       if (state === "receipts") {
         await host.waitForStatus((status) => status.receiptsLeft === 2_000);
         upstream.setAvailable(false);
-        await fixture.recordSales(1_901);
-        await host.request({ type: "retry" });
+        await recordSales(1_901);
       }
       return {
         url: `${appOrigin}/#${encodeURIComponent(host.ready.capability)}`,

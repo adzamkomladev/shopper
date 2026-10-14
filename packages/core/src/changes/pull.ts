@@ -1,25 +1,10 @@
+import type { PullPage } from "./types";
+export type { PullPage } from "./types";
 import { and, asc, eq, gt, sql } from "drizzle-orm";
 import { store, storeChange, type ShopperDatabase } from "@shopper/db-pg";
 
 export const MAX_PULL_LIMIT = 500;
 const SNAPSHOT_THRESHOLD = 50_000;
-
-export type PullPage =
-  | { snapshot: true; head: string }
-  | {
-      changes: {
-        seq: string;
-        id: string;
-        entity: string;
-        entityId: string;
-        op: string;
-        v: number;
-        payload: unknown;
-      }[];
-      cursor: string;
-      head: string;
-      hasMore: boolean;
-    };
 
 /**
  * One page of a store's change feed. The head and the rows are read in a single REPEATABLE READ

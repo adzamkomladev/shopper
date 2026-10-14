@@ -93,7 +93,7 @@ Claude Code, Codex and OpenCode all read the same rules and skills. See
 ### Till host and browser connection
 
 The compiled Node till host starts with a private configuration file or process IPC; see
-[the host README](../../apps/till-host/README.md). Configure the browser Origin explicitly, then
+[the host README](../../apps/till/host/README.md). Configure the browser Origin explicitly, then
 open its connection link. Vite proxies `/bridge` to the loopback host through
 `SHOPPER_TILL_HOST_URL`. The per-start capability leaves the URL immediately and is kept in
 memory; device credentials never enter browser configuration.
@@ -101,3 +101,7 @@ memory; device credentials never enter browser configuration.
 The Playwright MCP configurations use `tooling/mcp/playwright.mjs`. This launcher adds
 `--no-sandbox` only when the process runs as root, allowing browser review in the development
 container without changing non-root launches.
+
+Run `vp run storage:setup` after starting services to initialize private imports storage/CORS in loopback RustFS. Browser imports need the `SHOPPER_S3_*` configuration documented in [deployment.md](deployment.md). The setup script contains development-only credentials and cannot target a production endpoint.
+
+For linked worktrees, validate builds with `vp run -r --no-cache build` if Vite+ caching tries to read `.git/HEAD` as a directory. The Playwright box harness disables build caching so its bundled API always reflects current workspace dependencies rather than a previous box artifact.

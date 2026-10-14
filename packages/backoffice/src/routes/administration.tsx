@@ -1,13 +1,13 @@
 import type { EnsureQueryDataOptions } from "@tanstack/react-query";
 import { createRoute, lazyRouteComponent, type AnyRoute } from "@tanstack/react-router";
-import { routeStates } from "../components/route-states";
+import { routeStates } from "../components/route/states";
 import { ListSkeleton } from "../components/admin/states";
-import { branchesQuery } from "../screens/branches/queries";
-import { devicesScreenQueries } from "../screens/devices/queries";
-import { rolesScreenQueries } from "../screens/roles/queries";
-import { storesQuery } from "../screens/stores/queries";
-import { usersScreenQueries } from "../screens/users/queries";
-import { permissionsQuery } from "../session/permissions";
+import { branchesQuery } from "../queries/branches";
+import { devicesScreenQueries } from "../queries/devices";
+import { rolesScreenQueries } from "../queries/roles";
+import { storesQuery } from "../queries/stores";
+import { usersScreenQueries } from "../queries/users";
+import { permissionsQuery } from "../queries/session/permissions";
 import type { BackofficeContext } from "../types";
 
 type Context = { context: BackofficeContext };

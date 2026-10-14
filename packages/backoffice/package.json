@@ -14,11 +14,13 @@
     "build": "tsc -b"
   },
   "dependencies": {
+    "@shopper/assets": "workspace:*",
     "@shopper/auth": "workspace:*",
     "@shopper/config": "workspace:*",
     "@shopper/core": "workspace:*",
     "@shopper/money": "workspace:*",
     "@shopper/ui": "workspace:*",
+    "@shopper/utils": "workspace:*",
     "@tanstack/react-form": "1.33.5",
     "@tanstack/react-query": "5.103.3",
     "@tanstack/react-router": "1.170.41",

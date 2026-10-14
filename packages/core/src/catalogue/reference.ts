@@ -3,12 +3,17 @@ import { and, asc, eq } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
 import { category, supplier } from "@shopper/db-pg";
 import { managementJson, ManagementError } from "../management";
-import { categoryInput, supplierInput } from "../schemas/catalogue/inputs";
+import {
+  categoryInput,
+  supplierInput,
+  categoryUpdate,
+  supplierUpdate,
+} from "../schemas/catalogue/inputs";
 import type { Queryable } from "../types";
 import { nonEmpty, recordId } from "./records";
 
-export const saveCategory = defineSave("category", category, categoryInput);
-export const saveSupplier = defineSave("supplier", supplier, supplierInput);
+export const saveCategory = defineSave("category", category, categoryInput, categoryUpdate);
+export const saveSupplier = defineSave("supplier", supplier, supplierInput, supplierUpdate);
 
 export const listCategories = (db: Queryable, orgId: string) =>
   db.select().from(category).where(eq(category.orgId, orgId)).orderBy(asc(category.name));
@@ -31,6 +36,7 @@ function defineSave(
   entity: "category" | "supplier",
   table: typeof category | typeof supplier,
   create: typeof categoryInput | typeof supplierInput,
+  update: typeof categoryUpdate | typeof supplierUpdate,
 ) {
   return defineCommand({
     name: `${entity}.save`,
@@ -45,7 +51,7 @@ function defineSave(
         return managementJson({ id: after!.id, before: null, after });
       }
       const id = recordId(input.id);
-      const data = nonEmpty(v.parse(v.partial(create), input.data));
+      const data = nonEmpty(v.parse(update, input.data));
       if ("parentId" in data && data.parentId) {
         if (data.parentId.toLowerCase() === id)
           throw new ManagementError("A category cannot be its own parent", 400);

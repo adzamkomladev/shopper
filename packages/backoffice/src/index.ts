@@ -1,2 +1,2 @@
-export { createBackofficeRoutes } from "./routes";
+export { createBackofficeRoutes } from "./routes/create";
 export type { BackofficeContext } from "./types";

@@ -5,7 +5,7 @@ import {
   generateCatalogue,
   messUp,
   toSpreadsheet,
-} from "../../../../tooling/lib/catalogue-fixture";
+} from "../../../../tooling/lib/catalogue/fixture";
 import { allAuditRows, call, db, expectChainValid } from "../support";
 import {
   detail,
@@ -104,10 +104,10 @@ test("re-importing the same file changes nothing and adds no price versions", as
   expect(await db.select().from(schema.product)).toEqual(rowsBefore);
   expect(await db.select().from(schema.price)).toEqual(pricesBefore);
   expect(await db.select().from(schema.productImport)).toHaveLength(imports.length + 1);
-  expect((await allAuditRows()).length).toBe(auditBefore + 1);
+  expect((await allAuditRows()).length).toBe(auditBefore + 2);
 });
 
-test("a dry run writes nothing", async () => {
+test("a dry run only records its uploaded asset", async () => {
   const rows = sheetRows(15);
   rows[4]!["Selling Price"] = "abc";
   const before = await footprint();
@@ -136,19 +136,21 @@ test("a dry run writes nothing", async () => {
   });
 });
 
-test("one import writes one audit row with the file hash and counts", async () => {
+test("one import audits its grant and catalogue counts without recording the grant URL", async () => {
   const file = toSpreadsheet(sheetRows(30), "xlsx");
   const before = (await allAuditRows()).length;
   const result = await importOk(file, "audit.xlsx");
 
   const written = (await allAuditRows()).slice(before);
-  expect(written).toHaveLength(1);
-  expect(written[0]).toMatchObject({
+  expect(written).toHaveLength(2);
+  expect(written[0]!.command).toBe("asset.upload.issue");
+  expect(JSON.stringify(written)).not.toContain("X-Amz-Signature");
+  expect(written[1]).toMatchObject({
     command: "catalogue.import",
     entity: "product_import",
     entityId: result.id,
   });
-  expect(written[0]!.payload).toMatchObject({ sha256: sha256(file), rowsTotal: 30, rowsOk: 30 });
+  expect(written[1]!.payload).toMatchObject({ sha256: sha256(file), rowsTotal: 30, rowsOk: 30 });
   await expectChainValid();
   expect(await (await call(`/catalogue/imports/${result.id}`)).json()).toMatchObject({
     fileName: "audit.xlsx",
@@ -156,5 +158,15 @@ test("one import writes one audit row with the file hash and counts", async () =
     rowsOk: 30,
     priceValidFrom: expect.any(String),
     createdAt: expect.any(String),
+  });
+});
+
+test("CSV import retains its fixed byte digest", async () => {
+  const result = await importOk(
+    "SKU,Name,Selling Price\ndigest-fixture,Digest Fixture,1.00\n",
+    "digest.csv",
+  );
+  expect(await (await call(`/catalogue/imports/${result.id}`)).json()).toMatchObject({
+    sha256: "db7fc891e233eddde58998e2181f77be86d4b713a8d6c0291064dd004b6ad883",
   });
 });

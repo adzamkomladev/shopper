@@ -1,24 +1,10 @@
+import type { ImportError, CleanRow } from "./types";
+export type { ImportError, CleanRow } from "./types";
 import { fromDecimal, type Money } from "@shopper/money";
 import type { BaseUnit, taxClass } from "@shopper/db-pg";
 
 type TaxClass = (typeof taxClass.$inferSelect)["code"];
 import type { Column, Headers, SheetRows } from "./parse";
-
-export type ImportError = { row: number; column: string; value: string; message: string };
-export type CleanRow = {
-  row: number;
-  sku: string;
-  name: string;
-  barcodes: { code: string; quantityThousandths: number; column: Column }[];
-  baseUnit: BaseUnit;
-  department: string | null;
-  category: string | null;
-  supplier: string | null;
-  // Undefined only when the file has no Tax Class column; existing products then keep theirs.
-  taxClass?: TaxClass;
-  amount: Money;
-  onlineVisible: boolean;
-};
 
 const units = new Set(["each", "kg", "g", "l", "ml"]);
 const taxAliases = new Map<string, TaxClass>(

@@ -4,7 +4,7 @@ import { buildInfo } from "@shopper/config";
 import { member, role } from "@shopper/db-pg";
 import { uuidV7Schema } from "@shopper/ports";
 import { AuthRollback, mutating } from "./request";
-import { buildAuth } from "./better-auth";
+import { buildAuth } from "./better/auth";
 import { constantTimeEqual, response } from "./http";
 import { grantedCodes } from "../roles/service";
 import type { AuthPrincipal, CreateAuthOptions } from "../types";

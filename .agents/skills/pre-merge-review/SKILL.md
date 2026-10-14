@@ -12,3 +12,7 @@ description: Review Shopper changes before commit or PR using Codex (gpt-6.1-sol
 3. If any `.tsx`, CSS, or UI package changed, also spawn `ui-reviewer`.
 4. Fix every confirmed finding, rerun the checks, and rerun the review if the fixes were not trivial.
 5. Report: the findings fixed, the findings rejected with reasons, and the final check results.
+
+## Architecture cleanup rules
+
+Follow current `layout.md` and `code-quality.md`: no hyphens in authored paths (explicit stable/framework/generated/published exceptions); backoffice screens/components/queries/stores/hooks have separate homes nested by context; schemas and exported reusable types have owning modules; workflow modules each implement one responsibility. Reuse `@shopper/utils` SHA-256 without changing domain hash contracts. Assets use `@shopper/assets` for policy/tracking/grants and Blobs for provider transport; browser bytes upload directly to R2/RustFS and are bounded/verified immediately before processing. Never add an API byte-upload fallback. Verify both storage adapters and preserve public routes/subpaths.

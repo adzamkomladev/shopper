@@ -1,13 +1,10 @@
 "use no memo"; // TanStack Table and Virtual return unstable functions that the React Compiler would cache.
 
+import type { DataTableColumn } from "./types";
+export type { DataTableColumn } from "./types";
+
 import { useRef, type UIEvent } from "react";
-import {
-  metaHelper,
-  tableFeatures,
-  useTable,
-  type ColumnDef,
-  type RowData,
-} from "@tanstack/react-table";
+import { metaHelper, tableFeatures, useTable, type RowData } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { cn } from "cn";
 import {
@@ -21,11 +18,10 @@ import {
 const ROW_HEIGHT = 66;
 const OVERSCAN_ROWS = 8;
 const END_REACHED_ROWS = 10;
-const features = tableFeatures({
+export const features = tableFeatures({
   columnMeta: metaHelper<{ align?: "right"; className?: string }>(),
 });
 
-export type DataTableColumn<TData extends RowData> = ColumnDef<typeof features, TData>;
 type DataTableProps<TData extends RowData> = {
   columns: DataTableColumn<TData>[];
   data: TData[];

@@ -3,13 +3,13 @@ import { useSearch } from "@tanstack/react-router";
 import { useInfiniteQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Button } from "@shopper/ui/components/button";
 import { Kbd } from "@shopper/ui/components/kbd";
-import { NewProductSheet } from "./create/sheet";
-import { TableSkeleton } from "./states";
-import { ProductResults } from "./results";
-import { ProductToolbar } from "./toolbar";
-import { categoriesQuery, productsQuery } from "./queries";
-import { useProductSearch } from "./use-search";
-import { useProductsShortcuts } from "./use-shortcuts";
+import { NewProductSheet } from "../../../components/catalogue/list/create/sheet";
+import { TableSkeleton } from "../../../components/catalogue/list/states";
+import { ProductResults } from "../../../components/catalogue/list/results";
+import { ProductToolbar } from "../../../components/catalogue/list/toolbar";
+import { categoriesQuery, productsQuery } from "../../../queries/catalogue/list";
+import { useProductSearch } from "../../../hooks/catalogue/list/search";
+import { useProductsShortcuts } from "../../../hooks/catalogue/list/shortcuts";
 
 export function ProductsScreen() {
   const search = useSearch({ from: "/_shop/products" });

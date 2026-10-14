@@ -1,5 +1,6 @@
+import { problem } from "../schemas/api/client";
 import * as v from "valibot";
-import { currentShop } from "../shops/store";
+import { currentShop } from "../stores/shops";
 
 const API_BASE = "/api";
 
@@ -15,8 +16,6 @@ export class ApiError extends Error {
 }
 
 const OFFLINE_MESSAGE = "Can't reach the server. Check your connection and try again.";
-const FILE_NOT_SENT_MESSAGE =
-  "Couldn't send the file. If you changed it after choosing it, choose it again; otherwise check your connection.";
 const UNREADABLE_WRITE_MESSAGE =
   "The server's reply couldn't be read. Refresh to see whether your change was saved.";
 const UNREADABLE_READ_MESSAGE = "The server's reply couldn't be read. Refresh and try again.";
@@ -39,13 +38,6 @@ type Options = {
   shopId?: string | null;
 };
 
-// The API reports problems as `{ error, field? }`; Better Auth uses `{ message }`.
-const problem = v.object({
-  error: v.optional(v.string()),
-  message: v.optional(v.string()),
-  field: v.optional(v.string()),
-});
-
 /** Same-origin call to the API with the session cookie and the selected shop, parsed with `schema`. */
 export async function apiFetch<S extends v.GenericSchema>(
   path: string,
@@ -55,30 +47,24 @@ export async function apiFetch<S extends v.GenericSchema>(
   const params = new URL(path, "http://shopper.invalid").searchParams;
   const sensitive =
     /^\/(onboarding|invitations|auth)(?:\/|$)/.test(path) ||
+    path.split("?")[0] === "/catalogue/imports/uploads" ||
     CREDENTIAL_KEYS.some(
       (name) => params.has(name) || (body !== null && typeof body === "object" && name in body),
     );
   const headers = new Headers();
-  // A FormData body sets its own multipart Content-Type, with the boundary.
-  const isForm = body instanceof FormData;
-  if (body !== undefined && !isForm) headers.set("Content-Type", "application/json");
+  if (body !== undefined) headers.set("Content-Type", "application/json");
   if (shopId) headers.set("X-Shopper-Org", shopId);
   const response = await fetch(`${API_BASE}${path}`, {
     method,
     headers,
     credentials: "include",
-    body: body === undefined || isForm ? body : JSON.stringify(body),
+    body: body === undefined ? undefined : JSON.stringify(body),
   }).catch((cause: unknown) => {
     console.error(
       `[api] ${method} ${loggablePath(path)} was not sent`,
       sensitive ? "Request details withheld" : cause,
     );
-    throw new ApiError(
-      0,
-      isForm ? FILE_NOT_SENT_MESSAGE : OFFLINE_MESSAGE,
-      undefined,
-      sensitive ? undefined : { cause },
-    );
+    throw new ApiError(0, OFFLINE_MESSAGE, undefined, sensitive ? undefined : { cause });
   });
   const copy = response.clone();
   const payload: unknown = await response.json().catch(async () => {

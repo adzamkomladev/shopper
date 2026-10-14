@@ -1,3 +1,5 @@
+import type { ManagementKind } from "./types";
+export type { ManagementKind } from "./types";
 import * as v from "valibot";
 import { and, eq } from "drizzle-orm";
 import { store, branch, type ShopperDatabase } from "@shopper/db-pg";
@@ -19,7 +21,7 @@ export {
   storeInput,
   storePatch,
 } from "./schemas/management";
-export type ManagementKind = "store" | "branch";
+
 export class ManagementError extends Error {
   constructor(
     message: string,

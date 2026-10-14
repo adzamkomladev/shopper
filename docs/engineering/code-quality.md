@@ -25,7 +25,7 @@ Never add to it.
 2. **Few helpers, and only real ones.** Extract a helper when it is reused, or when its name explains
    something a reader would otherwise have to work out. Do not extract a 2-line helper used once. Five
    tiny helpers in one file is noise. Inline them.
-3. **One concept per file.** File names say what is inside (`sale-totals.ts`, not `utils.ts` or
+3. **One concept per file.** File names say what is inside (`sales/totals.ts`, not `utils.ts` or
    `helpers.ts`).
 4. **Comments say why, not what.** Delete comments that restate the code. Keep the ones that explain
    a constraint, a trade-off, or a non-obvious invariant.
@@ -47,10 +47,9 @@ Grow a project with folders, not new packages. Each app or package uses the same
 
 Shared filename prefixes or suffixes belong in a folder. Use `schemas/base.ts` and
 `schemas/workflows.ts`, never `base-schema.ts` and `workflow-schema.ts`. Use
-`screens/auth/login/{screen,form,success}.tsx`, never `screens/login/login-form.tsx`.
+`screens/auth/login/screen.tsx` and `components/auth/login/{form,success}.tsx`, never `screens/login/login-form.tsx`.
 Apply the same rule to hooks, commands, queries, tests and tooling when they form a feature.
-Keep conventional markers such as `use-`, `.test` and `.spec`; avoid repeating the enclosing
-feature name. Do not rename framework entry points, generated files or published migrations.
+Keep `.test` and `.spec` markers. Authored path segments use no hyphens, including hooks: `hooks/catalogue/list/search.ts`. Do not rename framework entry points, generated files or published migrations.
 Keep exported symbols descriptive for callers; this rule concerns file paths.
 
 Apply shared layout changes across all apps and packages, including both adapters. Trace
@@ -125,3 +124,15 @@ Reach for, in this order: the standard library, the platform (Web APIs, CSS, Pos
 an already-installed dependency, a few lines of our own code. A new dependency needs a reason in the
 PR description: what it replaces, its size, its maintenance, and whether it runs on Workers **and**
 Bun. Pin exact versions.
+
+## Enforced responsibility ownership
+
+Valibot schema construction belongs in `schemas/` (guard), including inline HTTP/search/provider schemas. Runtime parsing imports those schemas. Reusable exported types/interfaces belong in contextual `types.ts` or beside their owning schemas (guard); private component props can remain local.
+
+Use `sha256` from `@shopper/utils` for lowercase hexadecimal SHA-256 (guard). Keep audit/sync canonical serialization, version projections, HMAC purpose separation and credential derivation in their domain owners.
+
+Workflow implementations live under `workflows/`, one responsibility per module. An implementation cannot re-export another workflow (guard); `index.ts` only re-exports.
+
+The backoffice organizes by responsibility, nested by context: screens are composition, components are screen parts, queries define reads/mutations, stores own subscriptions, hooks orchestrate UI, schemas own validation, routes wire host-owned routing. This replaces earlier screen feature-colocation guidance.
+
+Authored paths have no hyphens (source guard). Exceptions are generated files, published migrations, required framework route names, stable public package subpaths and HTTP URLs, and tool-consumed skill/role/config identifiers. Keep compatibility mappings when renaming physical files; do not broaden exceptions to arbitrary authored folders.

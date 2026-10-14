@@ -6,6 +6,8 @@ import type {
 } from "@shopper/auth";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { Blobs, Realtime, Sequencer, WorkflowLauncher } from "@shopper/ports";
+import type { Cache } from "@shopper/ports";
+import type { LiveUpgrade } from "./sync/live";
 
 export type ApiPrincipal = AuthPrincipal;
 export interface ApiAuthentication {
@@ -27,4 +29,22 @@ export interface ApiOptions {
   priceChange?: WorkflowLauncher;
   onboarding?: ReturnType<typeof createOnboarding>;
   invitations?: ReturnType<typeof createInvitations>;
+}
+
+export interface RuntimeOptions {
+  database: ShopperDatabase;
+  sequencer?: Sequencer;
+  blobs?: Blobs;
+  live?: LiveUpgrade;
+  realtime?: Realtime;
+  cache: Cache;
+  secret: string;
+  baseURL: string;
+  orgId?: string;
+  bootstrapToken?: string;
+  clientIP?: string;
+  priceChange?: WorkflowLauncher;
+  authFlows?: WorkflowLauncher;
+  linkSecret?: string;
+  publicOnboarding?: boolean;
 }

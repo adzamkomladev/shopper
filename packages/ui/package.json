@@ -35,6 +35,22 @@
     "./components/data-table": {
       "types": "./src/components/table/data.tsx",
       "default": "./src/components/table/data.tsx"
+    },
+    "./components/app-backdrop": {
+      "types": "./src/components/app/backdrop.tsx",
+      "default": "./src/components/app/backdrop.tsx"
+    },
+    "./components/dropdown-menu": {
+      "types": "./src/components/dropdown/menu.tsx",
+      "default": "./src/components/dropdown/menu.tsx"
+    },
+    "./hooks/use-now": {
+      "types": "./src/hooks/use/now.ts",
+      "default": "./src/hooks/use/now.ts"
+    },
+    "./hooks/use-online": {
+      "types": "./src/hooks/use/online.ts",
+      "default": "./src/hooks/use/online.ts"
     }
   },
   "scripts": {

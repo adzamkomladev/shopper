@@ -5,12 +5,12 @@ import { Button } from "@shopper/ui/components/button";
 import { Kbd } from "@shopper/ui/components/kbd";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { focusOnMount } from "../../../lib/focus";
-import { MOD_KEY } from "../../../lib/mod-key";
-import { FileDrop } from "./file-drop";
-import { ImportDone } from "./done";
-import { ImportReport } from "./report";
-import { importFailure, useCheckImport, useRunImport } from "./queries";
-import { useImportShortcuts } from "./use-shortcuts";
+import { MOD_KEY } from "../../../lib/mod/key";
+import { FileDrop } from "../../../components/catalogue/imports/file/drop";
+import { ImportDone } from "../../../components/catalogue/imports/done";
+import { ImportReport } from "../../../components/catalogue/imports/report";
+import { importFailure, useCheckImport, useRunImport } from "../../../queries/catalogue/imports";
+import { useImportShortcuts } from "../../../hooks/catalogue/imports/shortcuts";
 
 const OFFLINE_NOTE_ID = "check-offline-note";
 const TITLE_ID = "import-title";
@@ -37,7 +37,7 @@ export function ImportsScreen() {
   function next() {
     if (!online || busy || run.isSuccess || !file) return;
     if (!report) check.mutate(file);
-    else if (report.rowsOk > 0) run.mutate(file);
+    else if (report.rowsOk > 0) run.mutate(report.assetId);
   }
   const shortcuts = useImportShortcuts({ next });
   // Why the button is disabled, read out with it.
@@ -58,8 +58,8 @@ export function ImportsScreen() {
           Import products
         </h1>
         <p className="max-w-prose text-sm text-muted-foreground">
-          Add or update many products from a CSV or Excel file. Check it first: nothing is saved
-          until you import. Every file needs SKU, Name and Selling Price columns, and new products
+          Add or update many products from a CSV or Excel file. Check it first: products change only
+          when you import. Every file needs SKU, Name and Selling Price columns, and new products
           also need Tax Class.
         </p>
       </div>

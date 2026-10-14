@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { captureSizes, unique } from "../../../support/admin";
-import { createCustomRole, createStaff, signInAs } from "../../../support/admin-people";
+import { createCustomRole, createStaff, signInAs } from "../../../support/admin/people";
 import { expectNoSeriousAxe } from "../../../support/e2e";
 
 test.describe("branch route states", () => {

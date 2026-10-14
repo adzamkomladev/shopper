@@ -1,3 +1,4 @@
+export type { AuthPrincipal } from "./types";
 import { and, eq, sql } from "drizzle-orm";
 import { defineCommand, type CommandContext } from "@shopper/audit";
 import {
@@ -13,14 +14,6 @@ import { permissionNames } from "../schemas/permissions";
 import { rolePermissions, tillPermissions } from "./defaults";
 
 /** Every principal the API, the auth service and the device service hand around. */
-export interface AuthPrincipal {
-  orgId: string;
-  userId: string;
-  roleId: string;
-  roleName: string;
-  deviceId?: string;
-  branchId?: string;
-}
 
 export async function seedRoleRows(tx: ShopperTransaction, orgId: string) {
   await tx

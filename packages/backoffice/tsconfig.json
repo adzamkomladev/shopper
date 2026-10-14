@@ -21,6 +21,12 @@
     },
     {
       "path": "../ui"
+    },
+    {
+      "path": "../assets"
+    },
+    {
+      "path": "../utils"
     }
   ]
 }

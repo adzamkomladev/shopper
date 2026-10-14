@@ -6,18 +6,16 @@ root route and query client; mount the package with `createBackofficeRoutes(root
 
 ## Layout
 
-- `src/screens/auth/login/`: sign-in screen, form, success state and queries.
-- `src/screens/catalogue/list/`: catalogue browsing; `create/` holds the new-product form and sheet.
-- `src/screens/catalogue/detail/`: product details; `prices/` holds price cards, dialogs, rows and grouping.
-- `src/screens/catalogue/imports/`: file selection, preview report and completion.
-- `src/layouts/shell/`: signed-in layout, navigation and shop switching.
-- `src/schemas/`: Valibot login, catalogue and product form schemas and their inferred types.
-- `src/components/fields/`: shared text and select form fields.
-- `src/session/`, `src/shops/`, `src/api/`: session queries, remembered-shop store and API client.
+- `src/screens/<context>/screen.tsx`: screen composition, including auth, catalogue and administration.
+- `src/components/<context>/`: forms, tables, dialogs, states and shell parts.
+- `src/queries/<context>.ts` and nested contexts: reads and mutations.
+- `src/stores/`: remembered-shop subscription state.
+- `src/hooks/<context>/`: UI orchestration and keyboard handling.
+- `src/schemas/`: Valibot contracts and inferred types; contextual `types.ts` for reusable types.
+- `src/routes/`: explicit route wiring; no required file-route names here.
+- `src/api/` and `src/lib/`: API boundary and existing display/focus helpers.
 
-Folders supply the domain name: use `auth/login/form.tsx`, `catalogue/list/create/sheet.tsx` and
-`catalogue/detail/prices/row.tsx`. Do not repeat that domain as a file prefix or suffix. Exported components
-keep descriptive names, and hooks retain `use-` (for example `catalogue/list/use-search.ts`).
+Use nested contexts without hyphens in authored paths. Preserve public package subpaths and URLs through explicit compatibility mappings. Hosts mount the same exported API; provider credentials and Node APIs never enter these components.
 
 From the repository root, run `vp run @shopper/backoffice#build` to type-check the package.
 Portal browser flows live in `tests/e2e/portal/` and run through `vp run e2e`.

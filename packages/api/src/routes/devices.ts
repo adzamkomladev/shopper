@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import * as v from "valibot";
 import { DeviceError, type createDeviceService } from "@shopper/auth/devices";
-import { requirePermission } from "../middleware/require-permission";
+import { requirePermission } from "../middleware/require/permission";
 import type { ApiAuthentication, ApiEnvironment } from "../types";
 
 export function deviceRoutes(

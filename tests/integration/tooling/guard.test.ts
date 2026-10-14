@@ -15,8 +15,11 @@ test("the repository satisfies every guard rule", () => {
 
 test("guard reports each boundary, size and React rule it enforces", () => {
   write("apps/portal/package.json", pkg("@shopper/portal", ["@shopper/till-ui"]));
-  write("apps/till-ui/package.json", pkg("@shopper/till-ui", ["@shopper/tests"]));
+  write("apps/till/ui/package.json", pkg("@shopper/till-ui", ["@shopper/tests"]));
   write("tests/package.json", pkg("@shopper/tests", []));
+  write("apps/till/host/package.json", pkg("@shopper/till-host", []));
+  write("apps/till/ui/src/host.ts", 'import { x } from "../../host/src/server";\n');
+  write("packages/core/src/till.ts", 'import { x } from "../../../apps/till/ui/src/app";\n');
   write("packages/money/package.json", pkg("@shopper/money", ["@shopper/core"]));
   write("packages/adapters/cf/package.json", pkg("@shopper/adapters-cf", []));
   write("packages/db/pg/package.json", pkg("@shopper/db-pg", []));
@@ -68,7 +71,9 @@ test("guard reports each boundary, size and React rule it enforces", () => {
       "index-implementation packages/core/src/index.ts",
       "index-implementation apps/portal/src/index.tsx",
       "index-implementation packages/adapters/cf/src/index.ts",
-      "imports-tests apps/till-ui/package.json",
+      "imports-tests apps/till/ui/package.json",
+      "escapes-package apps/till/ui/src/host.ts",
+      "escapes-package packages/core/src/till.ts",
       "package-imports-app packages/core/package.json",
       "package-cycle packages/core/package.json",
       "no-effect apps/portal/src/screen.tsx",

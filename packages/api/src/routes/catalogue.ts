@@ -1,9 +1,12 @@
 import { Hono, type Context } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import * as v from "valibot";
 import { buildInfo } from "@shopper/config";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import { publishStoreChanged } from "@shopper/core/changes";
-import type { Realtime, WorkflowLauncher } from "@shopper/ports";
+import { assetReference } from "@shopper/assets/schemas";
+import { issueImportUpload, readImportAsset } from "@shopper/assets";
+import type { Blobs, Realtime, WorkflowLauncher } from "@shopper/ports";
 import { ManagementError } from "@shopper/core/management";
 import {
   addBarcode,
@@ -16,6 +19,7 @@ import {
   listSuppliers,
   previewImport,
   readImport,
+  readImportedAsset,
   readPriceAt,
   runImport,
   removeBarcode,
@@ -26,12 +30,11 @@ import {
   schedulePrice,
 } from "@shopper/core/catalogue";
 import { problem } from "../middleware/problem";
-import { requirePermission } from "../middleware/require-permission";
+import { requirePermission } from "../middleware/require/permission";
 import { priceBody } from "../schemas/catalogue";
 import type { ApiAuthentication, ApiEnvironment } from "../types";
 
-const maxUpload = 10 * 1024 * 1024;
-const multipartOverhead = 64 * 1024;
+const MAX_ASSET_METADATA_BYTES = 4 * 1024;
 type Ctx = Context<ApiEnvironment>;
 // The reason goes to the audit row, the rest is the price itself.
 function withReason(data: unknown) {
@@ -45,6 +48,7 @@ export function catalogueRoutes(options: {
   authentication?: ApiAuthentication;
   priceChange?: WorkflowLauncher;
   realtime?: Realtime;
+  blobs?: Blobs;
 }) {
   const db = options.database;
   const app = new Hono<ApiEnvironment>();
@@ -161,31 +165,39 @@ export function catalogueRoutes(options: {
     );
   }
 
+  const metadata = bodyLimit({
+    maxSize: MAX_ASSET_METADATA_BYTES,
+    onError: (c) => c.json({ error: "Asset metadata is too large" }, 413),
+  });
+  app.use("/catalogue/imports", metadata).use("/catalogue/imports/*", metadata);
+  app.post("/catalogue/imports/uploads", async (c) => {
+    if (!c.req.header("content-type")?.startsWith("application/json"))
+      return c.json({ error: "Send asset metadata as JSON" }, 415);
+    if (!options.blobs) return c.json({ error: "Direct uploads are unavailable" }, 503);
+    const { record: _record, ...grant } = await issueImportUpload(db, context(c), {
+      blobs: options.blobs,
+      data: await body(c),
+    });
+    return c.json(grant, 201);
+  });
   app.post("/catalogue/imports", async (c) => {
-    // Multipart framing adds a little to the file. The body is read with a byte budget, so a
-    // chunked upload without Content-Length cannot buffer more than the limit either.
-    const limit = maxUpload + multipartOverhead;
-    if (Number(c.req.header("content-length")) > limit)
-      return c.json({ error: "File is larger than 10 MB" }, 413);
-    const bytes = await readWithin(c.req.raw, limit);
-    if (!bytes) return c.json({ error: "File is larger than 10 MB" }, 413);
-    const contentType = c.req.header("content-type") ?? "";
-    const body = await new Response(bytes, { headers: { "content-type": contentType } })
-      .formData()
-      .catch((cause: unknown) => {
-        throw new ManagementError(
-          "Could not read the upload; send multipart/form-data with a file field",
-          400,
-          { cause },
-        );
-      });
-    const file = body.get("file");
-    if (!(file instanceof File))
-      throw new ManagementError("Send the spreadsheet as a file field", 400);
-    if (file.size > maxUpload) return c.json({ error: "File is larger than 10 MB" }, 413);
-    const sheet = new Uint8Array(await file.arrayBuffer());
-    if (c.req.query("dryRun") === "1") return c.json(await previewImport(db, org(c), sheet));
-    return c.json(await runImport(db, context(c), sheet, file.name), 201);
+    if (!c.req.header("content-type")?.startsWith("application/json"))
+      return c.json({ error: "Send an uploaded asset reference as JSON" }, 415);
+    const { assetId } = v.parse(assetReference, await body(c));
+    if (!options.blobs) return c.json({ error: "Direct uploads are unavailable" }, 503);
+    if (c.req.query("dryRun") !== "1") {
+      const saved = await readImportedAsset(db, org(c), assetId);
+      if (saved) {
+        const { sha256: _hash, ...result } = saved;
+        return c.json({ dryRun: false, ...result }, 201);
+      }
+    }
+    const source = await readImportAsset(db, options.blobs, org(c), assetId);
+    if (c.req.query("dryRun") === "1") return c.json(await previewImport(db, org(c), source.bytes));
+    return c.json(
+      await runImport(db, context(c), source.bytes, source.asset.fileName, assetId),
+      201,
+    );
   });
   app.get("/catalogue/imports/:id", async (c) =>
     c.json(await readImport(db, org(c), c.req.param("id"))),
@@ -193,20 +205,4 @@ export function catalogueRoutes(options: {
 
   app.onError(problem);
   return app;
-}
-
-/** The request body, or null once it passes `limit` bytes (the rest is never read). */
-async function readWithin(request: Request, limit: number) {
-  const chunks: BlobPart[] = [];
-  let size = 0;
-  const reader = request.body?.getReader();
-  for (let next = await reader?.read(); next && !next.done; next = await reader!.read()) {
-    size += next.value.byteLength;
-    if (size > limit) {
-      await reader!.cancel();
-      return null;
-    }
-    chunks.push(next.value);
-  }
-  return new Blob(chunks);
 }

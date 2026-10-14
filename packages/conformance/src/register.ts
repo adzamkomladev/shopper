@@ -1,7 +1,7 @@
 import { cacheCases } from "./cases/cache";
 import { blobsCases } from "./cases/blobs";
 import { sequencerCases } from "./cases/sequencer";
-import { saleSequencerCases } from "./cases/sale-sequencer";
+import { saleSequencerCases } from "./cases/sale/sequencer";
 import { workflowCases } from "./cases/workflow";
 import type { ConformanceTest, Fixture } from "./types";
 

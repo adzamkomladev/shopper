@@ -2,6 +2,7 @@ import { globSync, readFileSync } from "node:fs";
 import { join, posix, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseSync } from "vite-plus";
+import { architectureRules } from "./guard/architecture";
 
 export type Violation = { rule: string; file: string; message: string };
 type Kind = "app" | "package" | "tooling" | "tests";
@@ -69,13 +70,10 @@ export function guard(root: string): Violation[] {
 }
 
 function readProjects(root: string): Project[] {
-  const manifests = globSync(
-    "{apps/*,packages/*,packages/adapters/*,packages/db/*,tooling/*,tests}/package.json",
-    {
-      cwd: root,
-      exclude: IGNORED,
-    },
-  );
+  const manifests = globSync("{{apps,packages,tooling}/**,tests}/package.json", {
+    cwd: root,
+    exclude: IGNORED,
+  });
   return manifests.map((path) => {
     const json = JSON.parse(readFileSync(join(root, path), "utf8"));
     const dir = posix.dirname(path.split(sep).join("/"));
@@ -153,6 +151,7 @@ function checkFile(root: string, file: string, projects: Project[]): Violation[]
   if (!SCRIPT.test(file)) return violations;
   const found: Found = { specs: new Set(), effect: false };
   const program = parseSync(file, text).program;
+  violations.push(...architectureRules(file, program));
   const barrel = /^(apps|packages)\/.*\/index\.(ts|tsx)$/.test(file);
   const frameworkRoute = /^apps\/[^/]+\/src\/routes\//.test(file);
   if (

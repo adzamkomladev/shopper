@@ -1,3 +1,4 @@
+import { sha256 } from "@shopper/utils";
 import * as v from "valibot";
 import { and, eq } from "drizzle-orm";
 import { v7 } from "uuid";
@@ -204,13 +205,7 @@ const record = defineCommand({
         target: [tillState.orgId, tillState.deviceId],
         set: { lastOutboxSeq: localSeq },
       });
-    const digest = await crypto.subtle.digest(
-      "SHA-256",
-      new TextEncoder().encode(canonicalJson(event.sale)),
-    );
-    const contentHash = Array.from(new Uint8Array(digest), (byte) =>
-      byte.toString(16).padStart(2, "0"),
-    ).join("");
+    const contentHash = await sha256(canonicalJson(event.sale));
     await tx.insert(localSale).values({
       id,
       orgId: context.orgId,

@@ -4,7 +4,7 @@ import {
   generateCatalogue,
   toSpreadsheet,
   type SheetRow,
-} from "../../tooling/lib/catalogue-fixture";
+} from "../../tooling/lib/catalogue/fixture";
 
 export type BadRow = { row: number; column: "Name" | "Selling Price" | "Barcodes" };
 

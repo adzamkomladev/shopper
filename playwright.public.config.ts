@@ -19,14 +19,14 @@ export default defineConfig({
   projects: [
     {
       name: "public",
-      testMatch: /(?:onboarding|public-states|invitations\/(?:accept|states))\.spec\.ts/,
+      testMatch: /(?:onboarding|public\/states|invitations\/(?:accept|states))\.spec\.ts/,
       use: { baseURL: "http://localhost:5185", navigationTimeout: 60_000 },
     },
   ],
   webServer: [
     box,
     {
-      command: "node tooling/build/public-e2e.mjs && bun .shopper/public-e2e/public-server.js",
+      command: "node tooling/build/public/e2e.mjs && bun .shopper/public-e2e/server.js",
       url: "http://localhost:3102/orgs/e2e-mart",
       env: { E2E_DATABASE_URL, SHOPPER_AUTH_URL: "http://localhost:5185" },
       reuseExistingServer,

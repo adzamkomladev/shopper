@@ -88,8 +88,8 @@ against real PostgreSQL in CI.
 - `apps/box`: Bun serves the same `@shopper/api` Hono app.
 - `apps/portal`: TanStack Router back-office SPA shell.
 - `apps/shop`: TanStack Start SSR shell with the Cloudflare Vite plugin.
-- `apps/till-ui`: React browser shell; no device access.
-- `apps/till-host`, `apps/till-electron`: engine and Windows shell boundaries.
+- `apps/till/ui`: React browser shell; no device access.
+- `apps/till/host`, `apps/till/electron`: engine and Windows shell boundaries.
 - `packages/*`: handbook package boundaries, with strict TypeScript references.
 
 Read `AGENTS.md` and `docs/engineering/` for every rule: boundaries, code quality,
@@ -104,7 +104,7 @@ exact money storage and dated tax rules through the API, audit tamper/rollback/
 concurrent-chain checks, and shared Cache/Blobs/Sequencer conformance on both
 Cloudflare and Node development adapters, the cloud/Bun Hono boundary, a real TCP
 printer capture, and the Hono Worker in workerd. Cloudflare's test plugin currently
-requires a separate Vitest 4 runner; see `tooling/worker-tests/README.md`.
+requires a separate Vitest 4 runner; see `tooling/worker/tests/README.md`.
 TanStack Start and the Cloudflare plugin build successfully on Vite+ / Vite 8.
 
 ## Versions

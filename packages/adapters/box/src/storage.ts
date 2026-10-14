@@ -6,7 +6,13 @@ import { drizzle } from "drizzle-orm/sqlite-proxy";
 import { createStorage } from "unstorage";
 import fsDriver from "unstorage/drivers/fs";
 import { sqliteCache, cacheMigration } from "@shopper/db-sqlite";
-import { blobUrlAccess, storedBlobs, type BlobUrlOptions } from "@shopper/ports";
+import {
+  blobUrlAccess,
+  storedBlobs,
+  objectStorage,
+  type ObjectStorageOptions,
+  type BlobUrlOptions,
+} from "@shopper/ports";
 
 // Local development fallback; the production Rivet host is scheduled for day 36.
 export function boxCache(path: string, now = Date.now) {
@@ -31,8 +37,31 @@ export function boxCache(path: string, now = Date.now) {
   });
   return { cache: sqliteCache(db, now), close: () => sqlite.close() };
 }
-export async function boxBlobs(path: string, options: BlobUrlOptions) {
-  const storage = createStorage({ driver: fsDriver({ base: path }) });
+export async function boxBlobs(
+  path: string,
+  options: BlobUrlOptions & { objectStorage?: ObjectStorageOptions },
+) {
   const access = await blobUrlAccess(options);
-  return { blobs: storedBlobs(storage, access), readSigned: access.read };
+  const storage = createStorage({ driver: fsDriver({ base: path }) });
+  const local = storedBlobs(storage, access);
+  const objects = options.objectStorage ? objectStorage(options.objectStorage) : undefined;
+  const selected = (key: string) => (key.startsWith("imports/") && objects ? objects : local);
+  return {
+    blobs: {
+      put: (orgId: string, key: string, value: Uint8Array) => selected(key).put(orgId, key, value),
+      get: (orgId: string, key: string, maxBytes?: number) =>
+        selected(key).get(orgId, key, maxBytes),
+      delete: (orgId: string, key: string) => selected(key).delete(orgId, key),
+      createUpload: (
+        orgId: string,
+        key: string,
+        input: import("@shopper/ports").BlobUploadOptions,
+      ) => {
+        if (!key.startsWith("imports/")) throw new Error("Direct uploads require an imports key");
+        return selected(key).createUpload(orgId, key, input);
+      },
+      signedUrl: access.sign,
+    },
+    readSigned: access.read,
+  };
 }

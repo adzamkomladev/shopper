@@ -1,5 +1,7 @@
+import { BlobUploadUnavailable } from "./storage/errors";
+import type { BlobUrlOptions } from "./storage/types";
 import * as v from "valibot";
-import { jsonSchema, uuidV7Schema, type Json } from "./schemas/primitives";
+import { jsonSchema, uuidV7Schema } from "./schemas/primitives";
 import type { Blobs, Cache, CacheReader, CacheWriter } from "./types";
 export function scopedKey(orgId: string, key: string): string {
   v.parse(uuidV7Schema, orgId);
@@ -42,11 +44,6 @@ export function requestCache(operations: CacheReader & CacheWriter): Cache {
       };
     },
   };
-}
-export interface BlobUrlOptions {
-  baseUrl: string;
-  secret: Uint8Array;
-  now?: () => number;
 }
 export async function blobUrlAccess(options: BlobUrlOptions) {
   if (options.secret.byteLength < 32)
@@ -116,17 +113,24 @@ export function storedBlobs(
     async put(orgId, key, value) {
       await storage.setItemRaw(scopedKey(orgId, key), value);
     },
-    async get(orgId, key) {
+    async get(orgId, key, maxBytes) {
+      if (maxBytes !== undefined && (!Number.isSafeInteger(maxBytes) || maxBytes < 0))
+        throw new RangeError("Invalid blob size limit");
       const value = await storage.getItemRaw(scopedKey(orgId, key));
       if (value === null || value === undefined) return null;
-      if (value instanceof Uint8Array) return new Uint8Array(value);
-      if (value instanceof ArrayBuffer) return new Uint8Array(value);
+      if (value instanceof Uint8Array || value instanceof ArrayBuffer) {
+        if (maxBytes !== undefined && value.byteLength > maxBytes)
+          throw new RangeError("Blob exceeds size limit");
+        return new Uint8Array(value);
+      }
       throw new TypeError("Blob driver did not return binary data");
     },
     async delete(orgId, key) {
       await storage.removeItem(scopedKey(orgId, key));
     },
+    async createUpload() {
+      throw new BlobUploadUnavailable();
+    },
     signedUrl: access.sign,
   };
 }
-export type CacheRecord = { orgId: string; key: string; value: Json; expiresAt: number };

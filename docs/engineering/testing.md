@@ -26,8 +26,8 @@ tests/
   support/                    shared helpers: builders, API clients, login, clocks
   integration/<area>/         Vitest, run by `vp test`
     api/  audit/  auth/  core/  db/  edge/  hardware/  ports/  tax/  tooling/
-  e2e/<app>/                  Playwright user flows per app: portal/, shop/, till-ui/
-tooling/worker-tests/         Workers runtime suite (Vitest 4 + Cloudflare plugin), invoked from
+  e2e/<app>/                  Playwright user flows per app: portal/, shop/, till/ui/
+tooling/worker/tests/         Workers runtime suite (Vitest 4 + Cloudflare plugin), invoked from
                               tests/integration/edge/worker.test.ts
 ```
 
@@ -47,7 +47,7 @@ tooling/worker-tests/         Workers runtime suite (Vitest 4 + Cloudflare plugi
   production does. Then assert on the rows, the audit chain (`verifyChain`), and the HTTP response.
 - **Both adapters for anything behind a port.** Conformance suites live in `packages/conformance`
   and run against `adapters/box` (in `tests/integration/ports`) and `adapters/cf` (in
-  `tooling/worker-tests`). A port change without both green is not done.
+  `tooling/worker/tests`). A port change without both green is not done.
 - **Golden sale fixtures** for money and tax. A trading day of sales runs through the full sale path
   and must match the stored expected totals to the last 1/10000 of a cedi. Changing a golden file
   needs a written reason in the PR.
@@ -105,6 +105,8 @@ test IDs, unless no accessible name exists, and then the missing name is the bug
 ```sh
 vp test --run                                   # everything (needs `vp run services:up`)
 vp test --run tests/integration/tax             # one area
-vp -C tooling/worker-tests exec vitest run      # Workers runtime suite on its own
+vp -C tooling/worker/tests exec vitest run      # Workers runtime suite on its own
 vp run guard                                    # repository rules
 ```
+
+Direct-upload tests require the local RustFS service and `vp run storage:setup` before integration/e2e suites. Grant issuance, integrity, permission revocation and import idempotency use real PostgreSQL and object storage. Conformance drives direct PUT through both adapter implementations, checks signature tampering/expiry and bounded reads, and preserves old generated R2 keys. Local workerd plus RustFS is not evidence of a live external R2 upload; record live provider verification separately.

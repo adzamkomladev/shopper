@@ -9,6 +9,8 @@ import {
   taxRule,
   type ShopperDatabase,
 } from "@shopper/db-pg";
+import type { CommandContext } from "@shopper/audit";
+import { saveSnapshotAsset } from "@shopper/assets";
 import type { Blobs } from "@shopper/ports";
 import { priceUpsert, productUpsert, taxRuleUpsert } from "./project";
 
@@ -16,6 +18,7 @@ export async function buildSnapshot(
   database: ShopperDatabase,
   blobs: Blobs,
   scope: { orgId: string; storeId: string },
+  context: CommandContext,
 ) {
   const snapshot = await database.transaction(
     async (tx) => {
@@ -74,12 +77,15 @@ export async function buildSnapshot(
   );
   const key = `snapshots/${scope.orgId}/${scope.storeId}/v${snapshot.v}/${snapshot.cursor}.json.gz`;
   const existing = await blobs.get(scope.orgId, key);
-  if (existing) return existing;
+  if (existing) {
+    await saveSnapshotAsset(database, context, { blobs, key, bytes: existing });
+    return existing;
+  }
   const stream = new Blob([JSON.stringify(snapshot)])
     .stream()
     .pipeThrough(new CompressionStream("gzip"));
   // shortcut: Blobs accepts bytes; stream reads/uploads when catalogue size threatens Worker memory.
   const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
-  await blobs.put(scope.orgId, key, bytes);
+  await saveSnapshotAsset(database, context, { blobs, key, bytes });
   return bytes;
 }

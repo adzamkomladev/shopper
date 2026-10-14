@@ -36,9 +36,9 @@ never a higher one. The current dependency graph follows this table; keep it tha
 ```text
 5  adapters/cf, adapters/box               platform code (the only place for Cloudflare and Rivet)
 4  api, backoffice, sync, export           use cases exposed over HTTP, UI or files
-3  core, auth, audit, hardware             commands, policies, domain rules
+3  core, auth, audit, assets, hardware             commands, policies, domain rules
 2  ports, db/pg, db/sqlite, conformance    contracts and schemas
-1  money, tax, config, ui                  leaves: pure logic, constants, components
+1  money, tax, config, ui, utils                  leaves: pure logic, constants, components
 ```
 
 `ui` is a leaf: it holds presentational components and design tokens. Data fetching and screen
@@ -135,3 +135,11 @@ projections as the feed in a REPEATABLE READ transaction. Realtime carries seque
 PostgreSQL remains the source for all downloaded data. A missed nudge is recovered by reconnect
 or the capped transport fallback. The host owns push, pull, realtime and receipt state; the UI
 subscribes to their combined status without receiving device credentials.
+
+## Assets and organization management
+
+`@shopper/assets` owns publicity/access policy, purpose and bucket selection, audited asset tracking and authorized presigned grants. Provider operations use Blobs; credentials stay in adapters. The API receives metadata and asset references, never client file bytes. Before processing, resolve the tenant-owned asset and verify bounded actual bytes against its registered digest and size. A presigned URL remains a bearer capability until expiry, so repeat verification before every use.
+
+The cloud portal, local box SPA and Electron share `@shopper/backoffice`. On-prem stores, branches, products and staff are authoritative in box PostgreSQL and available over LAN without WAN. Subscription/payment/cloud-storage/backup provisioning and cloud account setup belong to a separate cloud control plane. Local installation settings remain local. Optional cloud sync requires explicit scoped/versioned ownership contracts; two databases never become concurrent writers by implication. Desktop disconnection from its authority does not grant unrestricted offline mutations.
+
+The owner approved this architecture on 14 October 2026. This cleanup documents it; it does not implement new management hosts, billing, backup services or Electron. TanStack Start remains the customer-shop SSR framework; management keeps the existing Router SPA.

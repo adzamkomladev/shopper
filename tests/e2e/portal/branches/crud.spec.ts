@@ -6,7 +6,7 @@ import {
   enrolDevice,
   unique,
 } from "../../../support/admin";
-import { createCustomRole, createStaff, signInAs } from "../../../support/admin-people";
+import { createCustomRole, createStaff, signInAs } from "../../../support/admin/people";
 import { ANNEX, expectNoSeriousAxe, signInWithKeyboard } from "../../../support/e2e";
 
 const dialog = (page: Page) => page.getByRole("dialog");
@@ -15,7 +15,10 @@ const row = (page: Page, name: string) => page.getByRole("row").filter({ hasText
 test.describe("as the owner of E2E Mart", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/branches");
-    await expect(page.getByRole("heading", { name: "Branches", level: 1 })).toBeVisible();
+    // The first lazy route includes cold dev-server compilation before it can render.
+    await expect(page.getByRole("heading", { name: "Branches", level: 1 })).toBeVisible({
+      timeout: 20_000,
+    });
   });
 
   test("add a branch with the keyboard, pick its store, and see it listed under that store", async ({

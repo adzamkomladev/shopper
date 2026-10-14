@@ -17,7 +17,7 @@ export default defineConfig({
       "**/dist-staging/**",
       "**/routeTree.gen.ts",
       "**/worker-configuration.d.ts",
-      "tooling/worker-tests/**",
+      "tooling/worker/tests/**",
     ],
   },
   test: {

@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { postgresFixture } from "../../fixtures/postgres";
 import { config as saleConfig, ids, references } from "./sales";
-import { appVersion, context, seedServerDatabase } from "./server-data";
+import { appVersion, context, seedServerDatabase } from "./server/data";
 import { serveHono, type HttpClient } from "./http";
 import { enrollFixtureTill } from "./enrollment";
 export type SaleEvent = v.InferOutput<typeof saleEvent>;
@@ -187,4 +187,4 @@ async function provisionReferences(branchId: string) {
   );
 }
 
-export { appVersion, context, syncProtocol } from "./server-data";
+export { appVersion, context, syncProtocol } from "./server/data";

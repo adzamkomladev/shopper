@@ -8,7 +8,7 @@ import { administrationRoutes } from "./routes/administration";
 import { deviceRoutes } from "./routes/devices";
 import { managementRoutes } from "./routes/management";
 import { systemRoutes } from "./routes/system";
-import { taxRuleRoutes } from "./routes/tax-rules";
+import { taxRuleRoutes } from "./routes/tax/rules";
 import type { ApiEnvironment, ApiOptions } from "./types";
 
 export function createApi(options: ApiOptions = {}) {
@@ -39,6 +39,7 @@ export function createApi(options: ApiOptions = {}) {
         database: options.database,
         authentication: options.authentication,
         priceChange: options.priceChange,
+        blobs: options.blobs,
         realtime: options.realtime,
       }),
     );

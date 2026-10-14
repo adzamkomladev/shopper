@@ -1,28 +1,13 @@
+import { query } from "../schemas/sync/pull";
 import { Hono } from "hono";
 import * as v from "valibot";
-import { MAX_PULL_LIMIT, pullChanges } from "@shopper/core/changes";
-import { sequenceSchema } from "@shopper/ports";
+import { pullChanges } from "@shopper/core/changes";
+
 import { negotiateProtocol } from "@shopper/sync/versions";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { createDeviceService } from "@shopper/auth/devices";
 import { and, eq } from "drizzle-orm";
 import { store } from "@shopper/db-pg";
-
-const query = v.object({
-  cursor: sequenceSchema,
-  bootstrapped: v.optional(v.picklist(["true", "false"]), "false"),
-  limit: v.optional(
-    v.pipe(
-      v.string(),
-      v.regex(/^\d+$/),
-      v.transform(Number),
-      v.integer(),
-      v.minValue(1),
-      v.maxValue(MAX_PULL_LIMIT),
-    ),
-    String(MAX_PULL_LIMIT),
-  ),
-});
 
 /** `GET /sync/changes`: a device's store change feed, read-only and so not audited. */
 export function createPullRoutes(options: {

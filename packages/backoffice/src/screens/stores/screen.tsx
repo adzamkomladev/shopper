@@ -4,18 +4,18 @@ import { StoreIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
-import { FormSheet } from "../../components/admin/form-sheet";
-import { PageHeader } from "../../components/admin/page-header";
-import { deleteButtonId, editButtonId } from "../../components/admin/row-actions";
+import { FormSheet } from "../../components/admin/form/sheet";
+import { PageHeader } from "../../components/admin/page/header";
+import { deleteButtonId, editButtonId } from "../../components/admin/row/actions";
 import { EmptyList, ReadOnlyNote } from "../../components/admin/states";
-import { usePanel } from "../../components/admin/use-panel";
-import { permissionsQuery } from "../../session/permissions";
-import { branchesQuery } from "../catalogue/detail/queries";
+import { usePanel } from "../../hooks/admin/panel";
+import { permissionsQuery } from "../../queries/session/permissions";
+import { branchesQuery } from "../../queries/catalogue/detail";
 import type { StoreView } from "../../schemas/management";
-import { DeleteStoreDialog } from "./delete-dialog";
-import { StoreForm } from "./form";
-import { storesQuery } from "./queries";
-import { StoreTable } from "./table";
+import { DeleteStoreDialog } from "../../components/stores/delete/dialog";
+import { StoreForm } from "../../components/stores/form";
+import { storesQuery } from "../../queries/stores";
+import { StoreTable } from "../../components/stores/table";
 
 export function StoresScreen() {
   const { data: stores } = useSuspenseQuery(storesQuery());

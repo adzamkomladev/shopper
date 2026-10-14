@@ -1,4 +1,3 @@
-import type { Envelope } from "./messages";
 import type { Json, RetryPolicy } from "./schemas/primitives";
 
 export interface Sequencer {
@@ -19,7 +18,8 @@ export interface Cache {
 }
 export interface Blobs {
   put(orgId: string, key: string, value: Uint8Array): Promise<void>;
-  get(orgId: string, key: string): Promise<Uint8Array | null>;
+  get(orgId: string, key: string, maxBytes?: number): Promise<Uint8Array | null>;
+  createUpload(orgId: string, key: string, options: BlobUploadOptions): Promise<BlobUpload>;
   delete(orgId: string, key: string): Promise<void>;
   signedUrl(orgId: string, key: string, expiresInSeconds: number): Promise<string>;
 }
@@ -75,3 +75,33 @@ export interface Realtime {
     onMessage: (message: Envelope) => Promise<void>,
   ): Promise<{ close(): Promise<void> }>;
 }
+
+export interface Envelope {
+  id: string;
+  orgId: string;
+  v: number;
+  sequence: string; // Decimal bigint; consumers never rely on delivery order.
+  type: string;
+  payload: Json;
+}
+export interface Delivery {
+  message: Envelope;
+  attempts: number;
+  ack(): Promise<void>; // Explicit acknowledgement, never on handler return.
+  retry(): Promise<void>; // Apply policy; exhausted messages go to the dead-letter path.
+}
+export interface Queue {
+  readonly policy: RetryPolicy;
+  send(message: Envelope): Promise<void>;
+  consume(handler: (delivery: Delivery) => Promise<void>): Promise<void>;
+}
+
+export type BlobUploadOptions = { contentType: string; expiresInSeconds: number };
+export type BlobUpload = {
+  url: string;
+  method: "PUT";
+  headers: Record<string, string>;
+  expiresAt: number;
+};
+
+export type CacheRecord = { orgId: string; key: string; value: Json; expiresAt: number };

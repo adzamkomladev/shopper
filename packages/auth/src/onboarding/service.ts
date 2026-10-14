@@ -1,9 +1,12 @@
+import { verificationDispatchResult } from "../schemas/onboarding/service";
+import type { OnboardingOptions } from "./types";
+export type { OnboardingOptions } from "./types";
 import * as v from "valibot";
 import { v7 } from "uuid";
 import { buildInfo } from "@shopper/config";
 import { and, desc, eq, like } from "drizzle-orm";
-import { registrationWorkflowStep, type ShopperDatabase } from "@shopper/db-pg";
-import type { WorkflowLauncher } from "@shopper/ports";
+import { registrationWorkflowStep } from "@shopper/db-pg";
+
 import { signalAuthCompletion } from "../flows/completion";
 import { constantTimeEqual } from "../session/http";
 import { createLinkToken, linkDigest, AuthLinkError } from "../links/tokens";
@@ -21,13 +24,7 @@ import {
   startRegistration,
   verifyRegistration,
 } from "./commands";
-export interface OnboardingOptions {
-  database: ShopperDatabase;
-  linkSecret: string;
-  baseURL: string;
-  launcher: WorkflowLauncher;
-  now?: () => number;
-}
+
 export function createOnboarding(options: OnboardingOptions) {
   if (options.linkSecret.length < 32) throw new Error("Link secret must be at least 32 characters");
   const now = options.now ?? Date.now;
@@ -78,7 +75,7 @@ export function createOnboarding(options: OnboardingOptions) {
         )
         .orderBy(desc(registrationWorkflowStep.createdAt))
         .limit(1);
-      const status = v.safeParse(v.object({ sent: v.boolean() }), delivery?.output);
+      const status = v.safeParse(verificationDispatchResult, delivery?.output);
       return {
         ...registrationView(row),
         deliveryStatus: status.success

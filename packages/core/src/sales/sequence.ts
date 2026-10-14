@@ -1,3 +1,4 @@
+import { saleSequenceInput } from "../schemas/sales/sequence";
 import { and, eq } from "drizzle-orm";
 import * as v from "valibot";
 import { defineCommand, type CommandContext } from "@shopper/audit";
@@ -7,7 +8,7 @@ import {
   type ShopperDatabase,
   type ShopperTransaction,
 } from "@shopper/db-pg";
-import { uuidV7Schema } from "@shopper/ports";
+
 import { allocateStoreSequence } from "../sequence";
 
 export function assignSaleSequence(
@@ -20,7 +21,7 @@ export function assignSaleSequence(
   return assign(
     db,
     context,
-    v.parse(v.object({ storeId: uuidV7Schema, deviceId: uuidV7Schema, localId: uuidV7Schema }), {
+    v.parse(saleSequenceInput, {
       storeId,
       deviceId,
       localId,

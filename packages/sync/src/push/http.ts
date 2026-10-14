@@ -3,8 +3,10 @@ import type { PushOptions } from "./types";
 type TransportOptions = Pick<PushOptions, "config" | "timeoutMs">;
 export function createPushTransport({ config, timeoutMs }: TransportOptions) {
   let controller: AbortController | undefined;
+  let aborted = false;
   return {
     async request(path: string, body?: unknown) {
+      if (aborted) throw new DOMException("Sync transport stopped", "AbortError");
       const current = new AbortController();
       controller = current;
       const timeout = setTimeout(() => current.abort(), timeoutMs ?? 120_000);
@@ -27,6 +29,7 @@ export function createPushTransport({ config, timeoutMs }: TransportOptions) {
       }
     },
     abort() {
+      aborted = true;
       controller?.abort();
     },
   };

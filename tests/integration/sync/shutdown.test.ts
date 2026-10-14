@@ -56,3 +56,29 @@ test("stopping waits for pending SQLite work before returning", async () => {
   }
   expect(completed).toBe(true);
 });
+
+test("stopping during a queued SQLite read prevents a later handshake", async () => {
+  fixture = await createPushFixture();
+  let release = () => {};
+  const gate = new Promise<void>((resolve) => (release = resolve));
+  let entered = () => {};
+  const acquired = new Promise<void>((resolve) => (entered = resolve));
+  const hold = defineCommand({
+    name: "till.test.startup.hold",
+    async run() {
+      entered();
+      await gate;
+    },
+    audit: () => ({}),
+  });
+  const holding = hold(fixture.database, fixture.workerOptions.config, undefined);
+  await acquired;
+  const worker = createPushWorker(fixture.workerOptions);
+  fixture.worker = worker;
+  worker.start();
+  const stopping = worker.stop();
+  release();
+  await holding;
+  await stopping;
+  expect(fixture.upstream.requests).toHaveLength(0);
+});

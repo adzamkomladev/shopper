@@ -8,6 +8,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { tenant, branch, store } from "./base";
@@ -38,7 +39,7 @@ export const sale = pgTable(
   (t) => [
     unique().on(t.orgId, t.id),
     unique().on(t.deviceId, t.localId),
-    unique().on(t.orgId, t.receiptNumber),
+    uniqueIndex("sale_receipt_unique").on(t.orgId, t.receiptNumber),
     unique().on(t.orgId, t.storeId, t.storeSequence),
     check("sale_sequence_positive", sql`${t.storeSequence} IS NULL OR ${t.storeSequence} > 0`),
     check("sale_event_version_positive", sql`${t.eventVersion} > 0`),

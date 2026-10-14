@@ -1,3 +1,5 @@
+import { saleVersion, saleSession } from "../schemas/sync/routes";
+import { handshake, envelope, identity } from "../schemas/sync/routes";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import * as v from "valibot";
@@ -5,7 +7,7 @@ import { negotiateProtocol } from "@shopper/sync/versions";
 import { buildInfo } from "@shopper/config";
 import { acceptSale, SaleError } from "@shopper/core/sales";
 import { issueReceiptBlocks } from "@shopper/core/till";
-import { managementId } from "@shopper/core/management";
+
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { Blobs, Sequencer } from "@shopper/ports";
 import type { createDeviceService } from "@shopper/auth/devices";
@@ -13,32 +15,8 @@ import { createLiveRoutes, type LiveUpgrade } from "./live";
 import { createPullRoutes } from "./pull";
 import { createSnapshotRoutes } from "./snapshot";
 
-const maxBatch = 200;
 const maxBytes = 1024 * 1024;
-const protocolSchema = v.pipe(v.number(), v.safeInteger(), v.minValue(0));
-const receiptLastUsed = v.optional(v.pipe(v.number(), v.safeInteger(), v.minValue(0)), 0);
-const handshake = v.strictObject({
-  requestId: managementId,
-  appVersion: v.pipe(v.string(), v.minLength(1)),
-  protocol: protocolSchema,
-  receiptLastUsed,
-});
-const envelope = v.strictObject({
-  requestId: managementId,
-  protocol: protocolSchema,
-  receiptLastUsed,
-  events: v.pipe(v.array(v.unknown()), v.maxLength(maxBatch)),
-  proofs: v.pipe(
-    v.array(
-      v.strictObject({
-        sessionId: managementId,
-        proof: v.pipe(v.string(), v.minLength(1), v.maxLength(256)),
-      }),
-    ),
-    v.maxLength(maxBatch),
-  ),
-});
-const identity = v.object({ sale: v.object({ localId: managementId }) });
+
 export function createSyncRoutes(options: {
   database: ShopperDatabase;
   devices: ReturnType<typeof createDeviceService>;
@@ -108,7 +86,7 @@ export function createSyncRoutes(options: {
     for (const [index, raw] of data.events.entries()) {
       // The validated identity list has one entry for every event, in the same order.
       const localId = ids[index]!;
-      const version = v.safeParse(v.object({ v: v.picklist([1, 2]) }), raw);
+      const version = v.safeParse(saleVersion, raw);
       if (!version.success) {
         rejected.push({
           localId,
@@ -119,7 +97,7 @@ export function createSyncRoutes(options: {
       }
       let occurredAt: string;
       try {
-        const session = v.parse(v.object({ sale: v.object({ sessionId: managementId }) }), raw);
+        const session = v.parse(saleSession, raw);
         const result = await acceptSale(
           options.database,
           principal,

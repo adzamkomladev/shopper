@@ -13,7 +13,7 @@ import {
 } from "@shopper/auth";
 import { roleAssignmentInput } from "@shopper/auth/schemas";
 import { uuidV7Schema } from "@shopper/ports";
-import { requirePermission } from "../middleware/require-permission";
+import { requirePermission } from "../middleware/require/permission";
 import { problem } from "../middleware/problem";
 import type { ApiEnvironment, ApiOptions } from "../types";
 

@@ -6,9 +6,9 @@ import {
   dialog,
   row,
   signInAs,
-} from "../../../support/admin-people";
+} from "../../../support/admin/people";
 import { ANNEX, BRANCH_NAME, expectNoSeriousAxe, signInWithKeyboard } from "../../../support/e2e";
-import { branchIdNamed } from "../../../support/admin-devices";
+import { branchIdNamed } from "../../../support/admin/devices";
 
 // Runs on the saved E2E Mart owner session; tills are enrolled through the real two-step API flow.
 test.describe("as the owner of E2E Mart", () => {

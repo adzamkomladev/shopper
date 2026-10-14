@@ -1,6 +1,7 @@
 import { expect, test } from "vite-plus/test";
 import * as XLSX from "xlsx";
-import { api, cookies, unique } from "../support";
+import { importApi } from "../../../support/assets/storage";
+import { cookies, unique } from "../support";
 import { csv, importOk, productRow, sheetRows, upload, type ImportResult } from "./support";
 
 const head = ["SKU", "Name", "Selling Price"];
@@ -18,35 +19,20 @@ test("a tiny XLSX that declares a million rows is rejected before it is expanded
   );
 });
 
-test("a declared Content-Length over the limit is refused before the body is read", async () => {
-  const response = await api.request("/catalogue/imports", {
+test("upload grant metadata cannot claim more than 10 MB", async () => {
+  const response = await (
+    await importApi()
+  ).request("/catalogue/imports/uploads", {
     method: "POST",
-    headers: { cookie: cookies.get("superadmin")!, "content-length": String(11 * 1024 * 1024) },
-    body: new FormData(),
+    headers: { cookie: cookies.get("superadmin")!, "content-type": "application/json" },
+    body: JSON.stringify({
+      fileName: "large.csv",
+      contentType: "text/csv",
+      sizeBytes: 11 * 1024 * 1024,
+      sha256: "a".repeat(64),
+    }),
   });
   expect(response.status).toBe(413);
-});
-
-test("a chunked upload with no Content-Length still stops at 10 MB", async () => {
-  const chunk = new Uint8Array(1024 * 1024);
-  let sent = 0;
-  const body = new ReadableStream<Uint8Array>({
-    pull(controller) {
-      if (sent++ < 12) controller.enqueue(chunk);
-      else controller.close();
-    },
-  });
-  const response = await api.request("/catalogue/imports", {
-    method: "POST",
-    headers: {
-      cookie: cookies.get("superadmin")!,
-      "content-type": "multipart/form-data; boundary=x",
-    },
-    body,
-    duplex: "half",
-  } as RequestInit);
-  expect(response.status).toBe(413);
-  expect(sent).toBeLessThan(13);
 });
 
 test(

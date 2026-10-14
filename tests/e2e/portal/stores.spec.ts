@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createBranch, createStore, captureSizes, unique } from "../../support/admin";
-import { createCustomRole, createStaff, signInAs } from "../../support/admin-people";
+import { createCustomRole, createStaff, signInAs } from "../../support/admin/people";
 import { ANNEX, expectNoSeriousAxe, signInWithKeyboard } from "../../support/e2e";
 
 // Runs on the saved owner session. Every test names its stores with a tag that is new each run.

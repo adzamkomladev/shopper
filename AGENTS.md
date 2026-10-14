@@ -24,9 +24,10 @@ Read the doc for the area you are touching **before** you change it:
 
 - Folder names carry shared context. When several files repeat a prefix or suffix, group them
   under that feature folder and remove the repeated words from filenames. Use
-  `schemas/base.ts`, `schemas/workflows.ts`, and `screens/auth/login/{screen,form,success}.tsx`.
+  `schemas/base.ts`, `schemas/workflows.ts`, and `screens/auth/login/screen.tsx and components/auth/login/{form,success}.tsx`.
   This applies to database schemas, validation, components, hooks, commands, tests and tooling.
   Preserve required framework filenames, generated files and published migration filenames.
+- Authored folders/files use nested context paths without hyphens. Explicit exceptions: framework-required names, generated files, published migrations, stable public package subpaths/URLs and tool-consumed skill/role/config identifiers. Preserve compatibility when physical files move (guard for source paths).
 - `index.ts`/`index.tsx` only re-export (guard); implementations and types live in their owning
   modules. Required framework route filenames are exempt. Audit every app and package when
   applying a shared layout rule; do not stop after the first affected package.
@@ -41,6 +42,8 @@ Read the doc for the area you are touching **before** you change it:
 - Tax: read rules by date from the tax_rule table; snapshot tax onto every sale line.
 - Never import a Cloudflare binding or a Rivet handle outside packages/adapters/*.
   Business code uses @shopper/ports, Drizzle, unstorage, Hono only. One shared function, two thin shells.
+- Workflow implementations live under `workflows/`, one responsibility per module; an implementation never re-exports another workflow. Barrels only re-export (guard).
+- Valibot construction belongs in owning `schemas/` modules; reusable exported types live in `types.ts` or beside their schema. SHA-256 uses `@shopper/utils`; domain canonicalization and HMAC remain separate (guard).
 - Validation: Valibot only (import * as v from 'valibot'). Never add Zod.
 - Cache port: never read-after-write in the same request.
 - Permissions are data (role_permission). Never write `if (role === ...)`.
@@ -54,8 +57,8 @@ Read the doc for the area you are touching **before** you change it:
   RateLimiter. Ask before adding a sixth. Queues only for fire-and-forget fan-out.
 - PostgreSQL is the record: every workflow step and DO write also writes its table and an audit
   row in one transaction, and updates workflow_run. Reports never read engine state.
-- Back office code lives in @shopper/backoffice and must run in both the web portal and Electron.
-- Assets go through the Blobs port: R2 in the cloud, RustFS (S3) or fs on the box.
+- Back office code lives in @shopper/backoffice and must run in the cloud portal, local box SPA and Electron. Organize by responsibility: `screens/<context>/screen.tsx`, `components/<context>/`, `queries/<context>/`, `stores/`, `hooks/`, `schemas/`, `routes/`. The box is authoritative for on-prem operations; cloud control-plane management and optional sync are separate.
+- `@shopper/assets` owns asset policy, purpose, bucket choice, audited tracking and authorized presigned grants. Browser files upload directly to R2/RustFS through presigned URLs, never through the API. Processing resolves a tenant-scoped asset and verifies bounded actual bytes against registered size/digest immediately before use. Provider transport/credentials stay behind Blobs in adapters. Filesystem fallback is only for server-generated objects; it never proxies client uploads.
 - Receipts: render from receipt JSON with the shared component (Satori-safe flexbox only).
   Tills render their own PDFs; never re-render a stored PDF on view.
 - Migrations are forward-only and idempotent. Breaking changes use expand-then-contract.

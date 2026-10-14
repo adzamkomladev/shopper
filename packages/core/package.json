@@ -41,12 +41,14 @@
     "build": "tsc -b"
   },
   "dependencies": {
+    "@shopper/assets": "workspace:*",
     "@shopper/audit": "workspace:*",
     "@shopper/db-pg": "workspace:*",
     "@shopper/db-sqlite": "workspace:*",
     "@shopper/money": "workspace:*",
     "@shopper/ports": "workspace:*",
     "@shopper/tax": "workspace:*",
+    "@shopper/utils": "workspace:*",
     "drizzle-orm": "0.45.3",
     "uuid": "14.0.2",
     "valibot": "1.1.0",

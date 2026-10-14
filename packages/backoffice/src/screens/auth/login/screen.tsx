@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { currentOrgQuery } from "../../../session/queries";
-import { AuthFrame } from "../frame";
-import { LoginForm } from "./form";
-import { LoginSuccess } from "./success";
+import { currentOrgQuery } from "../../../queries/session/session";
+import { AuthFrame } from "../../../components/auth/frame";
+import { LoginForm } from "../../../components/auth/login/form";
+import { LoginSuccess } from "../../../components/auth/login/success";
 
 export function LoginScreen() {
   const { data: box } = useSuspenseQuery(currentOrgQuery);

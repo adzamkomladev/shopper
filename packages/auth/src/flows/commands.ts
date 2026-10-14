@@ -7,7 +7,7 @@ import {
   type ShopperDatabase,
   type ShopperTransaction,
 } from "@shopper/db-pg";
-import type { AuthFlowParams } from "./workflow";
+import type { AuthFlowParams } from "../workflows/auth";
 
 type Preparation = { params: AuthFlowParams; now: number };
 export const prepareRegistration = defineCommand({

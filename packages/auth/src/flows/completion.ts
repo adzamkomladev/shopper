@@ -1,7 +1,7 @@
 import { defineCommand } from "@shopper/audit";
 import { buildInfo } from "@shopper/config";
 import type { OnboardingOptions } from "../onboarding/service";
-import type { AuthFlowParams } from "./workflow";
+import type { AuthFlowParams } from "../workflows/auth";
 
 export async function signalAuthCompletion(options: OnboardingOptions, params: AuthFlowParams) {
   let notified = true;

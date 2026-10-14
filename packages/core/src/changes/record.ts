@@ -1,13 +1,9 @@
+import type { Change } from "./types";
+export type { Change } from "./types";
 import { notifyStoreChanged } from "@shopper/audit";
 import { and, eq, sql } from "drizzle-orm";
 import { branch, store, storeChange, type ShopperTransaction } from "@shopper/db-pg";
 
-export type Change = {
-  entity: "product" | "price" | "tax-rule";
-  entityId: string;
-  op: "upsert" | "delete";
-  payload: unknown;
-};
 const ROWS_PER_INSERT = 1000;
 const FEED_VERSION = 1;
 

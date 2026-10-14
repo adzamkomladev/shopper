@@ -21,6 +21,7 @@
     "build": "tsc -b"
   },
   "dependencies": {
+    "@shopper/assets": "workspace:*",
     "@shopper/auth": "workspace:*",
     "@shopper/config": "workspace:*",
     "@shopper/core": "workspace:*",

@@ -8,7 +8,7 @@ import {
   roleNamed,
   row,
   signInAs,
-} from "../../../support/admin-people";
+} from "../../../support/admin/people";
 import { BOX_API, expectNoSeriousAxe } from "../../../support/e2e";
 import { shopHeaders } from "../../../support/admin";
 

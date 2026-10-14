@@ -4,13 +4,14 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./support/till/pending-sale": "./support/till/pending-sale.ts"
+    "./support/till/pending/sale": "./support/till/pending/sale.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.64.0",
     "@shopper/adapters-box": "workspace:*",
     "@shopper/api": "workspace:*",
+    "@shopper/assets": "workspace:*",
     "@shopper/audit": "workspace:*",
     "@shopper/auth": "workspace:*",
     "@shopper/box": "workspace:*",
@@ -23,6 +24,7 @@
     "@shopper/ports": "workspace:*",
     "@shopper/sync": "workspace:*",
     "@shopper/tax": "workspace:*",
+    "@shopper/utils": "workspace:*",
     "@types/ws": "8.18.2",
     "hono": "4.13.13",
     "valibot": "1.1.0",

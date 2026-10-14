@@ -4,13 +4,13 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowLeftIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { focusOnMount } from "../../../lib/focus";
-import { BarcodesCard } from "./barcodes-card";
-import { DetailsForm } from "./details-form";
+import { BarcodesCard } from "../../../components/catalogue/detail/barcodes/card";
+import { DetailsForm } from "../../../components/catalogue/detail/details/form";
 import type { PriceMode } from "../../../schemas/product";
-import { PriceDialog } from "./prices/dialog";
-import { PricesCard } from "./prices/card";
-import { productQuery } from "./queries";
-import { useProductShortcuts } from "./use-shortcuts";
+import { PriceDialog } from "../../../components/catalogue/detail/prices/dialog";
+import { PricesCard } from "../../../components/catalogue/detail/prices/card";
+import { productQuery } from "../../../queries/catalogue/detail";
+import { useProductShortcuts } from "../../../hooks/catalogue/detail/shortcuts";
 
 export function ProductScreen() {
   const { productId } = useParams({ from: "/_shop/products/$productId" });

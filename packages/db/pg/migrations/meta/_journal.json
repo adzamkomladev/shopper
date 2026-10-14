@@ -92,6 +92,13 @@
       "when": 1791940000000,
       "tag": "0012_receipts",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791972000000,
+      "tag": "0013_assets",
+      "breakpoints": true
     }
   ]
 }

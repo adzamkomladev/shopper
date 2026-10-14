@@ -21,8 +21,13 @@ beforeAll(async () => {
   const connection = await cloudflareDatabase(bindings.HYPERDRIVE.connectionString);
   try {
     const context = { orgId, appVersion: buildInfo.version };
-    await provisionOrg(connection.db, context, { name: "Native portal", slug });
-    await seedAuthRoles(connection.db, context);
+    const { schemaVersion, syncProtocol, archiveFormat } = buildInfo;
+    await provisionOrg(connection.db, context, {
+      name: "Native portal",
+      slug,
+      metadata: { schemaVersion, syncProtocol, archiveFormat },
+    });
+    await seedAuthRoles(connection.db, context, undefined);
   } finally {
     await connection.close();
   }

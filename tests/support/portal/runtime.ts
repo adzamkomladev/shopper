@@ -18,17 +18,27 @@ const cache = boxCache(":memory:");
 let fixture: Awaited<ReturnType<typeof postgresFixture>>;
 let pool: Pool;
 let database: RuntimeOptions["database"];
-const tenants = [provisioningContext(), provisioningContext()];
-const slugs = tenants.map((tenant) => `portal-${tenant.orgId.slice(-12)}`);
+let tenants: ReturnType<typeof provisioningContext>[] = [];
+let slugs: string[] = [];
+// Better Auth rate-limits sign-in per client IP, so each round of shops gets its own addresses.
+let round = 0;
 
 export async function startPortalFixture() {
   fixture = await postgresFixture();
   pool = new Pool({ connectionString: fixture.connectionString });
   database = drizzle(pool, { schema });
   await migrateDatabase(database);
+  await freshPortalTenants();
+}
+
+/** Two new shops with no users, so a test can bootstrap each shop's first owner. */
+export async function freshPortalTenants() {
+  round += 1;
+  tenants = [provisioningContext(), provisioningContext()];
+  slugs = tenants.map((tenant) => `portal-${tenant.orgId.slice(-12)}`);
   for (const [index, tenant] of tenants.entries()) {
     await provisionOrg(database, tenant, { name: `Portal tenant ${index}`, slug: slugs[index] });
-    await seedAuthRoles(database, tenant);
+    await seedAuthRoles(database, tenant, undefined);
   }
 }
 
@@ -46,6 +56,7 @@ export function portalOptions(index: 0 | 1): RuntimeOptions {
     baseURL: portalOrigin,
     orgId: tenants[index].orgId,
     bootstrapToken: portalBootstrap,
+    clientIP: `10.0.${round}.${index + 1}`,
   };
 }
 

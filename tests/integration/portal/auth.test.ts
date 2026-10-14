@@ -1,6 +1,7 @@
-import { afterAll, beforeAll, expect, test } from "vite-plus/test";
+import { afterAll, beforeAll, beforeEach, expect, test } from "vite-plus/test";
 import {
   authRequest,
+  freshPortalTenants,
   portalBootstrap,
   portalPassword,
   portalTenantSlug,
@@ -11,6 +12,8 @@ import {
 
 beforeAll(startPortalFixture);
 afterAll(stopPortalFixture);
+// Sign-up only bootstraps a shop's first owner, so every test starts with empty shops.
+beforeEach(freshPortalTenants);
 
 const body = (email: string, name = "Portal Owner") => ({ name, email, password: portalPassword });
 const post = (index: 0 | 1, path: string, data: unknown, headers: Record<string, string> = {}) =>

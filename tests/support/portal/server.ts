@@ -9,7 +9,8 @@ import {
 import { serveRuntime } from "@shopper/api/runtime";
 import { servePortal } from "@shopper/api/portal";
 import { createMaileroo } from "@shopper/auth";
-import { resolve } from "node:path";
+import { readFile } from "node:fs/promises";
+import { extname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const databaseURL = process.env.E2E_DATABASE_URL;
@@ -34,7 +35,7 @@ const authFlows = boxAuthFlows({
 const priceChange = boxPriceChange({ database: database.db, realtime: boxRealtime() }).launcher;
 const blobs = await boxBlobs(".shopper/portal/blobs", {
   baseUrl: baseURL,
-  secret: linkSecret,
+  secret: new TextEncoder().encode(linkSecret),
   objectStorage: {
     endpoint: "http://127.0.0.1:9200",
     bucket: "shopper-imports-dev",
@@ -43,7 +44,7 @@ const blobs = await boxBlobs(".shopper/portal/blobs", {
     region: "us-east-1",
   },
 });
-const server = await import(pathToFileURL(resolve("apps/portal/dist/server.js")).href);
+const server = await import(pathToFileURL(resolve("apps/portal/dist/server/server.js")).href);
 const portalRuntime = (request: Request) =>
   servePortal(request, (request) =>
     serveRuntime(request, {
@@ -61,15 +62,24 @@ const portalRuntime = (request: Request) =>
     }),
   );
 
+const assets = resolve("apps/portal/dist/client");
+const contentTypes: Record<string, string> = {
+  ".js": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".woff2": "font/woff2",
+};
+
 export default {
   port: Number(new URL(baseURL).port),
   idleTimeout: 30,
   async fetch(request: Request) {
     const path = new URL(request.url).pathname;
     if (path.startsWith("/assets/")) {
-      const file = Bun.file(resolve("apps/portal/dist/client", `.${path}`));
-      if (await file.exists()) return new Response(file);
-      return new Response("Not found", { status: 404 });
+      const bytes = await readFile(resolve(assets, `.${path}`)).catch(() => undefined);
+      if (!bytes) return new Response("Not found", { status: 404 });
+      const type = contentTypes[extname(path)] ?? "application/octet-stream";
+      return new Response(bytes, { headers: { "Content-Type": type } });
     }
     return server.default.fetch(request, { context: { portalRuntime } });
   },

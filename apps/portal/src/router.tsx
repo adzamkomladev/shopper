@@ -10,8 +10,6 @@ export function getRouter() {
   return createRouter({
     routeTree: createBackofficeRoutes(routeTree),
     context: { queryClient },
-    // Shared backoffice loaders use the browser's selected shop and run after hydration.
-    defaultSsr: false,
     scrollRestoration: true,
   });
 }

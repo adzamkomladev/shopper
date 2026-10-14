@@ -3,6 +3,7 @@ import type { AddressInfo } from "node:net";
 
 type FetchApp = { fetch(request: Request): Response | Promise<Response> };
 export type HttpClient = {
+  url: string;
   request(path: string, init?: RequestInit): Promise<Response>;
   close(): Promise<void>;
 };
@@ -15,6 +16,7 @@ export async function serveHono(app: FetchApp): Promise<HttpClient> {
   });
   const { port } = server.address() as AddressInfo;
   return {
+    url: `http://127.0.0.1:${port}`,
     request: (path, init) => fetch(`http://127.0.0.1:${port}${path}`, init),
     close: () =>
       new Promise((resolve, reject) =>

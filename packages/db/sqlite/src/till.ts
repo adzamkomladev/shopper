@@ -10,7 +10,7 @@ export interface TillDatabase {
 export const tillMigration = `
 CREATE TABLE IF NOT EXISTS till_state (
  id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, device_id TEXT NOT NULL,
- last_outbox_seq INTEGER NOT NULL DEFAULT 0, UNIQUE(org_id,device_id)
+ last_outbox_seq INTEGER NOT NULL DEFAULT 0, pull_cursor TEXT NOT NULL DEFAULT '0', UNIQUE(org_id,device_id)
 );
 CREATE TABLE IF NOT EXISTS local_sale (
  id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, device_id TEXT NOT NULL, local_id TEXT NOT NULL,

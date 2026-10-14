@@ -8,6 +8,7 @@ import { managementId } from "@shopper/core/management";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { Sequencer } from "@shopper/ports";
 import type { createDeviceService } from "@shopper/auth/devices";
+import { createPullRoutes } from "./pull";
 
 const maxBatch = 200;
 const maxBytes = 1024 * 1024;
@@ -52,6 +53,7 @@ export function createSyncRoutes(options: {
       return c.json({ error: "Malformed sync envelope" }, 400);
     return c.json({ error: "Sync service unavailable" }, 503);
   });
+  app.route("/", createPullRoutes({ ...options, protocol }));
   app.post("/sync/handshake", async (c) => {
     const principal = await options.devices.resolveUploadPrincipal(c.req.raw);
     if (!principal) return c.json({ error: "Invalid device credential" }, 401);

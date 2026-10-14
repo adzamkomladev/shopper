@@ -19,17 +19,30 @@ import {
   DialogTrigger,
 } from "@shopper/ui/components/dialog";
 import { Kbd } from "@shopper/ui/components/kbd";
-import { Skeleton } from "@shopper/ui/components/skeleton";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { connectRegister, retryUpload, useConnectionSnapshot } from "../../connection/store";
+import {
+  errorTitle,
+  hostDetail,
+  IdentityRow,
+  IdentitySkeleton,
+  serverDetail,
+  serverLabelFor,
+  serverState,
+} from "./details";
 import { StatusCard } from "./status-card";
+import { canSyncNow, SyncStatus } from "./sync-status";
 
 export function ConnectionScreen() {
   const connection = useConnectionSnapshot();
+  const status = connection.status;
   const [aboutOpen, setAboutOpen] = useState(false);
+  const syncNow = () => {
+    if (canSyncNow(connection.host, status)) retryUpload();
+  };
   const registerShortcuts = useShortcuts({
     C: connectRegister,
-    R: retryUpload,
+    Y: syncNow,
     A: () => setAboutOpen(true),
   });
   const shortcuts = (node: HTMLElement | null) => {
@@ -37,7 +50,6 @@ export function ConnectionScreen() {
     if (node && document.activeElement === document.body) node.focus();
     return cleanup;
   };
-  const status = connection.status;
   const server =
     connection.host === "connecting"
       ? "connecting"
@@ -63,32 +75,35 @@ export function ConnectionScreen() {
       ref={shortcuts}
       tabIndex={-1}
     >
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b pb-5">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-md bg-secondary text-primary">
-            <Store aria-hidden="true" className="size-5" />
-          </span>
-          <div className="min-w-0">
-            <p className="truncate font-medium">
-              {status?.identity.shopName ?? "Shopper register"}
-            </p>
-            <p className="truncate text-sm text-muted-foreground">
-              {status?.identity.registerName ?? "Register not connected"}
-            </p>
+      <header className="flex flex-col gap-3 border-b pb-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-md bg-secondary text-primary">
+              <Store aria-hidden="true" className="size-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate font-medium">
+                {status?.identity.shopName ?? "Shopper register"}
+              </p>
+              <p className="truncate text-sm text-muted-foreground">
+                {status?.identity.registerName ?? "Register not connected"}
+              </p>
+            </div>
           </div>
+          <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
+            <DialogTrigger asChild>
+              <Button aria-label="About" aria-keyshortcuts="A" variant="outline" size="touch">
+                About <Kbd className="pointer-coarse:inline-flex">A</Kbd>
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogTitle>About Shopper</DialogTitle>
+              <DialogDescription>Register application details.</DialogDescription>
+              <About />
+            </DialogContent>
+          </Dialog>
         </div>
-        <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
-          <DialogTrigger asChild>
-            <Button aria-label="About" aria-keyshortcuts="A" variant="outline" size="touch">
-              About <Kbd className="pointer-coarse:inline-flex">A</Kbd>
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogTitle>About Shopper</DialogTitle>
-            <DialogDescription>Register application details.</DialogDescription>
-            <About />
-          </DialogContent>
-        </Dialog>
+        <SyncStatus host={connection.host} status={status} onSyncNow={syncNow} />
       </header>
 
       <section className="grid gap-4">
@@ -180,35 +195,19 @@ export function ConnectionScreen() {
               title="Server connection"
               description={
                 status?.blockedCount
-                  ? "Retry sends eligible waiting sales; blocked sales remain saved and unchanged."
+                  ? "Sync sends eligible waiting sales; blocked sales remain saved and unchanged."
                   : "Sales upload to the server when it is available."
               }
               label={serverLabel}
               state={serverState(server)}
               detail={serverDetail(server, status?.pendingCount ?? 0, status?.blockedCount ?? 0)}
             >
-              <div className="flex flex-wrap items-end justify-between gap-4">
-                <dl className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
-                  <dt className="text-muted-foreground">Waiting to upload</dt>
-                  <dd className="text-right font-medium tabular-nums">
-                    {status?.pendingCount ?? 0}
-                  </dd>
-                  <dt className="text-muted-foreground">Blocked</dt>
-                  <dd className="text-right font-medium tabular-nums">
-                    {status?.blockedCount ?? 0}
-                  </dd>
-                </dl>
-                <Button
-                  aria-keyshortcuts="R"
-                  className="w-full sm:w-fit"
-                  disabled={connection.host !== "connected"}
-                  onClick={retryUpload}
-                  size="touch"
-                  variant="outline"
-                >
-                  Retry upload <Kbd className="pointer-coarse:inline-flex">R</Kbd>
-                </Button>
-              </div>
+              <dl className="grid w-fit grid-cols-2 gap-x-8 gap-y-1 text-sm">
+                <dt className="text-muted-foreground">Waiting to upload</dt>
+                <dd className="text-right font-medium tabular-nums">{status?.pendingCount ?? 0}</dd>
+                <dt className="text-muted-foreground">Blocked</dt>
+                <dd className="text-right font-medium tabular-nums">{status?.blockedCount ?? 0}</dd>
+              </dl>
               {status?.lastSuccessfulPushAt !== null &&
                 status?.lastSuccessfulPushAt !== undefined && (
                   <p className="text-xs text-muted-foreground">
@@ -230,70 +229,4 @@ export function ConnectionScreen() {
       </footer>
     </main>
   );
-}
-
-function IdentityRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3 last:border-0 last:pb-0">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="max-w-full truncate text-right text-sm font-medium">{value}</p>
-    </div>
-  );
-}
-
-function IdentitySkeleton({ label }: { label: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b pb-3 last:border-0 last:pb-0">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <Skeleton className="h-5 w-32" />
-    </div>
-  );
-}
-
-function hostDetail(host: "disconnected" | "connecting" | "connected") {
-  return {
-    connected: "Local storage is ready",
-    connecting: "Opening secure local connection",
-    disconnected: "Start the host, then reconnect",
-  }[host];
-}
-
-function serverLabelFor(server: string) {
-  return (
-    {
-      connecting: "Connecting",
-      online: "Connected",
-      offline: "Offline",
-      blocked: "Upload blocked",
-      revoked: "Device revoked",
-      incompatible: "Version incompatible",
-    }[server] ?? "Unknown status"
-  );
-}
-
-function serverState(server: string | null): "good" | "pending" | "problem" {
-  if (server === "online") return "good";
-  if (server === "connecting") return "pending";
-  return "problem";
-}
-
-function serverDetail(server: string | null, pending: number, blocked: number) {
-  if (blocked)
-    return `${blocked} rejected sale${blocked === 1 ? " remains" : "s remain"} saved. Ask a manager to investigate.`;
-  if (pending) return `${pending} sale${pending === 1 ? " is" : "s are"} waiting to upload`;
-  if (server === "offline") return "Sales are saved here while the server is offline";
-  if (server === "revoked") return "This device needs to be enrolled again";
-  if (server === "incompatible") return "Update the register application to continue";
-  if (server === "blocked") return "Ask a manager to investigate the rejected sale";
-  if (server === "online") return "No sales are waiting to upload";
-  if (!server) return "Connect this register host to check the server";
-  return "Checking the server connection";
-}
-
-function errorTitle(server: string | null, host: string) {
-  if (server === "revoked") return "Register access was revoked";
-  if (server === "incompatible") return "Register version is not supported";
-  if (server === "blocked") return "A sale needs attention";
-  if (server === "offline") return "Server is unavailable";
-  return host === "disconnected" ? "Host connection is unavailable" : "Connection needs attention";
 }

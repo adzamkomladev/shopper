@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { outbox } from "@shopper/db-sqlite";
 import { buildInfo } from "@shopper/config";
 import { recordLocalSale, provisionTillReference, TillError } from "@shopper/core/till";
-import { createPushWorker } from "@shopper/sync";
+import { createHostSync } from "./sync";
 import {
   bridgeRequest,
   type BridgeMessage,
@@ -45,19 +45,8 @@ export async function startTillHost(raw: unknown, send: (message: unknown) => vo
   let closed = false;
   let lastKnownStatus: HostStatus | undefined;
   let transport: Awaited<ReturnType<typeof openHostTransport>> | undefined;
-  const worker = createPushWorker({
-    database,
-    config: {
-      orgId: identity.orgId,
-      deviceId: identity.deviceId,
-      appVersion: buildInfo.version,
-      protocol: buildInfo.syncProtocol,
-      upstream: config.upstream,
-      deviceToken: config.deviceToken,
-    },
-    onStatus() {
-      void publishStatus();
-    },
+  const worker = createHostSync(database, config, () => {
+    void publishStatus();
   });
   async function status(): Promise<HostStatus> {
     const rows = await database.read((tx) =>
@@ -67,7 +56,7 @@ export async function startTillHost(raw: unknown, send: (message: unknown) => vo
         .where(and(eq(outbox.orgId, identity.orgId), eq(outbox.deviceId, identity.deviceId))),
     );
     lastKnownStatus = {
-      ...worker.getStatus(),
+      ...(await worker.status()),
       pendingCount: rows.filter((row) => !row.blockedReason).length,
       blockedCount: rows.filter((row) => row.blockedReason).length,
       identity,
@@ -84,7 +73,17 @@ export async function startTillHost(raw: unknown, send: (message: unknown) => vo
     } catch {
       current = {
         ...(lastKnownStatus ?? {
-          ...worker.getStatus(),
+          server: "offline" as const,
+          pendingCount: 0,
+          blockedCount: 0,
+          lastSuccessfulPushAt: null,
+          mode: "offline" as const,
+          cursor: null,
+          head: null,
+          lastPullAt: null,
+          receiptsLeft: 0,
+          overflow: false,
+          syncing: false,
           identity,
           appVersion: buildInfo.version,
           protocol: buildInfo.syncProtocol,

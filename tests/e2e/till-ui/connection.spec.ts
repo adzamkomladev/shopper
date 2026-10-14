@@ -87,7 +87,7 @@ test("the cashier reconnects and retries with the keyboard, then opens About", a
 
     const pushes = scenario.pushRequestCount();
     scenario.restoreUpstream();
-    await page.keyboard.press("r");
+    await page.keyboard.press("y");
     await expect.poll(() => scenario.pushRequestCount()).toBeGreaterThan(pushes);
     await scenario.waitForPushSuccess(pushes + 1);
 

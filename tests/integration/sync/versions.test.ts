@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import * as v from "valibot";
 import { createSyncRoutes } from "@shopper/api/sync";
 import { createPushWorker } from "@shopper/sync";
-import { createEventDecoder, saleEvent } from "@shopper/core/schemas";
+import { createEventDecoder, decodeSaleEvent, saleEvent } from "@shopper/core/schemas";
 import { createPushFixture, type PushFixture } from "../../support/till/push";
 import {
   databases,
@@ -25,10 +25,13 @@ afterEach(async () => {
   protocolTwo = undefined;
 });
 
-test("protocol 1 negotiates with the deployed protocol 1 route", async () => {
+test("a protocol one client negotiates with the current server", async () => {
   fixture = await createPushFixture();
   await fixture.recordSale();
-  const worker = createPushWorker(fixture.workerOptions);
+  const worker = createPushWorker({
+    ...fixture.workerOptions,
+    config: { ...fixture.workerOptions.config, protocol: 1 },
+  });
   fixture.worker = worker;
   await worker.trigger();
   const handshake = fixture.upstream.requests.find((request) => request.path === "/sync/handshake");
@@ -36,12 +39,15 @@ test("protocol 1 negotiates with the deployed protocol 1 route", async () => {
   expect(worker.getStatus()).toMatchObject({ server: "online", pendingCount: 0 });
 });
 
-test("protocol 2 clients are held in incompatible state by a protocol 1 server", async () => {
+test("future protocol clients are held in incompatible state by the current server", async () => {
   fixture = await createPushFixture();
   await fixture.recordSale();
   const worker = createPushWorker({
     ...fixture.workerOptions,
-    config: { ...fixture.workerOptions.config, protocol: 2 },
+    config: {
+      ...fixture.workerOptions.config,
+      protocol: fixture.workerOptions.config.protocol + 1,
+    },
   });
   fixture.worker = worker;
   await worker.trigger();
@@ -64,7 +70,7 @@ test("the checked-in v1 fixture advances one event version and preserves the ori
     snapshotFormat: v.literal(2),
   });
   const decode = createEventDecoder(2, (raw) => v.parse(versionTwo, raw), {
-    1: (raw) => ({ ...v.parse(saleEvent, raw), v: 2, snapshotFormat: 2 }),
+    1: (raw) => ({ ...decodeSaleEvent(raw), v: 2, snapshotFormat: 2 }),
   });
   const badJump = createEventDecoder(3, (raw) => raw, {
     1: (raw) => ({ ...(raw as object), v: 3 }),

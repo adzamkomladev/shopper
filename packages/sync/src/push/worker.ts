@@ -1,7 +1,6 @@
-import * as v from "valibot";
 import { v7 } from "uuid";
-import { uuidV7Schema } from "@shopper/ports";
-import { negotiateProtocol } from "../versions";
+import { createReceiptStorage } from "../receipts";
+import { readHandshake } from "../connection";
 import { createBatch } from "./batch";
 import { createPushTransport } from "./http";
 import { retryDeadline } from "./backoff";
@@ -9,16 +8,12 @@ import { readAcknowledgment } from "./acknowledgment";
 import { createQueueStorage } from "./storage";
 import type { PushOptions, PushStatus } from "./types";
 
-const handshake = v.strictObject({
-  requestId: uuidV7Schema,
-  protocol: v.pipe(v.number(), v.integer()),
-  appVersion: v.pipe(v.string(), v.minLength(1)),
-});
 export function createPushWorker(options: PushOptions) {
   const { config } = options;
   const now = options.now ?? Date.now;
   const random = options.random ?? Math.random;
   const queue = createQueueStorage(options);
+  const receipts = createReceiptStorage(options);
   const listeners = new Set<() => void>();
   let status: PushStatus = {
     server: "connecting",
@@ -89,16 +84,13 @@ export function createPushWorker(options: PushOptions) {
           requestId,
           appVersion: config.appVersion,
           protocol: config.protocol,
+          receiptLastUsed: await receipts.lastUsed(),
         });
         retryAfter = response.headers.get("retry-after");
         if (terminal(response.status)) return;
         if (!response.ok) throw new Error("Handshake unavailable");
-        const result = v.parse(handshake, JSON.parse(raw));
-        if (
-          result.requestId !== requestId ||
-          negotiateProtocol(config.protocol, result.protocol) === undefined
-        )
-          throw new Error("Invalid handshake");
+        const result = readHandshake(JSON.parse(raw), requestId, config.protocol);
+        if (result.receipts) await receipts.save(result.receipts, result.serverTime, now());
         negotiated = result.protocol;
         connectionRetryAt = 0;
         connectionAttempts = 0;
@@ -118,7 +110,7 @@ export function createPushWorker(options: PushOptions) {
       }
     }
     while (!stopped) {
-      const batch = createBatch(saved, v7(), negotiated, now());
+      const batch = createBatch(saved, v7(), negotiated, now(), await receipts.lastUsed());
       if (batch.blocked.length) {
         await queue.change(batch.blocked);
         saved = await counts();
@@ -135,6 +127,7 @@ export function createPushWorker(options: PushOptions) {
           batch.body.requestId,
           batch.rows.map((row) => row.localId),
         );
+        if (result.receipts) await receipts.save(result.receipts);
         const safeMessage = (message: string) => {
           for (const secret of [
             config.deviceToken,
@@ -144,7 +137,11 @@ export function createPushWorker(options: PushOptions) {
           return message;
         };
         await queue.change([
-          ...result.accepted.map((entry) => ({ localId: entry.localId, sequence: entry.sequence })),
+          ...result.accepted.map((entry) => ({
+            localId: entry.localId,
+            sequence: entry.sequence,
+            ...(entry.occurredAt === undefined ? {} : { occurredAt: entry.occurredAt }),
+          })),
           ...result.rejected.map((entry) => ({
             localId: entry.localId,
             blockedReason: `${safeMessage(entry.code)}: ${safeMessage(entry.message)}`,
@@ -156,6 +153,7 @@ export function createPushWorker(options: PushOptions) {
         const omitted = batch.rows.filter((row) => !acknowledged.has(row.localId));
         if (omitted.length) await retry(omitted);
         publish({ server: "online", lastError: null, lastSuccessfulPushAt: now() });
+        options.onAcknowledgment?.();
         saved = await counts();
       } catch {
         if (stopped) return;

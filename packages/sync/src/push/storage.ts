@@ -6,6 +6,7 @@ import type { PushOptions } from "./types";
 type Change = {
   localId: string;
   sequence?: string;
+  occurredAt?: string;
   blockedReason?: string;
   attempts?: number;
   nextAttemptAt?: number;
@@ -22,7 +23,7 @@ export function createQueueStorage(options: PushOptions) {
           if (entry.sequence) {
             await tx
               .update(localSale)
-              .set({ storeSequence: entry.sequence })
+              .set({ storeSequence: entry.sequence, occurredAt: entry.occurredAt })
               .where(
                 and(
                   eq(localSale.orgId, config.orgId),

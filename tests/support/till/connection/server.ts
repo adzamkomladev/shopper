@@ -75,6 +75,7 @@ export async function createConnectionServer(state: string) {
       appVersion: seed.appVersion,
       productId: sales.ids.product,
       deviceToken: enrolled.deviceToken,
+      receiptCodes: enrolled.receiptCodes,
       references,
       session: {
         id: session.id,

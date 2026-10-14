@@ -30,6 +30,7 @@ export async function validateAuthority(
   principal: UploadPrincipal,
   snapshot: SaleSnapshot,
   proofHash: string,
+  occurredAt = new Date(new Date(snapshot.deviceTime).valueOf() - snapshot.clockOffsetMs),
 ) {
   if (
     snapshot.orgId !== principal.orgId ||
@@ -74,7 +75,7 @@ export async function validateAuthority(
     .select({ id: member.id })
     .from(member)
     .where(and(eq(member.orgId, ctx.orgId), eq(member.userId, snapshot.cashierId)));
-  const time = new Date(snapshot.deviceTime);
+  const time = occurredAt;
   if (
     !registered ||
     !session ||
@@ -91,8 +92,9 @@ export async function validateReferences(
   tx: ShopperTransaction,
   orgId: string,
   snapshot: SaleSnapshot,
+  occurredAt = new Date(new Date(snapshot.deviceTime).valueOf() - snapshot.clockOffsetMs),
 ) {
-  const time = new Date(snapshot.deviceTime);
+  const time = occurredAt;
   const on = time.toISOString().slice(0, 10); // Accra uses UTC year-round.
   const [rule] = await tx
     .select()

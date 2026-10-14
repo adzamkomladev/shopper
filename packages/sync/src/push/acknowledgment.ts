@@ -1,10 +1,13 @@
 import * as v from "valibot";
 import { uuidV7Schema } from "@shopper/ports";
+import { receiptsSchema } from "../receipts";
 export const acknowledgment = v.strictObject({
   requestId: uuidV7Schema,
+  receipts: v.optional(receiptsSchema),
   accepted: v.array(
     v.strictObject({
       localId: uuidV7Schema,
+      occurredAt: v.optional(v.pipe(v.string(), v.isoTimestamp())),
       sequence: v.pipe(
         v.string(),
         v.regex(/^[1-9][0-9]{0,18}$/),

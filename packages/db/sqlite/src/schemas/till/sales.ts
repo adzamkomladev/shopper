@@ -10,6 +10,7 @@ export const localSale = sqliteTable(
     payload: text("payload", { mode: "json" }).$type<unknown>().notNull(),
     contentHash: text("content_hash").notNull(),
     storeSequence: text("store_sequence"),
+    occurredAt: text("occurred_at"),
   },
   (t) => [
     unique().on(t.deviceId, t.localId),
@@ -61,6 +62,15 @@ export const tillState = sqliteTable(
     orgId: text("org_id").notNull(),
     deviceId: text("device_id").notNull(),
     lastOutboxSeq: integer("last_outbox_seq").notNull().default(0),
+    receiptLastUsed: integer("receipt_last_used").notNull().default(0),
+    receiptOverflowCounter: integer("receipt_overflow_counter").notNull().default(0),
+    branchCode: text("branch_code"),
+    deviceCode: text("device_code"),
+    clockOffsetMs: integer("clock_offset_ms").notNull().default(0),
+    receiptBlocks: text("receipt_blocks", { mode: "json" })
+      .$type<{ start: number; end: number }[]>()
+      .notNull()
+      .default([]),
     pullInitialized: integer("pull_initialized", { mode: "boolean" }).notNull().default(false),
     pullCursor: text("pull_cursor").notNull().default("0"),
   },

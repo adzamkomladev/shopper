@@ -34,6 +34,7 @@ export const org = pgTable(
     orgId: uuid("org_id")
       .notNull()
       .generatedAlwaysAs(sql`id`),
+    branchCounter: integer("branch_counter").notNull().default(0),
     name: text("name").notNull(),
     slug: text("slug")
       .notNull()
@@ -81,10 +82,13 @@ export const branch = pgTable(
   {
     ...tenant(),
     storeId: uuid("store_id").notNull(),
+    code: text("code").notNull().default(""),
+    deviceCounter: integer("device_counter").notNull().default(0),
     name: text("name").notNull(),
   },
   (t) => [
     unique().on(t.orgId, t.id),
+    unique().on(t.orgId, t.code),
     foreignKey({ columns: [t.orgId, t.storeId], foreignColumns: [store.orgId, store.id] }),
   ],
 );

@@ -11,6 +11,7 @@ export const config = {
   storeId: "019a0000-0000-7000-8000-00000000000d",
   branchId: ids.branch,
   appVersion,
+  receiptCodes: { branchCode: "BR01", deviceCode: "T01" },
   now: () => new Date("2025-12-31T23:30:00.000Z"),
 };
 export const session = {

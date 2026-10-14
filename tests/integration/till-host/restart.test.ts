@@ -2,7 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { and, eq } from "drizzle-orm";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { auditLog, sale } from "@shopper/db-pg";
-import { api, databases } from "../../support/till/server";
+import { api, databases, syncProtocol } from "../../support/till/server";
 import { createFailOnceSequencer, createSyncApi } from "../../support/till/requests";
 import { createHostFixture } from "../../support/till/host/fixture";
 import { startHostUpstream } from "../../support/till/host/upstream";
@@ -23,7 +23,7 @@ afterEach(async () => {
 
 describe("till host restart recovery", () => {
   it("replays an accepted sale after sequencing failed before the first response", async () => {
-    const failingApi = await createSyncApi(1, createFailOnceSequencer());
+    const failingApi = await createSyncApi(syncProtocol, createFailOnceSequencer());
     upstream = await startHostUpstream(failingApi);
     const gate = upstream.holdNextPush();
     fixture = await createHostFixture({ upstream: upstream.url, freshSession: true });
@@ -92,10 +92,10 @@ describe("till host restart recovery", () => {
 
     upstream = await startHostUpstream(api);
     const gate = upstream.holdNextPush();
-    heldLock = new DatabaseSync(fixture.sqlitePath);
-    heldLock.exec("BEGIN IMMEDIATE");
     host = await fixture.start({ ...fixture.config, upstream: upstream.url, session: null });
     await gate.entered;
+    heldLock = new DatabaseSync(fixture.sqlitePath);
+    heldLock.exec("BEGIN IMMEDIATE");
     expect(upstream.requests.find((request) => request.path === "/sync/push")).toMatchObject({
       status: 200,
       response: { accepted: [{ localId: event.localId }], rejected: [] },

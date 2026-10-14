@@ -8,34 +8,25 @@ import { createDeviceService } from "@shopper/auth/devices";
 import { boxBlobs, boxCache, boxSequencer, openTillDatabase } from "@shopper/adapters-box";
 import { recordLocalSale, provisionTillReference } from "@shopper/core/till";
 import * as v from "valibot";
-import { saleEvent } from "@shopper/core/schemas";
+import { saleEvent, tillReceiptCodes } from "@shopper/core/schemas";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { postgresFixture } from "../../fixtures/postgres";
 import { config as saleConfig, ids, references } from "./sales";
-import { ageSession, appVersion, context, seedServerDatabase } from "./server-data";
+import { appVersion, context, seedServerDatabase } from "./server-data";
 import { serveHono, type HttpClient } from "./http";
+import { enrollFixtureTill } from "./enrollment";
 export type SaleEvent = v.InferOutput<typeof saleEvent>;
 
 let fixture: Awaited<ReturnType<typeof postgresFixture>>;
 let pool: Pool;
 let db: import("@shopper/db-pg").ShopperDatabase;
 export let cache: ReturnType<typeof boxCache>;
-let session: {
-  id: string;
-  orgId: string;
-  deviceId: string;
-  branchId: string;
-  userId: string;
-  roleName: string;
-  issuedAt: string;
-  expiresAt: string;
-  permissions: string[];
-  proof: string;
-};
+let session: Awaited<ReturnType<typeof enrollFixtureTill>>["session"];
 export let deviceId: string;
 export let deviceToken: string;
+let receiptCodes: v.InferOutput<typeof tillReceiptCodes>;
 export let api: HttpClient;
 export let devices: ReturnType<typeof createDeviceService>;
 export let principal: { orgId: string; userId: string; roleId: string; roleName: string };
@@ -58,36 +49,8 @@ beforeAll(async () => {
     roleId: cashier.roleId,
     roleName: "cashier",
   };
-  const challenge = await devices.issueEnrollment(principal, { branchId: cashier.branchId });
-  const enrolled = await devices.enroll({
-    orgId: context.orgId,
-    code: challenge.code,
-    name: "Sync till",
-  });
   await devices.assignPin(principal, { userId: principal.userId, pin: "1357" });
-  const login = await devices.login({
-    deviceId: enrolled.deviceId,
-    deviceToken: enrolled.deviceToken,
-    userId: principal.userId,
-    pin: "1357",
-  });
-  deviceId = enrolled.deviceId;
-  deviceToken = enrolled.deviceToken;
-  const issuedAt = new Date("2025-12-31T16:00:00.000Z");
-  const expiresAt = new Date("2026-01-01T08:00:00.000Z");
-  await ageSession(db, context, { sessionId: login.id, issuedAt, expiresAt });
-  session = {
-    id: login.id,
-    orgId: context.orgId,
-    deviceId,
-    branchId: cashier.branchId,
-    userId: principal.userId,
-    roleName: login.roleName,
-    issuedAt: issuedAt.toISOString(),
-    expiresAt: expiresAt.toISOString(),
-    permissions: login.permissions,
-    proof: login.token,
-  };
+  await renewTillEnrollment();
   sequencer = boxSequencer(db);
   localDirectory = await mkdtemp(join(tmpdir(), "shopper-sync-host-"));
   const storage = await boxBlobs(join(localDirectory, "blobs"), {
@@ -120,6 +83,7 @@ export async function recordSale(options: { lineCount?: number } = {}): Promise<
       ...saleConfig,
       orgId: context.orgId,
       deviceId,
+      receiptCodes,
       now: () => new Date("2025-12-31T23:30:00.000Z"),
     },
     session,
@@ -174,6 +138,7 @@ export async function hostConfiguration(
       proof: "token" in hostSession ? hostSession.token : session.proof,
     },
     references,
+    receiptCodes,
     upstream,
     origins,
     port: 0,
@@ -195,7 +160,12 @@ export function databaseConnectionString() {
 export function cashierSessionProof() {
   return { id: session.id, proof: session.proof };
 }
+export async function renewTillEnrollment() {
+  const enrolled = await enrollFixtureTill(db, devices, principal);
+  ({ deviceId, deviceToken, receiptCodes, session } = enrolled);
+}
 export async function resetLocalTill() {
+  await renewTillEnrollment();
   await local.close();
   if (localDirectory) await rm(localDirectory, { recursive: true, force: true });
   localDirectory = await mkdtemp(join(tmpdir(), "shopper-sync-host-"));

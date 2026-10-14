@@ -4,25 +4,29 @@ import * as v from "valibot";
 import { negotiateProtocol } from "@shopper/sync/versions";
 import { buildInfo } from "@shopper/config";
 import { acceptSale, SaleError } from "@shopper/core/sales";
+import { issueReceiptBlocks } from "@shopper/core/till";
 import { managementId } from "@shopper/core/management";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { Blobs, Sequencer } from "@shopper/ports";
 import type { createDeviceService } from "@shopper/auth/devices";
+import { createLiveRoutes, type LiveUpgrade } from "./live";
 import { createPullRoutes } from "./pull";
 import { createSnapshotRoutes } from "./snapshot";
-import { createLiveRoutes, type LiveUpgrade } from "./live";
 
 const maxBatch = 200;
 const maxBytes = 1024 * 1024;
 const protocolSchema = v.pipe(v.number(), v.safeInteger(), v.minValue(0));
+const receiptLastUsed = v.optional(v.pipe(v.number(), v.safeInteger(), v.minValue(0)), 0);
 const handshake = v.strictObject({
   requestId: managementId,
   appVersion: v.pipe(v.string(), v.minLength(1)),
   protocol: protocolSchema,
+  receiptLastUsed,
 });
 const envelope = v.strictObject({
   requestId: managementId,
   protocol: protocolSchema,
+  receiptLastUsed,
   events: v.pipe(v.array(v.unknown()), v.maxLength(maxBatch)),
   proofs: v.pipe(
     v.array(
@@ -40,8 +44,9 @@ export function createSyncRoutes(options: {
   devices: ReturnType<typeof createDeviceService>;
   sequencer: Sequencer;
   protocol?: number;
-  blobs?: Blobs;
   live?: LiveUpgrade;
+  blobs?: Blobs;
+  now?: () => number;
 }) {
   const protocol = options.protocol ?? buildInfo.syncProtocol;
   const app = new Hono();
@@ -66,10 +71,23 @@ export function createSyncRoutes(options: {
     const data = v.parse(handshake, await c.req.json());
     if (negotiateProtocol(protocol, data.protocol) === undefined)
       return c.json({ error: "Incompatible sync protocol" }, 409);
+    if (data.protocol === 1)
+      return c.json({
+        requestId: data.requestId,
+        appVersion: buildInfo.version,
+        protocol: data.protocol,
+      });
     return c.json({
       requestId: data.requestId,
       appVersion: buildInfo.version,
       protocol: data.protocol,
+      serverTime: new Date((options.now ?? Date.now)()).toISOString(),
+      receipts: await issueReceiptBlocks(
+        options.database,
+        principal,
+        data.receiptLastUsed,
+        data.appVersion,
+      ),
     });
   });
   app.post("/sync/push", async (c) => {
@@ -85,12 +103,12 @@ export function createSyncRoutes(options: {
       if (proofs.has(row.sessionId)) return c.json({ error: "Duplicate session proof" }, 400);
       proofs.set(row.sessionId, row.proof);
     }
-    const accepted: { localId: string; sequence: string }[] = [];
+    const accepted: { localId: string; sequence: string; occurredAt: string }[] = [];
     const rejected: { localId: string; code: string; message: string }[] = [];
     for (const [index, raw] of data.events.entries()) {
       // The validated identity list has one entry for every event, in the same order.
       const localId = ids[index]!;
-      const version = v.safeParse(v.object({ v: v.literal(1) }), raw);
+      const version = v.safeParse(v.object({ v: v.picklist([1, 2]) }), raw);
       if (!version.success) {
         rejected.push({
           localId,
@@ -99,14 +117,17 @@ export function createSyncRoutes(options: {
         });
         continue;
       }
+      let occurredAt: string;
       try {
         const session = v.parse(v.object({ sale: v.object({ sessionId: managementId }) }), raw);
-        await acceptSale(
+        const result = await acceptSale(
           options.database,
           principal,
           raw,
           proofs.get(session.sale.sessionId) ?? "",
+          options.now,
         );
+        occurredAt = result.occurredAt;
       } catch (error) {
         const postgresError = error as { code?: string; cause?: { code?: string } };
         const failure =
@@ -135,12 +156,28 @@ export function createSyncRoutes(options: {
           localId,
         );
         if (sequence <= 0n) throw new Error("Invalid assigned sequence");
-        accepted.push({ localId, sequence: sequence.toString() });
+        accepted.push({ localId, sequence: sequence.toString(), occurredAt });
       } catch {
         return c.json({ error: "Sale sequencing unavailable" }, 503);
       }
     }
-    return c.json({ requestId: data.requestId, accepted, rejected });
+    if (data.protocol === 1)
+      return c.json({
+        requestId: data.requestId,
+        accepted: accepted.map(({ localId, sequence }) => ({ localId, sequence })),
+        rejected,
+      });
+    return c.json({
+      requestId: data.requestId,
+      accepted,
+      rejected,
+      receipts: await issueReceiptBlocks(
+        options.database,
+        principal,
+        data.receiptLastUsed,
+        buildInfo.version,
+      ),
+    });
   });
   return app;
 }

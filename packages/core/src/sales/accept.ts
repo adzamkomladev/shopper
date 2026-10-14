@@ -4,6 +4,7 @@ import { defineCommand, canonicalJson } from "@shopper/audit";
 import { sale, saleLine, type ShopperDatabase } from "@shopper/db-pg";
 import { decodeSaleEvent, saleSnapshot, type SaleEvent } from "../schemas/till/sale";
 import { validateAuthority, validateReferences, type UploadPrincipal } from "./validate";
+import { validateReceipt } from "./receipts";
 import { SaleError } from "./error";
 
 export async function acceptSale(
@@ -11,8 +12,12 @@ export async function acceptSale(
   principal: UploadPrincipal,
   raw: unknown,
   proof: string,
+  now = Date.now,
 ) {
   const event = decodeSaleEvent(raw);
+  const occurredAt = new Date(
+    Math.min(now(), new Date(event.sale.deviceTime).valueOf() - event.sale.clockOffsetMs),
+  );
   const contentHash = await digest(canonicalJson(event.sale));
   return accept(
     db,
@@ -24,7 +29,7 @@ export async function acceptSale(
       appVersion: event.sale.appVersion,
       deviceTime: new Date(event.sale.deviceTime),
     },
-    { principal, event, proofHash: await digest(proof), contentHash },
+    { principal, event, occurredAt, proofHash: await digest(proof), contentHash },
   );
 }
 
@@ -33,7 +38,13 @@ const accept = defineCommand({
   async replay(
     tx,
     ctx,
-    input: { principal: UploadPrincipal; event: SaleEvent; proofHash: string; contentHash: string },
+    input: {
+      principal: UploadPrincipal;
+      event: SaleEvent;
+      proofHash: string;
+      contentHash: string;
+      occurredAt: Date;
+    },
   ) {
     const [saved] = await tx
       .select()
@@ -52,15 +63,17 @@ const accept = defineCommand({
       input.principal,
       v.parse(saleSnapshot, saved.payload),
       input.proofHash,
+      saved.occurredAt,
     );
     if (saved.contentHash !== input.contentHash)
       throw new SaleError("CONFLICT", "Sale identity already has different content");
-    return { output: { localId: saved.localId } };
+    return { output: { localId: saved.localId, occurredAt: saved.occurredAt.toISOString() } };
   },
   async run(tx, ctx, input) {
     const snapshot = input.event.sale;
-    await validateAuthority(tx, ctx, input.principal, snapshot, input.proofHash);
-    await validateReferences(tx, ctx.orgId, snapshot);
+    await validateAuthority(tx, ctx, input.principal, snapshot, input.proofHash, input.occurredAt);
+    await validateReferences(tx, ctx.orgId, snapshot, input.occurredAt);
+    await validateReceipt(tx, snapshot);
     const [saved] = await tx
       .insert(sale)
       .values({
@@ -75,6 +88,8 @@ const accept = defineCommand({
         appVersion: snapshot.appVersion,
         eventVersion: input.event.v,
         deviceTime: new Date(snapshot.deviceTime),
+        occurredAt: input.occurredAt,
+        receiptNumber: snapshot.receiptNumber,
         payload: snapshot,
         contentHash: input.contentHash,
       })
@@ -92,7 +107,7 @@ const accept = defineCommand({
         payload: line,
       })),
     );
-    return { localId: saved.localId };
+    return { localId: saved.localId, occurredAt: saved.occurredAt.toISOString() };
   },
   audit: (_input, output) => output,
   details: (_input, output) => ({ entity: "sale", entityId: output.localId }),

@@ -19,7 +19,11 @@ export async function startTillHost(raw: unknown, send: (message: unknown) => vo
   const config = v.parse(hostConfiguration, raw);
   const database = openTillDatabase(config.sqlitePath);
   const identity = config.identity;
-  const localConfig = { ...identity, appVersion: buildInfo.version };
+  const localConfig = {
+    ...identity,
+    appVersion: buildInfo.version,
+    receiptCodes: config.receiptCodes,
+  };
   try {
     if (config.references && config.session)
       await provisionTillReference(

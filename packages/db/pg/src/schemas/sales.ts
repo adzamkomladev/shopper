@@ -28,6 +28,8 @@ export const sale = pgTable(
     appVersion: text("app_version").notNull(),
     eventVersion: bigint("event_version", { mode: "number" }).notNull().default(1),
     deviceTime: timestamp("device_time", { withTimezone: true }).notNull(),
+    receiptNumber: text("receipt_number"),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
     acceptedAt: timestamp("accepted_at", { withTimezone: true }).notNull().defaultNow(),
     payload: jsonb("payload").notNull(),
     contentHash: text("content_hash").notNull(),
@@ -36,6 +38,7 @@ export const sale = pgTable(
   (t) => [
     unique().on(t.orgId, t.id),
     unique().on(t.deviceId, t.localId),
+    unique().on(t.orgId, t.receiptNumber),
     unique().on(t.orgId, t.storeId, t.storeSequence),
     check("sale_sequence_positive", sql`${t.storeSequence} IS NULL OR ${t.storeSequence} > 0`),
     check("sale_event_version_positive", sql`${t.eventVersion} > 0`),

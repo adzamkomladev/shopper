@@ -21,4 +21,5 @@ export type PushOptions = {
   random?: () => number;
   timeoutMs?: number;
   onStatus?: (status: PushStatus) => void;
+  onAcknowledgment?: () => void;
 };

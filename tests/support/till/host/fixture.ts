@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openTillDatabase } from "@shopper/adapters-box/till";
 import { localSale, outbox } from "@shopper/db-sqlite";
-import { hostConfiguration } from "../server";
+import { hostConfiguration, renewTillEnrollment } from "../server";
 import { startTillHost } from "./process";
 
 export async function createHostFixture(
@@ -14,6 +14,7 @@ export async function createHostFixture(
   const database = openTillDatabase(sqlitePath);
   let config: Awaited<ReturnType<typeof hostConfiguration>>;
   try {
+    await renewTillEnrollment();
     config = await hostConfiguration(
       sqlitePath,
       options.origins ?? ["http://127.0.0.1:5184"],

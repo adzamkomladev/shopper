@@ -18,6 +18,7 @@ export async function createConnectionHost(server: Server, upstream: string, ori
     sqlitePath,
     identity: server.identity,
     deviceToken: server.deviceToken,
+    receiptCodes: server.receiptCodes,
     session: server.session,
     references: server.references,
     upstream,

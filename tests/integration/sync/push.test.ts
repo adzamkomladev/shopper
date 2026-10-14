@@ -23,10 +23,10 @@ test("startup uploads the durable queue through the real route and retains sale 
   if (!handshake) throw new Error("Expected the startup handshake request");
   if (!upload) throw new Error("Expected the startup push request");
   expect(handshake).toMatchObject({
-    body: { protocol: 1, appVersion: fixture.appVersion },
+    body: { protocol: fixture.workerOptions.config.protocol, appVersion: fixture.appVersion },
     response: {
       requestId: (handshake.body as { requestId: string }).requestId,
-      protocol: 1,
+      protocol: fixture.workerOptions.config.protocol,
       appVersion: fixture.appVersion,
     },
   });

@@ -8,6 +8,7 @@ import {
   deviceToken,
   recordSale,
   resetLocalTill,
+  syncProtocol,
 } from "./server";
 import { startUpstream, type ResponseAlter } from "./upstream";
 
@@ -67,7 +68,7 @@ export async function createPushFixture(
         orgId: context.orgId,
         deviceId,
         appVersion,
-        protocol: 1,
+        protocol: syncProtocol,
         upstream: upstream.url,
         deviceToken,
       },

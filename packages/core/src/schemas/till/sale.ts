@@ -25,7 +25,7 @@ export const saleTaxSnapshot = v.strictObject({
   unitPrice: nonnegative,
   discount: nonnegative,
 });
-export const saleSnapshot = v.strictObject({
+const saleSnapshotV1 = v.strictObject({
   id: tillId,
   localId: tillId,
   orgId: tillId,
@@ -52,8 +52,14 @@ export const saleSnapshot = v.strictObject({
   ),
   totals: saleTotals,
 });
+export const saleSnapshot = v.strictObject({
+  ...saleSnapshotV1.entries,
+  receiptNumber: v.nullable(v.pipe(v.string(), v.regex(/^BR[0-9]+-T[0-9]+-X?[0-9]{6,}$/))),
+  receiptOverflow: v.boolean(),
+  clockOffsetMs: v.pipe(v.number(), v.safeInteger()),
+});
 export const saleEvent = v.strictObject({
-  v: v.literal(1),
+  v: v.literal(2),
   type: v.literal("sale.recorded"),
   sale: saleSnapshot,
 });
@@ -71,6 +77,18 @@ export const recordSaleInput = v.strictObject({
 export type SaleEvent = v.InferOutput<typeof saleEvent>;
 export type SaleSnapshot = v.InferOutput<typeof saleSnapshot>;
 
-export const decodeSaleEvent = createEventDecoder(saleEvent.entries.v.literal, (raw) =>
-  v.parse(saleEvent, raw),
-);
+const saleEventV1 = v.strictObject({
+  v: v.literal(1),
+  type: v.literal("sale.recorded"),
+  sale: saleSnapshotV1,
+});
+export const decodeSaleEvent = createEventDecoder(2, (raw) => v.parse(saleEvent, raw), {
+  1(raw) {
+    const old = v.parse(saleEventV1, raw);
+    return {
+      ...old,
+      v: 2,
+      sale: { ...old.sale, receiptNumber: null, receiptOverflow: false, clockOffsetMs: 0 },
+    };
+  },
+});

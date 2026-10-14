@@ -24,6 +24,10 @@
       "types": "./src/catalogue/index.ts",
       "default": "./src/catalogue/index.ts"
     },
+    "./changes": {
+      "types": "./src/changes/index.ts",
+      "default": "./src/changes/index.ts"
+    },
     "./till": {
       "types": "./src/till/index.ts",
       "default": "./src/till/index.ts"

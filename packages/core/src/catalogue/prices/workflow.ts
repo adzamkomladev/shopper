@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { and, eq } from "drizzle-orm";
 import { v7 } from "uuid";
 import { defineCommand, type CommandContext } from "@shopper/audit";
-import { branch, price, product, store, type ShopperDatabase } from "@shopper/db-pg";
+import { price, product, type ShopperDatabase } from "@shopper/db-pg";
 import { money } from "@shopper/money";
 import {
   type Envelope,
@@ -11,9 +11,10 @@ import {
   type Workflow,
   type WorkflowCheckpoint,
 } from "@shopper/ports";
-import { allocateStoreSequence } from "../../sequence";
+import { affectedStores, priceUpsert, recordChanges } from "../../changes";
 import { managementJson, ManagementError } from "../../management";
 import { priceView } from "./commands";
+import { publishPrice } from "./publish";
 import { priceChangeParams, scheduleInput } from "../../schemas/catalogue/inputs";
 import { recordId } from "../records";
 
@@ -138,6 +139,13 @@ const scheduleCommand = defineCommand({
         reason: context.reason,
       })
       .returning();
+    // The price carries its window, so tills hold it from now and resolve it by their own clock.
+    await recordChanges(
+      tx,
+      context.orgId,
+      [priceUpsert(row!)],
+      await affectedStores(tx, context.orgId, row!.branchId),
+    );
     const workflowId = priceChangeId(context.orgId, row!.id);
     await input.launch(workflowId, {
       orgId: context.orgId,
@@ -154,59 +162,6 @@ const scheduleCommand = defineCommand({
     entityId: result.price.id,
     before: null,
     after: { productId: input.productId, ...result.price },
-  }),
-});
-
-/** Builds one price.changed envelope per affected store, each with its own store sequence. */
-const publishPrice = defineCommand({
-  name: "price.publish",
-  async run(tx, context, input: { priceId: string; phase: "start" | "end" }) {
-    const [row] = await tx
-      .select()
-      .from(price)
-      .where(and(eq(price.orgId, context.orgId), eq(price.id, input.priceId)));
-    if (!row) return { missing: true, envelopes: [] };
-    const stores = row.branchId
-      ? await tx
-          .select({ id: branch.storeId })
-          .from(branch)
-          .where(and(eq(branch.orgId, context.orgId), eq(branch.id, row.branchId)))
-      : await tx.select({ id: store.id }).from(store).where(eq(store.orgId, context.orgId));
-    const view = priceView(row);
-    const envelopes = [];
-    for (const { id: storeId } of stores) {
-      const sequence = await allocateStoreSequence(tx, context.orgId, storeId);
-      const envelope = {
-        id: v7(),
-        orgId: context.orgId,
-        v: 1,
-        sequence: sequence.toString(),
-        type: "price.changed",
-        // Listed field by field: a new price column must not reach devices by accident (the reason stays in the back office).
-        payload: {
-          priceId: view.id,
-          productId: row.productId,
-          phase: input.phase,
-          id: view.id,
-          branchId: view.branchId,
-          amount: view.amount,
-          validFrom: view.validFrom,
-          validTo: view.validTo,
-        },
-      };
-      envelopes.push({ storeId, envelope });
-    }
-    return managementJson({ missing: false, envelopes });
-  },
-  audit: (input, result) => ({
-    priceId: input.priceId,
-    phase: input.phase,
-    stores: result.envelopes.length,
-  }),
-  details: (input, result) => ({
-    entity: "price",
-    entityId: input.priceId,
-    after: { phase: input.phase, stores: result.envelopes.map((sent) => sent.storeId) },
   }),
 });
 

@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { and, asc, desc, eq, ilike, lt, isNull, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, lt, isNull, or, sql, type SQL } from "drizzle-orm";
 import type { SelectedFields } from "drizzle-orm/pg-core";
 import { price, product, productBarcode, taxClass } from "@shopper/db-pg";
 import { managementJson } from "../../management";
@@ -33,6 +33,18 @@ export async function loadProduct(db: Queryable, orgId: string, id: string, lock
   const query = selectProducts(db).where(and(eq(product.orgId, orgId), eq(product.id, id)));
   const [row] = await (lock ? query.for("update", { of: product }) : query);
   return row ? managementJson(row) : null;
+}
+
+/** Products as `loadProduct` shows them, for many ids at once (chunked under the bind limit). */
+export async function loadProductViews(db: Queryable, orgId: string, ids: string[]) {
+  const rows = [];
+  for (let at = 0; at < ids.length; at += 5000)
+    rows.push(
+      ...(await selectProducts(db).where(
+        and(eq(product.orgId, orgId), inArray(product.id, ids.slice(at, at + 5000))),
+      )),
+    );
+  return rows;
 }
 
 export async function getProduct(db: Queryable, orgId: string, id: string) {

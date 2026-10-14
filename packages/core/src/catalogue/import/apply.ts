@@ -7,6 +7,8 @@ import {
   productImport,
   type ShopperTransaction,
 } from "@shopper/db-pg";
+import { affectedStores, priceUpsert, productUpsert, recordChanges } from "../../changes";
+import { loadProductViews } from "../products/queries";
 import { ManagementError } from "../../management";
 import type { Headers } from "./parse";
 import { fieldSet, planImport, type FieldSet } from "./plan";
@@ -129,7 +131,21 @@ async function importRun(tx: ShopperTransaction, context: CommandContext, input:
       amount: p.row.amount,
       validFrom: at,
     }));
-  for (const part of chunks(prices)) await tx.insert(price).values(part);
+  const priceRows = [];
+  for (const part of chunks(prices))
+    priceRows.push(...(await tx.insert(price).values(part).returning()));
+  const touched = planned
+    .filter((p) => !p.existingId || p.fieldsChanged)
+    .map((p) => ids.get(p.row.sku)!);
+  await recordChanges(
+    tx,
+    orgId,
+    [
+      ...(await loadProductViews(tx, orgId, touched)).map((row) => productUpsert(orgId, row)),
+      ...priceRows.map(priceUpsert),
+    ],
+    await affectedStores(tx, orgId),
+  );
 
   const errors = [...input.errors, ...conflicts].sort((a, b) => a.row - b.row);
   const rowsOk = planned.length;

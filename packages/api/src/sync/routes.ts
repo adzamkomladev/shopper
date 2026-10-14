@@ -10,6 +10,7 @@ import type { Blobs, Sequencer } from "@shopper/ports";
 import type { createDeviceService } from "@shopper/auth/devices";
 import { createPullRoutes } from "./pull";
 import { createSnapshotRoutes } from "./snapshot";
+import { createLiveRoutes, type LiveUpgrade } from "./live";
 
 const maxBatch = 200;
 const maxBytes = 1024 * 1024;
@@ -40,6 +41,7 @@ export function createSyncRoutes(options: {
   sequencer: Sequencer;
   protocol?: number;
   blobs?: Blobs;
+  live?: LiveUpgrade;
 }) {
   const protocol = options.protocol ?? buildInfo.syncProtocol;
   const app = new Hono();
@@ -55,6 +57,7 @@ export function createSyncRoutes(options: {
       return c.json({ error: "Malformed sync envelope" }, 400);
     return c.json({ error: "Sync service unavailable" }, 503);
   });
+  app.route("/", createLiveRoutes(options));
   app.route("/", createPullRoutes({ ...options, protocol }));
   app.route("/", createSnapshotRoutes({ ...options, protocol }));
   app.post("/sync/handshake", async (c) => {

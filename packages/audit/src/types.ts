@@ -2,6 +2,7 @@ import type { workflowRun } from "@shopper/db-pg";
 
 export interface CommandContext {
   orgId: string;
+  onStoreChanged?: (storeId: string, sequence: string) => Promise<void>;
   actorId?: string;
   role?: string;
   deviceId?: string;

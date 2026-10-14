@@ -1,3 +1,4 @@
+import { notifyStoreChanged } from "@shopper/audit";
 import { and, eq, sql } from "drizzle-orm";
 import { branch, store, storeChange, type ShopperTransaction } from "@shopper/db-pg";
 
@@ -45,6 +46,7 @@ export async function recordChanges(
         })),
       );
     heads.set(storeId, row.head);
+    notifyStoreChanged(tx, storeId, row.head.toString());
   }
   return heads;
 }

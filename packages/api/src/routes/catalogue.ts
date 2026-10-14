@@ -2,7 +2,8 @@ import { Hono, type Context } from "hono";
 import * as v from "valibot";
 import { buildInfo } from "@shopper/config";
 import type { ShopperDatabase } from "@shopper/db-pg";
-import type { WorkflowLauncher } from "@shopper/ports";
+import { publishStoreChanged } from "@shopper/core/changes";
+import type { Realtime, WorkflowLauncher } from "@shopper/ports";
 import { ManagementError } from "@shopper/core/management";
 import {
   addBarcode,
@@ -43,6 +44,7 @@ export function catalogueRoutes(options: {
   database: ShopperDatabase;
   authentication?: ApiAuthentication;
   priceChange?: WorkflowLauncher;
+  realtime?: Realtime;
 }) {
   const db = options.database;
   const app = new Hono<ApiEnvironment>();
@@ -63,6 +65,11 @@ export function catalogueRoutes(options: {
       branchId: principal.branchId,
       appVersion: buildInfo.version,
       reason,
+      onStoreChanged: options.realtime
+        ? async (storeId: string, sequence: string) => {
+            await publishStoreChanged(options.realtime!, principal.orgId, storeId, sequence);
+          }
+        : undefined,
     };
   };
   const body = (c: Ctx) =>

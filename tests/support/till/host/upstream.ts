@@ -1,19 +1,25 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { once } from "node:events";
 import type { AddressInfo } from "node:net";
+import { WebSocket, WebSocketServer } from "ws";
+import { proxyLiveConnection } from "./live-proxy";
 
-type Target = { request(path: string, init?: RequestInit): Promise<Response> };
+type Target = { url: string; request(path: string, init?: RequestInit): Promise<Response> };
 type RequestRecord = { path: string; request: unknown; response?: unknown; status?: number };
 type Gate = { entered: Promise<void>; written: Promise<void>; release(): void };
 
 export async function startHostUpstream(target: Target) {
   const requests: RequestRecord[] = [];
+  const sockets = new Set<WebSocket>();
+  const bridge = new WebSocketServer({ noServer: true, perMessageDeflate: false });
   let available = true;
+  let pullAvailable = true;
+  let liveAvailable = true;
   const releaseGates = new Set<() => void>();
   const pushWaiters = new Map<number, (request: RequestRecord) => void>();
-  let nextGate:
-    | { enter(): void; wait: Promise<void>; release(): void; written(): void }
-    | undefined;
+  const pullWaiters = new Map<number, (request: RequestRecord) => void>();
+  let nextPushGate: GateState | undefined;
+  let nextPullGate: GateState | undefined;
   const server = createServer(async (incoming, outgoing) => {
     try {
       await proxy(
@@ -22,20 +28,27 @@ export async function startHostUpstream(target: Target) {
         target,
         requests,
         () => available,
-        (request) =>
-          pushWaiters.get(requests.filter((entry) => entry.path === "/sync/push").length)?.(
-            request,
-          ),
-        () => {
-          const gate = nextGate;
-          nextGate = undefined;
-          return gate;
-        },
+        () => pullAvailable,
+        (request) => pushWaiters.get(countPath(requests, "/sync/push"))?.(request),
+        (request) => pullWaiters.get(countPulls(requests))?.(request),
+        () => takeGate("push"),
+        () => takeGate("pull"),
       );
     } catch {
       if (!outgoing.destroyed) outgoing.writeHead(500).end();
     }
   });
+  server.on("upgrade", (incoming, socket, head) => {
+    proxyLiveConnection(incoming, socket, head, target.url, liveAvailable, bridge, sockets);
+  });
+
+  function takeGate(kind: "push" | "pull") {
+    const gate = kind === "push" ? nextPushGate : nextPullGate;
+    if (kind === "push") nextPushGate = undefined;
+    else nextPullGate = undefined;
+    return gate;
+  }
+
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   const address = server.address() as AddressInfo;
@@ -44,6 +57,12 @@ export async function startHostUpstream(target: Target) {
     requests,
     setAvailable(value: boolean) {
       available = value;
+    },
+    setPullAvailable(value: boolean) {
+      pullAvailable = value;
+    },
+    setLiveAvailable(value: boolean) {
+      liveAvailable = value;
     },
     waitForPush(call: number, timeoutMs = 15_000) {
       const existing = requests.filter((request) => request.path === "/sync/push")[call - 1];
@@ -59,25 +78,26 @@ export async function startHostUpstream(target: Target) {
         });
       });
     },
+    pullRequestCount: () => countPulls(requests),
+    waitForPull(call: number, timeoutMs = 15_000) {
+      const existing = requests.filter(isPullRequest)[call - 1];
+      if (existing) return Promise.resolve(existing);
+      return waitForRequest(pullWaiters, call, "No pull request reached the upstream", timeoutMs);
+    },
     holdNextPush(): Gate {
-      let enter = () => {};
-      let release = () => {};
-      let written = () => {};
-      const entered = new Promise<void>((resolve) => {
-        enter = resolve;
-      });
-      const wait = new Promise<void>((resolve) => {
-        release = resolve;
-      });
-      const responseWritten = new Promise<void>((resolve) => {
-        written = resolve;
-      });
-      releaseGates.add(release);
-      nextGate = { enter, wait, release, written };
-      return { entered, written: responseWritten, release };
+      const gate = createGate(releaseGates);
+      nextPushGate = gate.state;
+      return gate.result;
+    },
+    holdNextPull(): Gate {
+      const gate = createGate(releaseGates);
+      nextPullGate = gate.state;
+      return gate.result;
     },
     close() {
       for (const release of releaseGates) release();
+      for (const socket of sockets) socket.terminate();
+      bridge.close();
       server.closeAllConnections();
       return new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
@@ -92,13 +112,17 @@ async function proxy(
   target: Target,
   requests: RequestRecord[],
   isAvailable: () => boolean,
+  isPullAvailable: () => boolean,
   onPush: (request: RequestRecord) => void,
-  gate: () => { enter(): void; wait: Promise<void>; release(): void; written(): void } | undefined,
+  onPull: (request: RequestRecord) => void,
+  pushGate: () => GateState | undefined,
+  pullGate: () => GateState | undefined,
 ) {
   const chunks: Buffer[] = [];
   for await (const chunk of incoming) chunks.push(Buffer.from(chunk));
   const body = Buffer.concat(chunks);
   const path = incoming.url ?? "/";
+  const pathname = new URL(path, "http://localhost").pathname;
   const headers = new Headers();
   for (let index = 0; index < incoming.rawHeaders.length; index += 2) {
     const name = incoming.rawHeaders[index];
@@ -110,6 +134,13 @@ async function proxy(
     requests.push(request);
     onPush(request);
     outgoing.destroy();
+    return;
+  }
+  if (isPullPath(pathname) && !isPullAvailable()) {
+    const record = { path, request: parse(body), status: 503 };
+    requests.push(record);
+    onPull(record);
+    outgoing.writeHead(503).end();
     return;
   }
   const response = await target.request(path, {
@@ -125,15 +156,73 @@ async function proxy(
   } catch {
     record.response = text;
   }
-  if (path === "/sync/push") onPush(record);
-  const pending = path === "/sync/push" ? gate() : undefined;
+  if (pathname === "/sync/push") onPush(record);
+  if (isPullPath(pathname)) onPull(record);
+  const pending =
+    pathname === "/sync/push" ? pushGate() : isPullPath(pathname) ? pullGate() : undefined;
   if (pending) {
     pending.enter();
     await pending.wait;
   }
-  outgoing.writeHead(response.status, Object.fromEntries(response.headers.entries()));
+  const responseHeaders = Object.fromEntries(
+    [...response.headers].filter(
+      ([name]) => name !== "content-encoding" && name !== "content-length",
+    ),
+  );
+  outgoing.writeHead(response.status, responseHeaders);
   outgoing.end(text);
   pending?.written();
+}
+
+type GateState = { enter(): void; wait: Promise<void>; release(): void; written(): void };
+
+function createGate(releaseGates: Set<() => void>) {
+  let enter = () => {};
+  let release = () => {};
+  let written = () => {};
+  const entered = new Promise<void>((resolve) => (enter = resolve));
+  const wait = new Promise<void>((resolve) => (release = resolve));
+  const responseWritten = new Promise<void>((resolve) => (written = resolve));
+  releaseGates.add(release);
+  return {
+    state: { enter, wait, release, written },
+    result: { entered, written: responseWritten, release },
+  };
+}
+
+function waitForRequest(
+  waiters: Map<number, (request: RequestRecord) => void>,
+  call: number,
+  error: string,
+  timeoutMs: number,
+) {
+  return new Promise<RequestRecord>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      waiters.delete(call);
+      reject(new Error(`${error} within ${timeoutMs}ms`));
+    }, timeoutMs);
+    waiters.set(call, (request) => {
+      clearTimeout(timer);
+      resolve(request);
+    });
+  });
+}
+
+function isPullRequest(request: RequestRecord) {
+  return isPullPath(new URL(request.path, "http://localhost").pathname);
+}
+
+function isPullPath(path: string) {
+  return path === "/sync/changes" || path === "/sync/snapshot" || path === "/sync/status";
+}
+
+function countPath(requests: RequestRecord[], path: string) {
+  return requests.filter((request) => new URL(request.path, "http://localhost").pathname === path)
+    .length;
+}
+
+function countPulls(requests: RequestRecord[]) {
+  return requests.filter(isPullRequest).length;
 }
 
 function parse(body: Buffer): unknown {

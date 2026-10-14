@@ -13,6 +13,7 @@ import {
 } from "@shopper/db-pg";
 import { GENESIS_HASH, hashEntry, canonicalJson, redact, type AuditEntry } from "./chain";
 import { contextSchema, registrationContextSchema } from "./schemas/command-context";
+import { collectStoreChanges } from "./notifications";
 import type { AuditDetails, CommandContext, WorkflowCheckpoint } from "./types";
 
 // Fixed internal table sets: a command's scope picks its chain, never the caller. The registration
@@ -47,6 +48,8 @@ export function defineCommand<Input, Output>(definition: {
     input: Input,
     checkpoint?: WorkflowCheckpoint,
   ): Promise<Output> => {
+    const onStoreChanged = context.onStoreChanged;
+    const heads = new Map<string, string>();
     context = v.parse(schema, context) as CommandContext;
     // PostgreSQL normalizes UUID text; hash and lock the same representation.
     context = {
@@ -64,7 +67,8 @@ export function defineCommand<Input, Output>(definition: {
     ) {
       throw new Error("Workflow instance id must be its business key, with a type and named step");
     }
-    return db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
+      collectStoreChanges(tx, heads);
       // Serialize the whole command, before business locks, to prevent forks and lock inversions.
       await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${context.orgId}, 0))`);
       if (checkpoint) {
@@ -153,5 +157,13 @@ export function defineCommand<Input, Output>(definition: {
       await tx.insert(audit).values(entry);
       return output;
     });
+    for (const [storeId, sequence] of heads) {
+      try {
+        await onStoreChanged?.(storeId, sequence);
+      } catch (error) {
+        console.error({ event: "realtime.publish_failed", orgId: context.orgId, storeId, error });
+      }
+    }
+    return result;
   };
 }

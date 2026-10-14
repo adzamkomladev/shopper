@@ -4,13 +4,7 @@ import { v7 } from "uuid";
 import { defineCommand, type CommandContext } from "@shopper/audit";
 import { price, product, type ShopperDatabase } from "@shopper/db-pg";
 import { money } from "@shopper/money";
-import {
-  type Envelope,
-  type Json,
-  type Realtime,
-  type Workflow,
-  type WorkflowCheckpoint,
-} from "@shopper/ports";
+import { type Json, type Realtime, type Workflow, type WorkflowCheckpoint } from "@shopper/ports";
 import { affectedStores, priceUpsert, recordChanges } from "../../changes";
 import { managementJson, ManagementError } from "../../management";
 import { priceView } from "./commands";
@@ -49,35 +43,49 @@ export async function runPriceChange(
   try {
     for (const phase of ["start", "end"] as const) {
       await flow.sleepUntil(phase, phase === "start" ? params.startsAt : params.endsAt);
-      const sent = await flow.step(`publish-${phase}`, policy, async () => {
-        const sent = await deps.withDatabase((db) =>
+      const sent = await flow.step(`publish-${phase}`, policy, () =>
+        deps.withDatabase((db) =>
           publishPrice(
             db,
             context,
             { priceId: params.priceId, phase },
-            checkpoint(
-              flow.instanceId,
-              `publish-${phase}`,
-              phase === "start" ? "waiting" : "completed",
-            ),
+            checkpoint(flow.instanceId, `publish-${phase}`, "waiting"),
           ),
-        );
-        // Replays resend the checkpointed envelopes; devices dedupe by envelope id.
-        for (const { storeId, envelope } of sent.envelopes)
-          await deps.realtime.publish(params.orgId, storeId, envelope as unknown as Envelope);
-        return sent;
-      });
+        ),
+      );
       // The schedule rolled back after launching: nothing to announce, so end now, not at endsAt.
       if (sent.missing) {
         await close("abandoned", "completed", "The scheduled price was never committed");
         return;
       }
+      await flow.step(`notify-${phase}`, policy, async () => {
+        for (const { storeId, envelope } of sent.envelopes)
+          await deps.realtime.publish(params.orgId, storeId, envelope);
+        return deps.withDatabase((db) =>
+          notifyPrice(
+            db,
+            context,
+            { priceId: params.priceId, phase },
+            checkpoint(
+              flow.instanceId,
+              `notify-${phase}`,
+              phase === "start" ? "waiting" : "completed",
+            ),
+          ),
+        );
+      });
     }
   } catch (error) {
     await close("failed", "failed", String(error));
     throw error;
   }
 }
+
+const notifyPrice = defineCommand({
+  name: "price.notified",
+  run: async (_tx, _context, input: { priceId: string; phase: "start" | "end" }) => input,
+  audit: (input) => input,
+});
 
 const endPriceChange = defineCommand({
   name: "price.change_ended",

@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { v7 } from "uuid";
 import { defineCommand } from "@shopper/audit";
 import * as schema from "@shopper/db-pg";
-import { cloudflareBlobs, cloudflareDatabase } from "@shopper/adapters-cf";
+import { cloudflareBlobs, cloudflareDatabase, cloudflareRealtime } from "@shopper/adapters-cf";
 import { cacheMigration } from "@shopper/db-sqlite";
 import { buildInfo } from "@shopper/config";
 import { provisionOrg } from "@shopper/core";
@@ -87,6 +87,31 @@ test("GET /sync/changes in workerd serves a device's store feed in the shared JS
   const pull = (query: string, extra: Record<string, string> = headers) =>
     SELF.fetch(`https://shopper.test/sync/changes?${query}`, { headers: extra });
 
+  const live = (extra: Record<string, string>) =>
+    SELF.fetch("https://shopper.test/sync/live?cursor=2&device=" + v7(), {
+      headers: { ...extra, Upgrade: "websocket" },
+    });
+  expect((await live({})).status).toBe(401);
+  expect((await live({ ...headers, "X-Shopper-Device": v7() })).status).toBe(401);
+  const upgraded = await live(headers);
+  expect(upgraded.status).toBe(101);
+  const socket = upgraded.webSocket!; // Successful upgrade provides the client socket.
+  socket.accept();
+  const received = new Promise<string>((resolve) =>
+    socket.addEventListener("message", (event) => resolve(String(event.data)), { once: true }),
+  );
+  const binding = env as Cloudflare.Env;
+  await cloudflareRealtime(binding.STORE_HUB).publish(orgId, storeId, {
+    id: v7(),
+    orgId,
+    v: 1,
+    sequence: "3",
+    type: "store.changed",
+    payload: { sequence: "3" },
+  });
+  expect(JSON.parse(await received)).toMatchObject({ type: "store.changed", sequence: "3" });
+  socket.close(1000, "Test complete");
+
   const snapshot = await pull("cursor=0");
   expect(snapshot.status).toBe(200);
   expect(await snapshot.json()).toEqual({ snapshot: true, head: "2" });
@@ -94,7 +119,7 @@ test("GET /sync/changes in workerd serves a device's store feed in the shared JS
   const downloaded = await SELF.fetch("https://shopper.test/sync/snapshot", { headers });
   expect(downloaded.status).toBe(200);
   expect(downloaded.headers.get("content-encoding")).toBe("gzip");
-  const storage = await cloudflareBlobs((env as Cloudflare.Env).BLOBS, {
+  const storage = await cloudflareBlobs(binding.BLOBS, {
     baseUrl: "https://shopper.test",
     secret: new Uint8Array(32).fill(7),
   });

@@ -76,11 +76,13 @@ export class StoreHub extends DurableObject {
     const [client, server] = Object.values(new WebSocketPair());
     // No close handler: compatibility dates from 2026-04-07 auto-reply to close frames.
     this.ctx.acceptWebSocket(server, [device.output]);
+    const nudges = url.searchParams.get("nudges") === "1";
+    server.serializeAttachment({ nudges });
     const missed = this.ctx.storage.sql.exec<{ body: string }>(
       "SELECT body FROM message WHERE sequence > ? ORDER BY sequence",
       padded(cursor.output),
     );
-    for (const { body } of missed) server.send(body);
+    for (const { body } of missed) server.send(nudges ? nudgeBody(body) : body);
     return new Response(null, { status: 101, webSocket: client });
   }
   async broadcast(message: Envelope): Promise<void> {
@@ -98,7 +100,8 @@ export class StoreHub extends DurableObject {
     for (const socket of this.ctx.getWebSockets()) {
       // One closing socket must not stop the fan-out; that device catches up from its cursor.
       try {
-        socket.send(body);
+        const attachment = socket.deserializeAttachment() as { nudges?: boolean } | null;
+        socket.send(attachment?.nudges ? nudgeBody(body) : body);
       } catch (error) {
         console.error({ event: "realtime.send_failed", orgId: message.orgId, error });
         socket.close(1011, "Send failed");
@@ -108,3 +111,8 @@ export class StoreHub extends DurableObject {
 }
 // Sequences are decimal bigints; fixed-width text keeps SQLite ordering exact past 2^53.
 const padded = (sequence: string) => sequence.padStart(20, "0");
+
+function nudgeBody(body: string) {
+  const message = JSON.parse(body) as Envelope;
+  return JSON.stringify({ type: "store.changed", sequence: message.sequence });
+}

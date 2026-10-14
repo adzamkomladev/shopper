@@ -1,6 +1,8 @@
 import {
   cloudflareBlobs,
   cloudflareResponse,
+  cloudflareLive,
+  cloudflareRealtime,
   cloudflareCache,
   cloudflareDatabase,
   cloudflareLauncher,
@@ -21,6 +23,8 @@ export default {
         database: connection.db,
         sequencer: cloudflareSequencer(env.STORE_SEQUENCER),
         cache: cloudflareCache(env.CACHE_DB),
+        live: cloudflareLive(env.STORE_HUB),
+        realtime: cloudflareRealtime(env.STORE_HUB),
         blobs: (
           await cloudflareBlobs(env.BLOBS, {
             baseUrl: env.SHOPPER_AUTH_URL,

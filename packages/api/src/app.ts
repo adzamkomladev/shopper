@@ -39,6 +39,7 @@ export function createApi(options: ApiOptions = {}) {
         database: options.database,
         authentication: options.authentication,
         priceChange: options.priceChange,
+        realtime: options.realtime,
       }),
     );
   if (options.authentication?.handler)

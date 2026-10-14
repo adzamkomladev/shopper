@@ -134,6 +134,8 @@ test("each publish step records the workflow run, its steps and an audited price
     .from(schema.workflowStep)
     .where(eq(schema.workflowStep.instanceId, scheduled.workflowId));
   expect(steps.map((step) => step.name).sort()).toEqual([
+    "notify-end",
+    "notify-start",
     "publish-end",
     "publish-start",
     "schedule",

@@ -69,8 +69,11 @@ Barcode layout screen fixes found by its e2e:
   error. Moving focus to the first invalid field had been wiping the errors of the field you were on.
 - Barcode digit strip meets AA contrast (value digits on a green tint, slate-600 on muted cells).
 
-Results: barcode layout e2e 19/19 (twice); whole portal project 152/152 after the nav count update (8 links
-with Barcodes; one devices spec flaked once under load and passed twice alone); public portal config 28/28.
+Results: barcode layout e2e 19/19 (twice); whole portal project 152/152; public portal config 28/28. Two
+order-dependent failures surfaced once the whole portal suite could run and are fixed in the harness: every
+browser reached the e2e server as 127.0.0.1, so Better Auth's per-address `get-session` limit pooled the run
+(a signed-in browser now gets its own address from its session cookie; anonymous requests keep 127.0.0.1), and
+the members spec relied on its new member sorting last by name (now named so it does).
 Screenshots (desktop 1440×900, mobile 390×844) in [screenshots/portal](screenshots/portal).
 
 ## Not verified

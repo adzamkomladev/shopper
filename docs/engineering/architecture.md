@@ -121,7 +121,17 @@ and lines in one audited PostgreSQL transaction; `Sequencer.assignSale` assigns 
 in another. Both adapters call the shared assignment command. Replays recover persisted results
 without another mutation or audit, and acknowledgment waits for sequence assignment.
 
-Protocol negotiation and event decoding are separate contracts. Protocol 1 has no published
-predecessor; from protocol 2 onward, negotiation supports N and N−1. The producer owns event
-versions and upcasters; the original application version stays on the sale. Reference provisioning
-is explicit tooling in Day 8; automatic bootstrap, pull and realtime remain Day 9.
+Protocol negotiation and event decoding are separate contracts. Protocol 2 supports N and N−1;
+protocol 1 has no published predecessor. Protocol 1 replies preserve their original strict shape,
+while protocol 2 adds receipt blocks and clock/occurrence metadata. The producer owns event
+versions and upcasters; the original application version stays on the sale. Sale event v2 adds
+receipt identity and clock offset; v1 is upcast before hashing. The server stores corrected
+occurrence time, capped at acceptance, alongside raw device time.
+
+Reference mutations append store-scoped changes in their audited PostgreSQL transaction.
+Authenticated tills bootstrap from a versioned gzip snapshot through the Blobs port, then apply
+ordered pages and the cursor in one audited SQLite transaction. Snapshot reads use the same
+projections as the feed in a REPEATABLE READ transaction. Realtime carries sequence nudges;
+PostgreSQL remains the source for all downloaded data. A missed nudge is recovered by reconnect
+or the capped transport fallback. The host owns push, pull, realtime and receipt state; the UI
+subscribes to their combined status without receiving device credentials.

@@ -1,5 +1,8 @@
 # Day 9 — Sync pull, realtime, bootstrap (SYNC GATE)
 
+Implementation outcomes and acceptance evidence are recorded in
+[Day 9 verification](2026-10-14-day9-verification.md). This document preserves the approved plan.
+
 Approved 14 October 2026.
 
 Source: Notion Day 09 (https://app.notion.com/p/3eba2c999ce981f2acb3e2a6a75bf11d). Branch `codex/day9-sync-pull`.
@@ -82,7 +85,7 @@ payload jsonb, created_at)`, PK `(org_id, store_id, seq)`.
      unused blocks remain.
    - **Delivery.** Every response re-sends all outstanding blocks above the till's reported last-used number,
      so a lost response is harmless.
-   - **Till side.** The till assigns `BR01-T03-000001` inside the sale transaction (`core/src/till/receipts.ts`).
+   - **Till side.** The till assigns `BR01-T03-000001` inside the sale transaction (`core/src/till/receipts/assign.ts`).
      When blocks are exhausted offline it uses a separate overflow counter, `BR01-T03-X000001`, with
      `receiptOverflow: true`. PG has unique `(org_id, receipt_number)`.
 6. **Sale time (decided: corrected till time).**
@@ -126,7 +129,7 @@ All files below are under `tests/integration/sync/` unless noted.
   - A killed socket leads to polling catching up, then a reconnect.
   - Conformance runs on both adapters.
   - The workerd test proves the edge reaches StoreHub, rejects a missing or forged device, and hibernates.
-- `receipts.test.ts`
+- `receipts/blocks.test.ts`
   - Numbers are sequential and refill on sync.
   - Concurrent handshakes leave at most 2 unused blocks with no overlap.
   - A lost response is re-delivered.
@@ -173,7 +176,7 @@ All files below are under `tests/integration/sync/` unless noted.
    - `realtime.test.ts` and the workerd test.
 5. `feat: issue receipt number blocks`
    - Codes, blocks, overflow, event v2 and upcaster, and corrected `occurred_at`.
-   - `receipts.test.ts` and `occurred-at.test.ts`.
+   - `receipts/blocks.test.ts` and `occurred-at.test.ts`.
 6. `feat: add till sync status bar`: status endpoint, host status, the UI and the e2e test.
 7. `test: pass the offline sync gate`, then `docs: record day nine verification`
    - Update the sync README, `platforms.md` and `architecture.md`.
@@ -210,10 +213,17 @@ All files below are under `tests/integration/sync/` unless noted.
 ## Decisions (confirmed with user, 14 Oct)
 
 - Branch and terminal codes are auto-assigned (`BR01…` per org, `T01…` per branch) and not editable yet.
+- Enrollment returns these codes for the till's private configuration. Confirmed during the handoff:
+  an enrolled till may issue overflow receipts before its first handshake; new sales always have a
+  receipt number. A fresh till missing its enrollment codes cannot record an unnumbered sale.
 - Each till holds two blocks of 1,000 receipt numbers, refilled on sync. When they run out offline, it switches
   to a flagged overflow series. This series uses an `X` marker instead of the `9xxxxx` range first proposed,
   because `9xxxxx` collides once the normal range reaches 900k.
 - `occurred_at` is the corrected till time, clamped to acceptance; raw device time is kept.
+- Sync transport advances to protocol 2 because the published protocol 1 clients use strict
+  response parsers. Protocol 1 handshake and push replies retain their original shape; protocol 2
+  carries receipt blocks and clock/occurrence metadata. Both known sale event versions remain
+  accepted independently of transport negotiation.
 - Finish: push the branch, open a PR, merge on green CI and fast-forward local main.
 - **Box realtime uses the in-process hub now, and the Rivet actor comes on day 36.** I evaluated
   RivetKit 2.3.27 (actor connections and broadcast, raw `onWebSocket`, beta hibernation; the dev engine is

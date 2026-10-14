@@ -68,6 +68,24 @@ test("updating a mapping audits before and after and feeds the new layout", asyn
   expect(rows[1]!.payload).toMatchObject({ decimals: 2, unit: "kg" });
 });
 
+test("a layout changes kind both ways, and a price layout keeps no unit", async () => {
+  const w = await setup(1);
+  const created = await createBarcodeMapping(feed.db, w.context, weight());
+  // The portal sends the whole layout, as a price layout has it: no unit.
+  const { unit: _unit, ...layout } = weight({ decimals: 2 });
+  const priced = await updateBarcodeMapping(feed.db, w.context, {
+    id: created.id,
+    data: { ...layout, kind: "price" },
+  });
+  expect(priced).toMatchObject({ id: created.id, kind: "price", decimals: 2 });
+  expect(priced).not.toHaveProperty("unit");
+  const weighed = await updateBarcodeMapping(feed.db, w.context, {
+    id: created.id,
+    data: { kind: "weight", unit: "kg" },
+  });
+  expect(weighed).toMatchObject({ kind: "weight", unit: "kg", decimals: 2 });
+});
+
 test("deleting a mapping removes it, audits the old layout and feeds a delete", async () => {
   const w = await setup(1);
   const created = await createBarcodeMapping(feed.db, w.context, price());

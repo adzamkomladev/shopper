@@ -14,6 +14,9 @@ const rowOf = (page: Page, prefix: number) =>
     .getByRole("row")
     .filter({ has: page.getByRole("cell", { name: String(prefix), exact: true }) });
 const field = (page: Page, label: string) => dialog(page).getByLabel(label, { exact: true });
+// Fields with a hint read the error first, then the hint (the shared TextField convention).
+const errorFirst = (message: string) =>
+  new RegExp(`^${message.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`);
 
 test.describe("barcode layouts as the owner of E2E Mart", () => {
   test.beforeEach(async ({ page, request }) => {
@@ -109,9 +112,11 @@ test.describe("barcode layouts as the owner of E2E Mart", () => {
     await field(page, "Decimal places").fill("9");
     await page.keyboard.press("ControlOrMeta+Enter");
     await expect(field(page, "Prefix")).toBeFocused();
-    await expect(field(page, "Prefix")).toHaveAccessibleDescription("Use a number from 20 to 29");
+    await expect(field(page, "Prefix")).toHaveAccessibleDescription(
+      errorFirst("Use a number from 20 to 29"),
+    );
     await expect(field(page, "Decimal places")).toHaveAccessibleDescription(
-      "Use a number from 0 to 4",
+      errorFirst("Use a number from 0 to 4"),
     );
   });
 
@@ -123,7 +128,7 @@ test.describe("barcode layouts as the owner of E2E Mart", () => {
     await page.keyboard.type("22");
     await page.keyboard.press("ControlOrMeta+Enter");
     await expect(field(page, "Prefix")).toHaveAccessibleDescription(
-      "Prefix 22 already has a layout. Edit that one instead.",
+      errorFirst("Prefix 22 already has a layout. Edit that one instead."),
     );
   });
 
@@ -136,7 +141,7 @@ test.describe("barcode layouts as the owner of E2E Mart", () => {
     await page.keyboard.type("23");
     await page.keyboard.press("ControlOrMeta+Enter");
     await expect(field(page, "Prefix")).toHaveAccessibleDescription(
-      "Prefix 23 already has a layout. Edit that one instead.",
+      errorFirst("Prefix 23 already has a layout. Edit that one instead."),
     );
     await expect(field(page, "Prefix")).toHaveAttribute("aria-invalid", "true");
     await expect(dialog(page)).toBeVisible();
@@ -161,7 +166,8 @@ test.describe("barcode layouts as the owner of E2E Mart", () => {
     await dialog(page).getByRole("combobox", { name: "Label type" }).click();
     await page.getByRole("option", { name: "Price" }).click();
     await page.keyboard.press("ControlOrMeta+Enter");
-    await expect(page.getByText("Layout saved")).toBeVisible();
+    // The first save's toast may still be showing.
+    await expect(page.getByText("Layout saved").last()).toBeVisible();
     await expect(rowOf(page, 25)).toContainText("Price");
     await expect(rowOf(page, 25)).not.toContainText("kg");
   });

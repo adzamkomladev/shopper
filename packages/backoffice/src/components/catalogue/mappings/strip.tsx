@@ -15,12 +15,14 @@ type Layout = {
   valueLength: string;
 };
 
+// White on the success fill and muted text on the muted fill both miss AA for small digits, so the
+// value digits sit on a green tint with a green edge, and muted cells use slate-600.
 const CELL = {
-  prefix: "bg-muted text-muted-foreground",
+  prefix: "bg-muted text-kbd-foreground",
   product: "bg-primary text-primary-foreground",
-  value: "bg-success text-success-foreground",
+  value: "border border-success bg-success/15 text-foreground",
   conflict: "bg-destructive text-white",
-  check: "bg-muted text-muted-foreground",
+  check: "bg-muted text-kbd-foreground",
   free: "border border-dashed text-muted-foreground",
 } as const;
 

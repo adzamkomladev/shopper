@@ -77,9 +77,9 @@ const updateCommand = defineCommand({
     const id = recordId(input.id);
     const patch = nonEmpty(v.parse(mappingPatch, input.data));
     const before = mappingView(await lock(tx, context.orgId, id));
-    const { id: _id, ...current } = before;
-    // A price layout has no unit, so switching kind without one drops the old unit.
-    const base = patch.kind === "price" && !patch.unit ? { ...current, unit: undefined } : current;
+    const { id: _id, unit, ...current } = before;
+    // Only a weight layout has a unit key; switching to price drops it, not just its value.
+    const base = patch.kind === "price" || !unit ? current : { ...current, unit };
     const data = v.parse(mappingInput, { ...base, ...patch });
     await assertFree(tx, context.orgId, data.prefix, id);
     const [row] = await tx

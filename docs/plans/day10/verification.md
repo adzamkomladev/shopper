@@ -20,13 +20,13 @@ Chromium (Playwright 1.64), linux-x64.
 
 ## Tests
 
-- Integration, whole suite including `sync/volume` and `sync/offline/hour` (portal excluded): 490 passed, 5 failed.
-  The failures are not Day 10 basket code:
-  - `tooling/guard.test.ts`: `tooling/build/portal/tmp-mine.mjs` breaks path naming (portal work in progress).
-  - `edge/worker.test.ts` → workerd `portal.test.ts`: portal work in progress. The workerd pull test that Slice 2
-    broke is fixed in `9e02d74`.
-  - `api/server.test.ts` (Bun socket peers): fails identically on `main` (`8184389`).
-  - `till/host/restart.test.ts`: failed only while e2e ran in parallel; 3/3 alone.
+- Integration, whole suite (`vp test --run`, portal and `sync/volume`/`sync/offline/hour` included): 499 passed,
+  2 failed, both environmental:
+  - `api/server.test.ts` (Bun socket peers) binds IPv6 `::1`; this container has no IPv6. Same on `main`.
+  - `catalogue/import/assets/runtime.test.ts` follows `SHOPPER_S3_*` when the shell sets it (this session had
+    real R2 credentials); with those unset it passes.
+- Earlier runs: the workerd pull test that Slice 2 broke is fixed in `9e02d74`; `till/host/restart.test.ts`
+  failed once only while e2e ran in parallel.
 - Till bridge: `tests/integration/till/host/bridge/{drafts,search}.test.ts` plus `websocket.test.ts`, 19 passed.
   Replies are parsed with the browser's `bridgeMessage` schema.
 - Drafts: `tests/integration/till/basket/drafts/*`, 39 passed.
@@ -47,11 +47,34 @@ layout); the payment panel is the approved Ghana tax summary with the payment-av
 Navigation (decided during Slice 7; easy to change): the register connection screen stays the landing page and
 offers **Start selling (S)** once connected; **F10 Register** returns from the sale screen.
 
+## Portal and barcode layouts
+
+The portal e2e server now starts (it never had under TanStack Start):
+
+- `tooling/build/portal/e2e.mjs` builds both Start environments with `createBuilder().buildApp()`; the server
+  loads `apps/portal/dist/server/server.js`; `boxBlobs` gets its secret as bytes; assets are served with
+  `node:fs` and explicit content types.
+- `defaultSsr: false` moved from the router (where this TanStack version ignores it) to `apps/portal/src/start.ts`
+  (`createStart`). Backoffice loaders had been running during server rendering and calling the relative API;
+  this also affects the Cloudflare portal.
+- Scratch files `tooling/build/portal/tmp-mine.mjs` and `tests/support/portal/server.tmp.ts` folded in and
+  removed. Workerd `portal.test.ts` passes `provisionOrg` metadata; portal auth tests use fresh shops and
+  per-shop client IPs (sign-up only bootstraps a shop's first owner; Better Auth limits sign-in per IP).
+
+Barcode layout screen fixes found by its e2e:
+
+- Changing a weight layout to a price layout failed with "Invalid request data": the update kept a `unit` key
+  (set to `undefined`) that the strict price schema rejects. Integration test added.
+- Shared `TextField`: leaving a field no longer runs TanStack's blur validation, which cleared a field's submit
+  error. Moving focus to the first invalid field had been wiping the errors of the field you were on.
+- Barcode digit strip meets AA contrast (value digits on a green tint, slate-600 on muted cells).
+
+Results: barcode layout e2e 19/19 (twice); whole portal project 152/152 after the nav count update (8 links
+with Barcodes; one devices spec flaked once under load and passed twice alone); public portal config 28/28.
+Screenshots (desktop 1440×900, mobile 390×844) in [screenshots/portal](screenshots/portal).
+
 ## Not verified
 
-- Backoffice barcode layout screen e2e (`tests/e2e/portal/catalogue/mappings*.spec.ts`). The portal e2e server
-  does not start: `tests/support/portal/server.ts` passes a string secret to `boxBlobs` (`Zero-length key`), and
-  `apps/portal/dist/server.js` is not produced by the in-progress TanStack Start build. It typechecks.
 - Codex branch review: quota resumes 21 October 2026. Each slice had a manual rules review instead (approved).
 
 ## Resets

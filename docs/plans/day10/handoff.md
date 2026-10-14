@@ -6,9 +6,8 @@ implement → whole integration suite → manual review → commit. **Do not pus
 
 ## Status (14 Oct, end of day)
 
-Slices 1–7 are done and pushed; see [verification.md](verification.md) for commits, results and gaps. Open:
-the Codex branch review (from 21 Oct), the backoffice mapping e2e (blocked by the in-progress portal e2e
-server), and the Notion Day 10 status. The sections below are the earlier hand-off, kept for history.
+Slices 1–7 are done and pushed; see [verification.md](verification.md) for commits, results and gaps. The
+portal e2e server and the barcode layout e2e now run and pass. Open: the Codex branch review (from 21 Oct). The sections below are the earlier hand-off, kept for history.
 
 ## Done (committed locally, not pushed)
 

@@ -16,18 +16,14 @@ const productFields = {
   taxClass: taxClassSchema,
   archivedAt: v.nullable(timestamp),
 };
-/** Product rows before v2 carried no barcodes; a till still holding them reads them with this. */
-export const tillProductV1 = v.strictObject(productFields);
 export const tillProductBase = v.object(productFields);
-export const tillProduct = v.strictObject({
-  ...productFields,
-  barcodes: v.array(
-    v.strictObject({
-      code: v.string(),
-      quantityThousandths: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
-    }),
-  ),
-});
+const barcodes = v.array(
+  v.strictObject({
+    code: v.string(),
+    quantityThousandths: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
+  }),
+);
+export const tillProduct = v.strictObject({ ...productFields, barcodes });
 export const tillPrice = v.strictObject({
   id: tillId,
   orgId: tillId,
@@ -53,9 +49,9 @@ export const tillMapping = v.pipe(
     return NEVER;
   }),
 );
-/** The v1 shape, still accepted for startup provisioning. */
+/** Startup provisioning accepts v1 products (no barcodes) and v2 products; barcodes default to none. */
 export const tillReference = v.strictObject({
-  products: v.array(tillProductV1),
+  products: v.array(v.strictObject({ ...productFields, barcodes: v.optional(barcodes, []) })),
   prices: v.array(tillPrice),
   taxRules: v.array(tillTaxRule),
 });

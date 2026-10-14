@@ -3,6 +3,7 @@ import { defineCommand } from "@shopper/audit/sqlite";
 import { reference } from "@shopper/db-sqlite";
 import { tillReference } from "../schemas/till/reference";
 import { TillError } from "./error";
+import { projectProducts } from "./lookup/project";
 
 export const provisionTillReference = defineCommand({
   name: "till.reference.provision",
@@ -24,6 +25,7 @@ export const provisionTillReference = defineCommand({
         count += 1;
       }
     }
+    await projectProducts(tx, context.orgId, data.products);
     return { count };
   },
   audit: (_input, output) => output,

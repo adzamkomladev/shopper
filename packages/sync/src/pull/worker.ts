@@ -46,11 +46,24 @@ export function createPullWorker(options: PullOptions) {
     (
       await database.read((tx) =>
         tx
-          .select({ cursor: tillState.pullCursor, initialized: tillState.pullInitialized })
+          .select({
+            cursor: tillState.pullCursor,
+            initialized: tillState.pullInitialized,
+            referenceVersion: tillState.referenceVersion,
+          })
           .from(tillState)
           .where(and(eq(tillState.orgId, config.orgId), eq(tillState.deviceId, config.deviceId))),
       )
     )[0];
+  // A row this build cannot decode halts the pull as incompatible, applying nothing and keeping the cursor.
+  const decodeOrHalt = <T>(decode: () => T, cursor?: string) => {
+    try {
+      return decode();
+    } catch {
+      publish({ state: "incompatible", ...(cursor === undefined ? {} : { cursor }) });
+      return undefined;
+    }
+  };
   const pullOnce = async (cursor: string) => {
     const { response, raw } = await transport.request(
       `/sync/changes?cursor=${cursor}&limit=500&bootstrapped=${bootstrapped}`,
@@ -74,13 +87,14 @@ export function createPullWorker(options: PullOptions) {
         publish({ state: "upgrade" });
         return undefined;
       }
-      const data = decodeSnapshot(rawSnapshot);
+      const data = decodeOrHalt(() => decodeSnapshot(rawSnapshot));
+      if (!data) return undefined;
       if (data.orgId !== config.orgId || (config.storeId && data.storeId !== config.storeId))
         throw new Error("Snapshot outside device scope");
       await bootstrap(
         database,
         { orgId: config.orgId, deviceId: config.deviceId, appVersion: config.appVersion },
-        data,
+        { ...data, referenceVersion: rawSnapshot.v },
       );
       attempts = 0;
       publish({
@@ -98,7 +112,14 @@ export function createPullWorker(options: PullOptions) {
       publish({ state: "upgrade", cursor });
       return undefined;
     }
-    const data = { ...parsed, changes: parsed.changes.map(decodeReferenceChange) };
+    const changes = decodeOrHalt(() => parsed.changes.map(decodeReferenceChange), cursor);
+    if (!changes) return undefined;
+    const data = { ...parsed, changes };
+    // Upcast v1 products lost their barcodes, so a page of them lowers the till's reference version.
+    const referenceVersion = Math.min(
+      KNOWN_VERSION,
+      ...parsed.changes.filter((c) => c.entity === "product" && c.op === "upsert").map((c) => c.v),
+    );
     if (!ordered(cursor, data)) {
       publish({ state: "incompatible", cursor });
       return undefined;
@@ -108,7 +129,7 @@ export function createPullWorker(options: PullOptions) {
       await apply(
         database,
         { orgId: config.orgId, deviceId: config.deviceId, appVersion: config.appVersion },
-        data,
+        { ...data, referenceVersion },
       );
     attempts = 0;
     publish({
@@ -121,8 +142,10 @@ export function createPullWorker(options: PullOptions) {
   };
   const run = async () => {
     const saved = await readCursor();
-    bootstrapped = saved?.initialized ?? false;
-    let cursor: string | undefined = saved?.cursor ?? "0";
+    // A till holding barcode-less (v1) references takes one full snapshot per run before resuming.
+    const stale = !!saved && saved.referenceVersion < KNOWN_VERSION;
+    bootstrapped = !stale && (saved?.initialized ?? false);
+    let cursor: string | undefined = stale ? "0" : (saved?.cursor ?? "0");
     publish({ cursor, syncing: true });
     try {
       while (cursor && !stopped && !HALTED.has(status.state)) cursor = await pullOnce(cursor);

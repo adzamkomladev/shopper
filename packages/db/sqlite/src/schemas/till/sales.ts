@@ -73,6 +73,7 @@ export const tillState = sqliteTable(
       .default([]),
     pullInitialized: integer("pull_initialized", { mode: "boolean" }).notNull().default(false),
     pullCursor: text("pull_cursor").notNull().default("0"),
+    referenceVersion: integer("reference_version").notNull().default(1),
   },
   (t) => [unique().on(t.orgId, t.deviceId)],
 );

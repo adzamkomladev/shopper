@@ -3,14 +3,14 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import type { SQLInputValue, DatabaseSync } from "node:sqlite";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
-import { tillMigration, type TillDatabase } from "@shopper/db-sqlite";
+import { tillMigrations, type TillDatabase } from "@shopper/db-sqlite";
 
 export function openTillDatabase(path: string): TillDatabase {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
   const require = createRequire(import.meta.url);
   const sqlite: DatabaseSync = new (require("node:sqlite").DatabaseSync)(path);
   sqlite.exec("PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;");
-  sqlite.exec(tillMigration);
+  migrate(sqlite);
   const db = drizzle(async (query, params: SQLInputValue[], method) => {
     const statement = sqlite.prepare(query);
     if (method === "run") {
@@ -51,4 +51,22 @@ export function openTillDatabase(path: string): TillDatabase {
       return result;
     },
   };
+}
+
+/** Runs each pending step and its user_version bump in one transaction, reading the version under the lock. */
+function migrate(sqlite: DatabaseSync) {
+  for (let step = 0; step < tillMigrations.length; step++) {
+    sqlite.exec("BEGIN IMMEDIATE");
+    try {
+      const { user_version } = sqlite.prepare("PRAGMA user_version").get() as {
+        user_version: number;
+      };
+      if (user_version <= step)
+        sqlite.exec(`${tillMigrations[step]};PRAGMA user_version=${step + 1}`);
+      sqlite.exec("COMMIT");
+    } catch (error) {
+      sqlite.exec("ROLLBACK");
+      throw error;
+    }
+  }
 }

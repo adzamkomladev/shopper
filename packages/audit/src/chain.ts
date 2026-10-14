@@ -1,5 +1,7 @@
-import type { auditLog } from "@shopper/db-pg";
-export type AuditEntry = typeof auditLog.$inferSelect;
+import type { AuditEntry, ChainVerification } from "./types";
+export type { AuditEntry, ChainVerification } from "./types";
+import { sha256 } from "@shopper/utils";
+
 export const GENESIS_HASH = "0".repeat(64);
 
 // Reject unsupported values rather than silently dropping them from the signed entry.
@@ -65,16 +67,9 @@ export async function hashEntry(entry: AuditEntry): Promise<string> {
     createdAt: entry.createdAt.toISOString(),
     deviceTime: entry.deviceTime?.toISOString() ?? null,
   });
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body));
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return sha256(body);
 }
-export type ChainVerification =
-  | { valid: true; count: number; finalHash: string }
-  | {
-      valid: false;
-      entryId: string;
-      reason: "legacy-unhashed" | "sequence" | "previous-hash" | "hash" | "tenant" | "anchor";
-    };
+
 // Supply rows ordered by chainSeq (legacy rows first). An external anchor detects tail truncation.
 export async function verifyChain(
   entries: readonly AuditEntry[],

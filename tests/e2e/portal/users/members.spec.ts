@@ -7,7 +7,7 @@ import {
   listUsers,
   row,
   signInAs,
-} from "../../../support/admin-people";
+} from "../../../support/admin/people";
 import { OWNER_NAME, expectNoSeriousAxe } from "../../../support/e2e";
 
 // Runs on the saved E2E Mart owner session; every member is created through the real invitation flow.

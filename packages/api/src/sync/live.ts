@@ -1,16 +1,10 @@
+export type { Principal } from "./types";
+import type { LiveUpgrade } from "./types";
+export type { LiveUpgrade } from "./types";
 import { Hono } from "hono";
 import * as v from "valibot";
 import { sequenceSchema } from "@shopper/ports";
 import type { createDeviceService } from "@shopper/auth/devices";
-
-type Principal = NonNullable<
-  Awaited<ReturnType<ReturnType<typeof createDeviceService>["resolveUploadPrincipal"]>>
->;
-export type LiveUpgrade = (
-  request: Request,
-  principal: Principal,
-  cursor: string,
-) => Promise<Response>;
 
 export function createLiveRoutes(options: {
   devices: ReturnType<typeof createDeviceService>;

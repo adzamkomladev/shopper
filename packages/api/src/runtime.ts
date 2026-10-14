@@ -1,33 +1,18 @@
-import type { Realtime, Blobs, Cache, Sequencer, WorkflowLauncher } from "@shopper/ports";
+import { invitationTokenInput } from "./schemas/runtime";
+import type { RuntimeOptions } from "./types";
+export type { RuntimeOptions } from "./types";
+
 import * as v from "valibot";
 import { buildInfo } from "@shopper/config";
 import { AuthLinkError, createAuth, createOnboarding, createInvitations } from "@shopper/auth";
 import { createDeviceService } from "@shopper/auth/devices";
 import { managementId } from "@shopper/core/management";
-import type { ShopperDatabase } from "@shopper/db-pg";
-import type { LiveUpgrade } from "./sync/live";
+
 import { createSyncRoutes } from "./sync/routes";
 import { createApi } from "./app";
 import { orgRoutes } from "./routes/orgs";
-import { allowPublicAuth } from "./middleware/public-auth";
+import { allowPublicAuth } from "./middleware/public/auth";
 
-export interface RuntimeOptions {
-  database: ShopperDatabase;
-  sequencer?: Sequencer;
-  blobs?: Blobs;
-  live?: LiveUpgrade;
-  realtime?: Realtime;
-  cache: Cache;
-  secret: string;
-  baseURL: string;
-  orgId?: string;
-  bootstrapToken?: string;
-  clientIP?: string;
-  priceChange?: WorkflowLauncher;
-  authFlows?: WorkflowLauncher;
-  linkSecret?: string;
-  publicOnboarding?: boolean;
-}
 export const publicApi = createApi();
 export function isPublicRequest(request: Request) {
   const path = new URL(request.url).pathname;
@@ -103,7 +88,7 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     if (request.method === "POST") {
       try {
         const body: unknown = await request.clone().json();
-        token = v.parse(v.object({ token: v.string() }), body).token;
+        token = v.parse(invitationTokenInput, body).token;
       } catch {
         return Response.json({ error: "Invalid request data" }, { status: 400 });
       }
@@ -151,5 +136,6 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     priceChange: options.priceChange,
     realtime: options.realtime,
     invitations,
+    blobs: options.blobs,
   }).fetch(request);
 }

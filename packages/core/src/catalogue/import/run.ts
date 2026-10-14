@@ -1,3 +1,4 @@
+import { sha256 } from "@shopper/utils";
 import { and, eq } from "drizzle-orm";
 import type { CommandContext } from "@shopper/audit";
 import { productImport, type ShopperDatabase } from "@shopper/db-pg";
@@ -7,11 +8,6 @@ import { importCatalogue } from "./apply";
 import { parseSheet } from "./parse";
 import { planImport } from "./plan";
 import { validateRows } from "./validate";
-
-async function sha256(bytes: Uint8Array) {
-  const digest = await crypto.subtle.digest("SHA-256", bytes as BufferSource);
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
 
 /** Dry run: parse, validate and check the database, and write nothing at all. */
 export async function previewImport(db: ShopperDatabase, orgId: string, bytes: Uint8Array) {
@@ -34,11 +30,13 @@ export async function runImport(
   context: CommandContext,
   bytes: Uint8Array,
   fileName: string,
+  assetId?: string,
 ) {
   const { headers, rows } = parseSheet(bytes);
   const { good, errors } = validateRows(rows, headers);
   const result = await importCatalogue(db, context, {
     fileName,
+    assetId,
     sha256: await sha256(bytes),
     rowsTotal: rows.length,
     rows: good,

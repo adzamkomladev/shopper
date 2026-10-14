@@ -9,6 +9,11 @@ const boxEnvironment = {
   SHOPPER_AUTH_SECRET: "e2e-only-secret-more-than-32-characters",
   SHOPPER_BOOTSTRAP_TOKEN: "e2e-only-bootstrap-token",
   SHOPPER_LINK_SECRET: "e2e-only-link-secret-more-than-32-characters",
+  SHOPPER_S3_ENDPOINT: "http://127.0.0.1:9200",
+  SHOPPER_S3_BUCKET: "shopper-imports-dev",
+  SHOPPER_S3_ACCESS_KEY_ID: "shopper_dev_access",
+  SHOPPER_S3_SECRET_ACCESS_KEY: "shopper_dev_secret_at_least_32_chars",
+  SHOPPER_S3_REGION: "us-east-1",
   SHOPPER_CACHE_PATH: ".shopper/e2e-cache.sqlite",
 };
 
@@ -32,16 +37,16 @@ export default defineConfig({
       testDir: "tests/e2e/portal",
       // The public specs run against their own API and portal: see playwright.public.config.ts.
       testIgnore:
-        /(?:auth\.setup|(?:onboarding|public-states|invitations\/(?:accept|states))\.spec)\.ts$/,
+        /(?:auth\.setup|(?:onboarding|public\/states|invitations\/(?:accept|states))\.spec)\.ts$/,
       dependencies: ["setup"],
       use: { baseURL: "http://localhost:5183", storageState: "tests/e2e/.auth/owner.json" },
     },
-    { name: "till-ui", testDir: "tests/e2e/till-ui", use: { baseURL: "http://localhost:5184" } },
+    { name: "till-ui", testDir: "tests/e2e/till/ui", use: { baseURL: "http://localhost:5184" } },
   ],
   webServer: [
     {
       command:
-        "tsx tooling/database/e2e.ts && vp run -F @shopper/box build && bun apps/box/dist/index.js",
+        "tsx tooling/database/e2e.ts && vp run --no-cache -F @shopper/box build && bun apps/box/dist/index.js",
       url: "http://localhost:3101/orgs/e2e-mart",
       env: boxEnvironment,
       reuseExistingServer,

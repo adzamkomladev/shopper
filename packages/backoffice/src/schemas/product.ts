@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { productInput, productPatch } from "@shopper/core/schemas";
 import { fromDecimal } from "@shopper/money";
 import { ApiError } from "../api/client";
-import { parseShopTime } from "../lib/shop-time";
+import { parseShopTime } from "../lib/shop/time";
 // Loading the catalogue schema also installs the plain-English validation messages the shared schemas need.
 import { messageOfError } from "./catalogue";
 

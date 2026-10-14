@@ -1,3 +1,4 @@
+import { buildInfo } from "@shopper/config";
 import { Hono } from "hono";
 import { buildSnapshot } from "@shopper/core/changes";
 import { negotiateProtocol } from "@shopper/sync/versions";
@@ -20,7 +21,11 @@ export function createSnapshotRoutes(options: {
     if (negotiateProtocol(options.protocol, Number(protocol)) === undefined)
       return c.json({ error: "Incompatible sync protocol" }, 409);
     if (!options.blobs) return c.json({ error: "Snapshot storage unavailable" }, 503);
-    const bytes = await buildSnapshot(options.database, options.blobs, principal);
+    const bytes = await buildSnapshot(options.database, options.blobs, principal, {
+      orgId: principal.orgId,
+      deviceId: principal.deviceId,
+      appVersion: buildInfo.version,
+    });
     return new Response(new Uint8Array(bytes), {
       headers: {
         "content-type": "application/json",

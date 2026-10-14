@@ -3,7 +3,7 @@ import * as v from "valibot";
 import { v7 } from "uuid";
 import { tillAudit, type TillDatabase, type TillSqlite } from "@shopper/db-sqlite";
 import { GENESIS_HASH, hashEntry, redact, type AuditEntry } from "../chain";
-import { contextSchema } from "../schemas/command-context";
+import { contextSchema } from "../schemas/command/context";
 import type { AuditDetails, CommandContext } from "../types";
 
 export function defineCommand<Input, Output>(

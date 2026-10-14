@@ -1,6 +1,6 @@
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { createDeviceService } from "@shopper/auth/devices";
-import { ageSession, context } from "./server-data";
+import { ageSession, context } from "./server/data";
 import { ids } from "./sales";
 
 export async function enrollFixtureTill(

@@ -46,22 +46,6 @@ export async function createConnectionHost(server: Server, upstream: string, ori
   let host: Awaited<ReturnType<typeof startTillHost>> | undefined;
   return {
     config,
-    async recordSales(count: number) {
-      const { recordLocalSale } = await import("@shopper/core/till");
-      for (let index = 0; index < count; index++)
-        await recordLocalSale(
-          database,
-          {
-            ...server.identity,
-            appVersion: server.appVersion,
-            receiptCodes: server.receiptCodes,
-          },
-          server.session,
-          {
-            lines: [{ productId: server.productId, quantityThousandths: 1_500 }],
-          },
-        );
-    },
     async start() {
       host = await startTillHost(config);
       return host;

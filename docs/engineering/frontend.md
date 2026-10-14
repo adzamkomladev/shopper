@@ -49,12 +49,12 @@ If none of these fit, stop and ask. Do not work around the guard with a custom w
   screen into parts that each have one job:
 
   ```text
-  screens/sale/
-    screen.tsx              composition only: layout + parts
-    basket.tsx              basket list and line actions
-    tender-panel.tsx        payment entry
-    use-shortcuts.ts        key bindings for this screen
-    queries.ts              query options and mutations
+  screens/sale/screen.tsx       composition
+  components/sale/basket.tsx    basket UI
+  components/sale/tender/panel.tsx
+  hooks/sale/shortcuts.ts
+  queries/sale.ts
+  schemas/sale.ts
   ```
 
 - Components receive data and callbacks through props. They do not fetch inside leaf components.
@@ -133,3 +133,5 @@ skeletons, modal-on-modal, disabled buttons without a reason, and color as the o
 3. Its Playwright e2e test covers the keyboard path, all states and an axe check
    ([testing.md](testing.md)).
 4. `vp check`, `vp run guard` and `vp test --run` pass.
+
+Backoffice queries, stores, hooks and components have separate responsibility folders nested by context. Screen entries stay under `screens/`; route configuration is under `routes/`. All web/local/Electron hosts mount the same package.

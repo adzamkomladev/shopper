@@ -5,17 +5,17 @@ import { GitBranchIcon, StoreIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
-import { FormSheet } from "../../components/admin/form-sheet";
-import { PageHeader } from "../../components/admin/page-header";
-import { deleteButtonId, editButtonId } from "../../components/admin/row-actions";
+import { FormSheet } from "../../components/admin/form/sheet";
+import { PageHeader } from "../../components/admin/page/header";
+import { deleteButtonId, editButtonId } from "../../components/admin/row/actions";
 import { EmptyList, ReadOnlyNote } from "../../components/admin/states";
-import { usePanel } from "../../components/admin/use-panel";
-import { permissionsQuery } from "../../session/permissions";
-import { storesQuery } from "../stores/queries";
-import { DeleteBranchDialog } from "./delete-dialog";
-import { BranchForm } from "./form";
-import { branchesQuery } from "./queries";
-import { BranchTable } from "./table";
+import { usePanel } from "../../hooks/admin/panel";
+import { permissionsQuery } from "../../queries/session/permissions";
+import { storesQuery } from "../../queries/stores";
+import { DeleteBranchDialog } from "../../components/branches/delete/dialog";
+import { BranchForm } from "../../components/branches/form";
+import { branchesQuery } from "../../queries/branches";
+import { BranchTable } from "../../components/branches/table";
 
 type Branch = { id: string; name: string; storeId: string };
 

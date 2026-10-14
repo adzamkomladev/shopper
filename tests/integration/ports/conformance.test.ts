@@ -13,7 +13,7 @@ import { portConformance, realtimeConformance } from "@shopper/conformance";
 import { migrateDatabase } from "../../../tooling/database/migrate";
 import { provisionOrg, provisioningContext } from "../../../tooling/database/seed";
 import { postgresFixture } from "../../fixtures/postgres";
-import { provisionPendingSale } from "../../support/till/pending-sale";
+import { provisionPendingSale } from "../../support/till/pending/sale";
 let fixture: Awaited<ReturnType<typeof postgresFixture>>;
 let pool: Pool;
 let db: import("@shopper/db-pg").ShopperDatabase;

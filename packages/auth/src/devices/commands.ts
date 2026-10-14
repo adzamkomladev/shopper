@@ -1,3 +1,4 @@
+import { sha256 } from "@shopper/utils";
 import * as v from "valibot";
 import { and, eq, isNull, gt } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
@@ -26,11 +27,7 @@ export const randomToken = () =>
   Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) =>
     b.toString(16).padStart(2, "0"),
   ).join("");
-export const digest = async (value: string) =>
-  Array.from(
-    new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value))),
-    (b) => b.toString(16).padStart(2, "0"),
-  ).join("");
+export { sha256 as digest } from "@shopper/utils";
 export const minutes = (n: number) => new Date(Date.now() + n * 60000);
 
 export const issue = defineCommand({
@@ -54,7 +51,7 @@ export const issue = defineCommand({
       .values({
         orgId: c.orgId,
         branchId: input.branchId,
-        codeHash: await digest(code),
+        codeHash: await sha256(code),
         expiresAt,
       })
       .returning();
@@ -86,7 +83,7 @@ export const consume = defineCommand({
       .where(
         and(
           eq(deviceEnrollment.orgId, c.orgId),
-          eq(deviceEnrollment.codeHash, await digest(input.code)),
+          eq(deviceEnrollment.codeHash, await sha256(input.code)),
           isNull(deviceEnrollment.consumedAt),
           gt(deviceEnrollment.expiresAt, now),
         ),
@@ -120,7 +117,7 @@ export const consume = defineCommand({
     const deviceToken = randomToken();
     await tx
       .insert(deviceCredential)
-      .values({ orgId: c.orgId, deviceId: row!.id, tokenHash: await digest(deviceToken) });
+      .values({ orgId: c.orgId, deviceId: row!.id, tokenHash: await sha256(deviceToken) });
     const [location] = await tx
       .select({ code: branch.code })
       .from(branch)

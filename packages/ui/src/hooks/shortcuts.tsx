@@ -1,3 +1,5 @@
+import type { ShortcutMap } from "./types";
+export type { ShortcutMap } from "./types";
 import { createContext, use, useState, type KeyboardEvent } from "react";
 
 /**
@@ -5,7 +7,7 @@ import { createContext, use, useState, type KeyboardEvent } from "react";
  * Keep combos unique per screen. When two registered maps share one, the most recently
  * registered map wins.
  */
-export type ShortcutMap = Record<string, (event: KeyboardEvent) => void>;
+
 type Registry = Set<ShortcutMap>;
 
 const ShortcutContext = createContext<Registry | null>(null);

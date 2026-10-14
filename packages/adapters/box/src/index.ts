@@ -1,9 +1,9 @@
 export { boxBlobs, boxCache } from "./storage";
 export { boxSequencer } from "./sequencer";
-export { boxWorkflow } from "./workflow";
+export { boxWorkflow } from "./workflows/runtime";
 export { boxDatabase, boxPool } from "./database";
 export { boxRealtime } from "./realtime";
-export { boxPriceChange } from "./price-change";
-export { boxAuthFlows } from "./auth-flow";
+export { boxPriceChange } from "./workflows/price";
+export { boxAuthFlows } from "./workflows/auth";
 export { openTillDatabase } from "./till/database";
 export { boxLive, type BoxWebSocketServer } from "./live";

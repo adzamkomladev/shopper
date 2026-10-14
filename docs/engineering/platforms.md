@@ -29,7 +29,7 @@ The `Workflow` port (`packages/ports/src/workflow.ts`) defines `step`, `sleep`, 
 (`step.do`, `step.sleep`, `step.sleepUntil`, `step.waitForEvent`). `adapters/box` binds it to a
 Rivet workflow. The live example of this pattern is `nextStoreSequence()`, which is shared by the
 `StoreSequencer` Durable Object and `boxSequencer()`. The first real workflow is `runPriceChange()`
-(`packages/core/src/catalogue/prices/workflow.ts`): `PriceChangeWorkflow` runs it on Cloudflare and
+(`packages/core/src/workflows/price.ts`): `PriceChangeWorkflow` runs it on Cloudflare and
 `boxPriceChange()` on the box (memory engine until Rivet, day 36).
 
 - Start workflows through a `WorkflowLauncher` (one per kind). `start` only acknowledges the launch;
@@ -123,3 +123,5 @@ PostgreSQL pull remains authoritative. Transport fallback is the exception to th
 a disconnected till pulls and reconnects after 30 seconds, with backoff capped at five minutes.
 A healthy idle socket also pulls every five minutes to repair lost nudges. These timers repair
 transport delivery; business processes still use Workflows.
+
+Direct browser asset uploads are managed by `@shopper/assets` and use presigned PUT to R2/RustFS. Imports and generated snapshots have separate policies; no upload bytes pass through Hono. Blobs supports bounded reads for integrity validation immediately before processing. Server-generated objects retain the existing R2/filesystem paths; an unavailable S3 upload store fails rather than proxying bytes. See [assets.md](assets.md).

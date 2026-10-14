@@ -68,3 +68,6 @@ export const scheduleInput = v.pipe(
   v.check((data) => data.endsAt > data.startsAt, "endsAt must be after startsAt"),
   v.check((data) => data.endsAt.getTime() > Date.now(), "endsAt must be in the future"),
 );
+
+export const categoryUpdate = v.partial(categoryInput);
+export const supplierUpdate = v.partial(supplierInput);

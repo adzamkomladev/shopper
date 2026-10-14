@@ -10,6 +10,8 @@ export function blobsCases(name: string, test: ConformanceTest, fixture: Fixture
       Array.from((await f.blobs.get(f.orgId, "receipts/a.pdf"))!),
       Array.from(binary),
     );
+    await assert.rejects(f.blobs.get(f.orgId, "receipts/a.pdf", 4), RangeError);
+    assert.equal((await f.blobs.get(f.orgId, "receipts/a.pdf", 5))?.byteLength, 5);
     assert.equal(await f.blobs.get(f.otherOrgId, "receipts/a.pdf"), null);
     const url = await f.blobs.signedUrl(f.orgId, "receipts/a.pdf", 10);
     assert.deepEqual(Array.from((await f.readSigned(url, f.blobs))!), Array.from(binary));

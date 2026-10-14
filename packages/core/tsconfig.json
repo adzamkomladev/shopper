@@ -23,6 +23,12 @@
     },
     {
       "path": "../db/sqlite"
+    },
+    {
+      "path": "../utils"
+    },
+    {
+      "path": "../assets"
     }
   ]
 }

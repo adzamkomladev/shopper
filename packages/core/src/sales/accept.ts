@@ -1,3 +1,4 @@
+import { sha256 } from "@shopper/utils";
 import { and, eq } from "drizzle-orm";
 import * as v from "valibot";
 import { defineCommand, canonicalJson } from "@shopper/audit";
@@ -18,7 +19,7 @@ export async function acceptSale(
   const occurredAt = new Date(
     Math.min(now(), new Date(event.sale.deviceTime).valueOf() - event.sale.clockOffsetMs),
   );
-  const contentHash = await digest(canonicalJson(event.sale));
+  const contentHash = await sha256(canonicalJson(event.sale));
   return accept(
     db,
     {
@@ -29,7 +30,7 @@ export async function acceptSale(
       appVersion: event.sale.appVersion,
       deviceTime: new Date(event.sale.deviceTime),
     },
-    { principal, event, occurredAt, proofHash: await digest(proof), contentHash },
+    { principal, event, occurredAt, proofHash: await sha256(proof), contentHash },
   );
 }
 
@@ -112,7 +113,3 @@ const accept = defineCommand({
   audit: (_input, output) => output,
   details: (_input, output) => ({ entity: "sale", entityId: output.localId }),
 });
-async function digest(value: string) {
-  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join("");
-}

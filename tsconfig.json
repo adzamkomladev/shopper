@@ -2,6 +2,12 @@
   "files": [],
   "references": [
     {
+      "path": "packages/utils"
+    },
+    {
+      "path": "packages/assets"
+    },
+    {
       "path": "packages/money"
     },
     {
@@ -68,13 +74,13 @@
       "path": "apps/shop"
     },
     {
-      "path": "apps/till-ui"
+      "path": "apps/till/ui"
     },
     {
-      "path": "apps/till-host"
+      "path": "apps/till/host"
     },
     {
-      "path": "apps/till-electron"
+      "path": "apps/till/electron"
     }
   ]
 }

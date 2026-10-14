@@ -7,6 +7,7 @@ import {
   integer,
   jsonb,
   unique,
+  uniqueIndex,
   foreignKey,
   check,
 } from "drizzle-orm/pg-core";
@@ -24,7 +25,9 @@ export const device = pgTable(
   },
   (t) => [
     unique().on(t.orgId, t.id),
-    unique().on(t.branchId, t.code),
+    uniqueIndex("device_branch_code_unique")
+      .on(t.branchId, t.code)
+      .where(sql`${t.code} <> ''`),
     foreignKey({ columns: [t.orgId, t.branchId], foreignColumns: [branch.orgId, branch.id] }),
   ],
 );
@@ -121,12 +124,19 @@ export const receiptBlock = pgTable(
   "receipt_block",
   {
     ...tenant(),
+    orgId: uuid("org_id").notNull(),
     deviceId: uuid("device_id").notNull(),
     start: integer("start").notNull(),
     end: integer("end").notNull(),
   },
   (t) => [
-    unique().on(t.deviceId, t.start),
-    foreignKey({ columns: [t.orgId, t.deviceId], foreignColumns: [device.orgId, device.id] }),
+    unique("receipt_block_device_id_start_key").on(t.deviceId, t.start),
+    check("receipt_block_check", sql`${t.start} > 0 AND ${t.end} >= ${t.start}`),
+    foreignKey({ name: "receipt_block_org_id_fkey", columns: [t.orgId], foreignColumns: [org.id] }),
+    foreignKey({
+      name: "receipt_block_org_id_device_id_fkey",
+      columns: [t.orgId, t.deviceId],
+      foreignColumns: [device.orgId, device.id],
+    }),
   ],
 );

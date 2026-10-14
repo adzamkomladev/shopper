@@ -9,7 +9,7 @@ import {
   submitSignup,
   verifyFromEmail,
 } from "../../support/publicauth/flow";
-import { chooseByTyping } from "../../support/admin-people";
+import { chooseByTyping } from "../../support/admin/people";
 import { PUBLIC_ORIGIN, unique } from "../../support/publicauth/shop";
 import { waitForPublicSlot } from "../../support/publicauth/slots";
 

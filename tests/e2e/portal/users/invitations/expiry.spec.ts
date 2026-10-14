@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { captureSizes, unique } from "../../../../support/admin";
-import { inviteLocal, listInvitations, row } from "../../../../support/admin-people";
+import { inviteLocal, listInvitations, row } from "../../../../support/admin/people";
 import { expectNoSeriousAxe } from "../../../../support/e2e";
 import { expireLink } from "../../../../support/publicauth/expiry";
 

@@ -1,13 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { captureSizes, enrolDevice, unique } from "../../../support/admin";
-import { chooseByTyping, createStaff, dialog, row } from "../../../support/admin-people";
+import { chooseByTyping, createStaff, dialog, row } from "../../../support/admin/people";
 import { BRANCH_NAME, expectNoSeriousAxe } from "../../../support/e2e";
 import {
   branchIdNamed,
   cashierLogin,
   listDevices,
   redeemCode,
-} from "../../../support/admin-devices";
+} from "../../../support/admin/devices";
 
 const DIGITS = /^\d{3} \d{3}$/;
 

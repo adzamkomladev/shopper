@@ -1,3 +1,5 @@
+import type { Column, Headers, SheetRows } from "./types";
+export type { Column, Headers, SheetRows } from "./types";
 import * as XLSX from "xlsx";
 import { ManagementError } from "../../management";
 
@@ -15,10 +17,8 @@ export const columns = [
   "price",
   "online",
 ] as const;
-export type Column = (typeof columns)[number];
+
 /** The header text as written in the file, for the columns the file has. */
-export type Headers = Partial<Record<Column, string>>;
-export type SheetRows = { row: number; cells: Partial<Record<Column, string>> }[];
 
 const aliases = new Map<string, Column>(
   Object.entries({

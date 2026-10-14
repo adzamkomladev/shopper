@@ -86,3 +86,13 @@ still rejects expired/consumed links. Automatic engine recovery is the day 36 sl
 Provisioning reads compiled metadata in shipped callers and explicit build metadata in tooling.
 `SCHEMA_VERSION` is derived from the final migration-journal index, so CLI and shipped install
 records agree without requiring injected globals in raw TypeScript tooling.
+
+## Direct asset uploads
+
+Apply the asset-table migration before deploying the upload API/browser together. The catalogue import endpoint now accepts JSON `{ assetId }`, while `/catalogue/imports/uploads` issues grants; multipart clients must migrate. Sync envelopes, audit hashes and public auth/tax URLs retain their existing contracts.
+
+Provision a private imports bucket independently of the existing generated-snapshot R2 binding. Set `SHOPPER_S3_ENDPOINT`, `SHOPPER_S3_BUCKET`, `SHOPPER_S3_ACCESS_KEY_ID`, `SHOPPER_S3_SECRET_ACCESS_KEY` and `SHOPPER_S3_REGION` in Worker secrets/sealed box configuration. R2 uses its S3 API endpoint and region `auto`; RustFS uses the browser-reachable S3 endpoint and configured region. Bind credentials to the imports bucket and required operations. Never expose credentials in browser or log signed URLs.
+
+Configure CORS for exact portal/local origins with PUT and Content-Type. Use HTTPS for non-loopback endpoints and keep the bucket private. Validate provider storage quotas and retention for abandoned uploads separately from the application's bounded processing limit. No production storage policy is changed by the development setup script.
+
+Local tests require `vp run services:up` then `vp run storage:setup`; the latter targets only loopback RustFS with fixture credentials. No dev database reset is required for this cleanup; migrations are forward-only. External R2 deployment, real hardware and the future production box embedding are separate release verification.

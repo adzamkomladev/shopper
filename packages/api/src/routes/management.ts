@@ -9,7 +9,7 @@ import {
   ManagementError,
   type ManagementKind,
 } from "@shopper/core/management";
-import { requirePermission } from "../middleware/require-permission";
+import { requirePermission } from "../middleware/require/permission";
 import type { ApiEnvironment, ApiOptions } from "../types";
 
 // Stores and branches: one CRUD surface per management kind.

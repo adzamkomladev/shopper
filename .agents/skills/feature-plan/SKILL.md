@@ -14,3 +14,7 @@ description: Plan a Shopper feature or multi-file change test-first before any c
 5. Save the approved plan as `docs/plans/YYYY-MM-DD-<topic>.md` when it spans more than one session.
    Otherwise keep it in the conversation.
 6. Next: `tdd-slice` for the first slice.
+
+## Architecture cleanup rules
+
+Follow current `layout.md` and `code-quality.md`: no hyphens in authored paths (explicit stable/framework/generated/published exceptions); backoffice screens/components/queries/stores/hooks have separate homes nested by context; schemas and exported reusable types have owning modules; workflow modules each implement one responsibility. Reuse `@shopper/utils` SHA-256 without changing domain hash contracts. Assets use `@shopper/assets` for policy/tracking/grants and Blobs for provider transport; browser bytes upload directly to R2/RustFS and are bounded/verified immediately before processing. Never add an API byte-upload fallback. Verify both storage adapters and preserve public routes/subpaths.

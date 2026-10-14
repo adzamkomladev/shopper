@@ -1,3 +1,6 @@
+import { serverTimeSchema } from "./schemas/receipts";
+import { receiptsSchema } from "./schemas/receipts";
+export { receiptsSchema } from "./schemas/receipts";
 import * as v from "valibot";
 import { and, eq } from "drizzle-orm";
 import { v7 } from "uuid";
@@ -5,12 +8,6 @@ import { tillState } from "@shopper/db-sqlite";
 import { defineCommand } from "@shopper/audit/sqlite";
 import type { PushOptions } from "./push/types";
 
-const number = v.pipe(v.number(), v.safeInteger(), v.minValue(1));
-export const receiptsSchema = v.strictObject({
-  branchCode: v.pipe(v.string(), v.regex(/^BR[0-9]+$/)),
-  deviceCode: v.pipe(v.string(), v.regex(/^T[0-9]+$/)),
-  blocks: v.pipe(v.array(v.strictObject({ start: number, end: number })), v.maxLength(2)),
-});
 export function createReceiptStorage(options: PushOptions) {
   const { database, config } = options;
   const scope = and(eq(tillState.orgId, config.orgId), eq(tillState.deviceId, config.deviceId));
@@ -56,7 +53,7 @@ export function createReceiptStorage(options: PushOptions) {
         serverTime === undefined
           ? undefined
           : (deviceTime ?? (options.now ?? Date.now)()) -
-            Date.parse(v.parse(v.pipe(v.string(), v.isoTimestamp()), serverTime));
+            Date.parse(v.parse(serverTimeSchema, serverTime));
       await save(
         database,
         { orgId: config.orgId, deviceId: config.deviceId, appVersion: config.appVersion },

@@ -14,5 +14,5 @@ export {
 export { createOnboarding, type OnboardingOptions } from "./onboarding/service";
 export { createLinkToken, AuthLinkError } from "./links/tokens";
 export { createInvitations } from "./invitations/service";
-export { runAuthFlow, authFlowParamsSchema, type AuthFlowDeps } from "./flows/workflow";
+export { runAuthFlow, authFlowParamsSchema, type AuthFlowDeps } from "./workflows/auth";
 export { createMaileroo, type MailerooOptions } from "./emails/maileroo";

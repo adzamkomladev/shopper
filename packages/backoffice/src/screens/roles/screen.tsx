@@ -1,14 +1,14 @@
 import { useRef } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
-import { FormSheet } from "../../components/admin/form-sheet";
-import { PageHeader } from "../../components/admin/page-header";
-import { editButtonId } from "../../components/admin/row-actions";
-import { usePanel } from "../../components/admin/use-panel";
-import { permissionsQuery } from "../../session/permissions";
-import { RoleForm, lockReason } from "./form";
-import { permissionsListQuery, rolesQuery, type RoleView } from "./queries";
-import { RoleTable } from "./table";
+import { FormSheet } from "../../components/admin/form/sheet";
+import { PageHeader } from "../../components/admin/page/header";
+import { editButtonId } from "../../components/admin/row/actions";
+import { usePanel } from "../../hooks/admin/panel";
+import { permissionsQuery } from "../../queries/session/permissions";
+import { RoleForm, lockReason } from "../../components/roles/form";
+import { permissionsListQuery, rolesQuery, type RoleView } from "../../queries/roles";
+import { RoleTable } from "../../components/roles/table";
 
 export function RolesScreen() {
   const { data: roles } = useSuspenseQuery(rolesQuery());

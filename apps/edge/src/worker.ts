@@ -29,6 +29,15 @@ export default {
           await cloudflareBlobs(env.BLOBS, {
             baseUrl: env.SHOPPER_AUTH_URL,
             secret: new TextEncoder().encode(env.SHOPPER_AUTH_SECRET),
+            objectStorage: env.SHOPPER_S3_ENDPOINT
+              ? {
+                  endpoint: env.SHOPPER_S3_ENDPOINT,
+                  bucket: env.SHOPPER_S3_BUCKET ?? "",
+                  accessKeyId: env.SHOPPER_S3_ACCESS_KEY_ID ?? "",
+                  secretAccessKey: env.SHOPPER_S3_SECRET_ACCESS_KEY ?? "",
+                  region: env.SHOPPER_S3_REGION ?? "",
+                }
+              : undefined,
           })
         ).blobs,
         secret: env.SHOPPER_AUTH_SECRET,

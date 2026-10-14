@@ -1,16 +1,14 @@
+export type { TaxClass } from "./types";
+import type { Refs } from "./types";
+export type { Refs } from "./types";
 import { category, supplier, taxClass } from "@shopper/db-pg";
 
-type TaxClass = (typeof taxClass.$inferSelect)["code"];
 import { eq } from "drizzle-orm";
 import type { Queryable } from "../../types";
 import type { CleanRow } from "./validate";
 
 /** Existing reference rows by case-insensitive name; categories are keyed by parent too. */
-export type Refs = {
-  tax: Map<TaxClass, string>;
-  categories: Map<string, string>;
-  suppliers: Map<string, string>;
-};
+
 export const chunkSize = 1000;
 
 export function chunks<T>(items: T[]) {

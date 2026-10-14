@@ -1,18 +1,11 @@
+import { snapshotSchema } from "../schemas/pull/snapshot";
+export { snapshotSchema } from "../schemas/pull/snapshot";
 import * as v from "valibot";
 import { eq } from "drizzle-orm";
 import { v7 } from "uuid";
 import { defineCommand } from "@shopper/audit/sqlite";
 import { reference, tillState } from "@shopper/db-sqlite";
-import { tillReference } from "@shopper/core/schemas";
-import { sequenceSchema, uuidV7Schema } from "@shopper/ports";
 
-export const snapshotSchema = v.object({
-  v: v.pipe(v.number(), v.integer()),
-  orgId: uuidV7Schema,
-  storeId: uuidV7Schema,
-  cursor: sequenceSchema,
-  reference: tillReference,
-});
 export const applySnapshot = (now?: () => number) =>
   defineCommand(
     {

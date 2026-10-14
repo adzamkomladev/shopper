@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { v7 } from "uuid";
 
 const root = process.cwd();
-const entry = resolve(root, "apps/till-host/dist/server.js");
+const entry = resolve(root, "apps/till/host/dist/server.js");
 let build: Promise<void> | undefined;
 type Message = Record<string, unknown>;
 type Ready = Message & {
@@ -18,7 +18,7 @@ export async function startTillHost(config: unknown) {
   build ??= Promise.resolve().then(() => {
     execFileSync(
       "vp",
-      ["-C", "apps/till-host", "exec", "node", "../../tooling/build/server.mjs", "till-host"],
+      ["-C", "apps/till/host", "exec", "node", "../../../tooling/build/server.mjs", "till-host"],
       {
         cwd: root,
         stdio: "pipe",

@@ -17,7 +17,7 @@ import {
   productSummary,
   supplierView,
 } from "@shopper/core/schemas";
-import { toSpreadsheet } from "../../../tooling/lib/catalogue-fixture";
+import { toSpreadsheet } from "../../../tooling/lib/catalogue/fixture";
 import { baseURL, secret } from "../auth/setup";
 import { barcode, call, context, createProduct, db, postOk, unique } from "./support";
 import { importOk, sheetRows, upload } from "./import/support";

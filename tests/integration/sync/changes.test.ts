@@ -13,7 +13,7 @@ import {
   updateProduct,
 } from "@shopper/core/catalogue";
 import { tillPrice, tillProduct } from "@shopper/core/schemas";
-import { generateCatalogue, toSpreadsheet } from "../../../tooling/lib/catalogue-fixture";
+import { generateCatalogue, toSpreadsheet } from "../../../tooling/lib/catalogue/fixture";
 import { loadRecordChanges, openFeed } from "../../support/till/feed";
 
 let feed: Awaited<ReturnType<typeof openFeed>>;

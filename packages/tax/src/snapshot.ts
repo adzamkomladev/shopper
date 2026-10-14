@@ -1,3 +1,6 @@
+import { priceModeSchema, quantitySchema } from "./schemas/snapshot";
+
+export type { TaxSnapshot } from "./types";
 import * as v from "valibot";
 import { add, money, mulQty, mulRate, mulRatio, sub, type Money } from "@shopper/money";
 import {
@@ -6,7 +9,7 @@ import {
   taxRuleSchema,
   type TaxClass,
   type TaxRule,
-} from "./schemas/tax-rule";
+} from "./schemas/tax/rule";
 
 export function snapshotLine(input: {
   rule: TaxRule;
@@ -21,8 +24,8 @@ export function snapshotLine(input: {
   const on = v.parse(dateSchema, input.on);
   const taxClass = v.parse(taxClassSchema, input.taxClass);
   if (rule.effectiveFrom > on) throw new RangeError("Tax rule is not yet effective");
-  v.parse(v.picklist(["inclusive", "exclusive"]), input.priceMode);
-  v.parse(v.pipe(v.number(), v.safeInteger(), v.minValue(0)), input.quantityThousandths);
+  v.parse(priceModeSchema, input.priceMode);
+  v.parse(quantitySchema, input.quantityThousandths);
   const amount = mulQty(input.unitPrice, input.quantityThousandths);
   const discount = money(input.discount ?? 0);
   if (discount < 0 || discount > amount) throw new RangeError("Invalid line discount");
@@ -54,4 +57,3 @@ export function snapshotLine(input: {
     roundingAdjustment: sub(gross, calculatedGross),
   });
 }
-export type TaxSnapshot = ReturnType<typeof snapshotLine>;

@@ -2,20 +2,20 @@ import { useRef } from "react";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { MailIcon } from "lucide-react";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
-import { FormSheet } from "../../components/admin/form-sheet";
-import { PageHeader } from "../../components/admin/page-header";
-import { editButtonId } from "../../components/admin/row-actions";
+import { FormSheet } from "../../components/admin/form/sheet";
+import { PageHeader } from "../../components/admin/page/header";
+import { editButtonId } from "../../components/admin/row/actions";
 import { EmptyList } from "../../components/admin/states";
-import { usePanel } from "../../components/admin/use-panel";
+import { usePanel } from "../../hooks/admin/panel";
 import { ApiError } from "../../api/client";
-import { permissionsQuery } from "../../session/permissions";
-import { sessionQuery } from "../../session/queries";
-import { rolesQuery, type RoleView } from "../roles/queries";
-import { CancelInvitationDialog } from "./cancel-dialog";
-import { ChangeRoleForm } from "./change-role-form";
-import { InvitationsTable, cancelButtonId } from "./invitations-table";
-import { InviteForm } from "./invite-form";
-import { MembersTable } from "./members-table";
+import { permissionsQuery } from "../../queries/session/permissions";
+import { sessionQuery } from "../../queries/session/session";
+import { rolesQuery, type RoleView } from "../../queries/roles";
+import { CancelInvitationDialog } from "../../components/users/cancel/dialog";
+import { ChangeRoleForm } from "../../components/users/change/role/form";
+import { InvitationsTable, cancelButtonId } from "../../components/users/invitations/table";
+import { InviteForm } from "../../components/users/invite/form";
+import { MembersTable } from "../../components/users/members/table";
 import {
   invitationsQuery,
   useReissue,
@@ -23,8 +23,8 @@ import {
   type InvitationView,
   type Revealed,
   type UserView,
-} from "./queries";
-import { SetupLinkDialog } from "./setup-link-dialog";
+} from "../../queries/users";
+import { SetupLinkDialog } from "../../components/users/setup/link/dialog";
 
 const NO_ROLES: RoleView[] = [];
 

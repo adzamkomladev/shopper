@@ -1,13 +1,9 @@
+import type { RealtimeFixture } from "./types";
+export type { RealtimeFixture } from "./types";
 import assert from "node:assert/strict";
 import { v7 } from "uuid";
 import type { Envelope, Realtime } from "@shopper/ports";
 
-export interface RealtimeFixture {
-  orgId: string;
-  otherOrgId: string;
-  storeId: string;
-  realtime: Realtime;
-}
 // Same cases on the StoreHub Durable Object and the box broadcaster.
 export function realtimeConformance(
   name: string,

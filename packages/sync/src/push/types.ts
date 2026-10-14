@@ -1,4 +1,5 @@
 import type { TillDatabase } from "@shopper/db-sqlite";
+
 export type PushStatus = {
   server: "connecting" | "online" | "offline" | "blocked" | "revoked" | "incompatible";
   pendingCount: number;

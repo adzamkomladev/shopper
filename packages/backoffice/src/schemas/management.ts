@@ -1,8 +1,8 @@
+import "./catalogue";
 import * as v from "valibot";
 import { branchInput, storeInput } from "@shopper/core/schemas";
 import { fromDecimal, toDecimal, type Money } from "@shopper/money";
 // Loading the catalogue schema also installs the plain-English validation messages the shared schemas need.
-import "./catalogue";
 
 const id = v.string();
 export const storeView = v.object({

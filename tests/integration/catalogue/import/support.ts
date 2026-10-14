@@ -3,17 +3,9 @@ import { createHash } from "node:crypto";
 import { expect } from "vite-plus/test";
 import { count, eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
-import { type SheetRow } from "../../../../tooling/lib/catalogue-fixture";
-import {
-  api,
-  cookies,
-  context,
-  db,
-  allAuditRows,
-  call,
-  unique,
-  type ProductDetail,
-} from "../support";
+import { importApi } from "../../../support/assets/storage";
+import { type SheetRow } from "../../../../tooling/lib/catalogue/fixture";
+import { cookies, context, db, allAuditRows, call, unique, type ProductDetail } from "../support";
 
 export type ImportError = { row: number; column: string; value: unknown; message: string };
 export type ImportResult = {
@@ -33,17 +25,36 @@ export const sha256 = (bytes: Uint8Array | string) =>
   createHash("sha256").update(bytes).digest("hex");
 
 /** POST a file to the import route as one of the seeded roles. */
-export function upload(
+export async function upload(
   bytes: Uint8Array | string,
   fileName = "catalogue.csv",
   { role = "superadmin", dryRun = false } = {},
 ) {
-  const form = new FormData();
-  form.set("file", new File([bytes as BlobPart], fileName));
-  return api.request(`/catalogue/imports${dryRun ? "?dryRun=1" : ""}`, {
+  const instance = await importApi();
+  const sheet = typeof bytes === "string" ? new TextEncoder().encode(bytes) : new Uint8Array(bytes);
+  const issued = await instance.request("/catalogue/imports/uploads", {
     method: "POST",
-    headers: { cookie: cookies.get(role)! },
-    body: form,
+    headers: { cookie: cookies.get(role)!, "content-type": "application/json" },
+    body: JSON.stringify({
+      fileName,
+      contentType: "application/octet-stream",
+      sizeBytes: sheet.byteLength,
+      sha256: sha256(sheet),
+    }),
+  });
+  if (!issued.ok) return issued;
+  const grant = (await issued.json()) as {
+    assetId: string;
+    url: string;
+    method: string;
+    headers: Record<string, string>;
+  };
+  const put = await fetch(grant.url, { method: grant.method, headers: grant.headers, body: sheet });
+  if (!put.ok) throw new Error(`Object upload failed: ${put.status} ${await put.text()}`);
+  return instance.request(`/catalogue/imports${dryRun ? "?dryRun=1" : ""}`, {
+    method: "POST",
+    headers: { cookie: cookies.get(role)!, "content-type": "application/json" },
+    body: JSON.stringify({ assetId: grant.assetId }),
   });
 }
 
@@ -119,7 +130,10 @@ export async function footprint() {
     schema.supplier,
     schema.productImport,
   ];
-  return [...(await Promise.all(tables.map(orgRows))), (await allAuditRows()).length];
+  return [
+    ...(await Promise.all(tables.map(orgRows))),
+    (await allAuditRows()).filter((entry) => entry.command !== "asset.upload.issue").length,
+  ];
 }
 
 export const productRow = async (sku: string) =>

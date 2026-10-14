@@ -10,7 +10,7 @@ import {
   listUsers,
   row,
   signInAs,
-} from "../../../support/admin-people";
+} from "../../../support/admin/people";
 import { expectNoSeriousAxe } from "../../../support/e2e";
 
 // The server wants role.write to change anyone's role, and user.write on top of it to invite. The

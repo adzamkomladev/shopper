@@ -1,3 +1,5 @@
+import type { Planned, FieldSet } from "./types";
+export type { Planned, FieldSet } from "./types";
 import { and, desc, eq, inArray, isNull, lte, gt, or } from "drizzle-orm";
 import { price, product, productBarcode } from "@shopper/db-pg";
 import type { Money } from "@shopper/money";
@@ -6,14 +8,6 @@ import type { Headers } from "./parse";
 import { categoryOf, chunks, loadRefs, supplierOf, type Refs } from "./refs";
 import type { CleanRow, ImportError } from "./validate";
 
-export type Planned = {
-  row: CleanRow;
-  existingId?: string;
-  newBarcodes: CleanRow["barcodes"];
-  quantityFixes: CleanRow["barcodes"];
-  fieldsChanged: boolean;
-  priceNeeded: boolean;
-};
 /** Read-only: what importing these rows would do. Dry runs stop here; the command then writes it. */
 export async function planImport(
   db: Queryable,
@@ -109,7 +103,7 @@ function differs(found: Existing, row: CleanRow, refs: Refs, use: FieldSet) {
 }
 
 /** Which optional fields an import writes: a column the file lacks leaves an existing product alone. */
-export type FieldSet = Record<"unit" | "online" | "tax" | "category" | "supplier", boolean>;
+
 export const fieldSet = (headers: Headers, isNew: boolean): FieldSet => ({
   unit: isNew || !!headers.unit,
   online: isNew || !!headers.online,

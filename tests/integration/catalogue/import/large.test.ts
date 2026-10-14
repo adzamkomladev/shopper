@@ -1,5 +1,5 @@
 import { expect, test } from "vite-plus/test";
-import { generateCatalogue, toSpreadsheet } from "../../../../tooling/lib/catalogue-fixture";
+import { generateCatalogue, toSpreadsheet } from "../../../../tooling/lib/catalogue/fixture";
 import { call } from "../support";
 import { upload, type ImportResult } from "./support";
 

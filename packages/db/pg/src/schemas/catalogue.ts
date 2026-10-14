@@ -17,6 +17,7 @@ import {
 import type { TaxClass } from "@shopper/tax";
 import { branch, moneyColumn, tenant } from "./base";
 import { user } from "./auth";
+import { asset } from "./assets";
 
 export const taxClass = pgTable(
   "tax_class",
@@ -150,6 +151,7 @@ export const productImport = pgTable(
   "product_import",
   {
     ...tenant(),
+    assetId: uuid("asset_id"),
     fileName: text("file_name").notNull(),
     sha256: text("sha256").notNull(),
     rowsTotal: integer("rows_total").notNull(),
@@ -162,5 +164,7 @@ export const productImport = pgTable(
   (t) => [
     unique().on(t.orgId, t.id),
     foreignKey({ columns: [t.orgId, t.actorId], foreignColumns: [user.orgId, user.id] }),
+    unique("product_import_asset").on(t.orgId, t.assetId),
+    foreignKey({ columns: [t.orgId, t.assetId], foreignColumns: [asset.orgId, asset.id] }),
   ],
 );

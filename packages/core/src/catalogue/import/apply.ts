@@ -1,3 +1,5 @@
+import type { ImportInput } from "./types";
+export type { ImportInput } from "./types";
 import { and, eq } from "drizzle-orm";
 import { defineCommand, type CommandContext } from "@shopper/audit";
 import {
@@ -9,20 +11,13 @@ import {
 } from "@shopper/db-pg";
 import { affectedStores, priceUpsert, productUpsert, recordChanges } from "../../changes";
 import { loadProductViews } from "../products/queries";
+import { readImportedAsset } from "./replay";
 import { ManagementError } from "../../management";
-import type { Headers } from "./parse";
+
 import { fieldSet, planImport, type FieldSet } from "./plan";
 import { categoryOf, chunks, ensureRefs, loadRefs, supplierOf } from "./refs";
-import type { CleanRow, ImportError } from "./validate";
+import type { CleanRow } from "./validate";
 
-export type ImportInput = {
-  fileName: string;
-  sha256: string;
-  rowsTotal: number;
-  rows: CleanRow[];
-  errors: ImportError[];
-  headers: Headers;
-};
 const summary = (r: Awaited<ReturnType<typeof importRun>>) => ({
   sha256: r.sha256,
   rowsTotal: r.rowsTotal,
@@ -38,6 +33,11 @@ const summary = (r: Awaited<ReturnType<typeof importRun>>) => ({
 export const importCatalogue = defineCommand({
   name: "catalogue.import",
   run: importRun,
+  async replay(tx, context, input) {
+    if (!input.assetId) return undefined;
+    const saved = await readImportedAsset(tx, context.orgId, input.assetId);
+    return saved ? { output: saved } : undefined;
+  },
   audit: (_input, result) => summary(result),
   details: (_input, result) => ({
     entity: "product_import",
@@ -154,12 +154,13 @@ async function importRun(tx: ShopperTransaction, context: CommandContext, input:
     .insert(productImport)
     .values({
       orgId,
+      assetId: input.assetId,
       fileName: input.fileName,
       sha256: input.sha256,
       rowsTotal: input.rowsTotal,
       rowsOk,
       rowsFailed,
-      report: { errors },
+      report: { errors, ...counts },
       priceValidFrom: at,
       actorId: context.actorId,
     })

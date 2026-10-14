@@ -6,3 +6,4 @@ export * from "./catalogue";
 export * from "./registration";
 export * from "./sales";
 export * from "./changes";
+export * from "./assets";

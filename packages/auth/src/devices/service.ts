@@ -1,3 +1,5 @@
+import type { DevicePrincipal } from "./types";
+export type { DevicePrincipal } from "./types";
 import * as v from "valibot";
 import { and, eq, isNull, gt } from "drizzle-orm";
 import { hashPassword } from "better-auth/crypto";
@@ -12,7 +14,7 @@ import {
   type ShopperDatabase,
 } from "@shopper/db-pg";
 import type { Cache } from "@shopper/ports";
-import type { AuthPrincipal } from "../roles/service";
+
 import { loginCommand } from "./login";
 import { resolveUploadPrincipal } from "./upload";
 import { DeviceError, assign, consume, digest, issue } from "./commands";
@@ -25,7 +27,6 @@ import {
 } from "../schemas/devices";
 
 export { DeviceError } from "./commands";
-export type DevicePrincipal = AuthPrincipal;
 
 const revokeCommand = defineCommand({
   name: "device.revoke",

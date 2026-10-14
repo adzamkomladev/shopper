@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { AdministrationError, AuthLinkError, type createInvitations } from "@shopper/auth";
-import { requirePermission } from "../middleware/require-permission";
+import { requirePermission } from "../middleware/require/permission";
 import { problem } from "../middleware/problem";
 import type { ApiAuthentication, ApiEnvironment } from "../types";
 export function invitationRoutes(

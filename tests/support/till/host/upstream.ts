@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import { WebSocket, WebSocketServer } from "ws";
-import { proxyLiveConnection } from "./live-proxy";
+import { proxyLiveConnection } from "./live/proxy";
 
 type Target = { url: string; request(path: string, init?: RequestInit): Promise<Response> };
 type RequestRecord = { path: string; request: unknown; response?: unknown; status?: number };

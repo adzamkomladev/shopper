@@ -5,7 +5,7 @@ import { v7 } from "uuid";
 import { buildDefines } from "../build/info";
 import { runImport } from "../../packages/core/src/catalogue/index";
 import { org, type ShopperDatabase } from "../../packages/db/pg/src/index";
-import { generateCatalogue, toSpreadsheet } from "../lib/catalogue-fixture";
+import { generateCatalogue, toSpreadsheet } from "../lib/catalogue/fixture";
 
 export function provisionOrg(
   db: ShopperDatabase,

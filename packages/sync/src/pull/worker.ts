@@ -1,26 +1,18 @@
+import { snapshotVersionSchema } from "../schemas/pull/worker";
+import type { PullOptions } from "./types";
+export type { PullOptions } from "./types";
+import { snapshot, type PullStatus } from "../schemas/pull/worker";
+export { type PullStatus } from "../schemas/pull/worker";
 import * as v from "valibot";
-import { sequenceSchema } from "@shopper/ports";
+
 import { and, eq } from "drizzle-orm";
 import { tillState } from "@shopper/db-sqlite";
 import { retryDeadline } from "../push/backoff";
 import { createPushTransport } from "../push/http";
-import type { PushOptions } from "../push/types";
+
 import { applySnapshot, snapshotSchema } from "./snapshot";
 import { applyPage, KNOWN_VERSION, page, type Page } from "./apply";
 
-export type PullStatus = {
-  state: "idle" | "offline" | "upgrade" | "snapshot" | "revoked" | "incompatible";
-  cursor: string | null;
-  head: string | null;
-  syncing: boolean;
-  lastPullAt: number | null;
-};
-export type PullOptions = Omit<PushOptions, "onStatus"> & {
-  onStatus?: (s: PullStatus) => void;
-  retry?: boolean;
-};
-
-const snapshot = v.object({ snapshot: v.literal(true), head: sequenceSchema });
 const HALTED = new Set<PullStatus["state"]>(["upgrade", "revoked", "incompatible"]);
 
 export function createPullWorker(options: PullOptions) {
@@ -77,7 +69,7 @@ export function createPullWorker(options: PullOptions) {
       }
       if (!downloaded.response.ok) throw new Error("Snapshot unavailable");
       const rawSnapshot = JSON.parse(downloaded.raw);
-      if (!v.is(v.object({ v: v.literal(KNOWN_VERSION) }), rawSnapshot)) {
+      if (!v.is(snapshotVersionSchema, rawSnapshot)) {
         publish({ state: "upgrade" });
         return undefined;
       }

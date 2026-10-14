@@ -128,7 +128,7 @@ Branch: `claude/day6-ui-kit-portal` off `main`. Saved to the repo as `docs/plans
 - an unknown id shows Not found with a way back
 - axe
 
-`import.spec.ts`:
+`import/flow.spec.ts`:
 
 - a messy-file dry run reports bad rows by row and column and writes nothing
 - running the import adds the good rows

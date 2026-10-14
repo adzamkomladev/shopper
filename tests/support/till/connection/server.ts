@@ -26,7 +26,7 @@ export async function createConnectionServer(state: string) {
     import("@shopper/adapters-box"),
     import("@shopper/api"),
     import("@shopper/api/sync"),
-    import("../server-data"),
+    import("../server/data"),
     import("../http"),
     import("../sales"),
     import("ws"),

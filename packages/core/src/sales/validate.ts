@@ -1,3 +1,5 @@
+import type { UploadPrincipal } from "./types";
+export type { UploadPrincipal } from "./types";
 import { and, desc, eq, isNull, lte } from "drizzle-orm";
 import { canonicalJson, type CommandContext } from "@shopper/audit";
 import {
@@ -16,13 +18,6 @@ import { add, money } from "@shopper/money";
 import { snapshotLine } from "@shopper/tax";
 import type { SaleSnapshot } from "../schemas/till/sale";
 import { SaleError } from "./error";
-
-export interface UploadPrincipal {
-  orgId: string;
-  deviceId: string;
-  branchId: string;
-  storeId: string;
-}
 
 export async function validateAuthority(
   tx: ShopperTransaction,

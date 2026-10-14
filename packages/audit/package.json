@@ -19,6 +19,7 @@
   "dependencies": {
     "@shopper/db-pg": "workspace:*",
     "@shopper/db-sqlite": "workspace:*",
+    "@shopper/utils": "workspace:*",
     "drizzle-orm": "0.45.3",
     "uuid": "14.0.2",
     "valibot": "1.1.0"

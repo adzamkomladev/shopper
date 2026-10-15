@@ -289,3 +289,19 @@ This is the handoff another agent can resume from if credits run out. It's creat
 - **Scope is large.** The portal SPA slice (S1) is independent, so it goes first and is committed alone. If the day runs over, Purchases (the end of S7) is the first thing to slip to Day 12; this would be noted in Notion.
 - **Live Paystack webhooks can't reach a local host.** The live test covers charge, OTP and verify. The webhook → workflow path is covered by the fake with real signatures.
 - **Docker may not run in the container.** The fallback is a Neon test branch.
+
+### S8 — Auto-deploy on Cloudflare Workers Builds (added 15 Oct, owner request)
+
+- **Target:** main → staging only. Production is added later through the `release` skill.
+- **Mechanism:** Workers Builds, the dashboard git integration, is configured on `shopper-edge-staging`
+  and `shopper-portal-staging`. Each Worker runs one repo script:
+  - Edge: `vp run deploy:staging` applies the Neon migrations (`DATABASE_URL` build secret) and the D1
+    migrations, then runs `wrangler deploy` on the Vite plugin output.
+  - Portal: `vp run deploy:staging` runs `wrangler deploy` on the SPA build.
+- **Cleanup:** delete the custom `.cloudflare/output` / `cf deploy --prebuilt` tooling
+  (`tooling/cloudflare/{edge,portal}.ts`).
+- **Smoke test:** `tooling/cloudflare/smoke.ts` checks `/api/health`, the shell, and the
+  `checkPortalHealth` server function.
+- **Docs:** `deployment.md` lists the exact dashboard settings: root directory, build command, deploy
+  command, `NODE_VERSION`, build variables and secrets, branch control, and the order (edge before
+  portal).

@@ -32,6 +32,19 @@ Several slices are moving at once, each with its own agent:
 Next is S3, followed by S4 and then S5b. S5b covers the MomoPaymentWorkflow on CF and box, the API
 routes, the webhook route and conformance. S8 (Workers Builds deploy) has started now that S1 is done.
 
+### S8 notes (Workers Builds, main → staging)
+
+- **Deploy scripts:** each Worker runs `pnpm --filter @shopper/<edge|portal> run build:staging` and
+  then `deploy:staging`, implemented in `tooling/cloudflare/deploy.ts`.
+  - Edge: safety name check → requires `DATABASE_URL` → PG migrations → D1 migrations
+    (`--env staging`) → `wrangler deploy` → smoke test (`tooling/cloudflare/smoke.ts`).
+  - Portal: deploy → smoke test.
+- **Dashboard settings:** the table the owner pastes is in `docs/engineering/deployment.md`.
+- **Not verified:** there is no Cloudflare token here, so the real deploy, the remote D1/Neon
+  migrations and the Workers Builds image behaviour are untested. The latter covers
+  `NODE_VERSION=24.21.0`, `PNPM_VERSION=12.9.1` and the watch-path glob syntax. The dry runs list
+  every binding, and the smoke test passes against local previews.
+
 ### S1 notes
 
 - **SPA shell:** Start runs in SPA mode with `prerender.outputPath: "/index"`, which emits the shell

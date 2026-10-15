@@ -102,8 +102,7 @@ This is the handoff another agent can resume from if credits run out. It's creat
   - `checkPortalHealth`: Hyperdrive `select 1`, a D1 ping and an R2 head, through a new `cloudflareHealth(env)` in `packages/adapters/cf/src/portal.ts`. Used by the staging smoke test and the e2e test.
   - The backoffice keeps `apiFetch` to `/api`, unchanged.
 - **Deploy tooling:**
-  - Extract the binding-mapping loop from `tooling/cloudflare/edge.ts` into `tooling/cloudflare/bindings.ts`.
-  - Reuse it in `tooling/cloudflare/portal.ts`, so all bindings, vars, routes and `run_worker_first` come from the generated `dist/server/wrangler.json`. Nothing is hard-coded.
+  - All bindings, vars, routes and `run_worker_first` come from the generated `dist/server/wrangler.json`, deployed by `wrangler deploy` (see S8). Nothing is hard-coded and there is no custom output converter.
   - Delete the stale `apps/portal/cloudflare.config.json`.
 - **e2e host** (`tooling/build/portal/e2e.mjs`, `tests/support/portal/server.ts`):
   - Serve `dist/client/**` statically with the `index.html` fallback.
@@ -298,8 +297,8 @@ This is the handoff another agent can resume from if credits run out. It's creat
   - Edge: `vp run deploy:staging` applies the Neon migrations (`DATABASE_URL` build secret) and the D1
     migrations, then runs `wrangler deploy` on the Vite plugin output.
   - Portal: `vp run deploy:staging` runs `wrangler deploy` on the SPA build.
-- **Cleanup:** delete the custom `.cloudflare/output` / `cf deploy --prebuilt` tooling
-  (`tooling/cloudflare/{edge,portal}.ts`).
+- **Cleanup:** the custom `.cloudflare/output` / `cf deploy --prebuilt` tooling
+  (`tooling/cloudflare/{edge,portal}.ts`) is deleted; `tooling/cloudflare/deploy.ts` replaces it.
 - **Smoke test:** `tooling/cloudflare/smoke.ts` checks `/api/health`, the shell, and the
   `checkPortalHealth` server function.
 - **Docs:** `deployment.md` lists the exact dashboard settings: root directory, build command, deploy

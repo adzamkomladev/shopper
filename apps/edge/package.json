@@ -12,8 +12,7 @@
   "scripts": {
     "dev": "vp dev",
     "build:staging": "CLOUDFLARE_ENV=staging vp build",
-    "build:cloudflare:staging": "tsx ../../tooling/cloudflare/edge.ts",
-    "deploy:staging": "wrangler deploy --config dist-staging/shopper_edge_dev/wrangler.json",
+    "deploy:staging": "tsx ../../tooling/cloudflare/deploy.ts edge",
     "types": "wrangler types worker-configuration.d.ts --include-runtime=false"
   },
   "dependencies": {

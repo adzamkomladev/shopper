@@ -11,23 +11,86 @@ Nothing reaches staging or production unless CI is green: `vp check`, `vp run gu
 | Staging     | `shopper-edge-staging`, https://shopper-api-staging.temtem.dev | A staging box on the LAN                            |
 | Production  | Workers + Neon (per `wrangler.jsonc`)                          | Sealed Bun binary at the customer's site            |
 
-Infrastructure identifiers live in `apps/edge/wrangler.jsonc` only. Secrets never go in the repo,
-`.env.example` excepted: `wrangler secret put` for Workers and the sealed config for the box.
+Infrastructure identifiers live in the Workers' `wrangler.jsonc` files only. Secrets never go in the
+repo, `.env.example` excepted: `wrangler secret put` or Workers Builds secrets for Workers, and the
+sealed config for the box.
 
 ## Cloud release
 
-```sh
-vp -C apps/edge run build:cloudflare:staging
-(cd apps/edge && cf deploy --prebuilt --secrets-file .dev.vars.staging)
-vp -C apps/portal run build:staging
-(cd apps/portal && cf deploy --prebuilt)
-```
+`main` deploys to **staging only**, through Cloudflare Workers Builds (the dashboard git integration)
+on `shopper-edge-staging` and `shopper-portal-staging`. Production goes through the `release` skill.
+Workers Builds does not wait for GitHub CI, so merge to `main` only when CI is green.
 
-- Run database migrations **before** deploying code that needs them (expand first).
+Both Workers run from the repo root. Each app owns two scripts, invoked as `pnpm --filter <app> run
+<script>`:
+
+| Script           | Edge (`@shopper/edge`)                                                                                                                                                       | Portal (`@shopper/portal`)                       |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `build:staging`  | `CLOUDFLARE_ENV=staging vp build`                                                                                                                                            | Same; the build also prerenders the SPA shell    |
+| `deploy:staging` | `tooling/cloudflare/deploy.ts edge`: PG migrations (`DATABASE_URL`, fails fast), D1 migrations (`--env staging`), `wrangler deploy`, optional Worker secrets, smoke test       | `deploy.ts portal`: `wrangler deploy`, smoke test |
+
+- The Vite plugin writes `.wrangler/deploy/config.json`, so plain `wrangler deploy` uploads the
+  generated `dist-staging/.../wrangler.json` (edge) or `dist/server/wrangler.json` (portal) with
+  every binding, var and domain. `deploy.ts` refuses to run unless that config is a `*-staging`
+  Worker. D1 commands do not follow the redirect, hence `--env staging`.
+- `vp` and `wrangler` are repo devDependencies, so `pnpm run` finds them with no bootstrap step.
+  The image's default pnpm is older than ours: set `PNPM_VERSION`.
+- Worker secrets in the build environment are pushed with `wrangler deploy --secrets-file` (listed in
+  `deploy.ts`). Prefer setting them once (below); they persist across deploys.
+- `tooling/cloudflare/smoke.ts <edge|portal> <url>` checks edge `/health` (200 and `Shopper-Version`)
+  and portal `/`, `/products` (SPA shell) and `/api/health` (JSON). `deploy.ts` runs it against the
+  custom domain, retrying while it propagates.
 - Production uses Worker **versions with gradual deployment**: ship to a small percentage, watch
-  Workers Logs/Traces for errors, then promote. Roll back by redeploying the previous version.
+  Workers Logs/Traces for errors, then promote.
 - After changing bindings, run `vp -C apps/edge run types` and commit the regenerated types.
 - Bump `compatibility_date` deliberately, in its own PR, with the Workers suite green.
+
+### Workers Builds settings
+
+Set under each Worker, **Settings > Build**. Connect `adzamkomladev/shopper` to both.
+
+| Setting                      | `shopper-edge-staging`                                                         | `shopper-portal-staging`                                                |
+| ---------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| Git branch (production)      | `main`                                                                         | `main`                                                                  |
+| Non-production branch builds | Disabled (Branch control)                                                      | Disabled                                                                |
+| Root directory               | `/`                                                                            | `/`                                                                     |
+| Build command                | `pnpm --filter @shopper/edge run build:staging`                                | `pnpm --filter @shopper/portal run build:staging`                       |
+| Deploy command               | `pnpm --filter @shopper/edge run deploy:staging`                               | `pnpm --filter @shopper/portal run deploy:staging`                      |
+| Build watch paths            | `apps/edge/*`, `packages/*`, `tooling/database/*`, `tooling/cloudflare/*`, `pnpm-lock.yaml` | `apps/portal/*`, `packages/*`, `tooling/cloudflare/*`, `pnpm-lock.yaml` |
+| Build variables              | `NODE_VERSION=24.21.0`, `PNPM_VERSION=12.9.1`, `CLOUDFLARE_ENV=staging`        | Same                                                                    |
+| Build secrets                | `DATABASE_URL` (required); Worker secrets (optional)                           | Worker secrets (optional)                                               |
+
+- Watch paths keep docs-only changes (`docs/`, `tests/`, `.github/`) from redeploying. Edge and
+  portal both include `packages/*`, so a shared change triggers both.
+- `DATABASE_URL` is the Neon staging **direct, non-pooled** URL, because migrations take locks.
+  Hyperdrive uses its own configured connection.
+- Optional Worker secrets as build secrets: `SHOPPER_AUTH_SECRET`, `SHOPPER_LINK_SECRET`,
+  `SHOPPER_BOOTSTRAP_TOKEN`, `PAYSTACK_SECRET_KEY`, `MAILEROO_API_KEY`, `MAILEROO_FROM`,
+  `SHOPPER_S3_*`, plus `SHOPPER_AUTH_URL` on the edge only (the portal has it as a var).
+
+### Order and rollback
+
+- The portal binds the edge's Durable Objects and Workflows (`script_name: shopper-edge-staging`), so
+  **the edge must deploy first**, above all when a class or migration changes. If both trigger
+  together and the portal fails on a missing class, retry the portal build once the edge build is
+  green.
+- Roll back with `vp exec wrangler rollback --name shopper-edge-staging` (or `shopper-portal-staging`),
+  or pick a version in the dashboard. Rollback does not revert PG or D1 migrations: they are
+  forward-only, so keep them expand-compatible with the previous version.
+
+### One-time setup
+
+1. Create the staging API token for Workers Builds (**My Profile > API Tokens**). The generated token
+   has Account Settings read, Workers Scripts edit, Workers KV edit, Workers R2 Storage edit, Zone
+   Workers Routes edit and User Details/Memberships read. Add **D1 edit** (migrations) and, if a deploy
+   reports an authorization error, **Queues edit** and **Hyperdrive read**. Use the same token for both
+   Workers.
+2. Connect the repo to both Workers and enter the table above. Keep non-production builds off.
+3. Add the build secret `DATABASE_URL` to the edge.
+4. Set the Worker secrets once, for each Worker, unless pushed as build secrets (the secrets from
+   `apps/edge/.dev.vars.example`): `vp exec wrangler secret put <NAME> --env staging`, run in
+   `apps/edge` or `apps/portal`.
+5. Push a commit that touches the edge and check the build log: migrations, deploy, smoke.
 
 ## Box release
 
@@ -99,4 +162,4 @@ Configure CORS for exact portal/local origins with PUT and Content-Type. Use HTT
 
 Local tests require `vp run services:up` then `vp run storage:setup`; the latter targets only loopback RustFS with fixture credentials. No dev database reset is required for this cleanup; migrations are forward-only. External R2 deployment, real hardware and the future production box embedding are separate release verification.
 
-Portal = TanStack Start in SPA mode: a prerendered static shell served by Workers Static Assets; one Worker runs only for `/api/*` (the shared Hono API through native Hyperdrive, D1, R2, Durable Object and Workflow bindings) and `/_serverFn/*` (host-only server functions). Backoffice data stays on the shared API so the box SPA and Electron reuse it. The staging portal is hosted at `https://shopper-staging.temtem.dev` with its own Hyperdrive, D1, R2, queue, Durable Object and Workflow bindings (the Durable Objects and Workflows live in `shopper-edge-staging`); there is no `API` service binding. Workers Builds runs `vp run deploy:staging` per Worker; the Vite build's `dist/server/wrangler.json` carries every binding, var, domain and `run_worker_first` rule. Set staging `SHOPPER_AUTH_URL` to the portal origin, and permit that exact origin in imports-bucket PUT/Content-Type CORS. Local dev imports CORS permits `http://localhost:5173` and `http://127.0.0.1:5173`; no wildcard or public bucket access is needed.
+Portal = TanStack Start in SPA mode: a prerendered static shell served by Workers Static Assets; one Worker runs only for `/api/*` (the shared Hono API through native Hyperdrive, D1, R2, Durable Object and Workflow bindings) and `/_serverFn/*` (host-only server functions). Backoffice data stays on the shared API so the box SPA and Electron reuse it. The staging portal is hosted at `https://shopper-staging.temtem.dev` with its own Hyperdrive, D1, R2, queue, Durable Object and Workflow bindings (the Durable Objects and Workflows live in `shopper-edge-staging`); there is no `API` service binding. Workers Builds runs `deploy:staging` per Worker (see Cloud release); the Vite build's `dist/server/wrangler.json` carries every binding, var, domain and `run_worker_first` rule. Set staging `SHOPPER_AUTH_URL` to the portal origin, and permit that exact origin in imports-bucket PUT/Content-Type CORS. Local dev imports CORS permits `http://localhost:5173` and `http://127.0.0.1:5173`; no wildcard or public bucket access is needed.

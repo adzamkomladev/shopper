@@ -16,7 +16,7 @@ branch goes to `main` as one PR that is driven to green CI and then merged.
 | S5 MoMo via Paystack workflow (both runtimes)   | in progress (client + fake + live done) | 3208a7b          |
 | S6 Golden trading day                           | todo                                    |                  |
 | S7 Till UI: tender, held, complete, purchases   | todo                                    |                  |
-| S8 Workers Builds auto-deploy (main → staging)  | todo                                    |                  |
+| S8 Workers Builds auto-deploy (main → staging)  | done in repo; dashboard setup pending   | S8 commit        |
 | Finish: review, PR, CI, merge, Notion           | todo                                    |                  |
 
 ## Current slice

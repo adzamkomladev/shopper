@@ -2,7 +2,6 @@ node_modules/
 dist/
 .vite/
 .wrangler/
-.cloudflare/
 *.tsbuildinfo
 .env
 .env.*

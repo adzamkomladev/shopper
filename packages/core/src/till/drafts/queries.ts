@@ -10,7 +10,7 @@ type Found = {
   lines: (typeof saleDraftLine.$inferSelect)[];
 };
 
-/** The requoted basket of one scope, read-only. A missing draft reads as revision 0 (`draft: null`). */
+/** The requoted open basket of one scope, read-only. A missing draft reads as revision 0 (`draft: null`). */
 export async function readDraft(db: TillDatabase, scope: DraftScope, input: { at: Date }) {
   const data = v.parse(readDraftInput, { scope, at: input.at });
   return db.read((tx) => viewDraft(tx, data.scope, data.at));
@@ -52,6 +52,7 @@ export async function findDraft(tx: TillSqlite, scope: DraftScope): Promise<Foun
         eq(saleDraft.deviceId, scope.deviceId),
         eq(saleDraft.branchId, scope.branchId),
         eq(saleDraft.cashierId, scope.cashierId),
+        eq(saleDraft.status, "open"),
       ),
     );
   if (!draft) return undefined;

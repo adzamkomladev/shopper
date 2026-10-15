@@ -34,3 +34,9 @@ export function mulQty(amount: Money, thousandths: number): Money {
 export function mulRate(amount: Money, basisPoints: number): Money {
   return mulRatio(amount, basisPoints, 10_000);
 }
+/** Rounds half-up (ties away from zero) to a multiple of `step`, a positive whole number of money units. */
+export function roundCash(amount: Money, step: number): Money {
+  if (!Number.isSafeInteger(step) || step <= 0)
+    throw new RangeError("Rounding step must be a positive integer");
+  return fromBigInt(divide(BigInt(money(amount)), BigInt(step)) * BigInt(step));
+}

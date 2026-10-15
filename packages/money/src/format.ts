@@ -1,5 +1,6 @@
+import * as v from "valibot";
 import { divide, fromBigInt, money } from "./arithmetic";
-import type { Money } from "./schemas/money";
+import { integer, type Money } from "./schemas/money";
 
 export const MONEY_SCALE = 10_000;
 export function fromDecimal(value: string): Money {
@@ -9,6 +10,15 @@ export function fromDecimal(value: string): Money {
   const [whole, fraction = ""] = (negative ? value.slice(1) : value).split(".");
   const amount = BigInt(whole!) * BigInt(MONEY_SCALE) + BigInt(fraction.padEnd(4, "0"));
   return fromBigInt(negative ? -amount : amount);
+}
+const PESEWA = 100;
+export function fromPesewas(pesewas: number): Money {
+  return money(v.parse(integer, pesewas) * PESEWA);
+}
+/** MoMo moves whole pesewas only; anything finer would be silently rounded by the provider. */
+export function wholePesewas(amount: Money): Money {
+  if (money(amount) % PESEWA !== 0) throw new RangeError("Amount must be whole pesewas");
+  return amount;
 }
 export function toPesewas(amount: Money): number {
   return Number(divide(BigInt(money(amount)), 100n));

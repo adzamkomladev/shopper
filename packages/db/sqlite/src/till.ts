@@ -3,11 +3,11 @@ export type { TillSqlite, TillDatabase } from "./types";
 const initial = `
 CREATE TABLE IF NOT EXISTS till_state (
  id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, device_id TEXT NOT NULL,
- last_outbox_seq INTEGER NOT NULL DEFAULT 0, receipt_last_used INTEGER NOT NULL DEFAULT 0, receipt_overflow_counter INTEGER NOT NULL DEFAULT 0, branch_code TEXT, device_code TEXT, clock_offset_ms INTEGER NOT NULL DEFAULT 0, receipt_blocks TEXT NOT NULL DEFAULT '[]', pull_cursor TEXT NOT NULL DEFAULT '0', pull_initialized INTEGER NOT NULL DEFAULT 0, UNIQUE(org_id,device_id)
+ last_outbox_seq INTEGER NOT NULL DEFAULT 0, receipt_last_used INTEGER NOT NULL DEFAULT 0, receipt_overflow_counter INTEGER NOT NULL DEFAULT 0, branch_code TEXT, device_code TEXT, clock_offset_ms INTEGER NOT NULL DEFAULT 0, receipt_blocks TEXT NOT NULL DEFAULT '[]', pull_cursor TEXT NOT NULL DEFAULT '0', pull_initialized INTEGER NOT NULL DEFAULT 0, reference_version INTEGER NOT NULL DEFAULT 1, UNIQUE(org_id,device_id)
 );
 CREATE TABLE IF NOT EXISTS local_sale (
  id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, device_id TEXT NOT NULL, local_id TEXT NOT NULL,
- payload TEXT NOT NULL, content_hash TEXT NOT NULL, store_sequence TEXT, occurred_at TEXT,
+ payload TEXT NOT NULL, content_hash TEXT NOT NULL, store_sequence TEXT, occurred_at TEXT, status TEXT NOT NULL DEFAULT 'completed', receipt TEXT,
  UNIQUE(device_id,local_id), UNIQUE(org_id,device_id,local_id), UNIQUE(org_id,id)
 );
 CREATE TABLE IF NOT EXISTS sale_line (
@@ -39,7 +39,6 @@ CREATE TABLE IF NOT EXISTS host_session (
 );`;
 
 const lookup = `
-ALTER TABLE till_state ADD COLUMN reference_version INTEGER NOT NULL DEFAULT 1;
 CREATE TABLE product_lookup (
  org_id TEXT NOT NULL, product_id TEXT NOT NULL, sku TEXT NOT NULL, name TEXT NOT NULL,
  PRIMARY KEY(org_id,product_id)
@@ -50,28 +49,34 @@ CREATE TABLE product_barcode (
  PRIMARY KEY(org_id,code)
 );
 CREATE INDEX product_barcode_product ON product_barcode(org_id,product_id);
-CREATE VIRTUAL TABLE product_search USING fts5(name, tokenize='unicode61');
-INSERT INTO product_lookup(org_id,product_id,sku,name)
- SELECT org_id, id, COALESCE(json_extract(payload,'$.sku'),''), json_extract(payload,'$.name') FROM reference
- WHERE entity='product' AND json_extract(payload,'$.name') IS NOT NULL AND json_extract(payload,'$.archivedAt') IS NULL;
-INSERT INTO product_search(rowid,name) SELECT rowid, name FROM product_lookup;
-INSERT OR REPLACE INTO product_barcode(org_id,code,product_id,quantity_thousandths)
- SELECT r.org_id, json_extract(b.value,'$.code'), r.id, json_extract(b.value,'$.quantityThousandths')
- FROM reference r, json_each(r.payload,'$.barcodes') b
- WHERE r.entity='product' AND json_extract(r.payload,'$.archivedAt') IS NULL;`;
+CREATE VIRTUAL TABLE product_search USING fts5(name, tokenize='unicode61');`;
 
 const drafts = `
 CREATE TABLE sale_draft (
  id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, device_id TEXT NOT NULL, branch_id TEXT NOT NULL,
- cashier_id TEXT NOT NULL, revision INTEGER NOT NULL, totals TEXT NOT NULL,
- created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
- UNIQUE(org_id,device_id,branch_id,cashier_id), UNIQUE(org_id,id)
+ cashier_id TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','held','voided')),
+ name TEXT, revision INTEGER NOT NULL, totals TEXT NOT NULL,
+ created_at TEXT NOT NULL, updated_at TEXT NOT NULL, held_at TEXT, voided_at TEXT, void_reason TEXT,
+ UNIQUE(org_id,id)
 );
+CREATE UNIQUE INDEX sale_draft_open ON sale_draft(org_id,device_id,branch_id,cashier_id) WHERE status = 'open';
 CREATE TABLE sale_draft_line (
  id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, draft_id TEXT NOT NULL, position INTEGER NOT NULL,
- product_id TEXT NOT NULL, quantity_thousandths INTEGER NOT NULL, label TEXT,
+ product_id TEXT NOT NULL, quantity_thousandths INTEGER NOT NULL, label TEXT, discount INTEGER NOT NULL DEFAULT 0,
+ UNIQUE(draft_id,position), FOREIGN KEY(org_id,draft_id) REFERENCES sale_draft(org_id,id)
+);
+CREATE TABLE sale_draft_tender (
+ id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, draft_id TEXT NOT NULL, position INTEGER NOT NULL,
+ kind TEXT NOT NULL CHECK(kind IN ('cash','momo','card')), amount INTEGER NOT NULL,
+ reference TEXT, approval_code TEXT, last4 TEXT, phone TEXT, network TEXT,
+ status TEXT NOT NULL CHECK(status IN ('applied','pending','otp','confirmed','failed','expired')),
+ created_at TEXT NOT NULL,
  UNIQUE(draft_id,position), FOREIGN KEY(org_id,draft_id) REFERENCES sale_draft(org_id,id)
 );`;
 
-/** Ordered till SQLite steps driven by PRAGMA user_version. Shipped steps are never edited; append new ones. */
-export const tillMigrations: string[] = [initial, lookup, drafts];
+/**
+ * Ordered till SQLite steps driven by PRAGMA user_version. Day 11 collapsed the earlier steps into one fresh
+ * schema (tills are re-provisioned, so there is nothing to upgrade from). Shipped steps are never edited again;
+ * append new ones.
+ */
+export const tillMigrations: string[] = [`${initial}${lookup}${drafts}`];

@@ -16,8 +16,10 @@ export type PullPage =
     };
 
 export type Change = {
-  entity: "product" | "price" | "tax-rule";
+  entity: "product" | "price" | "tax-rule" | "barcode-mapping";
   entityId: string;
   op: "upsert" | "delete";
   payload: unknown;
 };
+
+export type ProductBarcode = { code: string; quantityThousandths: number };

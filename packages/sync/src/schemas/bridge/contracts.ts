@@ -1,6 +1,7 @@
 import * as v from "valibot";
 import { uuidV7Schema, sequenceSchema } from "@shopper/ports";
 import { recordSaleInput, saleEvent } from "@shopper/core/schemas";
+import { basketReplies, basketRequests } from "./basket";
 
 const id = uuidV7Schema;
 
@@ -37,22 +38,31 @@ export const hostStatus = v.strictObject({
     v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(8_640_000_000_000_000)),
   ),
 });
-export const bridgeRequest = v.variant("type", [
-  v.strictObject({
-    id,
-    type: v.literal("hello"),
-    capability: v.string(),
-    appVersion: v.string(),
-    protocol: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
-  }),
-  v.strictObject({ id, type: v.literal("status") }),
-  v.strictObject({ id, type: v.literal("retry") }),
-  v.strictObject({ id, type: v.literal("recordSale"), input: recordSaleInput }),
-  v.strictObject({ id, type: v.literal("shutdown") }),
-]);
+export const bridgeRequest = v.pipe(
+  v.variant("type", [
+    v.strictObject({
+      id,
+      type: v.literal("hello"),
+      capability: v.string(),
+      appVersion: v.string(),
+      protocol: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
+    }),
+    v.strictObject({ id, type: v.literal("status") }),
+    v.strictObject({ id, type: v.literal("retry") }),
+    v.strictObject({ id, type: v.literal("recordSale"), input: recordSaleInput }),
+    v.strictObject({ id, type: v.literal("shutdown") }),
+    ...basketRequests,
+  ]),
+  v.check(
+    (request) =>
+      request.type !== "add" || (request.code === undefined) !== (request.productId === undefined),
+    "Add a scanned code or a product, not both",
+  ),
+);
 export const bridgeMessage = v.union([
   v.strictObject({ id, type: v.literal("result"), kind: v.literal("status"), status: hostStatus }),
   v.strictObject({ id, type: v.literal("result"), kind: v.literal("sale"), event: saleEvent }),
+  ...basketReplies,
   v.strictObject({
     id: v.optional(id),
     type: v.literal("error"),
@@ -61,6 +71,12 @@ export const bridgeMessage = v.union([
   }),
   v.strictObject({ type: v.literal("status"), status: hostStatus }),
 ]);
+/** Error codes that end the connection; every other error answers one request and the socket stays open. */
+export const connectionErrors: readonly string[] = [
+  "UNAUTHORIZED",
+  "INCOMPATIBLE_PROTOCOL",
+  "INVALID_MESSAGE",
+];
 export type HostStatus = v.InferOutput<typeof hostStatus>;
 export type BridgeRequest = v.InferOutput<typeof bridgeRequest>;
 export type BridgeMessage = v.InferOutput<typeof bridgeMessage>;

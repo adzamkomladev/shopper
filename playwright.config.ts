@@ -53,10 +53,14 @@ export default defineConfig({
       timeout: 120_000,
     },
     {
-      command: "vp run -F @shopper/portal dev -- --port 5183 --strictPort",
-      // The entry module is only served once Vite has finished pre-bundling dependencies.
-      url: "http://localhost:5183/src/index.tsx",
-      env: { SHOPPER_API_URL: "http://localhost:3101" },
+      command: "node tooling/build/portal/e2e.mjs && bun .shopper/portal/e2e/server.js",
+      url: "http://localhost:5183/api/orgs/e2e-mart",
+      env: {
+        E2E_DATABASE_URL,
+        SHOPPER_AUTH_URL: "http://localhost:5183",
+        SHOPPER_API_URL: "http://127.0.0.1:1",
+      },
+      timeout: 180_000,
       reuseExistingServer,
     },
     {

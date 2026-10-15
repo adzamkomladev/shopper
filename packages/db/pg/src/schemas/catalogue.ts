@@ -168,3 +168,32 @@ export const productImport = pgTable(
     foreignKey({ columns: [t.orgId, t.assetId], foreignColumns: [asset.orgId, asset.id] }),
   ],
 );
+/** An embedded-code label layout: EAN-13 digits 2..11 carry a product slice and a weight or price slice. */
+export const barcodeMapping = pgTable(
+  "barcode_mapping",
+  {
+    ...tenant(),
+    prefix: integer("prefix").notNull(),
+    productStart: integer("product_start").notNull(),
+    productLength: integer("product_length").notNull(),
+    valueStart: integer("value_start").notNull(),
+    valueLength: integer("value_length").notNull(),
+    kind: text("kind", { enum: ["weight", "price"] }).notNull(),
+    unit: text("unit", { enum: ["g", "kg"] }),
+    decimals: integer("decimals").notNull(),
+  },
+  (t) => [
+    unique().on(t.orgId, t.id),
+    unique().on(t.orgId, t.prefix),
+    check("barcode_mapping_prefix", sql`${t.prefix} BETWEEN 20 AND 29`),
+    check(
+      "barcode_mapping_slices",
+      sql`${t.productStart} >= 2 AND ${t.productLength} >= 1 AND ${t.productStart} + ${t.productLength} <= 12 AND ${t.valueStart} >= 2 AND ${t.valueLength} >= 1 AND ${t.valueStart} + ${t.valueLength} <= 12 AND (${t.productStart} + ${t.productLength} <= ${t.valueStart} OR ${t.valueStart} + ${t.valueLength} <= ${t.productStart})`,
+    ),
+    check(
+      "barcode_mapping_kind",
+      sql`(${t.kind} = 'weight' AND ${t.unit} IN ('g', 'kg')) OR (${t.kind} = 'price' AND ${t.unit} IS NULL)`,
+    ),
+    check("barcode_mapping_decimals", sql`${t.decimals} BETWEEN 0 AND 4`),
+  ],
+);

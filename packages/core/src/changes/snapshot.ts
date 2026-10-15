@@ -12,6 +12,9 @@ import {
 import type { CommandContext } from "@shopper/audit";
 import { saveSnapshotAsset } from "@shopper/assets";
 import type { Blobs } from "@shopper/ports";
+import { listBarcodeMappings } from "../catalogue/mappings/queries";
+import { loadBarcodes } from "./barcodes";
+import { FEED_VERSION } from "./record";
 import { priceUpsert, productUpsert, taxRuleUpsert } from "./project";
 
 export async function buildSnapshot(
@@ -46,6 +49,11 @@ export async function buildSnapshot(
           and(eq(taxClass.orgId, product.orgId), eq(taxClass.id, product.taxClassId)),
         )
         .where(and(eq(product.orgId, scope.orgId), isNull(product.archivedAt)));
+      const barcodes = await loadBarcodes(
+        tx,
+        scope.orgId,
+        products.map((row) => row.id),
+      );
       const branches = tx
         .select({ id: branch.id })
         .from(branch)
@@ -62,14 +70,18 @@ export async function buildSnapshot(
         );
       const taxes = await tx.select().from(taxRule).where(eq(taxRule.orgId, scope.orgId));
       return {
-        v: 1,
+        v: FEED_VERSION,
         orgId: scope.orgId,
         storeId: scope.storeId,
         cursor: sequence!.cursor,
         reference: {
-          products: products.map((row) => productUpsert(scope.orgId, row).payload),
+          products: products.map(
+            (row) =>
+              productUpsert(scope.orgId, { ...row, barcodes: barcodes.get(row.id)! }).payload,
+          ),
           prices: prices.map((row) => priceUpsert(row).payload),
           taxRules: taxes.map((row) => taxRuleUpsert(row).payload),
+          barcodeMappings: await listBarcodeMappings(tx, scope.orgId),
         },
       };
     },

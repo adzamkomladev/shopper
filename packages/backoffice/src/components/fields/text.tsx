@@ -27,7 +27,9 @@ export function TextField({ field, label, description, serverError, autoFocus, .
         id={field.name}
         name={field.name}
         value={field.state.value}
-        onBlur={field.handleBlur}
+        // TanStack's handleBlur also revalidates, which clears a submit error. Moving focus to the
+        // first invalid field blurs the others, so leaving a field only records it; editing clears.
+        onBlur={() => field.setMeta((meta) => ({ ...meta, isTouched: true, isBlurred: true }))}
         onChange={(event) => {
           field.handleChange(event.target.value);
           input.onChange?.(event);

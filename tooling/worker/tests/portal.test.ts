@@ -1,69 +1,99 @@
 import { env } from "cloudflare:test";
-import { expect, test } from "vitest";
+import { beforeAll, expect, test } from "vitest";
+import { v7 } from "uuid";
+import {
+  cloudflareDatabase,
+  cloudflarePortal,
+  type CloudflareRuntimeEnvironment,
+} from "@shopper/adapters-cf";
+import { seedAuthRoles } from "@shopper/auth";
+import { provisionOrg } from "@shopper/core";
+import { buildInfo } from "@shopper/config";
+import { cacheMigration } from "@shopper/db-sqlite";
 
-const bindings = env as {
-  PORTAL: Fetcher;
-  PORTAL_NO_API: Fetcher;
-};
+const bindings = env as CloudflareRuntimeEnvironment;
+const orgId = v7();
+const slug = `worker-portal-${orgId}`;
+const origin = "https://shopper.test";
 
-test("portal forwards exact /api as the API root", async () => {
-  const response = await bindings.PORTAL.fetch("https://shopper.test/api");
-
-  expect(response.status).toBe(207);
-  expect(await response.json()).toMatchObject({ pathname: "/", search: "" });
+beforeAll(async () => {
+  await bindings.CACHE_DB.prepare(cacheMigration).run();
+  const connection = await cloudflareDatabase(bindings.HYPERDRIVE.connectionString);
+  try {
+    const context = { orgId, appVersion: buildInfo.version };
+    const { schemaVersion, syncProtocol, archiveFormat } = buildInfo;
+    await provisionOrg(connection.db, context, {
+      name: "Native portal",
+      slug,
+      metadata: { schemaVersion, syncProtocol, archiveFormat },
+    });
+    await seedAuthRoles(connection.db, context, undefined);
+  } finally {
+    await connection.close();
+  }
 });
 
-test("portal keeps the /api/auth path for Better Auth", async () => {
-  const response = await bindings.PORTAL.fetch("https://shopper.test/api/auth/sign-in/email");
-
-  expect(response.status).toBe(207);
-  expect(await response.json()).toMatchObject({ pathname: "/api/auth/sign-in/email" });
+test("portal handles the API prefix through native bindings without an edge service", async () => {
+  const response = await cloudflarePortal(new Request(`${origin}/api/orgs/${slug}`), bindings);
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ id: orgId, name: "Native portal" });
+  const health = await cloudflarePortal(new Request(`${origin}/api/health`), bindings);
+  expect(health.status).toBe(200);
+  expect(await health.json()).toMatchObject({ status: "ok" });
 });
 
-test("portal strips /api from paths outside the auth subtree", async () => {
-  const response = await bindings.PORTAL.fetch("https://shopper.test/api/authentic?mode=check");
-
-  expect(response.status).toBe(207);
-  expect(await response.json()).toMatchObject({ pathname: "/authentic", search: "?mode=check" });
-});
-
-test("portal strips /api and forwards request and response details", async () => {
-  const body = JSON.stringify({ name: "Shop floor" });
-  const response = await bindings.PORTAL.fetch(
-    new Request("https://shopper.test/api/stores?cursor=next%2Fpage", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Origin: "https://portal.staging.test",
-        "X-Shopper-Org": "7d339e51-4d59-4bf9-b5af-6807606d8f88",
-        Cookie: "session=owner; preference=compact",
-      },
-      body,
-    }),
-  );
-
-  expect(response.status).toBe(207);
-  expect(response.headers.get("set-cookie")).toContain("portal_session=forwarded");
-  expect(await response.json()).toEqual({
-    pathname: "/stores",
-    search: "?cursor=next%2Fpage",
-    method: "POST",
-    body,
-    origin: "https://portal.staging.test",
-    org: "7d339e51-4d59-4bf9-b5af-6807606d8f88",
-    cookie: "session=owner; preference=compact",
+test("portal returns JSON service errors when native runtime configuration is absent", async () => {
+  const response = await cloudflarePortal(new Request(`${origin}/api/products`), {
+    ...bindings,
+    SHOPPER_AUTH_SECRET: undefined,
   });
+  expect(response.status).toBe(503);
+  expect(await response.json()).toEqual({ error: "Authentication service unavailable" });
 });
 
-test("portal serves non-API assets but never falls back to HTML when API is missing", async () => {
-  const asset = await bindings.PORTAL.fetch("https://shopper.test/catalogue/imports");
-  expect(asset.headers.get("content-type")).toContain("text/html");
-  expect(await asset.text()).toContain("portal asset");
-  const apiLookingAsset = await bindings.PORTAL.fetch("https://shopper.test/apiary");
-  expect(apiLookingAsset.headers.get("content-type")).toContain("text/html");
-
-  const missingApi = await bindings.PORTAL_NO_API.fetch("https://shopper.test/api/stores");
-  expect(missingApi.status).toBe(503);
-  expect(missingApi.headers.get("content-type")).not.toContain("text/html");
-  expect(await missingApi.text()).not.toContain("portal asset");
+test("native portal preserves HttpOnly cookies while hiding auth token and session internals", async () => {
+  const email = `owner-${orgId}@portal.test`;
+  const password = "Native-portal-test-password-123";
+  const request = (path: string, body?: unknown, cookie?: string) =>
+    new Request(`${origin}${path}`, {
+      method: body ? "POST" : "GET",
+      headers: {
+        "X-Shopper-Org": orgId,
+        "Content-Type": "application/json",
+        "X-Shopper-Bootstrap-Token": bindings.SHOPPER_BOOTSTRAP_TOKEN ?? "",
+        Origin: origin,
+        ...(cookie ? { Cookie: cookie } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  const signup = await cloudflarePortal(
+    request("/api/auth/sign-up/email", {
+      email,
+      password,
+      name: "Portal Owner",
+    }),
+    bindings,
+  );
+  expect(signup.status).toBe(200);
+  const created = await signup.json();
+  expect(created).toEqual({ user: { id: expect.any(String), name: "Portal Owner", email } });
+  const signin = await cloudflarePortal(
+    request("/api/auth/sign-in/email", { email, password }),
+    bindings,
+  );
+  expect(signin.status).toBe(200);
+  expect(await signin.json()).toEqual(created);
+  expect(signin.headers.get("set-cookie")).toMatch(/HttpOnly/i);
+  const cookie = signin.headers
+    .get("set-cookie")
+    ?.match(/(?:__Secure-)?better-auth\.session_token=[^;,]+/)?.[0];
+  expect(cookie).toBeTruthy();
+  const session = await cloudflarePortal(
+    request("/api/auth/get-session", undefined, cookie),
+    bindings,
+  );
+  expect(session.status).toBe(200);
+  expect(await session.json()).toEqual(created);
+  const anonymous = await cloudflarePortal(request("/api/auth/get-session"), bindings);
+  expect(await anonymous.json()).toBeNull();
 });

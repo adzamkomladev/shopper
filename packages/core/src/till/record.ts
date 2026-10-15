@@ -8,17 +8,16 @@ import {
   hostSession,
   localSale,
   outbox,
-  reference,
   saleLine,
   tillState,
   type TillDatabase,
 } from "@shopper/db-sqlite";
 import { add } from "@shopper/money";
-import { snapshotLine } from "@shopper/tax";
 import { recordSaleInput, saleEvent, saleTotals } from "../schemas/till/sale";
-import { tillPrice, tillProduct, tillTaxRule } from "../schemas/till/reference";
 import { tillSession, type TillSession } from "../schemas/till/session";
+import { checkSession, hostTime } from "./session";
 import { TillError } from "./error";
+import { quoteFrom, readQuoteReference } from "./quotation";
 import { tillConfiguration } from "../schemas/till/config";
 import { assignReceipt } from "./receipts/assign";
 import type { TillConfig } from "./types";
@@ -33,31 +32,8 @@ export async function recordLocalSale(
   const session = v.parse(tillSession, rawSession);
   const data = v.parse(recordSaleInput, input);
   const deviceTime = config.now?.() ?? new Date();
-  const clockOffsetMs = await db.read(async (tx) => {
-    const [state] = await tx
-      .select()
-      .from(tillState)
-      .where(and(eq(tillState.orgId, config.orgId), eq(tillState.deviceId, config.deviceId)));
-    return state?.clockOffsetMs ?? 0;
-  });
-  const time = new Date(deviceTime.valueOf() - clockOffsetMs);
-  if (
-    session.orgId !== config.orgId ||
-    session.deviceId !== config.deviceId ||
-    session.branchId !== config.branchId
-  )
-    throw new TillError(
-      "scope",
-      "Cashier session is outside the configured tenant/device/branch scope",
-    );
-  if (!session.permissions.includes("sale.create"))
-    throw new TillError("permission", "Session lacks sale.create permission");
-  if (
-    !Number.isFinite(time.valueOf()) ||
-    time < new Date(session.issuedAt) ||
-    time >= new Date(session.expiresAt)
-  )
-    throw new TillError("session", "Cashier session is expired or not yet valid");
+  const time = await hostTime(db, config, deviceTime);
+  checkSession(session, config, "sale.create", time);
   return record(
     db,
     {
@@ -72,6 +48,8 @@ export async function recordLocalSale(
     { config, session, data, time, deviceTime },
   );
 }
+
+const coarse = new Set<string>(["PRODUCT_UNKNOWN", "PRICE_MISSING", "TAX_RULE_MISSING"]);
 
 const record = defineCommand({
   name: "sale.record-local",
@@ -88,62 +66,19 @@ const record = defineCommand({
   ) {
     const { config, session, data, time, deviceTime } = input;
     const receipt = await assignReceipt(tx, context.orgId, config.deviceId, config.receiptCodes);
-    const references = await tx.select().from(reference).where(eq(reference.orgId, context.orgId));
-    const products = references
-      .filter((row) => row.entity === "product")
-      .map((row) => v.parse(tillProduct, row.payload));
-    const prices = references
-      .filter((row) => row.entity === "price")
-      .map((row) => v.parse(tillPrice, row.payload));
-    const on = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Africa/Accra",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(time);
-    const rule = references
-      .filter((row) => row.entity === "tax-rule")
-      .map((row) => v.parse(tillTaxRule, row.payload))
-      .filter((row) => row.effectiveFrom <= on)
-      .sort(
-        (a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom) || b.id.localeCompare(a.id),
-      )[0];
-    if (!rule) throw new TillError("reference", "No effective tax reference for this sale date");
+    const refs = await readQuoteReference(tx, context.orgId);
     const lines = data.lines.map((line) => {
-      const product = products.find((row) => row.id === line.productId && row.archivedAt === null);
-      if (!product)
-        throw new TillError("reference", "Active product reference not found in tenant");
-      const price = prices
-        .filter(
-          (row) =>
-            row.productId === product.id &&
-            (row.branchId === config.branchId || row.branchId === null) &&
-            new Date(row.validFrom) <= time &&
-            (row.validTo === null || new Date(row.validTo) > time),
-        )
-        .sort(
-          (a, b) =>
-            Number(b.branchId !== null) - Number(a.branchId !== null) ||
-            new Date(b.validFrom).valueOf() - new Date(a.validFrom).valueOf() ||
-            b.id.localeCompare(a.id),
-        )[0];
-      if (!price) throw new TillError("reference", "Effective price reference not found");
-      return {
-        id: v7(),
-        productId: product.id,
-        priceId: price.id,
-        sku: product.sku,
-        name: product.name,
-        baseUnit: product.baseUnit,
-        tax: snapshotLine({
-          rule,
-          on,
-          taxClass: product.taxClass,
-          priceMode: "inclusive",
-          unitPrice: price.amount,
-          quantityThousandths: line.quantityThousandths,
-        }),
-      };
+      try {
+        return {
+          id: v7(),
+          ...quoteFrom(refs, { branchId: config.branchId, at: time, ...line }),
+        };
+      } catch (error) {
+        // Recording keeps its coarse "reference" code; quoting reports the precise one.
+        if (error instanceof TillError && coarse.has(error.code))
+          throw new TillError("reference", error.message);
+        throw error;
+      }
     });
     const totals = v.parse(saleTotals, {
       base: 0,

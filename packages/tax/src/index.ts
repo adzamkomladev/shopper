@@ -1,3 +1,3 @@
 export * from "./schemas/tax/rule";
 export { ghana2026 } from "./rules";
-export { snapshotLine, type TaxSnapshot } from "./snapshot";
+export { snapshotAmount, snapshotLine, type TaxSnapshot } from "./snapshot";

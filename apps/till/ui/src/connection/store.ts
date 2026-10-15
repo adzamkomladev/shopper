@@ -2,7 +2,12 @@ import type { ConnectionSnapshot } from "./types";
 export type { HostConnection, ConnectionSnapshot } from "./types";
 import { useSyncExternalStore } from "react";
 import { buildInfo } from "@shopper/config";
-import { bridgeMessage, type BridgeRequest } from "@shopper/sync/bridge";
+import {
+  bridgeMessage,
+  connectionErrors,
+  type BridgeMessage,
+  type BridgeRequest,
+} from "@shopper/sync/bridge";
 import { v7 } from "uuid";
 import * as v from "valibot";
 
@@ -11,7 +16,9 @@ let snapshot: ConnectionSnapshot = { host: "disconnected", status: null, error: 
 let capability: string | undefined;
 let socket: WebSocket | undefined;
 let initialized = false;
-const pending = new Set<string>();
+// A waiter gets the reply to its request, or undefined when the connection ended first (outcome unknown).
+type Waiter = (reply: BridgeMessage | undefined) => void;
+const pending = new Map<string, Waiter | undefined>();
 
 export function useConnectionSnapshot() {
   return useSyncExternalStore(
@@ -19,6 +26,18 @@ export function useConnectionSnapshot() {
     () => snapshot,
     () => snapshot,
   );
+}
+
+export const connectionSnapshot = () => snapshot;
+export { subscribe as subscribeConnection };
+
+/** Sends one request; resolves with its reply, or undefined when the connection ended before it answered. */
+export function request(body: DistributiveOmit<BridgeRequest, "id">) {
+  return new Promise<BridgeMessage | undefined>((resolve) => {
+    if (!socket || socket.readyState !== WebSocket.OPEN || snapshot.host !== "connected")
+      return resolve(undefined);
+    send({ ...body, id: v7() } as BridgeRequest, socket, resolve);
+  });
 }
 
 export function initializeConnection() {
@@ -40,7 +59,7 @@ export function connectRegister() {
   const previous = socket;
   socket = undefined;
   previous?.close();
-  pending.clear();
+  settle();
   publish({ host: "connecting", error: null });
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const current = new WebSocket(`${protocol}//${window.location.host}/bridge`);
@@ -69,7 +88,7 @@ export function connectRegister() {
   current.onclose = () => {
     if (socket !== current) return;
     socket = undefined;
-    pending.clear();
+    settle();
     publish({
       host: "disconnected",
       error: snapshot.error ?? "Register host disconnected. Reconnect when it is available.",
@@ -100,23 +119,35 @@ function receive(data: unknown, current: WebSocket) {
     publish({ host: "connected", status: message.status, error: null });
     return;
   }
-  if (!message.id || !pending.delete(message.id)) return fail(current);
-  if (message.type === "error") {
+  if (!message.id || !pending.has(message.id)) return fail(current);
+  const waiter = pending.get(message.id);
+  pending.delete(message.id);
+  if (message.type === "error" && connectionErrors.includes(message.code)) {
     publish({ host: "disconnected", error: message.message });
     current.close();
-  } else if (message.kind === "status") {
-    publish({ host: "connected", status: message.status, error: null });
+    return;
   }
+  // Any other error answers one request; the connection stays usable.
+  if (message.type === "error" && !waiter) publish({ error: message.message });
+  if (message.type === "result" && message.kind === "status")
+    publish({ host: "connected", status: message.status, error: null });
+  waiter?.(message);
 }
 
-function send(request: BridgeRequest, current: WebSocket) {
-  pending.add(request.id);
+function send(request: BridgeRequest, current: WebSocket, waiter?: Waiter) {
+  pending.set(request.id, waiter);
   current.send(JSON.stringify(request));
+}
+
+function settle() {
+  const waiters = [...pending.values()];
+  pending.clear();
+  for (const waiter of waiters) waiter?.(undefined);
 }
 
 function fail(current: WebSocket) {
   if (socket !== current) return;
-  pending.clear();
+  settle();
   publish({
     host: "disconnected",
     error: "The register sent an invalid response. Reconnect to try again.",
@@ -144,3 +175,5 @@ function subscribe(listener: () => void) {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }
+
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;

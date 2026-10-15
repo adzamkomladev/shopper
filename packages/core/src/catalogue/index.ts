@@ -17,3 +17,9 @@ export {
   type PriceChangeDeps,
 } from "../workflows/price";
 export { readImportedAsset } from "./import/replay";
+export {
+  createBarcodeMapping,
+  deleteBarcodeMapping,
+  updateBarcodeMapping,
+} from "./mappings/commands";
+export { listBarcodeMappings } from "./mappings/queries";

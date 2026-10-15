@@ -94,7 +94,8 @@ describe("till host restart recovery", () => {
     const gate = upstream.holdNextPush();
     host = await fixture.start({ ...fixture.config, upstream: upstream.url, session: null });
     await gate.entered;
-    heldLock = new DatabaseSync(fixture.sqlitePath);
+    // The host may be mid-write (its pull worker starts with the push), so wait for the lock briefly.
+    heldLock = new DatabaseSync(fixture.sqlitePath, { timeout: 5_000 });
     heldLock.exec("BEGIN IMMEDIATE");
     expect(upstream.requests.find((request) => request.path === "/sync/push")).toMatchObject({
       status: 200,

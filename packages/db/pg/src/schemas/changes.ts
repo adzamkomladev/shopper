@@ -25,7 +25,7 @@ export const storeChange = pgTable(
     id: uuid("id")
       .notNull()
       .default(sql`uuidv7()`),
-    entity: text("entity", { enum: ["product", "price", "tax-rule"] }).notNull(),
+    entity: text("entity", { enum: ["product", "price", "tax-rule", "barcode-mapping"] }).notNull(),
     entityId: uuid("entity_id").notNull(),
     op: text("op", { enum: ["upsert", "delete"] }).notNull(),
     v: integer("v").notNull(),
@@ -34,7 +34,10 @@ export const storeChange = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.orgId, t.storeId, t.seq] }),
-    check("store_change_entity", sql`${t.entity} IN ('product', 'price', 'tax-rule')`),
+    check(
+      "store_change_entity",
+      sql`${t.entity} IN ('product', 'price', 'tax-rule', 'barcode-mapping')`,
+    ),
     check("store_change_op", sql`${t.op} IN ('upsert', 'delete')`),
     foreignKey({ columns: [t.orgId, t.storeId], foreignColumns: [store.orgId, store.id] }),
   ],

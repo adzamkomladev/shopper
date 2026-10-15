@@ -87,7 +87,7 @@ export async function planImport(
   };
 }
 
-const isChanged = (p: Planned) =>
+export const isChanged = (p: Planned) =>
   p.fieldsChanged || !!p.newBarcodes.length || !!p.quantityFixes.length;
 
 type Existing = typeof product.$inferSelect;

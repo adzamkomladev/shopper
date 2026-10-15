@@ -89,7 +89,7 @@ export async function bulkRows(
   );
   const last = BigInt(bumped.rows[0]!.head);
   await db.execute(sql`INSERT INTO store_change (org_id, store_id, seq, entity, entity_id, op, v, payload)
-    SELECT ${orgId}::uuid, ${forStore}::uuid, s, 'product', uuidv7(), 'upsert', 1, '{}'::jsonb
+    SELECT ${orgId}::uuid, ${forStore}::uuid, s, 'product', uuidv7(), 'upsert', 2, '{}'::jsonb
     FROM generate_series(${(last - BigInt(count) + 1n).toString()}::bigint, ${last.toString()}::bigint) AS s`);
   return last;
 }
@@ -157,9 +157,10 @@ export async function tillFile() {
 export async function startAtHead(database: TillDatabase) {
   const cursor = String(await head());
   await database.transaction((tx) =>
-    tx.run(sql`INSERT INTO till_state (id, org_id, device_id, pull_cursor)
-      VALUES (${v7()}, ${context.orgId}, ${deviceId}, ${cursor})
-      ON CONFLICT(org_id, device_id) DO UPDATE SET pull_cursor = excluded.pull_cursor`),
+    tx.run(sql`INSERT INTO till_state (id, org_id, device_id, pull_cursor, reference_version)
+      VALUES (${v7()}, ${context.orgId}, ${deviceId}, ${cursor}, 2)
+      ON CONFLICT(org_id, device_id) DO UPDATE SET pull_cursor = excluded.pull_cursor,
+        reference_version = excluded.reference_version`),
   );
   return cursor;
 }

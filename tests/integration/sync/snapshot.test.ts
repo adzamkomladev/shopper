@@ -124,7 +124,7 @@ test("the gzip blob key includes tenant, store and version and the same snapshot
   expect(first.headers.get("content-encoding")).toBe("gzip");
   const data = await first.json();
   expect(await (await snapshot()).json()).toEqual(data);
-  expect(writes).toEqual([`snapshots/${context.orgId}/${storeId}/v1/${await head()}.json.gz`]);
+  expect(writes).toEqual([`snapshots/${context.orgId}/${storeId}/v2/${await head()}.json.gz`]);
   const stored = await blobs.get(context.orgId, writes[0]!);
   expect(Array.from(stored!.slice(0, 2))).toEqual([31, 139]);
 });

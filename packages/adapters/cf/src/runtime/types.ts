@@ -15,6 +15,7 @@ export interface AuthEnvironment {
   MAILEROO_API_KEY?: string;
   MAILEROO_FROM?: string;
   MAILEROO_ENDPOINT?: string;
+  SHOPPER_ENVIRONMENT?: string;
 }
 
 export interface CloudflareRuntimeEnvironment extends AuthEnvironment {

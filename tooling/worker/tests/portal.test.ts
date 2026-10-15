@@ -4,6 +4,7 @@ import { v7 } from "uuid";
 import {
   cloudflareDatabase,
   cloudflarePortal,
+  cloudflarePortalContext,
   type CloudflareRuntimeEnvironment,
 } from "@shopper/adapters-cf";
 import { seedAuthRoles } from "@shopper/auth";
@@ -40,6 +41,27 @@ test("portal handles the API prefix through native bindings without an edge serv
   const health = await cloudflarePortal(new Request(`${origin}/api/health`), bindings);
   expect(health.status).toBe(200);
   expect(await health.json()).toMatchObject({ status: "ok" });
+});
+
+test("portal context reports host info and probes every native binding", async () => {
+  const context = cloudflarePortalContext({ ...bindings, SHOPPER_ENVIRONMENT: "test" });
+  expect(context.portalHost()).toEqual({
+    version: buildInfo.version,
+    environment: "test",
+    publicOnboarding: true,
+  });
+  expect(await context.portalHealth()).toEqual({ database: "ok", cache: "ok", blobs: "ok" });
+  const unreachable = cloudflarePortalContext({
+    ...bindings,
+    HYPERDRIVE: { connectionString: "postgresql://nobody@127.0.0.1:1/none" } as Hyperdrive,
+  });
+  expect(await unreachable.portalHealth()).toEqual({
+    database: "error",
+    cache: "ok",
+    blobs: "ok",
+  });
+  const api = await context.portalRuntime(new Request(`${origin}/api/orgs/${slug}`));
+  expect(api.status).toBe(200);
 });
 
 test("portal returns JSON service errors when native runtime configuration is absent", async () => {

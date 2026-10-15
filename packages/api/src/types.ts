@@ -48,3 +48,20 @@ export interface RuntimeOptions {
   linkSecret?: string;
   publicOnboarding?: boolean;
 }
+
+export interface PortalHost {
+  version: string;
+  environment: string;
+  publicOnboarding: boolean;
+}
+export interface PortalHealth {
+  database: "ok" | "error";
+  cache: "ok" | "error";
+  blobs: "ok" | "error";
+}
+/** What a host injects into the portal's server entry: the API plus the host-only server functions. */
+export interface PortalContext {
+  portalRuntime: (request: Request) => Promise<Response>;
+  portalHost: () => PortalHost;
+  portalHealth: () => Promise<PortalHealth>;
+}

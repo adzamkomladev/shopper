@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
+import type { PortalContext } from "@shopper/adapters-cf/portal";
 import { createBackofficeRoutes } from "@shopper/backoffice";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
@@ -17,6 +18,6 @@ export function getRouter() {
 declare module "@tanstack/react-router" {
   interface Register {
     router: ReturnType<typeof getRouter>;
-    server: { requestContext: { portalRuntime: (request: Request) => Promise<Response> } };
+    server: { requestContext: PortalContext };
   }
 }

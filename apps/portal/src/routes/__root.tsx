@@ -8,6 +8,7 @@ import {
   Scripts,
   useRouter,
 } from "@tanstack/react-router";
+import { HostMeta } from "../components/host/meta";
 
 export const Route = createRootRouteWithContext<BackofficeContext>()({
   head: () => ({
@@ -25,6 +26,7 @@ function Portal() {
   const { queryClient } = useRouter().options.context;
   return (
     <QueryClientProvider client={queryClient}>
+      <HostMeta />
       <Outlet />
     </QueryClientProvider>
   );

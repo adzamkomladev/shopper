@@ -1,5 +1,7 @@
 import * as v from "valibot";
 import { portalAuthResponse } from "./schemas/portal";
+import type { PortalHealth } from "./types";
+export type { PortalContext, PortalHealth, PortalHost } from "./types";
 
 export async function servePortal(
   request: Request,
@@ -32,4 +34,21 @@ export async function servePortal(
   if (!parsed.success)
     return Response.json({ error: "Invalid authentication response" }, { status: 502, headers });
   return Response.json(parsed.output, { status: response.status, headers });
+}
+
+/** Runs each probe; a probe passes when it does not throw. */
+export async function probePortal(
+  probes: Record<keyof PortalHealth, () => Promise<unknown>>,
+): Promise<PortalHealth> {
+  const run = (probe: () => Promise<unknown>) =>
+    probe().then(
+      () => "ok" as const,
+      () => "error" as const,
+    );
+  const [database, cache, blobs] = await Promise.all([
+    run(probes.database),
+    run(probes.cache),
+    run(probes.blobs),
+  ]);
+  return { database, cache, blobs };
 }

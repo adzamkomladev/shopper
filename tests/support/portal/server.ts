@@ -7,7 +7,10 @@ import {
   boxRealtime,
 } from "@shopper/adapters-box";
 import { serveRuntime } from "@shopper/api/runtime";
-import { servePortal } from "@shopper/api/portal";
+import { probePortal, servePortal } from "@shopper/api/portal";
+import type { PortalContext } from "@shopper/api/portal";
+import { buildInfo } from "@shopper/config";
+import { sql } from "drizzle-orm";
 import { createMaileroo } from "@shopper/auth";
 import { sha256 } from "@shopper/utils";
 import { readFile } from "node:fs/promises";
@@ -65,6 +68,23 @@ const portalRuntime = async (request: Request) => {
   );
 };
 
+// An org id no shop uses: the probes only need the stores to answer, not to hold anything.
+const probeOrg = "00000000-0000-7000-8000-000000000000";
+const context: PortalContext = {
+  portalRuntime,
+  portalHost: () => ({
+    version: buildInfo.version,
+    environment: "e2e",
+    publicOnboarding,
+  }),
+  portalHealth: () =>
+    probePortal({
+      database: () => database.db.execute(sql`select 1`),
+      cache: () => cache.cache.request().get(probeOrg, "health"),
+      blobs: () => blobs.blobs.get(probeOrg, "health/absent"),
+    }),
+};
+
 /**
  * Every browser in the suite connects from 127.0.0.1, so Better Auth's per-address limits would
  * pool the whole run into one client. A signed-in browser gets its own address from its session
@@ -80,23 +100,43 @@ async function clientAddress(request: Request) {
 
 const assets = resolve("apps/portal/dist/client");
 const contentTypes: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
+  ".json": "application/json",
   ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".ico": "image/x-icon",
   ".woff2": "font/woff2",
 };
+
+/** Like Workers Static Assets: files by path, `index.html` for any other document navigation. */
+async function serveStatic(request: Request, path: string) {
+  const file = resolve(assets, `.${path}`);
+  const wantsDocument = request.headers.get("accept")?.includes("text/html");
+  const target = !file.startsWith(`${assets}/`)
+    ? undefined
+    : await readFile(file).catch(() => undefined);
+  if (target) return respond(target, extname(file));
+  if (!extname(path) && wantsDocument)
+    return respond(await readFile(resolve(assets, "index.html")), ".html");
+  return undefined;
+}
+
+function respond(bytes: Uint8Array, extension: string) {
+  const type = contentTypes[extension] ?? "application/octet-stream";
+  return new Response(new Uint8Array(bytes), { headers: { "Content-Type": type } });
+}
 
 export default {
   port: Number(new URL(baseURL).port),
   idleTimeout: 30,
   async fetch(request: Request) {
     const path = new URL(request.url).pathname;
-    if (path.startsWith("/assets/")) {
-      const bytes = await readFile(resolve(assets, `.${path}`)).catch(() => undefined);
-      if (!bytes) return new Response("Not found", { status: 404 });
-      const type = contentTypes[extname(path)] ?? "application/octet-stream";
-      return new Response(bytes, { headers: { "Content-Type": type } });
-    }
-    return server.default.fetch(request, { context: { portalRuntime } });
+    const owned = path === "/api" || path.startsWith("/api/") || path.startsWith("/_serverFn/");
+    return (
+      (owned ? undefined : await serveStatic(request, path)) ??
+      server.default.fetch(request, { context })
+    );
   },
 };

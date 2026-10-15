@@ -6,24 +6,53 @@ branch goes to `main` as one PR that is driven to green CI and then merged.
 
 ## Status
 
-| Slice                                           | State | Commit |
-| ----------------------------------------------- | ----- | ------ |
-| Setup (toolchain, services, docs)               | done  | setup  |
-| S1 Portal SPA mode with bindings                | todo  |        |
-| S2 Money, schema, permissions groundwork        | todo  |        |
-| S3 Tender settlement, till commands, v3, ingest | todo  |        |
-| S4 Receipt document model                       | todo  |        |
-| S5 MoMo via Paystack workflow (both runtimes)   | todo  |        |
-| S6 Golden trading day                           | todo  |        |
-| S7 Till UI: tender, held, complete, purchases   | todo  |        |
-| S8 Workers Builds auto-deploy (main → staging)  | todo  |        |
-| Finish: review, PR, CI, merge, Notion           | todo  |        |
+| Slice                                           | State                                   | Commit           |
+| ----------------------------------------------- | --------------------------------------- | ---------------- |
+| Setup (toolchain, services, docs)               | done                                    | setup            |
+| S1 Portal SPA mode with bindings                | todo                                    |                  |
+| S2 Money, schema, permissions groundwork        | done                                    | 18583fa, a95ad6e |
+| S3 Tender settlement, till commands, v3, ingest | todo                                    |                  |
+| S4 Receipt document model                       | todo                                    |                  |
+| S5 MoMo via Paystack workflow (both runtimes)   | in progress (client + fake + live done) | 3208a7b          |
+| S6 Golden trading day                           | todo                                    |                  |
+| S7 Till UI: tender, held, complete, purchases   | todo                                    |                  |
+| S8 Workers Builds auto-deploy (main → staging)  | todo                                    |                  |
+| Finish: review, PR, CI, merge, Notion           | todo                                    |                  |
 
 ## Current slice
 
-Setup is done. Next is S1. The first step is to write `tooling/worker/tests/portal.test.ts` cases for
-the static shell, `/api` and server functions, and then switch `apps/portal/vite.config.ts` to
-`tanstackStart({ spa: { enabled: true, prerender: { outputPath: "/index" } } })`.
+Several slices are moving at once, each with its own agent:
+
+- **S1 (portal SPA):** runs in an isolated worktree.
+- **S7 (till UI):** runs in an isolated worktree and is built against the harness. Its bridge
+  response types must match design.md.
+- **S2:** done. See the S2 notes below.
+- **S5a:** done. The Paystack client (`@shopper/core/payments/paystack`), the fake
+  (`tooling/paystack/server.ts`) and the live sandbox test are in.
+
+Next is S3, followed by S4 and then S5b. S5b covers the MomoPaymentWorkflow on CF and box, the API
+routes, the webhook route and conformance. S8 (Workers Builds deploy) comes after S1 lands.
+
+### S2 notes for later slices
+
+- A trigger (`shopper_preserve_sale`) makes `sale` immutable. Write every new column at INSERT,
+  because a later UPDATE is rejected.
+- `cashRounding` lives on `org.cash_rounding`. Tills receive it only through snapshots, as a
+  `reference` row with `entity='org-setting'`. When a settings endpoint is added, it must append a
+  `store_change` row.
+- The seeded admin roles are `superadmin` and `admin`, not owner and manager. `cashier` has
+  `payment.momo`.
+- The till SQLite schema is a single fresh migration. There is no upgrade path, so delete old till
+  databases.
+
+### S5a notes (Paystack sandbox findings)
+
+- `0551234987` (mtn) approves at once. `0551234986` returns `send_otp`, and no OTP we found confirms
+  it, so the OTP path stays retryable as `otp`. Other numbers are declined.
+- Declines come back as HTTP 400 with `data.status:"failed"`. A wrong OTP comes back as HTTP 400
+  with `code:"invalid_otp"`, which the client normalises to `otp` so it can be retried. Verifying
+  an abandoned charge returns `pending`.
+- The sandbox rejects `@shopper.test` emails. Use `example.com`.
 
 ## Decisions
 
@@ -63,8 +92,13 @@ Checks: `vp check`, `vp run guard`, `vp test --run <path>`, `vp run build`, `vp 
 - The container's `DATABASE_URL` points at a Neon database. Override it with the local URL above, or
   `db:migrate` hangs.
 - Day 10 noted that `api/server.test.ts` fails in containers without IPv6. This is environmental.
+- In this container, `catalogue/import/assets/runtime.test.ts` gets an upload grant URL without port 9200. It fails the same way on clean main, so it is environmental. CI is the arbiter.
+- Run `vp run storage:setup` once after `services:up` (RustFS bucket and CORS).
 
 ## Verification log
 
+- S2: 527 of 529 integration tests pass. The two environmental failures are listed above. `vp check`,
+  guard and typecheck are clean. S5a: `vp test --run tests/integration/payments` has 14 of 14
+  passing, including the live sandbox test.
 - Setup: `vp install --frozen-lockfile` ok. `services:up` ok (PG18, Rivet, RustFS, printer).
   `db:migrate` and `db:seed` ok (20,000 products). `vp run guard` ok.

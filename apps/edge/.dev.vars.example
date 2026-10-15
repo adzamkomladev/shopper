@@ -8,6 +8,9 @@ SHOPPER_LINK_SECRET=dev-only-link-secret-at-least-32-characters-long
 MAILEROO_API_KEY=
 MAILEROO_FROM=
 
+# Paystack secret key (sk_test_... in development) for MoMo charges and webhook signatures.
+PAYSTACK_SECRET_KEY=
+
 # R2 direct upload signing; IMPORTS uses the remote dev bucket in wrangler.jsonc.
 # Endpoint format: https://<ACCOUNT_ID>.r2.cloudflarestorage.com
 SHOPPER_S3_ENDPOINT=

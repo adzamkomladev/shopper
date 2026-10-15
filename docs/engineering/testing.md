@@ -74,8 +74,13 @@ with an e2e test that covers:
 - the main task done with the **keyboard only** on the till (every action has a shortcut),
 - the empty, loading, error, and offline states,
 - an accessibility check (`@axe-core/playwright`, no serious violations),
-- a screenshot comparison at till (1366×768), desktop (1440×900) and mobile (390×844) sizes for
-  the portal and shop.
+- a screenshot at the sizes the screen supports: at least till (1366×768), laptop (1440×900) and
+  mobile (390×844) for the portal and shop. The manual `ui-verify` pass adds desktop (1920×1080) and
+  tablet (768×1024).
+
+Passing tests are necessary but not sufficient: every UI change also runs the `ui-verify` loop in a
+real browser with `playwright-cli` (states, keyboard, console, overflow, Figma comparison) before it
+is reported done. See [frontend.md](frontend.md#verify-in-a-real-browser-every-frontend-change).
 
 ### The harness
 

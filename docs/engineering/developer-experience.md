@@ -69,16 +69,16 @@ exception is build config reading `build/info.ts`.
 Claude Code, Codex and OpenCode all read the same rules and skills. See
 [ai-workflow.md](ai-workflow.md) for agents, models and the review loop.
 
-| Path                          | Used by                                                 | Holds                                       |
-| ----------------------------- | ------------------------------------------------------- | ------------------------------------------- |
-| `AGENTS.md`                   | Codex, OpenCode (and Claude via `CLAUDE.md`)            | Project rules and the doc index             |
-| `docs/engineering/*.md`       | Everyone                                                | The detailed rules (this folder)            |
-| `.agents/skills/`             | Codex, OpenCode, Claude (`.claude/skills` is a symlink) | Shared workflows (plan, build, review, ...) |
-| `.agents/roles/`              | All three                                               | One prompt per agent role                   |
-| `.claude/`                    | Claude Code                                             | Subagents, settings, guard hook             |
-| `.codex/`                     | Codex                                                   | Project config, custom agents, MCP servers  |
-| `.opencode/`, `opencode.json` | OpenCode                                                | Agents, commands, MCP servers               |
-| `.mcp.json`                   | Claude Code                                             | MCP servers                                 |
+| Path                          | Used by                                                 | Holds                                               |
+| ----------------------------- | ------------------------------------------------------- | --------------------------------------------------- |
+| `AGENTS.md`                   | Codex, OpenCode (and Claude via `CLAUDE.md`)            | Project rules and the doc index                     |
+| `docs/engineering/*.md`       | Everyone                                                | The detailed rules (this folder)                    |
+| `.agents/skills/`             | Codex, OpenCode, Claude (`.claude/skills` is a symlink) | Shared workflows (plan, build, `ui-verify`, review) |
+| `.agents/roles/`              | All three                                               | One prompt per agent role                           |
+| `.claude/`                    | Claude Code                                             | Subagents, settings, guard hook                     |
+| `.codex/`                     | Codex                                                   | Project config, custom agents, MCP servers          |
+| `.opencode/`, `opencode.json` | OpenCode                                                | Agents, commands, MCP servers                       |
+| `.mcp.json`                   | Claude Code                                             | MCP servers                                         |
 
 ### MCP servers (configured for all three tools)
 
@@ -86,9 +86,24 @@ Claude Code, Codex and OpenCode all read the same rules and skills. See
 | ----------------- | --------------------------------------------------------------------- |
 | `figma`           | Design frames, tokens, components. Needs a one-time OAuth login.      |
 | `shadcn`          | Finding and adding shadcn/ui components into `@shopper/ui`            |
-| `playwright`      | Running the app, screenshots, checking keyboard flows                 |
+| `playwright`      | Fallback browser driver; prefer the `playwright-cli` skill            |
 | `cloudflare-docs` | Current Cloudflare product docs and limits                            |
 | `context7`        | Current docs for TanStack, Drizzle, Hono, Valibot, Rivet, Better Auth |
+
+### Playwright CLI (frontend verification)
+
+The `playwright-cli` skill drives a real browser with shell commands; it is the tool for
+`ui-verify`, and the Playwright MCP is only the fallback when it is unavailable. The CLI is a global
+tool (`npm install -g @playwright/cli@latest`, never a workspace dependency), and its skill is
+installed for all three tools with:
+
+```sh
+playwright-cli install --skills=agents     # .agents/skills/playwright-cli
+```
+
+Keep `.agents/skills/playwright-cli` byte-identical to the installed version: the CLI warns when it
+drifts. Screenshots and page snapshots land in `.playwright-cli/`, which is gitignored. The
+repo-specific nine-step loop lives in `.agents/skills/ui-verify`.
 
 ### Till host and browser connection
 
@@ -98,9 +113,9 @@ open its connection link. Vite proxies `/bridge` to the loopback host through
 `SHOPPER_TILL_HOST_URL`. The per-start capability leaves the URL immediately and is kept in
 memory; device credentials never enter browser configuration.
 
-The Playwright MCP configurations use `tooling/mcp/playwright.mjs`. This launcher adds
-`--no-sandbox` only when the process runs as root, allowing browser review in the development
-container without changing non-root launches.
+The Playwright MCP configurations use `tooling/mcp/playwright.mjs`, and the MCP is the fallback when
+`playwright-cli` cannot run. This launcher adds `--no-sandbox` only when the process runs as root,
+allowing browser review in the development container without changing non-root launches.
 
 Run `vp run storage:setup` after starting services to initialize private imports storage/CORS in loopback RustFS. Browser imports need the `SHOPPER_S3_*` configuration documented in [deployment.md](deployment.md). The setup script contains development-only credentials and cannot target a production endpoint.
 

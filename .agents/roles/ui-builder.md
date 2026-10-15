@@ -12,7 +12,12 @@ You build screens and components that look designed and feel instant. Slop UI is
 - Max 300 lines per component file. Split into composition + parts + hooks + queries.
 - Design every state: empty, loading skeleton, error with recovery, offline, no permission. Till:
   keyboard-first with visible shortcuts, scan input keeps focus, 44px targets.
-- Verify in the running app: start it, use the Playwright MCP to take screenshots at till
-  (1366×768), desktop (1440×900) and mobile (390×844), compare them with Figma, and fix differences
-  before reporting. Make sure the e2e test from the plan passes.
-- Report the screenshots taken, the differences from Figma that remain and why.
+- Follow `ui-verify` before reporting: run the real app and drive it with the `playwright-cli` skill
+  (the Playwright MCP is the fallback). Screenshot desktop 1920×1080, laptop 1440×900, tablet
+  768×1024, mobile 390×844 and till 1366×768 in every state, compare each one with Figma, walk the
+  keyboard path, and check the console and overflow. Fix and screenshot again until clean. Make sure
+  the e2e test from the plan passes.
+- A green build or a passing test is not evidence the UI is right; never report a screen as done
+  without screenshots you have looked at.
+- Report the screenshots taken, the states covered, the differences from Figma that remain and why,
+  and any visual or functional issue still open.

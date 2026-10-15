@@ -9,7 +9,7 @@ branch goes to `main` as one PR that is driven to green CI and then merged.
 | Slice                                           | State                                   | Commit           |
 | ----------------------------------------------- | --------------------------------------- | ---------------- |
 | Setup (toolchain, services, docs)               | done                                    | setup            |
-| S1 Portal SPA mode with bindings                | todo                                    |                  |
+| S1 Portal SPA mode with bindings                | done                                    | 46d3438, 48c558d |
 | S2 Money, schema, permissions groundwork        | done                                    | 18583fa, a95ad6e |
 | S3 Tender settlement, till commands, v3, ingest | todo                                    |                  |
 | S4 Receipt document model                       | todo                                    |                  |
@@ -23,7 +23,6 @@ branch goes to `main` as one PR that is driven to green CI and then merged.
 
 Several slices are moving at once, each with its own agent:
 
-- **S1 (portal SPA):** runs in an isolated worktree.
 - **S7 (till UI):** runs in an isolated worktree and is built against the harness. Its bridge
   response types must match design.md.
 - **S2:** done. See the S2 notes below.
@@ -31,7 +30,26 @@ Several slices are moving at once, each with its own agent:
   (`tooling/paystack/server.ts`) and the live sandbox test are in.
 
 Next is S3, followed by S4 and then S5b. S5b covers the MomoPaymentWorkflow on CF and box, the API
-routes, the webhook route and conformance. S8 (Workers Builds deploy) comes after S1 lands.
+routes, the webhook route and conformance. S8 (Workers Builds deploy) has started now that S1 is done.
+
+### S1 notes
+
+- **SPA shell:** Start runs in SPA mode with `prerender.outputPath: "/index"`, which emits the shell
+  as `dist/client/index.html`. Static Assets serves it with `not_found_handling:
+single-page-application`, and the Worker runs only for `/api/*` and `/_serverFn/*`.
+- **Prerender workarounds:**
+  - Remote bindings are disabled during preview, so `IMPORTS` doesn't need an API token.
+  - A small `prerenderFlag()` vite plugin writes `TSS_PRERENDERING=true` into
+    `dist/server/.dev.vars`. That file is read only by preview and is never deployed.
+- **Server functions:** `apps/portal/src/functions/host.ts` defines `readPortalHost` and
+  `checkPortalHealth`. Their context comes from `cloudflarePortalContext(env)` in adapters-cf, and
+  the types are in `@shopper/api/portal`. The host info renders as `<meta>` tags via `useQuery`. It is
+  deliberately not a root loader, which would be baked into the shell at prerender.
+- **New Worker var:** `SHOPPER_ENVIRONMENT` (`dev`/`staging`).
+- **Playwright:** use `vp exec playwright …`, because `npx` is blocked by devEngines. Run
+  `vp exec playwright install chromium` if the browser version mismatches.
+- **Verification:** portal Playwright 152 of 152, public 28 of 28, workerd portal 4 of 4, and
+  tooling/portal/edge integration 11 of 11.
 
 ### S2 notes for later slices
 

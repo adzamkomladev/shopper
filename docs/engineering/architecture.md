@@ -64,6 +64,8 @@ Business code is written once and runs on Cloudflare (cloud) and on Rivet/Bun (o
 
 ## Back office and the public routes
 
+Portal = TanStack Start in SPA mode: a prerendered static shell served by Workers Static Assets; one Worker runs only for `/api/*` (the shared Hono API through native Hyperdrive, D1, R2, Durable Object and Workflow bindings) and `/_serverFn/*` (host-only server functions). Backoffice data stays on the shared API so the box SPA and Electron reuse it.
+
 - `@shopper/backoffice` exports `createBackofficeRoutes(rootRoute)`. The host owns the router, root
   route and query client and mounts these routes: the portal today, Electron on day 13. The package
   never creates a router or reads a host global.

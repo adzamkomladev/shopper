@@ -20,9 +20,11 @@ The seeded dev shop has the shop code `dev`. Create its owner once (details in
 curl -s localhost:8787/api/auth/sign-up/email -H "Origin: http://localhost:5173" -H "X-Shopper-Org: $(curl -s localhost:8787/orgs/dev | jq -r .id)" -H "X-Shopper-Bootstrap-Token: dev-only-bootstrap-token" -H "Content-Type: application/json" -d '{"name":"Dev Owner","email":"owner@dev.local","password":"dev-owner-password"}'
 ```
 
-The portal's Vite server proxies `/api` to the edge (`SHOPPER_API_URL`, default
-`http://localhost:8787`). It strips `/api` except for `/api/auth`, which Better Auth serves under
-that prefix. `apps/edge/.dev.vars` holds the local secrets (`.dev.vars.example` is the template).
+The portal's Vite server runs the portal Worker in workerd with native bindings: `/api/*` is the shared
+Hono API (it strips `/api` except for `/api/auth`, which Better Auth serves under that prefix) and
+`/_serverFn/*` are host-only server functions. The Durable Objects and Workflows it binds run in the
+edge dev Worker on :8787. `apps/edge/.dev.vars` holds the local secrets (`.dev.vars.example` is
+the template). Portal = TanStack Start in SPA mode: a prerendered static shell served by Workers Static Assets; one Worker runs only for `/api/*` (the shared Hono API through native Hyperdrive, D1, R2, Durable Object and Workflow bindings) and `/_serverFn/*` (host-only server functions). Backoffice data stays on the shared API so the box SPA and Electron reuse it.
 
 Use `vp` for everything. Never call `npm` in this repo: `devEngines` rejects it. Run one-off binaries
 with `vp exec <bin>`.

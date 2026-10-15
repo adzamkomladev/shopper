@@ -79,7 +79,12 @@ with an e2e test that covers:
 
 ### The harness
 
-`playwright.config.ts` (repo root, `vp run e2e`) starts the real stack: the box binary on Bun (port 3101) against PostgreSQL 18, the portal on 5183 and the till-ui on 5184, all with `--strictPort`.
+`playwright.config.ts` (repo root, `vp run e2e`) starts the real stack: the box binary on Bun (port 3101) against PostgreSQL 18, the portal on 5183 and the till-ui on 5184, all with `--strictPort`. The portal host
+(`tests/support/portal/server.ts`) mirrors the Worker: it serves `dist/client` statically with the
+`index.html` fallback for document navigations, sends `/api*` to the shared API with box adapters
+and only `/_serverFn/*` to the Start bundle. `tests/integration/tooling/portal.test.ts` builds the
+portal and checks the prerendered shell and the Static Assets routing; `tooling/worker/tests/portal.test.ts`
+checks the Worker context and API in workerd.
 Servers already running are reused outside CI. One worker, no parallelism.
 
 - **Projects:** `setup` (`auth.setup.ts`) runs first. `portal` depends on it and reuses its saved

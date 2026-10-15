@@ -86,7 +86,10 @@ against real PostgreSQL in CI.
 
 - `apps/edge`: Worker entry and Cloudflare Vite build.
 - `apps/box`: Bun serves the same `@shopper/api` Hono app.
-- `apps/portal`: TanStack Router back-office SPA shell.
+- `apps/portal`: TanStack Start back-office in SPA mode. A prerendered static shell is served by
+  Workers Static Assets; one Worker runs only for `/api/*` (the shared Hono API through native
+  Hyperdrive, D1, R2, Durable Object and Workflow bindings) and `/_serverFn/*` (host-only server
+  functions).
 - `apps/shop`: TanStack Start SSR shell with the Cloudflare Vite plugin.
 - `apps/till/ui`: React browser shell; no device access.
 - `apps/till/host`, `apps/till/electron`: engine and Windows shell boundaries.

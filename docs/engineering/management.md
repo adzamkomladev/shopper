@@ -12,7 +12,7 @@ Approved by the owner on 14 October 2026. This cleanup records the architecture;
 | Storage, backup and account provisioning | Cloud control plane                                       | Local installation settings; optional cloud services when online      |
 | Optional cloud sync                      | Scoped versioned contracts                                | Box remains operational authority; no implicit two-writer replication |
 
-The local portal retains TanStack Router SPA. The box serves its built assets and shared Hono API; SSR adds no needed capability to this authenticated LAN management flow. TanStack Start remains the customer shop. Electron is a host for shared management components and till functionality, not a separate organization-management implementation.
+Portal = TanStack Start in SPA mode: a prerendered static shell served by Workers Static Assets; one Worker runs only for `/api/*` (the shared Hono API through native Hyperdrive, D1, R2, Durable Object and Workflow bindings) and `/_serverFn/*` (host-only server functions). Backoffice data stays on the shared API so the box SPA and Electron reuse it. The local box serves the built SPA assets and the shared Hono API; SSR adds no needed capability to this authenticated LAN management flow. TanStack Start with SSR remains the customer shop. Electron is a host for shared management components and till functionality, not a separate organization-management implementation.
 
 Cloud control-plane availability must not become a prerequisite for local trading. Changes to authority, optional synchronization and supported disconnected desktop mutations require explicit product contracts and tests. Existing versioned till synchronization remains its own defined flow.
 

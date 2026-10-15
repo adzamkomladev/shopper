@@ -107,9 +107,18 @@ receipt document. It writes one audit row in the same transaction.
 
 ## Permissions (data)
 
-The new permissions are `sale.discount`, `sale.void` and `payment.momo`. The seeded owner and
-manager roles get all three. The cashier role gets `payment.momo` only. The till checks them
+The new permissions are `sale.discount`, `sale.void` and `payment.momo`. The seeded roles are
+`superadmin` (the owner) and `admin` (the manager), and both get all three. The cashier role gets
+`payment.momo` only. All three are till-allowed. The till checks them
 through `checkSession`, and the server re-checks discounts against the cashier's role.
+
+## Org setting `cashRounding`
+
+`org.cash_rounding` (`none | 10p`, default `10p`) is read by `buildSnapshot` into
+`reference.cashRounding` of the v2 snapshot (optional on the wire, default `10p`, so cached snapshots
+still decode). The till stores it as one `reference` row (`entity = 'org-setting'`, id = org id) and
+`readQuoteReference` returns it as `cashRounding`. The change feed does not carry it, so a changed
+setting reaches tills with their next snapshot.
 
 ## Till commands (SQLite `defineCommand`, each audited)
 

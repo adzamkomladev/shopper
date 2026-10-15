@@ -87,6 +87,12 @@ test("authorization follows live role_permission data and tillAllowed data rathe
   );
   expect(await auth.hasPermission({ ...cashier!, deviceId: v7() }, "sale.create")).toBe(true);
   expect(await auth.hasPermission({ ...cashier!, deviceId: v7() }, "store.read")).toBe(false);
+  // Tender permissions are data: cashiers take MoMo but need a manager for discounts and voids.
+  expect(await auth.hasPermission({ ...cashier!, deviceId: v7() }, "payment.momo")).toBe(true);
+  expect(await auth.hasPermission({ ...cashier!, deviceId: v7() }, "sale.discount")).toBe(false);
+  expect(await auth.hasPermission({ ...cashier!, deviceId: v7() }, "sale.void")).toBe(false);
+  for (const code of ["sale.discount", "sale.void", "payment.momo"])
+    expect(await auth.hasPermission({ ...superadmin!, deviceId: v7() }, code)).toBe(true);
 
   const auditRows = await db
     .select({ payload: schema.auditLog.payload })

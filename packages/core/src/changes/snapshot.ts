@@ -1,6 +1,7 @@
 import { and, eq, gt, isNull, or, sql } from "drizzle-orm";
 import {
   branch,
+  org,
   price,
   product,
   store,
@@ -34,6 +35,10 @@ export async function buildSnapshot(
         .select({ cursor: sql<string>`coalesce(max(${storeChange.seq}), 0)::text` })
         .from(storeChange)
         .where(and(eq(storeChange.orgId, scope.orgId), eq(storeChange.storeId, scope.storeId)));
+      const [settings] = await tx
+        .select({ cashRounding: org.cashRounding })
+        .from(org)
+        .where(eq(org.id, scope.orgId));
       const products = await tx
         .select({
           id: product.id,
@@ -82,6 +87,7 @@ export async function buildSnapshot(
           prices: prices.map((row) => priceUpsert(row).payload),
           taxRules: taxes.map((row) => taxRuleUpsert(row).payload),
           barcodeMappings: await listBarcodeMappings(tx, scope.orgId),
+          cashRounding: settings!.cashRounding, // the store row read above belongs to this org
         },
       };
     },

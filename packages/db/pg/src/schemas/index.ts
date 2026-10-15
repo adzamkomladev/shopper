@@ -7,3 +7,5 @@ export * from "./registration";
 export * from "./sales";
 export * from "./changes";
 export * from "./assets";
+export * from "./payments";
+export * from "./stock";

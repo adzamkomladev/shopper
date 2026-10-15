@@ -1,34 +1,21 @@
 import { expect, test, type Page } from "@playwright/test";
 import { calls, openSale } from "./sale/harness";
 
-// KeyboardEvent.timeStamp drives the scan detector, so every key is stamped from a test clock. The
-// keys are real Playwright key presses; only the clock the page reads is controlled.
+// KeyboardEvent.timeStamp drives the scan detector and a timer drives the search debounce; both run on
+// Playwright's clock, advanced by each key's gap. The keys are real presses; only time is controlled, so
+// a slow runner cannot turn a scan into typing or fire the debounce mid-burst.
 const barcode = "5012345678900";
-let clock = 0;
 
 test.beforeEach(async ({ page }) => {
-  clock = 1_000;
-  await page.addInitScript(() => {
-    let now: number | null = null;
-    const real = Object.getOwnPropertyDescriptor(Event.prototype, "timeStamp")!;
-    Object.defineProperty(Event.prototype, "timeStamp", {
-      get() {
-        return now ?? real.get!.call(this);
-      },
-    });
-    (window as unknown as { setClock: (value: number) => void }).setClock = (value) =>
-      (now = value);
-  });
+  await page.clock.install({ time: new Date("2026-10-14T09:00:00Z") });
   await openSale(page, "lines");
   await expect(page.getByRole("combobox")).toBeFocused();
+  // Paused, the clock moves only when a test advances it.
+  await page.clock.pauseAt(new Date("2026-10-14T09:01:00Z"));
 });
 
 async function press(page: Page, key: string, gap: number) {
-  clock += gap;
-  await page.evaluate(
-    (value) => (window as unknown as { setClock: (v: number) => void }).setClock(value),
-    clock,
-  );
+  await page.clock.runFor(gap);
   await page.keyboard.press(key);
 }
 
@@ -47,7 +34,7 @@ test("a burst with every gap at 59 ms, including Enter, is a scan", async ({ pag
   await burst(page, barcode, 59);
   expect(await adds(page)).toEqual([{ type: "add", args: [{ code: barcode }] }]);
   await expect(field(page)).toHaveValue("");
-  await page.waitForTimeout(150);
+  await page.clock.runFor(150);
   expect(await searches(page)).toEqual([]);
 });
 
@@ -55,8 +42,8 @@ test("a 60 ms gap is typing, not a scan, and the text is searched", async ({ pag
   await burst(page, barcode, 60);
   expect(await adds(page)).toEqual([]);
   await expect(field(page)).toHaveValue(barcode);
-  // Typing searches after a real 80 ms pause, so a slow machine may also search part of the text.
-  await expect.poll(async () => (await searches(page)).at(-1)).toBe(barcode);
+  await page.clock.runFor(150);
+  expect(await searches(page)).toEqual([barcode]);
 });
 
 test("a slow terminating Enter after a fast burst is not a scan", async ({ page }) => {
@@ -74,7 +61,8 @@ test("one slow keystroke in the middle makes the whole entry typing", async ({ p
 
 test("a slow search never adds on its own and searches the typed text", async ({ page }) => {
   for (const char of "milo") await press(page, char, 200);
-  await expect.poll(() => searches(page)).toContain("milo");
+  await page.clock.runFor(150);
+  expect(await searches(page)).toEqual(["m", "mi", "mil", "milo"]);
   expect(await adds(page)).toEqual([]);
 });
 

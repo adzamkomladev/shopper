@@ -4,13 +4,16 @@ import { startSaleScenario } from "../../../../support/till/sale/scenario";
 let scenario: Awaited<ReturnType<typeof startSaleScenario>> | undefined;
 let clock = 1_000_000;
 
-test.beforeAll(async (_fixtures, testInfo) => {
-  const baseURL = testInfo.project.use.baseURL;
-  if (typeof baseURL !== "string") throw new Error("Playwright baseURL is required");
+// Each test gets its own register, so receipts from one test never appear in another's list.
+test.beforeEach(async ({ baseURL }) => {
+  if (!baseURL) throw new Error("Playwright baseURL is required");
   scenario = await startSaleScenario(new URL(baseURL).origin);
 });
 
-test.afterAll(async () => scenario?.stop());
+test.afterEach(async () => {
+  await scenario?.stop();
+  scenario = undefined;
+});
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });

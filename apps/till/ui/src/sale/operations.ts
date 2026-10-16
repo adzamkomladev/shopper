@@ -23,15 +23,20 @@ export function createSaleOperations({
   update,
   report,
 }: Dependencies) {
-  async function runDraft(body: (revision: number) => Body) {
-    if (!canEdit()) return undefined;
+  /** `closes` names the status that ends the basket; the sale stays busy until its successor loads. */
+  async function runDraft(body: (revision: number) => Body, closes?: "held" | "voided") {
+    if (!canEdit()) return;
     update({ busy: true, operationError: null });
     const reply = await request(body(revision()));
-    if (reply?.type === "result" && reply.kind === "draft")
+    if (reply?.type === "result" && reply.kind === "draft") {
       update({ view: reply.view, operationError: null });
-    else report(reply);
+      if (closes && reply.view.draft?.status === closes) {
+        const fresh = await request({ type: "readDraft" });
+        if (fresh?.type === "result" && fresh.kind === "draft") update({ view: fresh.view });
+        else report(fresh);
+      }
+    } else report(reply);
     update({ busy: false });
-    return reply;
   }
 
   async function charge(input: TenderInput) {
@@ -68,15 +73,10 @@ export function createSaleOperations({
   }
 
   async function holdSale(name?: string) {
-    const reply = await runDraft((expectedRevision) => ({
-      type: "sale.hold",
-      expectedRevision,
-      ...(name ? { name } : {}),
-    }));
-    if (reply?.type !== "result" || reply.kind !== "draft" || reply.view.draft?.status !== "held")
-      return;
-    const fresh = await request({ type: "readDraft" });
-    if (fresh?.type === "result" && fresh.kind === "draft") update({ view: fresh.view });
+    await runDraft(
+      (expectedRevision) => ({ type: "sale.hold", expectedRevision, ...(name ? { name } : {}) }),
+      "held",
+    );
   }
 
   async function voidSale(reason: string, draftId?: string, expectedRevision?: number) {
@@ -101,21 +101,10 @@ export function createSaleOperations({
       update({ busy: false });
       return;
     }
-    const reply = await runDraft((current) => ({
-      type: "sale.void",
-      expectedRevision: expectedRevision ?? current,
-      reason,
-      ...(draftId ? { draftId } : {}),
-    }));
-    if (
-      !draftId &&
-      reply?.type === "result" &&
-      reply.kind === "draft" &&
-      reply.view.draft?.status === "voided"
-    ) {
-      const fresh = await request({ type: "readDraft" });
-      if (fresh?.type === "result" && fresh.kind === "draft") update({ view: fresh.view });
-    }
+    await runDraft(
+      (current) => ({ type: "sale.void", expectedRevision: expectedRevision ?? current, reason }),
+      "voided",
+    );
   }
 
   async function newSale() {

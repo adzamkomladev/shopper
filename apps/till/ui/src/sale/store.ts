@@ -221,8 +221,18 @@ function snapshot(): SaleSnapshot {
 }
 
 function update(change: Partial<State>) {
+  if (change.view && isOlder(change.view, state.view)) {
+    const { view: _stale, ...rest } = change;
+    change = rest;
+  }
   state = { ...state, ...change };
   notify();
+}
+
+/** Replies and broadcasts race on the bridge; a draft never moves back to an older revision. */
+function isOlder(next: SaleSnapshot["view"], current: SaleSnapshot["view"]) {
+  const [a, b] = [next?.draft, current?.draft];
+  return !!a && !!b && a.id === b.id && a.revision < b.revision;
 }
 function notify() {
   for (const listener of listeners) listener();

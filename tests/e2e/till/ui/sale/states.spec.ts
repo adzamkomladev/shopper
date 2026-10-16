@@ -12,14 +12,14 @@ type State = {
   setup?: (page: Page) => Promise<unknown>;
 };
 const text = (value: string | RegExp) => (page: Page) =>
-  expect(page.locator("main")).toContainText(value);
+  expect(page.getByRole("main", { name: "Sale" })).toContainText(value);
 const typeQuery = (page: Page) =>
   page.getByRole("combobox").pressSequentially("milo", { delay: 90 });
 
 const states: State[] = [
   { name: "lines", expects: text("Milo 400g tin") },
   { name: "many", expects: text("Titus sardines 125g") },
-  { name: "levy", expects: text("COVID-19 levy 1%") },
+  { name: "levy", expects: text("Prices include VAT, NHIL, GETFund and COVID-19 levy.") },
   { name: "empty", expects: text("Basket is empty") },
   {
     name: "loading",
@@ -90,6 +90,7 @@ test("every control on the sale screen is at least 44px", async ({ page }) => {
   await openSale(page, "lines");
   const small = await page.evaluate(() =>
     [...document.querySelectorAll("button, input, [role=combobox]")]
+      .filter((node) => node.getClientRects().length > 0)
       .map((node) => ({
         label: node.getAttribute("aria-label") ?? node.textContent,
         box: node.getBoundingClientRect(),

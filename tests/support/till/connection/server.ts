@@ -6,7 +6,8 @@ import { postgresFixture } from "../../../fixtures/postgres";
 import { buildDefines } from "../../../../tooling/build/info";
 import type { HttpClient } from "../http";
 
-export async function createConnectionServer(state: string) {
+/** `grants` adds till permissions to the seeded cashier role before the register signs in. */
+export async function createConnectionServer(state: string, grants: readonly string[] = []) {
   installBuildGlobals();
   const [
     schema,
@@ -44,6 +45,13 @@ export async function createConnectionServer(state: string) {
   const cache = adapters.boxCache(":memory:");
   try {
     const seeded = await seed.seedServerDatabase(db);
+    if (grants.length)
+      await pool.query(
+        `insert into role_permission (id, org_id, role_id, permission_id)
+         select uuidv7(), p.org_id, $1, p.id from permission p
+         where p.org_id = $2 and p.code = any($3) on conflict do nothing`,
+        [seeded.roleId, seed.context.orgId, grants],
+      );
     const context = seed.context;
     const { config: saleConfig, references } = sales;
     const principal = {

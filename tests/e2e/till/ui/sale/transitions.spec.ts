@@ -4,7 +4,7 @@ import { startSaleScenario } from "../../../../support/till/sale/scenario";
 test("hold and void keep the sale locked until the open basket refresh completes", async ({
   page,
 }, testInfo) => {
-  const scenario = await startSaleScenario(appOrigin(testInfo));
+  const scenario = await startSaleScenario(appOrigin(testInfo), ["sale.void"]);
   const reads = await transitionReads(page);
   try {
     await page.goto(scenario.url);
@@ -42,7 +42,7 @@ test("hold and void keep the sale locked until the open basket refresh completes
 test("active void stays locked until the open basket refresh completes", async ({
   page,
 }, testInfo) => {
-  const scenario = await startSaleScenario(appOrigin(testInfo));
+  const scenario = await startSaleScenario(appOrigin(testInfo), ["sale.void"]);
   const reads = await transitionReads(page);
   try {
     await page.goto(scenario.url);

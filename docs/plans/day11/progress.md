@@ -53,6 +53,28 @@ backend golden checks, then final checks/build/typecheck/review. Run real-host b
 serially: their shared bridge uses port 5186. Do not edit UI source while another UI suite is
 running against port 5194. Continue with the PR and green-CI merge only after the final gates pass.
 
+## Resumed 16 October 2026
+
+The staged checkpoint was committed and pushed as `0c53ecf`. The remaining UI regressions are fixed:
+
+- Hold and active void keep the sale busy until the next open basket loads. `runDraft` takes the
+  closing status and awaits its `readDraft` refresh before releasing `busy`.
+- The sale store never replaces a draft view with an older revision of the same draft, so a delayed
+  command reply cannot overwrite a newer `draft` broadcast.
+- The void probe's setup was wrong: the scenario cashier lacks `sale.void`. Test scenarios now accept
+  extra role grants, and the transitions spec grants `sale.void`.
+- Purchase recovery specs start a fresh register per test; a shared host leaked receipts between
+  tests and made receipt locators ambiguous.
+- The pre-existing states spec assumed one `<main>`; the hidden Purchases screen stays mounted. It
+  now targets the Sale landmark and measures only rendered controls. The totals note names the
+  COVID-19 levy when one is charged instead of always claiming VAT, NHIL and GETFund only.
+
+Verification (local): real-host transitions/ordering 3/3, purchase recovery 5/5 (includes the
+newer-selection case), fatal-reply connection 1/1, states 22/22; full till UI browser run 84 passed
+before the states fix, whose 16 failures plus a load-timed status case then passed in isolation.
+Sales/golden, payments, receipts and till integration 246 passed, 3 skipped. `vp check`, guard and
+`tsc -b` clean.
+
 ## Current slice
 
 Work resumed on 15 October 2026 in the isolated `/root/work/Shopper-day11` worktree at remote

@@ -11,6 +11,14 @@
     "./network": {
       "types": "./src/network.ts",
       "default": "./src/network.ts"
+    },
+    "./receipt": {
+      "types": "./src/receipt/view.tsx",
+      "default": "./src/receipt/view.tsx"
+    },
+    "./render": {
+      "types": "./src/render/index.ts",
+      "default": "./src/render/index.ts"
     }
   },
   "scripts": {
@@ -19,6 +27,9 @@
   "dependencies": {
     "@shopper/core": "workspace:*",
     "@shopper/money": "workspace:*",
-    "qrcode-generator": "2.0.4"
+    "pdf-lib": "1.17.1",
+    "qrcode-generator": "2.0.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
   }
 }

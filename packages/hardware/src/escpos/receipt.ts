@@ -1,10 +1,8 @@
 import type { ReceiptDocument } from "@shopper/core/receipts";
-import { toDecimal, type Money } from "@shopper/money";
+import { ghs, qrCaption, qrPayload, quantity, taxRows, tenderDetail, tenderLabel } from "../format";
 import { paper } from "../profiles";
 import type { EncodeOptions } from "../types";
 import { ascii, escpos } from "./encoder";
-
-const ghs = (amount: Money) => `GHS ${toDecimal(amount)}`;
 
 export function encodeReceipt(receipt: ReceiptDocument, options: EncodeOptions): Uint8Array {
   const { cols } = paper[options.paperMm];
@@ -44,11 +42,7 @@ export function encodeReceipt(receipt: ReceiptDocument, options: EncodeOptions):
   }
   printer.text("-".repeat(cols));
 
-  printer.text(row("Net", ghs(taxSummary.net)));
-  printer.text(row("NHIL", ghs(taxSummary.nhil)));
-  printer.text(row("GETFund", ghs(taxSummary.getfund)));
-  if (taxSummary.covid !== 0) printer.text(row("COVID", ghs(taxSummary.covid)));
-  printer.text(row("VAT", ghs(taxSummary.vat)));
+  for (const [label, amount] of taxRows(taxSummary)) printer.text(row(label, ghs(amount)));
   printer.text("-".repeat(cols));
 
   printer
@@ -56,25 +50,16 @@ export function encodeReceipt(receipt: ReceiptDocument, options: EncodeOptions):
     .text(row("TOTAL", ghs(receipt.total)))
     .bold(false);
   for (const tender of receipt.tenders) {
-    const label = { cash: "Cash", card: "Card", momo: "MoMo" }[tender.kind];
-    printer.text(row(label, ghs(tender.amount)));
-    const detail = tender.approvalCode ?? tender.reference ?? tender.phone;
+    printer.text(row(tenderLabel[tender.kind], ghs(tender.amount)));
+    const detail = tenderDetail(tender);
     if (detail) printer.text(fit(`  ${detail}`));
   }
   printer.text(row("Change", ghs(receipt.change)));
   printer.feed(1);
 
-  printer.align("center").qr(`${header.receiptNumber ?? ""}|${receipt.saleId}`);
-  center("E-VAT QR pending");
+  printer.align("center").qr(qrPayload(receipt));
+  center(qrCaption);
   printer.feed(1);
   center(receipt.footer);
   return printer.cut().bytes();
-}
-
-/** Integer thousandths as a trimmed decimal: 1500 → "1.5", 2000 → "2". */
-function quantity(thousandths: number) {
-  const fraction = String(thousandths % 1000)
-    .padStart(3, "0")
-    .replace(/0+$/, "");
-  return fraction ? `${Math.floor(thousandths / 1000)}.${fraction}` : String(thousandths / 1000);
 }

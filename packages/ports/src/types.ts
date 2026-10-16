@@ -105,3 +105,13 @@ export type BlobUpload = {
 };
 
 export type CacheRecord = { orgId: string; key: string; value: Json; expiresAt: number };
+
+export type RenderFormat = "pdf" | "png";
+export interface Renderer {
+  // Renders a stored receipt JSON; PNG is paper dots wide, PDF is one page at paper width.
+  receipt(
+    receipt: Json,
+    options: { paperMm: 58 | 80; reprint: boolean },
+    format: RenderFormat,
+  ): Promise<Uint8Array>;
+}

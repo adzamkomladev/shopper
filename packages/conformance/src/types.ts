@@ -1,4 +1,12 @@
-import type { Blobs, Cache, Json, Sequencer, Workflow, WorkflowLauncher } from "@shopper/ports";
+import type {
+  Blobs,
+  Cache,
+  Json,
+  Renderer,
+  Sequencer,
+  Workflow,
+  WorkflowLauncher,
+} from "@shopper/ports";
 
 export interface AcceptedSaleFixture {
   orgId: string;
@@ -40,3 +48,9 @@ export interface WorkflowLauncherFixture {
   close(): Promise<void>;
 }
 export type LauncherFixture = (expired: boolean) => Promise<WorkflowLauncherFixture>;
+
+export interface RendererFixture {
+  renderer: Renderer;
+  receipt: Json;
+  close(): Promise<void>;
+}

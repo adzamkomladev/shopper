@@ -8,3 +8,4 @@ export { boxAuthFlows } from "./workflows/auth";
 export { openTillDatabase } from "./till/database";
 export { boxLive, type BoxWebSocketServer } from "./live";
 export { boxMomoPayment } from "./workflows/payments";
+export { boxRenderer } from "./renderer";

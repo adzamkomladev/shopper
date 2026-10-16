@@ -8,6 +8,7 @@ import { createHostSync } from "./sync";
 import { bridgeRequest, type BridgeMessage, type HostStatus } from "@shopper/sync/bridge";
 import { openTillDatabase } from "../database";
 import { hostConfiguration } from "./config";
+import { createHostPayments } from "./payments";
 import { createDispatch } from "./dispatch";
 import { openHostTransport, error } from "./transport";
 
@@ -36,9 +37,19 @@ export async function startTillHost(raw: unknown, send: (message: unknown) => vo
   let closed = false;
   let lastKnownStatus: HostStatus | undefined;
   let transport: Awaited<ReturnType<typeof openHostTransport>> | undefined;
-  const worker = createHostSync(database, config, () => {
-    void publishStatus();
+  const payments = createHostPayments(database, config, (message) => {
+    if (closed) return;
+    send(message);
+    transport?.broadcast(message);
   });
+  const worker = createHostSync(
+    database,
+    config,
+    () => {
+      void publishStatus();
+    },
+    payments,
+  );
   async function status(): Promise<HostStatus> {
     const rows = await database.read((tx) =>
       tx
@@ -51,6 +62,7 @@ export async function startTillHost(raw: unknown, send: (message: unknown) => vo
       pendingCount: rows.filter((row) => !row.blockedReason).length,
       blockedCount: rows.filter((row) => row.blockedReason).length,
       identity,
+      permissions: config.session?.permissions ?? [],
       appVersion: buildInfo.version,
       protocol: buildInfo.syncProtocol,
     };
@@ -94,6 +106,7 @@ export async function startTillHost(raw: unknown, send: (message: unknown) => vo
   const dispatch = createDispatch({
     database,
     config,
+    payments,
     status,
     publishStatus,
     sync: () => worker.trigger(),

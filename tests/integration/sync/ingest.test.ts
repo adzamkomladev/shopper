@@ -5,7 +5,14 @@ import * as schema from "@shopper/db-pg";
 import { defineCommand } from "@shopper/core";
 import { add, money, sub } from "@shopper/money";
 import { snapshotLine } from "@shopper/tax";
-import { appVersion, api, databases, deviceId, recordSale } from "../../support/till/server";
+import {
+  appVersion,
+  api,
+  databases,
+  deviceId,
+  recordSale,
+  syncProtocol,
+} from "../../support/till/server";
 import { push, pushEvents, syncHeaders } from "../../support/till/requests";
 
 const addFuturePrice = defineCommand({
@@ -29,10 +36,13 @@ test("handshake and push accept the captured sale with one persistent store sequ
   const handshake = await api.request("/sync/handshake", {
     method: "POST",
     headers: syncHeaders(),
-    body: JSON.stringify({ requestId: handshakeRequestId, appVersion, protocol: 1 }),
+    body: JSON.stringify({ requestId: handshakeRequestId, appVersion, protocol: syncProtocol }),
   });
   expect(handshake.status).toBe(200);
-  expect(await handshake.json()).toMatchObject({ requestId: handshakeRequestId, protocol: 1 });
+  expect(await handshake.json()).toMatchObject({
+    requestId: handshakeRequestId,
+    protocol: syncProtocol,
+  });
 
   const captured = await recordSale();
   const requestId = v7();
@@ -90,7 +100,7 @@ test("push rejects oversized batches and bodies before accepting any event", asy
   const large = await recordSale({ lineCount: 3_000 });
   const largeBody = JSON.stringify({
     requestId: v7(),
-    protocol: 1,
+    protocol: syncProtocol,
     events: [large.event],
     proofs: [{ sessionId: large.sessionId, proof: large.proof }],
   });
@@ -111,7 +121,7 @@ test("push rejects oversized batches and bodies before accepting any event", asy
 
 test("event versions outside the supported shape are rejected without persistence", async () => {
   const captured = await recordSale();
-  for (const version of [0, 3]) {
+  for (const version of [0, 1, 2, 4]) {
     const unsupported = { ...captured.event, v: version };
     const response = await pushEvents(
       api,

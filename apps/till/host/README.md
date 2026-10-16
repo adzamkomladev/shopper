@@ -35,3 +35,27 @@ uploads and downloads; receipt blocks are delivered only by POST handshake/push 
 
 Development SQLite is durable but unencrypted. Native encrypted storage and Electron launch
 wiring remain later milestones.
+
+The sealed host configuration may include `receiptReference` with `orgName`, `tin`, `branchName`,
+`address`, `deviceName`, `cashierName` and `footer`. These values are captured in the stored receipt
+when the sale completes; immediate completion and Purchases return that same document. Omitted
+org/register names use `identity.shopName` and `identity.registerName`; TIN/address remain null
+unless configured. For example:
+
+```json
+{
+  "receiptReference": {
+    "orgName": "Adom Mart",
+    "tin": "C0000000000",
+    "branchName": "Osu",
+    "address": "Oxford Street, Accra",
+    "deviceName": "Till 1",
+    "cashierName": "Ama Mensah",
+    "footer": "Thank you for shopping with us"
+  }
+}
+```
+
+The cashier name belongs to the configured signed-in session and must be refreshed when the host
+is started with a different cashier. Credentials and these private configuration values never go
+to browser requests.

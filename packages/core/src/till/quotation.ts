@@ -4,6 +4,7 @@ import { reference, type TillDatabase, type TillSqlite } from "@shopper/db-sqlit
 import { snapshotLine } from "@shopper/tax";
 import { tillPrice, tillProductBase, tillTaxRule } from "../schemas/till/reference";
 import { TillError } from "./error";
+import { readCashRounding } from "./settings";
 
 type Price = v.InferOutput<typeof tillPrice>;
 type Quote = { branchId: string; productId: string; quantityThousandths: number; at: Date };
@@ -22,6 +23,7 @@ export async function readQuoteReference(tx: TillSqlite, orgId: string) {
     products: payloads("product", tillProductBase),
     prices: payloads("price", tillPrice),
     rules: payloads("tax-rule", tillTaxRule),
+    cashRounding: readCashRounding(rows),
   };
 }
 

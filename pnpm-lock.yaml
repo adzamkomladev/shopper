@@ -250,6 +250,12 @@ importers:
       '@shopper/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@shopper/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      '@shopper/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       hono:
         specifier: 4.13.13
         version: 4.13.13
@@ -328,6 +334,9 @@ importers:
       '@shopper/config':
         specifier: workspace:*
         version: link:../../../packages/config
+      '@shopper/core':
+        specifier: workspace:*
+        version: link:../../../packages/core
       '@shopper/money':
         specifier: workspace:*
         version: link:../../../packages/money
@@ -376,6 +385,9 @@ importers:
       '@shopper/db-sqlite':
         specifier: workspace:*
         version: link:../../db/sqlite
+      '@shopper/money':
+        specifier: workspace:*
+        version: link:../../money
       '@shopper/ports':
         specifier: workspace:*
         version: link:../../ports
@@ -455,6 +467,9 @@ importers:
       '@shopper/db-pg':
         specifier: workspace:*
         version: link:../db/pg
+      '@shopper/money':
+        specifier: workspace:*
+        version: link:../money
       '@shopper/ports':
         specifier: workspace:*
         version: link:../ports

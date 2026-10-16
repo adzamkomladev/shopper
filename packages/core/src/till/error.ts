@@ -1,6 +1,16 @@
 export class TillError extends Error {
   constructor(
     public readonly code:
+      | "TENDER_OVERPAID"
+      | "TENDER_INSUFFICIENT"
+      | "TENDER_UNKNOWN"
+      | "SALE_UNKNOWN"
+      | "PAYMENT_UNAVAILABLE"
+      | "PAYMENT_INVALID"
+      | "PAYMENT_UNCONFIRMED"
+      | "DRAFT_UNKNOWN"
+      | "DRAFT_BUSY"
+      | "DISCOUNT_INVALID"
       | "scope"
       | "permission"
       | "session"

@@ -11,6 +11,7 @@ import {
   devices,
   principal,
   recordSale,
+  syncProtocol,
 } from "../../../support/till/server";
 import { push, syncHeaders } from "../../../support/till/requests";
 
@@ -80,7 +81,7 @@ test("store and branch selectors cannot override the enrolled device scope", asy
       headers: { ...syncHeaders(), [selector]: v7() },
       body: JSON.stringify({
         requestId: v7(),
-        protocol: 1,
+        protocol: syncProtocol,
         events: [captured.event],
         proofs: [{ sessionId: captured.sessionId, proof: captured.proof }],
       }),

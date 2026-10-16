@@ -31,7 +31,7 @@ test("records a golden immutable sale and reopens it from SQLite", async () => {
       await seed(db);
       const event = await recordLocalSale(db, config, session, { lines });
       expect(v.safeParse(saleEvent, event).success).toBe(true);
-      expect(event).toMatchObject({ v: 2, type: "sale.recorded" });
+      expect(event).toMatchObject({ v: 3, type: "sale.recorded" });
       expect(event.sale.id).toBe(event.sale.localId);
       expect(event.sale.id).toMatch(uuid7);
       expect(event.sale).toMatchObject({

@@ -14,10 +14,10 @@ Network failures use capped exponential backoff with jitter and honor `Retry-Aft
 retry deadlines survive restart. Empty-host connection retries use in-memory backoff. Requests
 have a 120-second timeout for a bounded batch; integration fixtures can inject clock, randomness and timeout values.
 
-Protocol 2 supports protocols 2 and 1. Protocol 1 replies retain the published strict handshake and
-acknowledgment shapes; receipt blocks, clock time and occurrence acknowledgments are protocol 2
-fields. Subsequent protocols support their immediate predecessor;
-producer-owned event decoders advance one version at a time independently of transport versions.
+Day 11 accepts only sync protocol 3 and tender-bearing sale event v3. Older registers must update
+and re-bootstrap; legacy sale upcasters are removed under the approved disposable-data reset.
+Event decoding remains independent of transport negotiation. Receipt blocks, corrected clock time
+and occurrence acknowledgments remain part of the current transport.
 `@shopper/sync/bridge` exports browser-safe host messages, including transport mode, pull cursor,
 head, last pull time and receipt availability. Device credentials stay in the host.
 
@@ -41,3 +41,9 @@ Enrollment codes in the private host configuration allow overflow receipts befor
 handshake. Persisted codes remain fixed; the till refuses a new sale if its codes are missing or
 conflict with its saved identity. Recreating a till database requires a fresh enrollment, because
 its retained receipt counters and unsent sales cannot be recovered from an empty file.
+
+Payment updates use versioned `payment.updated` realtime envelopes. The host validates each payload,
+updates its audited SQLite payment intent/tender and broadcasts a draft view. On reconnect it reads
+unconsumed payments once through the authenticated API. Unmatched late confirmations stay visible
+in Purchases. Starting a charge reserves its UUID reference locally before HTTP; retries keep the
+same reference so a lost response cannot create another charge.

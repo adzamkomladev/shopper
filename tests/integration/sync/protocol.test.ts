@@ -7,11 +7,11 @@ const clients: Awaited<ReturnType<typeof createSyncApi>>[] = [];
 afterAll(async () => {
   for (const client of clients) await client.close();
 });
-test("protocol one has no predecessor and later servers accept N and N-1", async () => {
+test("each server accepts only its current protocol", async () => {
   for (const [current, supported, incompatible] of [
     [1, [1], [0, 2]],
-    [2, [1, 2], [0, 3]],
-    [3, [2, 3], [1, 4]],
+    [2, [2], [0, 1, 3]],
+    [3, [3], [0, 1, 2, 4]],
   ] as const) {
     const target = await createSyncApi(current);
     clients.push(target);
@@ -31,7 +31,7 @@ test("one rejected future event does not prevent a supported event in the same b
   const supported = await recordSale();
   const response = await pushEvents(
     api,
-    [{ ...unsupported.event, v: 3 }, supported.event],
+    [{ ...unsupported.event, v: supported.event.v + 1 }, supported.event],
     [{ sessionId: supported.sessionId, proof: supported.proof }],
   );
   expect(response.status).toBe(200);

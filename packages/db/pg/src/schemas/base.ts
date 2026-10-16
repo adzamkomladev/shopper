@@ -28,6 +28,7 @@ const times = () => ({
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+export const cashRoundingModes = ["none", "10p"] as const;
 export const org = pgTable(
   "org",
   {
@@ -45,12 +46,14 @@ export const org = pgTable(
     mode: text("mode", { enum: ["full", "relay"] })
       .notNull()
       .default("full"),
+    cashRounding: text("cash_rounding", { enum: cashRoundingModes }).notNull().default("10p"),
     ...times(),
   },
   (t) => [
     unique().on(t.orgId, t.id),
     unique().on(t.slug),
     check("org_mode", sql`${t.mode} IN ('full', 'relay')`),
+    check("org_cash_rounding", sql`${t.cashRounding} IN ('none', '10p')`),
   ],
 );
 export const tenant = () => ({

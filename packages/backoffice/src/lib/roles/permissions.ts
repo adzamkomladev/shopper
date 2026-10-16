@@ -4,6 +4,9 @@ export type { PermissionCode } from "./types";
 /** What each permission lets a member do, in the words an owner would use. */
 export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   "sale.create": "Ring up sales",
+  "sale.discount": "Give line discounts",
+  "sale.void": "Void sales in progress",
+  "payment.momo": "Take mobile money payments",
   "refund.request": "Request refunds",
   "refund.approve": "Approve refunds",
   "shift.read": "View shifts",
@@ -33,7 +36,17 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
 
 /** The matrix reads top to bottom in these groups. */
 export const PERMISSION_GROUPS: readonly { name: string; codes: readonly PermissionCode[] }[] = [
-  { name: "Sales", codes: ["sale.create", "refund.request", "refund.approve"] },
+  {
+    name: "Sales",
+    codes: [
+      "sale.create",
+      "sale.discount",
+      "sale.void",
+      "payment.momo",
+      "refund.request",
+      "refund.approve",
+    ],
+  },
   { name: "Shifts", codes: ["shift.read", "shift.write"] },
   {
     name: "Products and stock",

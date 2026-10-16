@@ -8,11 +8,12 @@ import type { tillConfiguration } from "../schemas/till/config";
 export type TillConfig = v.InferOutput<typeof tillConfiguration> & { now?: () => Date };
 
 export type ScanResult = {
-  kind: "barcode" | "weight" | "price";
   productId: string;
   quantityThousandths: number;
-  gross?: Money;
-};
+} & (
+  | { kind: "barcode" | "weight"; gross?: never; originalPriceId?: never }
+  | { kind: "price"; gross: Money; originalPriceId: string }
+);
 
 export type QuoteLine =
   | ({ lineId: string; error?: never } & ReturnType<typeof quoteFrom>)

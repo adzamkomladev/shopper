@@ -5,10 +5,12 @@ import type { SaleTotals } from "../../sale/types";
 /** Figma "Cart support" and "Cart totals": what the prices include, then subtotal, tax and total. */
 export function CartTotals({ totals, saved }: { totals: SaleTotals; saved: boolean }) {
   const tax = [totals.vat, totals.nhil, totals.getfund, totals.covid].reduce(add);
+  const included =
+    totals.covid > 0 ? "VAT, NHIL, GETFund and COVID-19 levy" : "VAT, NHIL and GETFund";
   return (
     <div className="shrink-0">
       <div className="flex h-8 items-center justify-between px-5 text-xs font-medium text-muted-foreground">
-        <p>Prices include VAT, NHIL and GETFund.</p>
+        <p>Prices include {included}.</p>
         {saved && (
           <p className="flex items-center gap-1.5">
             <Check aria-hidden="true" className="size-4 text-success" />

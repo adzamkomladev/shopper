@@ -60,6 +60,12 @@ new acceptance or assignment audit. Changed content returns a per-event `CONFLIC
 Responses contain `{requestId, accepted: [{localId, sequence}], rejected: [{localId, code, message}]}`;
 sequences are positive decimal strings. Sequencing failure returns 503 without acknowledgements;
 the accepted pending sale survives for retry. Malformed envelopes return 400, oversized bodies
-413, invalid device credentials 401, and incompatible protocols 409. Initial protocol 1 supports
-only 1; later servers support N and N-1. Event version dispatch is independent: unsupported
+413, invalid device credentials 401, and incompatible protocols 409. Day 11 accepts only protocol 3; older registers must update and re-bootstrap.
+Event version dispatch is independent: unsupported
 versions with recoverable local IDs produce per-event `UNSUPPORTED_EVENT_VERSION`.
+
+MoMo uses cashier/device authenticated `POST /payments/momo`, `POST /payments/momo/:reference/otp`
+and `GET /payments/momo/:reference`. `GET /payments/momo` returns unconsumed intents for that
+cashier/register, including late confirmations. The public `/webhooks/paystack` route verifies the
+raw-body HMAC before changing a payment. The shared workflow waits for OTP/webhook events and
+verifies once on timeout; both runtimes retain payment/audit/workflow rows in PostgreSQL.

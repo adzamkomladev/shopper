@@ -11,6 +11,9 @@ export const localSale = sqliteTable(
     contentHash: text("content_hash").notNull(),
     storeSequence: text("store_sequence"),
     occurredAt: text("occurred_at"),
+    status: text("status").notNull().default("completed"),
+    /** The receipt document JSON this till rendered at the sale. */
+    receipt: text("receipt", { mode: "json" }).$type<unknown>(),
   },
   (t) => [
     unique().on(t.deviceId, t.localId),

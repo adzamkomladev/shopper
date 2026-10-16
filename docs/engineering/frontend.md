@@ -7,8 +7,9 @@ that merely works is not finished.
 ## Stack
 
 - React 19 + TypeScript, `@shopper/ui` (shadcn/ui on Tailwind v4). **No other UI or CSS library.**
-- Portal: TanStack Router SPA + TanStack Query/Table/Form. Shop: TanStack Start (SSR). Till: the
-  same React in Electron, and in a browser during development.
+- Portal: TanStack Start in SPA mode (a prerendered static shell, no SSR per document) +
+  TanStack Query/Table/Form. Server functions are host-only; back-office data uses the shared `/api`.
+  Shop: TanStack Start (SSR). Till: the same React in Electron, and in a browser during development.
 - Valibot schemas plug into TanStack Router search params and TanStack Form (Standard Schema).
 
 ## No effects (guard)

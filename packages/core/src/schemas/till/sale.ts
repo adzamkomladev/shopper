@@ -1,6 +1,5 @@
 import * as v from "valibot";
 import { money } from "@shopper/money";
-import { createEventDecoder } from "../events";
 import { tillId } from "./fields";
 import { dateSchema, taxClassSchema, taxRuleSchema } from "@shopper/tax";
 
@@ -25,7 +24,7 @@ export const saleTaxSnapshot = v.strictObject({
   unitPrice: nonnegative,
   discount: nonnegative,
 });
-const saleSnapshotV1 = v.strictObject({
+const saleSnapshotBase = v.strictObject({
   id: tillId,
   localId: tillId,
   orgId: tillId,
@@ -46,6 +45,13 @@ const saleSnapshotV1 = v.strictObject({
         name: v.string(),
         baseUnit: v.picklist(["each", "kg", "g", "l", "ml"]),
         tax: saleTaxSnapshot,
+        discount: nonnegative,
+        label: v.nullable(
+          v.variant("kind", [
+            v.strictObject({ kind: v.literal("weight"), code: v.string() }),
+            v.strictObject({ kind: v.literal("price"), code: v.string(), originalPriceId: tillId }),
+          ]),
+        ),
       }),
     ),
     v.minLength(1),
@@ -53,13 +59,36 @@ const saleSnapshotV1 = v.strictObject({
   totals: saleTotals,
 });
 export const saleSnapshot = v.strictObject({
-  ...saleSnapshotV1.entries,
+  ...saleSnapshotBase.entries,
   receiptNumber: v.nullable(v.pipe(v.string(), v.regex(/^BR[0-9]+-T[0-9]+-X?[0-9]{6,}$/))),
   receiptOverflow: v.boolean(),
   clockOffsetMs: v.pipe(v.number(), v.safeInteger()),
+  cashRounding: amount,
+  total: nonnegative,
+  paid: nonnegative,
+  change: nonnegative,
+  tenders: v.pipe(
+    v.array(
+      v.pipe(
+        v.strictObject({
+          id: tillId,
+          kind: v.picklist(["cash", "momo", "card"]),
+          amount: v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.transform(money)),
+          reference: v.optional(v.string()),
+          approvalCode: v.optional(v.pipe(v.string(), v.regex(/^[a-zA-Z0-9]{4,12}$/))),
+          last4: v.optional(v.pipe(v.string(), v.regex(/^[0-9]{4}$/))),
+          network: v.optional(v.string()),
+        }),
+        v.check((t) => t.amount > 0 || t.kind === "cash", "Only cash may have a zero amount"),
+        v.check((t) => t.kind !== "card" || t.approvalCode !== undefined, "Card approval required"),
+        v.check((t) => t.kind !== "momo" || t.reference !== undefined, "MoMo reference required"),
+      ),
+    ),
+    v.minLength(1),
+  ),
 });
 export const saleEvent = v.strictObject({
-  v: v.literal(2),
+  v: v.literal(3),
   type: v.literal("sale.recorded"),
   sale: saleSnapshot,
 });
@@ -77,18 +106,4 @@ export const recordSaleInput = v.strictObject({
 export type SaleEvent = v.InferOutput<typeof saleEvent>;
 export type SaleSnapshot = v.InferOutput<typeof saleSnapshot>;
 
-const saleEventV1 = v.strictObject({
-  v: v.literal(1),
-  type: v.literal("sale.recorded"),
-  sale: saleSnapshotV1,
-});
-export const decodeSaleEvent = createEventDecoder(2, (raw) => v.parse(saleEvent, raw), {
-  1(raw) {
-    const old = v.parse(saleEventV1, raw);
-    return {
-      ...old,
-      v: 2,
-      sale: { ...old.sale, receiptNumber: null, receiptOverflow: false, clockOffsetMs: 0 },
-    };
-  },
-});
+export const decodeSaleEvent = (raw: unknown) => v.parse(saleEvent, raw);

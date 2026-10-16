@@ -4,6 +4,11 @@ const hints = [
   ["F2", "Scan or search"],
   ["↑ ↓", "Choose"],
   ["Enter", "Add"],
+  ["F5", "Charge"],
+  ["F6", "Hold"],
+  ["F7", "Held sales"],
+  ["F11", "Void"],
+  ["Alt+1/2/3", "Tender method"],
   ["F3", "Basket"],
   ["F4", "Quantity"],
   ["Delete", "Remove line"],
@@ -17,7 +22,7 @@ export function ShortcutHints() {
   return (
     <ul
       aria-label="Keyboard shortcuts"
-      className="flex h-7 shrink-0 flex-wrap items-center gap-x-5 text-xs text-muted-foreground"
+      className="hidden h-7 shrink-0 flex-wrap items-center gap-x-5 text-xs text-muted-foreground sm:flex"
     >
       {hints.map(([key, label]) => (
         <li className="flex items-center gap-1.5" key={key}>

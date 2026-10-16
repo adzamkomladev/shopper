@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import {
   CircleAlert,
+  CircleCheck,
   Hourglass,
   Plug,
   ScanLine,
@@ -180,6 +181,22 @@ export function EmptyBasket() {
         <EmptyDescription>
           Scan a barcode, or press F2 and search by name or SKU. Items you add are saved on this
           register.
+        </EmptyDescription>
+      </EmptyHeader>
+    </Empty>
+  );
+}
+
+export function CompletedBasket() {
+  return (
+    <Empty className="flex-1">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">
+          <CircleCheck aria-hidden="true" />
+        </EmptyMedia>
+        <EmptyTitle>Sale complete</EmptyTitle>
+        <EmptyDescription>
+          The receipt is ready. Press Enter or use New sale to start another basket.
         </EmptyDescription>
       </EmptyHeader>
     </Empty>

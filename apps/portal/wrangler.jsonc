@@ -60,6 +60,12 @@
       "class_name": "AuthWorkflow",
       "script_name": "shopper-edge-dev",
     },
+    {
+      "name": "shopper-momo-payment-dev",
+      "binding": "MOMO_PAYMENT",
+      "class_name": "MomoPaymentWorkflow",
+      "script_name": "shopper-edge-dev",
+    },
   ],
   "name": "shopper-portal-dev",
   "$schema": "../../node_modules/wrangler/config-schema.json",
@@ -72,10 +78,12 @@
   },
   "assets": {
     "binding": "ASSETS",
-    "run_worker_first": true,
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/_serverFn/*"],
   },
   "vars": {
     "SHOPPER_AUTH_URL": "http://localhost:5173",
+    "SHOPPER_ENVIRONMENT": "dev",
   },
   "env": {
     "staging": {
@@ -139,6 +147,12 @@
           "class_name": "AuthWorkflow",
           "script_name": "shopper-edge-staging",
         },
+        {
+          "name": "shopper-momo-payment-staging",
+          "binding": "MOMO_PAYMENT",
+          "class_name": "MomoPaymentWorkflow",
+          "script_name": "shopper-edge-staging",
+        },
       ],
       "name": "shopper-portal-staging",
       "routes": [
@@ -147,8 +161,14 @@
           "custom_domain": true,
         },
       ],
+      "assets": {
+        "binding": "ASSETS",
+        "not_found_handling": "single-page-application",
+        "run_worker_first": ["/api/*", "/_serverFn/*"],
+      },
       "vars": {
         "SHOPPER_AUTH_URL": "https://shopper-staging.temtem.dev",
+        "SHOPPER_ENVIRONMENT": "staging",
       },
     },
   },

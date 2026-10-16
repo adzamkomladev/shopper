@@ -1,5 +1,8 @@
 export const permissionNames = [
   "sale.create",
+  "sale.discount",
+  "sale.void",
+  "payment.momo",
   "refund.approve",
   "refund.request",
   "shift.read",

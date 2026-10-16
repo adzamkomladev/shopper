@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
-    "build:staging": "tsx ../../tooling/cloudflare/portal.ts"
+    "build:staging": "CLOUDFLARE_ENV=staging vp build",
+    "deploy:staging": "tsx ../../tooling/cloudflare/deploy.ts portal"
   },
   "dependencies": {
     "@shopper/adapters-cf": "workspace:*",

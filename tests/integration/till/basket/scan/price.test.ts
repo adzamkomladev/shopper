@@ -28,12 +28,10 @@ test.each(priceCases)(
         baseUnit: "kg",
         barcodes: [{ code: "00123", quantityThousandths: 1000 }],
       });
+      const branchPrice = refPrice(product.id, 12_000, { branchId: ids.branch });
       await seed(db, {
         products: [product],
-        prices: [
-          refPrice(product.id, 10_000),
-          refPrice(product.id, 12_000, { branchId: ids.branch }),
-        ],
+        prices: [refPrice(product.id, 10_000), branchPrice],
         mappings: [layout({ kind: "price", unit: undefined, decimals })],
       });
       const result = await scan(db, label(21, "00123", value));
@@ -41,6 +39,7 @@ test.each(priceCases)(
         kind: "price",
         productId: product.id,
         quantityThousandths: quantity,
+        originalPriceId: branchPrice.id,
         gross,
       });
     });

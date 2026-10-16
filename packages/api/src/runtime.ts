@@ -16,7 +16,7 @@ import { allowPublicAuth } from "./middleware/public/auth";
 export const publicApi = createApi();
 export function isPublicRequest(request: Request) {
   const path = new URL(request.url).pathname;
-  return !/^\/(?:api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|devices(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
+  return !/^\/(?:payments(?:\/|$)|webhooks\/paystack$|api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|devices(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
     path,
   );
 }
@@ -107,6 +107,13 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     if (options.orgId && invitationOrg !== options.orgId.toLowerCase())
       return Response.json({ error: "This invitation belongs to another shop" }, { status: 403 });
   }
+  if (url.pathname === "/webhooks/paystack")
+    return createApi({
+      database: options.database,
+      momoPayment: options.momoPayment,
+      paystackSecret: options.paystackSecret,
+      realtime: options.realtime,
+    }).fetch(request);
   const selected = request.headers.get("X-Shopper-Org");
   const parsed = v.safeParse(managementId, invitationOrg ?? options.orgId ?? selected);
   if (!parsed.success || (selected && selected.toLowerCase() !== parsed.output.toLowerCase()))
@@ -134,6 +141,8 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     authentication: { ...authentication, resolvePrincipal },
     devices,
     priceChange: options.priceChange,
+    momoPayment: options.momoPayment,
+    paystackSecret: options.paystackSecret,
     realtime: options.realtime,
     invitations,
     blobs: options.blobs,

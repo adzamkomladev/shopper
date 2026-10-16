@@ -6,11 +6,21 @@ export const rolePermissions: Record<string, readonly string[]> = {
   ),
   accountant: ["product.read", "shift.read", "stock.read", "tax.read", "report.read", "audit.read"],
   inventory: ["product.read", "stock.read", "stock.write", "product.propose"],
-  cashier: ["product.read", "sale.create", "refund.request", "shift.read", "shift.write"],
+  cashier: [
+    "product.read",
+    "sale.create",
+    "payment.momo",
+    "refund.request",
+    "shift.read",
+    "shift.write",
+  ],
 };
 export const tillPermissions = new Set([
   "product.read",
   "sale.create",
+  "sale.discount",
+  "sale.void",
+  "payment.momo",
   "refund.approve",
   "refund.request",
   "shift.read",

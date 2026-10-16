@@ -1,13 +1,11 @@
-// Slice 3: till SQLite migrations are an ordered list driven by PRAGMA user_version; step 0 is the old schema.
+// Till SQLite migrations are an ordered list driven by PRAGMA user_version; the list is one fresh schema step.
 import { afterEach, expect, test } from "vite-plus/test";
-import { createRequire } from "node:module";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { sql } from "drizzle-orm";
 import { v7 } from "uuid";
 import { openTillDatabase, type TillDatabase } from "../../../support/till/storage";
-import { legacyTillSchema } from "../../../support/till/legacy";
 
 let directory: string;
 let db: TillDatabase | undefined;
@@ -30,63 +28,21 @@ const schemaOf = (database: TillDatabase) =>
     ),
   );
 
-/** A register that shipped before migrations: step-0 schema, user_version 0, real rows. */
-async function legacyFile() {
-  directory = await mkdtemp(join(tmpdir(), "shopper-till-migrations-"));
-  const path = join(directory, "till.sqlite");
-  const { DatabaseSync } = createRequire(import.meta.url)("node:sqlite");
-  const legacy = new DatabaseSync(path);
-  legacy.exec(legacyTillSchema);
-  legacy
-    .prepare(
-      `INSERT INTO till_state (id, org_id, device_id, pull_cursor, pull_initialized) VALUES (?, ?, ?, '42', 1)`,
-    )
-    .run(v7(), org, device);
-  legacy
-    .prepare(`INSERT INTO reference (id, org_id, entity, payload) VALUES (?, ?, 'product', ?)`)
-    .run(v7(), org, JSON.stringify({ name: "Kept" }));
-  legacy.close();
-  return path;
-}
-
 test("a fresh database is stamped with the latest migration version", async () => {
   directory = await mkdtemp(join(tmpdir(), "shopper-till-migrations-"));
   db = openTillDatabase(join(directory, "till.sqlite"));
   expect(await version(db)).toBeGreaterThan(0);
 });
 
-test("an existing step-0 database opens, upgrades and keeps its rows", async () => {
-  const path = await legacyFile();
+test("reopening is idempotent: same version, same schema, same rows", async () => {
+  directory = await mkdtemp(join(tmpdir(), "shopper-till-migrations-"));
+  const path = join(directory, "till.sqlite");
   db = openTillDatabase(path);
-  expect(await version(db)).toBeGreaterThan(0);
-  const state = await db.read((tx) =>
-    tx.all<{ pull_cursor: string; pull_initialized: number; reference_version: number }>(
-      sql`SELECT pull_cursor, pull_initialized, reference_version FROM till_state`,
+  await db.transaction((tx) =>
+    tx.run(
+      sql`INSERT INTO till_state (id, org_id, device_id, pull_cursor, pull_initialized) VALUES (${v7()}, ${org}, ${device}, '42', 1)`,
     ),
   );
-  expect(state).toEqual([{ pull_cursor: "42", pull_initialized: 1, reference_version: 1 }]);
-  const kept = await db.read((tx) =>
-    tx.all<{ payload: string }>(sql`SELECT payload FROM reference`),
-  );
-  expect(kept).toEqual([{ payload: JSON.stringify({ name: "Kept" }) }]);
-});
-
-test("the upgraded legacy database has the same schema as a fresh one", async () => {
-  const path = await legacyFile();
-  db = openTillDatabase(path);
-  const upgraded = await schemaOf(db);
-  const upgradedVersion = await version(db);
-  expect(upgradedVersion).toBeGreaterThan(0);
-  await db.close();
-  db = openTillDatabase(join(directory, "fresh.sqlite"));
-  expect(await version(db)).toBe(upgradedVersion);
-  // Column order differs after ALTER TABLE, so compare table and index names, not their SQL text.
-  expect((await schemaOf(db)).map((row) => row.name)).toEqual(upgraded.map((row) => row.name));
-});
-
-test("reopening is idempotent: same version, same schema, same rows", async () => {
-  const path = await legacyFile();
-  db = openTillDatabase(path);
   const first = { version: await version(db), schema: await schemaOf(db) };
   expect(first.version).toBeGreaterThan(0);
   await db.close();

@@ -58,7 +58,6 @@ export default defineConfig({
       env: {
         E2E_DATABASE_URL,
         SHOPPER_AUTH_URL: "http://localhost:5183",
-        SHOPPER_API_URL: "http://127.0.0.1:1",
       },
       timeout: 180_000,
       reuseExistingServer,

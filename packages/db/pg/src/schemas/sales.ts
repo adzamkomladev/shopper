@@ -3,6 +3,7 @@ import {
   bigint,
   check,
   foreignKey,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -11,10 +12,11 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-import { tenant, branch, store } from "./base";
+import { tenant, branch, store, moneyColumn } from "./base";
 import { user } from "./auth";
 import { device, cashierSession } from "./devices";
 import { product, price, taxRule } from "./catalogue";
+import { payment } from "./payments";
 
 export const sale = pgTable(
   "sale",
@@ -35,6 +37,16 @@ export const sale = pgTable(
     payload: jsonb("payload").notNull(),
     contentHash: text("content_hash").notNull(),
     storeSequence: bigint("store_sequence", { mode: "bigint" }),
+    status: text("status").notNull().default("completed"),
+    total: moneyColumn("total"),
+    cashRounding: moneyColumn("cash_rounding")
+      .notNull()
+      .default(sql`0`),
+    paid: moneyColumn("paid"),
+    change: moneyColumn("change")
+      .notNull()
+      .default(sql`0`),
+    receipt: jsonb("receipt"),
   },
   (t) => [
     unique().on(t.orgId, t.id),
@@ -69,5 +81,34 @@ export const saleLine = pgTable(
     foreignKey({ columns: [t.orgId, t.productId], foreignColumns: [product.orgId, product.id] }),
     foreignKey({ columns: [t.orgId, t.priceId], foreignColumns: [price.orgId, price.id] }),
     foreignKey({ columns: [t.orgId, t.taxRuleId], foreignColumns: [taxRule.orgId, taxRule.id] }),
+  ],
+);
+
+export const tenderKinds = ["cash", "momo", "card"] as const;
+export const saleTender = pgTable(
+  "sale_tender",
+  {
+    ...tenant(),
+    saleId: uuid("sale_id").notNull(),
+    position: integer("position").notNull(),
+    kind: text("kind", { enum: tenderKinds }).notNull(),
+    amount: moneyColumn("amount").notNull(),
+    reference: text("reference"),
+    approvalCode: text("approval_code"),
+    last4: text("last4"),
+    network: text("network"),
+    paymentId: uuid("payment_id"),
+  },
+  (t) => [
+    unique().on(t.orgId, t.id),
+    unique().on(t.orgId, t.saleId, t.position),
+    // A confirmed MoMo payment settles one tender only.
+    unique().on(t.orgId, t.paymentId),
+    foreignKey({ columns: [t.orgId, t.saleId], foreignColumns: [sale.orgId, sale.id] }),
+    foreignKey({ columns: [t.orgId, t.paymentId], foreignColumns: [payment.orgId, payment.id] }),
+    check("sale_tender_kind", sql`${t.kind} IN ('cash', 'momo', 'card')`),
+    check("sale_tender_amount", sql`${t.amount} > 0 OR (${t.kind} = 'cash' AND ${t.amount} = 0)`),
+    check("sale_tender_position", sql`${t.position} >= 0`),
+    check("sale_tender_momo_payment", sql`${t.kind} <> 'momo' OR ${t.paymentId} IS NOT NULL`),
   ],
 );

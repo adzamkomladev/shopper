@@ -5,6 +5,7 @@ import {
   deviceToken,
   deviceId,
   recordSale,
+  syncProtocol,
 } from "../../../support/till/server";
 import { createRuntimeApi, syncHeaders } from "../../../support/till/requests";
 
@@ -19,7 +20,7 @@ test("runtime routes authorize sync from device identity before browser tenant f
     headers,
     body: JSON.stringify({
       requestId,
-      protocol: 1,
+      protocol: syncProtocol,
       events: [captured.event],
       proofs: [{ sessionId: captured.sessionId, proof: captured.proof }],
     }),
@@ -31,7 +32,7 @@ test("runtime routes authorize sync from device identity before browser tenant f
     headers: { ...syncHeaders(), "X-Shopper-Org": v7() },
     body: JSON.stringify({
       requestId: v7(),
-      protocol: 1,
+      protocol: syncProtocol,
       events: [captured.event],
       proofs: [{ sessionId: captured.sessionId, proof: captured.proof }],
     }),
@@ -48,7 +49,7 @@ test("runtime routes authorize sync from device identity before browser tenant f
     },
     body: JSON.stringify({
       requestId: v7(),
-      protocol: 1,
+      protocol: syncProtocol,
       events: [captured.event],
       proofs: [{ sessionId: cashier.id, proof: cashier.proof }],
     }),

@@ -6,6 +6,9 @@ import { v7 } from "uuid";
 import { boxBlobs } from "@shopper/adapters-box";
 import { createPullWorker, createPushWorker } from "@shopper/sync";
 import { createProduct } from "@shopper/core/catalogue";
+import { readQuoteReference } from "@shopper/core/till";
+import { org } from "@shopper/db-pg";
+import { eq } from "drizzle-orm";
 import {
   api,
   context,
@@ -164,4 +167,24 @@ test("snapshot access rejects foreign credentials and incompatible protocols", a
     ).status,
   ).toBe(401);
   expect((await server.request("/sync/snapshot", { headers: pullHeaders(99) })).status).toBe(409);
+});
+
+test("a new till receives the organisation's cash rounding, 10p by default", async () => {
+  await start();
+  const data = (await (await snapshot()).json()) as { reference: { cashRounding: string } };
+  expect(data.reference.cashRounding).toBe("10p");
+  const refs = await till!.database.read((tx) => readQuoteReference(tx, context.orgId));
+  expect(refs.cashRounding).toBe("10p");
+});
+
+test("a snapshot carries cash rounding none after the organisation switches it off", async () => {
+  await databases().db.update(org).set({ cashRounding: "none" }).where(eq(org.id, context.orgId));
+  try {
+    await appendRows([{}]);
+    await start();
+    const refs = await till!.database.read((tx) => readQuoteReference(tx, context.orgId));
+    expect(refs.cashRounding).toBe("none");
+  } finally {
+    await databases().db.update(org).set({ cashRounding: "10p" }).where(eq(org.id, context.orgId));
+  }
 });

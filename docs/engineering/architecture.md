@@ -64,6 +64,8 @@ Business code is written once and runs on Cloudflare (cloud) and on Rivet/Bun (o
 
 ## Back office and the public routes
 
+Portal = TanStack Start in SPA mode: a prerendered static shell served by Workers Static Assets; one Worker runs only for `/api/*` (the shared Hono API through native Hyperdrive, D1, R2, Durable Object and Workflow bindings) and `/_serverFn/*` (host-only server functions). Backoffice data stays on the shared API so the box SPA and Electron reuse it.
+
 - `@shopper/backoffice` exports `createBackofficeRoutes(rootRoute)`. The host owns the router, root
   route and query client and mounts these routes: the portal today, Electron on day 13. The package
   never creates a router or reads a host global.
@@ -112,8 +114,9 @@ reads, so a concurrent operation cannot enter another command's transaction.
 `@shopper/sync` delivers the outbox outside local transactions. Its `./bridge` export contains only
 browser-safe Valibot contracts. The till UI subscribes to WebSocket state and sends explicit
 actions; credentials and cashier-session proofs stay in the host. Browser connections require an
-allowed Origin and a per-start capability kept in memory. Private process IPC also supports local
-sale recording; the status-only browser screen cannot record sales.
+allowed Origin and a per-start capability kept in memory. The browser capability may edit baskets, take tenders, hold/void and complete sales; private process
+IPC additionally retains a recording compatibility helper and shutdown. Both sale entry points use
+the same transactional completion writer.
 
 Both HTTP hosts compose `@shopper/api/sync`. An enrolled-device principal establishes upload
 scope, independently of browser and expired cashier sessions. Acceptance stores the captured sale
@@ -121,12 +124,13 @@ and lines in one audited PostgreSQL transaction; `Sequencer.assignSale` assigns 
 in another. Both adapters call the shared assignment command. Replays recover persisted results
 without another mutation or audit, and acknowledgment waits for sequence assignment.
 
-Protocol negotiation and event decoding are separate contracts. Protocol 2 supports N and N−1;
-protocol 1 has no published predecessor. Protocol 1 replies preserve their original strict shape,
-while protocol 2 adds receipt blocks and clock/occurrence metadata. The producer owns event
-versions and upcasters; the original application version stays on the sale. Sale event v2 adds
-receipt identity and clock offset; v1 is upcast before hashing. The server stores corrected
-occurrence time, capped at acceptance, alongside raw device time.
+Protocol negotiation and event decoding are separate contracts. Day 11 resets disposable till data:
+only sync protocol 3 and sale event v3 are accepted, and older tills must update and re-bootstrap.
+The sale carries tender amounts, inclusive discounts, authoritative label provenance, signed cash
+rounding and receipt identity. Its original application version stays intact. The server validates
+and stores corrected occurrence time, capped at acceptance, alongside raw device time. Each side
+builds a versioned receipt document; receipt JSON stays out of the synced event. Completion writes
+sale lines, tenders, signed stock movements and its audit atomically in each database.
 
 Reference mutations append store-scoped changes in their audited PostgreSQL transaction.
 Authenticated tills bootstrap from a versioned gzip snapshot through the Blobs port, then apply

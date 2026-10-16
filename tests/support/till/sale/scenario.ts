@@ -21,8 +21,8 @@ const names = [
  * A real register host with ten barcoded products under Ghana standard rates (VAT 15%, NHIL 2.5%,
  * GETFund 2.5%). The server is unreachable, so the till sells offline on its provisioned catalogue.
  */
-export async function startSaleScenario(appOrigin: string) {
-  const server = await createConnectionServer("connected-empty");
+export async function startSaleScenario(appOrigin: string, grants: readonly string[] = []) {
+  const server = await createConnectionServer("connected-empty", grants);
   const cleanups: (() => Promise<unknown> | void)[] = [() => server.close()];
   const stop = async () => {
     for (const cleanup of cleanups.reverse()) await cleanup();

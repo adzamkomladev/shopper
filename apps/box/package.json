@@ -16,6 +16,8 @@
     "@shopper/adapters-box": "workspace:*",
     "@shopper/api": "workspace:*",
     "@shopper/auth": "workspace:*",
+    "@shopper/config": "workspace:*",
+    "@shopper/core": "workspace:*",
     "hono": "4.13.13"
   }
 }

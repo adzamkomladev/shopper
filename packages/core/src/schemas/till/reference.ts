@@ -7,6 +7,11 @@ import { mappingInput } from "../catalogue/mappings";
 import { sequenceSchema } from "@shopper/ports";
 
 const timestamp = v.pipe(v.string(), v.isoTimestamp());
+export const cashRoundingSchema = v.picklist(["none", "10p"]);
+export type CashRounding = v.InferOutput<typeof cashRoundingSchema>;
+/** Organisation settings a till needs offline; stored as one reference row whose id is the org id. */
+export const tillOrgSetting = v.strictObject({ id: tillId, cashRounding: cashRoundingSchema });
+const cashRounding = v.optional(cashRoundingSchema, "10p");
 const productFields = {
   id: tillId,
   orgId: tillId,
@@ -55,12 +60,15 @@ export const tillReference = v.strictObject({
   prices: v.array(tillPrice),
   taxRules: v.array(tillTaxRule),
   barcodeMappings: v.optional(v.array(tillMapping), []),
+  cashRounding,
 });
 const tillReferenceV2 = v.strictObject({
   products: v.array(tillProduct),
   prices: v.array(tillPrice),
   taxRules: v.array(tillTaxRule),
   barcodeMappings: v.array(tillMapping),
+  // Snapshots cached before the setting existed omit it.
+  cashRounding,
 });
 
 const payloads = {

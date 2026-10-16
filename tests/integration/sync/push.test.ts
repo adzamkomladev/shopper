@@ -111,6 +111,7 @@ test("continues eligible batches while preserving permanent rejections", async (
   await worker.trigger();
 
   const uploads = fixture.upstream.requests.filter((request) => request.path === "/sync/push");
+  expect(uploads[0]?.serverResponse).toMatchObject({ rejected: [] });
   expect(uploads.map((request) => (request.body as { events: unknown[] }).events.length)).toEqual([
     200, 1,
   ]);
@@ -141,6 +142,7 @@ test("splits upload batches by encoded request bytes below the event-count limit
   await worker.trigger();
 
   const uploads = fixture.upstream.requests.filter((request) => request.path === "/sync/push");
+  expect(uploads[0]?.serverResponse).toMatchObject({ rejected: [] });
   expect(uploads.length).toBeGreaterThan(1);
   expect(uploads.every((request) => request.bytes <= 1_048_576)).toBe(true);
   expect(

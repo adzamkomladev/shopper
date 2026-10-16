@@ -1,4 +1,5 @@
 import * as v from "valibot";
+import { receiptReference } from "../receipts/reference";
 import { tillId } from "./fields";
 
 export const tillReceiptCodes = v.strictObject({
@@ -13,4 +14,5 @@ export const tillConfiguration = v.object({
   branchId: tillId,
   appVersion: v.pipe(v.string(), v.minLength(1)),
   receiptCodes: v.optional(tillReceiptCodes),
+  receiptReference: v.optional(receiptReference),
 });

@@ -26,6 +26,8 @@ export interface ApiOptions {
   devices?: ReturnType<typeof createDeviceService>;
   // Populated by the authenticated session adapter; never derive this from request parameters.
   resolveOrgId?: (request: Request) => Promise<string | null>;
+  momoPayment?: WorkflowLauncher;
+  paystackSecret?: string;
   priceChange?: WorkflowLauncher;
   onboarding?: ReturnType<typeof createOnboarding>;
   invitations?: ReturnType<typeof createInvitations>;
@@ -43,8 +45,27 @@ export interface RuntimeOptions {
   orgId?: string;
   bootstrapToken?: string;
   clientIP?: string;
+  momoPayment?: WorkflowLauncher;
+  paystackSecret?: string;
   priceChange?: WorkflowLauncher;
   authFlows?: WorkflowLauncher;
   linkSecret?: string;
   publicOnboarding?: boolean;
+}
+
+export interface PortalHost {
+  version: string;
+  environment: string;
+  publicOnboarding: boolean;
+}
+export interface PortalHealth {
+  database: "ok" | "error";
+  cache: "ok" | "error";
+  blobs: "ok" | "error";
+}
+/** What a host injects into the portal's server entry: the API plus the host-only server functions. */
+export interface PortalContext {
+  portalRuntime: (request: Request) => Promise<Response>;
+  portalHost: () => PortalHost;
+  portalHealth: () => Promise<PortalHealth>;
 }

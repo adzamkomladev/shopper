@@ -452,6 +452,9 @@ importers:
       '@shopper/db-sqlite':
         specifier: workspace:*
         version: link:../../db/sqlite
+      '@shopper/hardware':
+        specifier: workspace:*
+        version: link:../../hardware
       '@shopper/ports':
         specifier: workspace:*
         version: link:../../ports

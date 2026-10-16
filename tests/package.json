@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./support/hardware/receipt": "./support/hardware/receipt.ts",
     "./support/till/pending/sale": "./support/till/pending/sale.ts"
   },
   "devDependencies": {

@@ -1,3 +1,4 @@
+import { startBrowserFake } from "../../browser/server";
 import { startPaystackFake } from "../../paystack/server";
 import { fileURLToPath } from "node:url";
 import { mkdir } from "node:fs/promises";
@@ -24,6 +25,7 @@ await build({
   },
 });
 const paystack = await startPaystackFake();
+const browser = await startBrowserFake();
 paystack.behave("0551234987", "success");
 paystack.behave("0551234986", "send_otp");
 paystack.behave("0241234567", "pending");
@@ -34,11 +36,13 @@ export default defineConfig({
   define: buildDefines,
   plugins: [
     { name: "paystack-fake", closeBundle: () => paystack.stop() },
+    { name: "browser-fake", closeBundle: () => browser.stop() },
     cloudflareTest({
       remoteBindings: false,
       wrangler: { configPath: "../../../apps/edge/wrangler.jsonc" },
       miniflare: {
         bindings: {
+          BROWSER_FAKE_URL: browser.baseUrl,
           PAYSTACK_SECRET_KEY: paystack.secretKey,
           PAYSTACK_BASE_URL: paystack.baseUrl,
           SHOPPER_AUTH_SECRET: "integration-secret-with-at-least-32-characters",
@@ -65,6 +69,7 @@ export default defineConfig({
       "price/change.test.ts",
       "launcher.test.ts",
       "payments/momo.test.ts",
+      "renderer.test.ts",
     ],
   },
 });

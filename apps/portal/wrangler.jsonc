@@ -6,6 +6,7 @@
       "localConnectionString": "postgresql://shopper:shopper_dev_only@127.0.0.1:5432/shopper",
     },
   ],
+  "browser": { "binding": "BROWSER" },
   "d1_databases": [
     {
       "binding": "CACHE_DB",
@@ -94,6 +95,7 @@
           "localConnectionString": "postgresql://shopper:shopper_dev_only@127.0.0.1:5432/shopper",
         },
       ],
+      "browser": { "binding": "BROWSER" },
       "d1_databases": [
         {
           "binding": "CACHE_DB",

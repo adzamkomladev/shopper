@@ -110,6 +110,21 @@ Servers already running are reused outside CI. One worker, no parallelism.
 E2E tests use roles and labels (`getByRole("button", { name: "Charge" })`), never CSS classes or
 test IDs, unless no accessible name exists, and then the missing name is the bug.
 
+## Electron under Xvfb
+
+Electron suites (`tests/integration/hardware/render/electron.test.ts`, `equivalence.test.ts`) start
+the real binary through `tests/support/hardware/electron.ts`, which builds the Electron main and the
+till host, then runs `xvfb-run -a electron --no-sandbox --disable-gpu dist/main.js` when `DISPLAY` is
+unset. `--disable-gpu` is required under Xvfb: with GPU compositing `capturePage` fails with
+`UnknownVizError`. Render-only mode (`SHOPPER_ELECTRON_RENDER_ONLY=1`) answers `render` messages over
+the child's Node IPC channel and starts no host.
+
+`equivalence.test.ts` renders the golden receipt with Electron and with `boxRenderer()` and compares
+them: both 576 px wide, heights within 8 px, `pixelmatch` (threshold 0.2) differing on at most 2% of
+pixels. The constants at the top of the file are calibration knobs. Set `SHOPPER_RENDER_DIFF_DIR` to
+write both PNGs and the diff image. Receipt line heights are whole pixels because Satori rounds
+fractional ones up, which drifted the two engines apart by 5 px.
+
 ## Commands
 
 ```sh

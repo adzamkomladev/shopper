@@ -27,8 +27,12 @@
     "@shopper/sync": "workspace:*",
     "@shopper/tax": "workspace:*",
     "@shopper/utils": "workspace:*",
+    "@types/pngjs": "6.0.5",
     "@types/ws": "8.18.2",
+    "electron": "44.5.1",
     "hono": "4.13.13",
+    "pixelmatch": "7.2.0",
+    "pngjs": "7.0.0",
     "valibot": "1.1.0",
     "ws": "8.22.0"
   }

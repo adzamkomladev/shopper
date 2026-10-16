@@ -33,6 +33,12 @@ Device tokens and cashier proofs must never be put in the browser URL or storage
 includes pull cursor/head, transport mode and receipt availability. **Sync now** (`Y`) retries both
 uploads and downloads; receipt blocks are delivered only by POST handshake/push replies.
 
+Under Electron the start message also carries `renderer:"parent"`. The host then builds a
+`parentRenderer` and exposes it as `host.renderer`. It sends `{type:"render", id, receipt, paperMm,
+reprint, format}` to its parent and resolves on `{type:"rendered", id, data}` (base64) or rejects on
+`{type:"render-failed", id, message}`, or after 15 s. Both replies are routed to the renderer before
+bridge dispatch. No bridge operation requests a render yet.
+
 Development SQLite is durable but unencrypted. Native encrypted storage and Electron launch
 wiring remain later milestones.
 

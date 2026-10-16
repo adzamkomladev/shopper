@@ -12,7 +12,7 @@ The branch is pushed once, at the end, then goes to `main` as one PR.
 | S1 ESC/POS encoder, profiles, TCP driver          | done  | S1     |
 | S2 Renderer port, receipt component, box renderer | done  | S2     |
 | S3 Cloud Browser Run renderer                     | done  | S3     |
-| S4 Electron shell and printToPDF                  | todo  |        |
+| S4 Electron shell and printToPDF                  | done  | S4     |
 | S5 Register settings and printing on sale         | todo  |        |
 | S6 Till receipt PDF and upload                    | todo  |        |
 | S7 Till Settings screen                           | todo  |        |
@@ -21,7 +21,7 @@ The branch is pushed once, at the end, then goes to `main` as one PR.
 
 ## Current slice
 
-S4. Next step: add Electron to `apps/till/electron`, then write the Electron conformance and image-equivalence tests under `xvfb-run`.
+S5. Next step: `test-author` writes the register settings and printing integration tests (settings, sale, drawer, failure).
 
 ## How to resume
 
@@ -56,3 +56,24 @@ S4. Next step: add Electron to `apps/till/electron`, then write the Electron con
     names land in git.
   - Review fixes: Chromium can no longer be orphaned on start-up failure, and `stop` awaits close.
     Renderer errors carry the response body.
+- S4: Electron 44.5.1 (published 2026-09-30), pixelmatch 7.2.0, pngjs 7.0.0, @types/pngjs 6.0.5. The suite first
+  went red with `parentRenderer is not a function`. Electron conformance 6/6 and the host-fork seam test pass.
+  Equivalence on the golden 80 mm receipt: 1003 px both, 6693 px differ (1.16%, limit 2%). It first measured
+  6.01% because Satori rounds fractional line heights up (1.35 x 22 = 29.7 became 30); whole-pixel line
+  heights in `ReceiptView` fixed that without loosening the tolerance.
+  - Electron 44 has no postinstall: the binary downloads on first `require("electron")`, so no `allowBuilds` entry.
+  - Chromium rounds custom PDF page sizes to a ~1 pt grid (72 mm came out 204.96 pt). `render.ts` asks for 2 pt
+    more and crops the media box back to the exact size.
+  - Deviation: the host seam test proves Electron forks the host (`ELECTRON_RUN_AS_NODE`) and opens the till
+    window on its ready capability. Nothing in the host requests a render yet, so a render through the host
+    waits for S5/S6.
+  - Deviation: `startTillHost` does not take a renderer yet. `server.ts` builds the `parentRenderer` (routing
+    replies, disposing on stop or failed start) and S5 hands `parent.renderer` to the host. The `boxRenderer()`
+    fallback also waits for S5b: importing it bundles satori's wasm loader into the Node host dist, which then
+    fails on `__dirname`.
+  - Measured equivalence (golden 80 mm): 1003/1003 px tall, 6693 px differ = 1.16%. `MAX_DIFF_RATIO` is 1.75%.
+    A 40-line receipt (over 2000 px, past the 1024 px Xvfb screen) renders at the same height as the box
+    renderer within 8 px, so hidden windows are not clamped to the screen.
+  - Review fixes: Electron quits when its IPC parent disconnects; tests spawn it in its own process group and
+    kill the whole group; renders are serialised with a 10 s timeout; both windows deny popups, webviews and
+    foreign navigation.

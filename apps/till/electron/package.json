@@ -11,6 +11,11 @@
   },
   "scripts": {},
   "dependencies": {
-    "@shopper/config": "workspace:*"
+    "@shopper/config": "workspace:*",
+    "@shopper/core": "workspace:*",
+    "@shopper/hardware": "workspace:*",
+    "electron": "44.5.1",
+    "pdf-lib": "1.17.1",
+    "valibot": "1.1.0"
   }
 }

@@ -19,6 +19,10 @@
     "./render": {
       "types": "./src/render/index.ts",
       "default": "./src/render/index.ts"
+    },
+    "./schemas": {
+      "types": "./src/schemas/index.ts",
+      "default": "./src/schemas/index.ts"
     }
   },
   "scripts": {
@@ -30,6 +34,7 @@
     "pdf-lib": "1.17.1",
     "qrcode-generator": "2.0.4",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "valibot": "1.1.0"
   }
 }

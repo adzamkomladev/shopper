@@ -5,7 +5,9 @@ await build({
   define: buildDefines,
   ssr: { noExternal: /^@shopper\// },
   build: {
-    ssr: process.argv[2] === "till-host" ? "src/server.ts" : "src/index.ts",
+    ssr:
+      { "till-host": "src/server.ts", "till-electron": "src/main.ts" }[process.argv[2]] ??
+      "src/index.ts",
     outDir: "dist",
   },
 });

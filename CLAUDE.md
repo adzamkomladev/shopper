@@ -6,7 +6,11 @@
   table in `docs/engineering/ai-workflow.md`. Use `planner` before any multi-file change, and
   `reviewer` (which drives `codex review` on `gpt-6.1-sol`) before every commit.
 - Skills in `.claude/skills/` (a symlink to `.agents/skills/`) are also slash commands:
-  `/feature-plan`, `/tdd-slice`, `/pre-merge-review`, `/ui-screen`, `/cloud-box-parity`, `/release`.
+  `/feature-plan`, `/tdd-slice`, `/pre-merge-review`, `/ui-screen`, `/ui-verify`, `/playwright-cli`,
+  `/cloud-box-parity`, `/release`.
+- Every frontend change runs the `/ui-verify` loop with `playwright-cli` (the Playwright MCP is the
+  fallback) before it is reported done: real app, screenshots at desktop, laptop, tablet, mobile and
+  till sizes, every state, keyboard path, console and overflow checks.
 - A post-edit hook runs `vp run guard`. When it fails, fix the violation. Never edit the guard's
   baseline to get past it.
 - For Cloudflare work, load the `cloudflare`, `workers-best-practices`, `durable-objects` or

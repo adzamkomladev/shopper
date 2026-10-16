@@ -11,7 +11,7 @@ description: Implement one planned slice test-first in Shopper - write failing i
    setup if it fails for any other reason.
 3. **Green.** Implement the smallest change (inline, or spawn `implementer`, or `ui-builder` for UI).
    Follow `code-quality.md`: reuse first, main export first, size limits, shared function + thin
-   platform shells.
+   platform shells. UI slices also run the `ui-verify` loop before they are called green.
 4. **Checks.** `vp check`, `vp run guard`, then the full `vp test --run` (or spawn `checker`).
    Repeat until clean.
 5. **Tidy.** Reread the diff once as a reviewer would. Remove dead code, narrating comments, unused

@@ -1,7 +1,7 @@
 import { cp, mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
-import { build } from "vite-plus";
+import { createBuilder } from "vite-plus";
 import { unstable_readConfig } from "wrangler";
 
 const portal = fileURLToPath(new URL("../../apps/portal/", import.meta.url));
@@ -9,7 +9,8 @@ const output = join(portal, ".cloudflare/output/v0");
 const worker = join(output, "workers/default");
 process.env.CLOUDFLARE_ENV = "staging";
 await rm(join(portal, ".cloudflare/output"), { recursive: true, force: true });
-await build({ root: portal, configFile: join(portal, "vite.config.ts") });
+const builder = await createBuilder({ root: portal, configFile: join(portal, "vite.config.ts") });
+await builder.buildApp();
 const config = unstable_readConfig({ config: join(portal, "dist/server/wrangler.json") });
 if (!config.account_id) throw new Error("Portal Cloudflare account_id is required");
 await mkdir(worker, { recursive: true });

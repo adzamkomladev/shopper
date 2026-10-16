@@ -8,6 +8,8 @@ export default defineConfig({
       "**/dist-staging/**",
       "**/routeTree.gen.ts",
       "**/worker-configuration.d.ts",
+      // Installed by `playwright-cli install --skills=agents`; must stay byte-identical to the tool.
+      ".agents/skills/playwright-cli/**",
     ],
   },
   lint: {

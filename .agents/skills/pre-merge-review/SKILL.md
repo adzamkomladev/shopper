@@ -9,7 +9,10 @@ description: Review Shopper changes before commit or PR using Codex (gpt-6.1-sol
    if the user asks.
 2. Spawn the `reviewer` agent (or follow `.agents/roles/reviewer.md` inline). It runs
    `codex review` on `gpt-6.1-sol` and verifies each finding.
-3. If any `.tsx`, CSS, or UI package changed, also spawn `ui-reviewer`.
+3. If any `.tsx`, CSS, or UI package changed, also spawn `ui-reviewer`. It runs the `ui-verify` loop
+   with `playwright-cli` (Playwright MCP as fallback) and judges the result; a UI change without real
+   screenshots at desktop, laptop, tablet, mobile and till sizes is not reviewed. If the caller
+   (human or agent) cannot run a browser, say so and list what is unverified.
 4. Fix every confirmed finding, rerun the checks, and rerun the review if the fixes were not trivial.
 5. Report: the findings fixed, the findings rejected with reasons, and the final check results.
 

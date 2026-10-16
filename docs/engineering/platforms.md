@@ -78,6 +78,9 @@ Portal = TanStack Start in SPA mode: a prerendered static shell served by Worker
   `run_worker_first: ["/api/*", "/_serverFn/*"]`, so documents and static files never start the
   Worker. Every other binding (Hyperdrive, D1, R2, queue, Durable Objects, Workflows) sits on the
   same Worker.
+- Durable Object classes are declared in `wrangler.jsonc` `exports` (`{ "type": "durable-object",
+"storage": "sqlite" }`), never `migrations`: the deployed Workers use the declarative exports flow
+  and Cloudflare rejects a switch back to migrations (code 100403).
 - `worker.ts` stays thin: `cloudflarePortalContext(env)` from `@shopper/adapters-cf/portal` returns
   the request context (`portalRuntime`, `portalHost`, `portalHealth`). Bindings never leave the
   adapter, so `apps/portal` imports no `cloudflare:*` module.

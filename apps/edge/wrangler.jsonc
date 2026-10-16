@@ -137,14 +137,10 @@
     },
   ],
   "account_id": "bd9ef997b398c9aeeee8ac3d3618efdc",
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": ["StoreSequencer"],
-    },
-    {
-      "tag": "v2",
-      "new_sqlite_classes": ["StoreHub"],
-    },
-  ],
+  // Declarative exports, not `migrations`: the staging Worker was first deployed with `exports`
+  // and Cloudflare refuses to switch a Worker back to migrations (code 100403).
+  "exports": {
+    "StoreSequencer": { "type": "durable-object", "storage": "sqlite" },
+    "StoreHub": { "type": "durable-object", "storage": "sqlite" },
+  },
 }

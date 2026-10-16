@@ -72,7 +72,12 @@ test("a newer draft broadcast is not replaced by its older delayed command reply
     const scan = page.getByRole("combobox", { name: "Scan barcode or search items" });
     await scan.fill("MILO-400");
     await page.getByRole("option", { name: /Milo 400g tin/ }).click();
-    await page.getByRole("textbox", { name: "Amount tendered" }).fill("100.00");
+    // Typed amounts reset when the draft revision moves, so type only once the line has settled.
+    await expect(page.getByRole("list", { name: "Basket lines" })).toContainText("Milo 400g tin");
+    const amount = page.getByRole("textbox", { name: "Amount tendered" });
+    await expect(amount).toHaveValue("425.00");
+    await amount.fill("100.00");
+    await expect(amount).toHaveValue("100.00");
     await page.getByRole("button", { name: "Split" }).click();
 
     const tender = page.getByRole("region", { name: "Tender" });

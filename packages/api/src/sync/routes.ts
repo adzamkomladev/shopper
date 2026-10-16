@@ -5,12 +5,14 @@ import { bodyLimit } from "hono/body-limit";
 import * as v from "valibot";
 import { negotiateProtocol } from "@shopper/sync/versions";
 import { buildInfo } from "@shopper/config";
+import { AssetError } from "@shopper/assets";
 import { acceptSale, SaleError } from "@shopper/core/sales";
 import { issueReceiptBlocks } from "@shopper/core/till";
 
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { Blobs, Sequencer } from "@shopper/ports";
 import type { createDeviceService } from "@shopper/auth/devices";
+import { createReceiptRoutes } from "./receipts";
 import { createLiveRoutes, type LiveUpgrade } from "./live";
 import { createPullRoutes } from "./pull";
 import { createSnapshotRoutes } from "./snapshot";
@@ -36,6 +38,7 @@ export function createSyncRoutes(options: {
     }),
   );
   app.onError((error, c) => {
+    if (error instanceof AssetError) return c.json({ error: error.message }, error.status);
     if (v.isValiError(error) || error instanceof SyntaxError)
       return c.json({ error: "Malformed sync envelope" }, 400);
     return c.json({ error: "Sync service unavailable" }, 503);
@@ -43,6 +46,7 @@ export function createSyncRoutes(options: {
   app.route("/", createLiveRoutes(options));
   app.route("/", createPullRoutes({ ...options, protocol }));
   app.route("/", createSnapshotRoutes({ ...options, protocol }));
+  app.route("/", createReceiptRoutes(options));
   app.post("/sync/handshake", async (c) => {
     const principal = await options.devices.resolveUploadPrincipal(c.req.raw);
     if (!principal) return c.json({ error: "Invalid device credential" }, 401);

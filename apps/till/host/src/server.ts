@@ -27,9 +27,9 @@ async function start(config: unknown, renderer?: unknown) {
   try {
     const { startTillHost, parentRenderer } = await import("@shopper/adapters-box/till");
     if (stopped || (ipc && !process.connected)) return;
-    // Under Electron the parent renders receipts; S5 hands `parent.renderer` to the host.
+    // Under Electron the parent renders receipts; otherwise the host renders them itself.
     if (renderer === "parent") parent = parentRenderer(send);
-    host = await startTillHost(config, send);
+    host = await startTillHost(config, send, parent?.renderer);
     if (stopped) await host.close();
   } catch {
     parent?.dispose();

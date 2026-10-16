@@ -10,6 +10,7 @@ import {
 } from "@shopper/core/till";
 import { createHostSync } from "./sync";
 import { bridgeRequest, type BridgeMessage, type HostStatus } from "@shopper/sync/bridge";
+import type { Renderer } from "@shopper/ports";
 import { openTillDatabase } from "../database";
 import { hostConfiguration } from "./config";
 import { createHostPayments } from "./payments";
@@ -18,7 +19,11 @@ import { createDispatch } from "./dispatch";
 import { createHostReceipts } from "./receipts";
 import { openHostTransport, error } from "./transport";
 
-export async function startTillHost(raw: unknown, send: (message: unknown) => void) {
+export async function startTillHost(
+  raw: unknown,
+  send: (message: unknown) => void,
+  renderer?: Renderer,
+) {
   const config = v.parse(hostConfiguration, raw);
   const database = openTillDatabase(config.sqlitePath);
   const identity = config.identity;
@@ -56,7 +61,13 @@ export async function startTillHost(raw: unknown, send: (message: unknown) => vo
     },
     payments,
   );
-  const receipts = createHostReceipts({ database, config, publishStatus });
+  const receipts = createHostReceipts({
+    database,
+    config,
+    publishStatus,
+    renderer,
+    onPdfStored: () => void worker.uploadReceipts(),
+  });
   const permissions = config.session?.permissions ?? [];
   const registerCode = config.receiptCodes
     ? `${config.receiptCodes.branchCode}-${config.receiptCodes.deviceCode}`

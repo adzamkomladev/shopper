@@ -150,4 +150,4 @@ a disconnected till pulls and reconnects after 30 seconds, with backoff capped a
 A healthy idle socket also pulls every five minutes to repair lost nudges. These timers repair
 transport delivery; business processes still use Workflows.
 
-Direct browser asset uploads are managed by `@shopper/assets` and use presigned PUT to R2/RustFS. Imports and generated snapshots have separate policies; no upload bytes pass through Hono. Blobs supports bounded reads for integrity validation immediately before processing. Server-generated objects retain the existing R2/filesystem paths; an unavailable S3 upload store fails rather than proxying bytes. See [assets.md](assets.md).
+Direct browser asset uploads are managed by `@shopper/assets` and use presigned PUT to R2/RustFS. Imports, till receipt PDFs (`receipts/` keys, own bucket) and generated snapshots have separate policies; no upload bytes pass through Hono. Blobs supports bounded reads for integrity validation immediately before processing. Server-generated objects retain the existing R2/filesystem paths; an unavailable S3 upload store fails rather than proxying bytes. See [assets.md](assets.md).

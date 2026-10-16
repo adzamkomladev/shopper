@@ -3,10 +3,16 @@ import { eq } from "drizzle-orm";
 import { buildInfo } from "@shopper/config";
 import { localSale } from "@shopper/db-sqlite";
 import { receiptDocument, type ReceiptDocument } from "@shopper/core/receipts";
-import { readRegisterSettings, recordReceiptPrint, TillError } from "@shopper/core/till";
+import {
+  readRegisterSettings,
+  recordReceiptPrint,
+  storeReceiptPdf,
+  TillError,
+} from "@shopper/core/till";
 import { encodeReceipt, escpos, paper, printerProfiles } from "@shopper/hardware";
 import { networkPrinter, printerDrawer } from "@shopper/hardware/network";
 import type { ReceiptPrinter } from "@shopper/hardware";
+import type { Renderer } from "@shopper/ports";
 import type { PrinterStatus } from "@shopper/sync/bridge";
 import type { TillDatabase } from "@shopper/db-sqlite";
 import type { HostConfiguration } from "./config";
@@ -23,8 +29,17 @@ export function createHostReceipts(options: {
   database: TillDatabase;
   config: HostConfiguration;
   publishStatus: () => Promise<void>;
+  /** The Electron parent's renderer; the box renderer is loaded on first use otherwise. */
+  renderer?: Renderer;
+  /** Called after a receipt PDF is stored, so a sale that was acknowledged first still uploads. */
+  onPdfStored: () => void;
 }) {
   const { database, config, publishStatus } = options;
+  let box: Promise<Renderer> | undefined;
+  // Loaded lazily: satori and resvg-wasm are only evaluated on a host that renders itself.
+  const renderer = async () =>
+    options.renderer ?? (await (box ??= import("../../renderer").then((m) => m.boxRenderer())));
+  let pdfTail: Promise<unknown> = Promise.resolve();
   let lastJob: PrinterStatus["lastJob"] = null;
   let offline = false;
   let tail: Promise<unknown> = Promise.resolve();
@@ -91,6 +106,20 @@ export function createHostReceipts(options: {
       openDrawer,
     });
 
+  /** Renders the digital receipt and stores it. Never throws: the sale is committed and the PDF can be reprinted later. */
+  async function storePdf(saleId: string, seller: Context) {
+    try {
+      const { value } = await readRegisterSettings(database, config.identity);
+      const pdf = await (
+        await renderer()
+      ).receipt(await receiptOf(saleId), { paperMm: value.paperMm, reprint: false }, "pdf");
+      await storeReceiptPdf(database, seller, { saleId, pdf });
+      options.onPdfStored();
+    } catch (error) {
+      console.error("Receipt PDF after sale failed", error);
+    }
+  }
+
   return {
     printer(configured: boolean): PrinterStatus {
       return { state: !configured ? "unconfigured" : offline ? "offline" : "ready", lastJob };
@@ -106,6 +135,7 @@ export function createHostReceipts(options: {
      */
     afterSale(saleId: string) {
       const seller = auditContext(config);
+      pdfTail = pdfTail.then(() => storePdf(saleId, seller));
       return queued(async () => {
         try {
           const current = await load();

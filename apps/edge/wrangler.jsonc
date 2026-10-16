@@ -36,6 +36,7 @@
           "bucket_name": "shopper-assets-staging",
         },
         { "binding": "IMPORTS", "bucket_name": "shopper-imports-staging" },
+        { "binding": "RECEIPTS", "bucket_name": "shopper-receipts-staging" },
       ],
       "queues": {
         "producers": [
@@ -104,6 +105,7 @@
       "bucket_name": "shopper-assets-dev",
     },
     { "binding": "IMPORTS", "bucket_name": "shopper-imports-dev", "remote": true },
+    { "binding": "RECEIPTS", "bucket_name": "shopper-receipts-dev", "remote": true },
   ],
   "queues": {
     "producers": [

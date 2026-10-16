@@ -17,3 +17,9 @@ Electron shell for the till.
 
 Build with `vp -C apps/till/electron run build` (`dist/main.js`, `electron` external). Tests run it under
 `xvfb-run -a` with `--no-sandbox --disable-gpu`; see `docs/engineering/testing.md`.
+
+## Packaging note
+
+The till host loads `satori` and `@resvg/resvg-wasm` (including `index_bg.wasm`) from `node_modules` at runtime
+when it renders receipt PDFs itself (`tooling/build/server.mjs` marks them external). The Day 13 installer must
+ship them next to the host (`files`, and `asarUnpack` for the wasm), or the host cannot render without Electron.

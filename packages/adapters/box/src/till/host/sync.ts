@@ -1,6 +1,11 @@
 import type { createHostPayments } from "./payments";
 import WebSocket from "ws";
-import { createLiveWorker, createPullWorker, createPushWorker } from "@shopper/sync";
+import {
+  createLiveWorker,
+  createPullWorker,
+  createPushWorker,
+  createReceiptUploadWorker,
+} from "@shopper/sync";
 import type { TillDatabase } from "@shopper/db-sqlite";
 import { readReceiptStatus } from "@shopper/core/till";
 import { buildInfo } from "@shopper/config";
@@ -39,11 +44,17 @@ export function createHostSync(
     onPayment: payments?.receive,
     onConnected: payments?.recover,
   });
+  const uploads = createReceiptUploadWorker({
+    ...options,
+    config: { ...options.config, protocol: buildInfo.syncProtocol },
+    onChange: notify,
+  });
   const push = createPushWorker({
     ...options,
     onStatus: notify,
     onAcknowledgment: () => {
       void pull.trigger();
+      void uploads.trigger();
     },
   });
   return {
@@ -90,13 +101,17 @@ export function createHostSync(
       push.start();
       pull.start();
       live.start();
+      void uploads.trigger();
     },
     async trigger() {
       await push.trigger();
       await pull.trigger();
+      await uploads.trigger(true);
     },
+    /** Uploads any acknowledged receipt PDFs that are still pending. */
+    uploadReceipts: () => uploads.trigger(),
     async stop() {
-      await Promise.all([live.stop(), push.stop(), pull.stop()]);
+      await Promise.all([live.stop(), push.stop(), pull.stop(), uploads.stop()]);
     },
   };
 }

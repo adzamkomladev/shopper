@@ -127,6 +127,13 @@
       "when": 1792231200001,
       "tag": "0017_payment_fingerprint",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792231200002,
+      "tag": "0018_receipts",
+      "breakpoints": true
     }
   ]
 }

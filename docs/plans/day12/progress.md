@@ -14,14 +14,14 @@ The branch is pushed once, at the end, then goes to `main` as one PR.
 | S3 Cloud Browser Run renderer                     | done  | S3     |
 | S4 Electron shell and printToPDF                  | done  | S4     |
 | S5 Register settings and printing on sale         | done  | S5     |
-| S6 Till receipt PDF and upload                    | todo  |        |
+| S6 Till receipt PDF and upload                    | done  | S6     |
 | S7 Till Settings screen                           | todo  |        |
 | S8 Reprint, preview, completion print status      | todo  |        |
 | S9 Docs, review, push, PR, merge, Notion          | todo  |        |
 
 ## Current slice
 
-S6. Next step: render and store the receipt PDF after each sale, then upload it to the receipts bucket after the sale is acknowledged.
+S7. Next step: design the "Edit printer" row in Figma (copy of 146:4805), then `test-author` writes the Settings screen e2e specs.
 
 ## How to resume
 
@@ -100,3 +100,33 @@ S6. Next step: render and store the receipt PDF after each sale, then upload it 
     `afterSale` captures the seller's audit context at sale time. Each job reads settings once and carries a
     narrowed `Ready` type. `readRegisterSettings(db, identity)` takes one argument. The basket handlers moved from
     `dispatch.ts` (now 129 lines) to `basket.ts`, with the shared types in `host/types.ts`.
+- S6 (till PDF + upload): see results below.
+  - S6a: after `sale.complete` the host renders the PDF (paperMm from settings, `reprint: false`) on its own
+    chain, separate from printing, so a down printer or a slow render never delays the other. It stores it with
+    `storeReceiptPdf` (sha256 from `@shopper/utils`, audit `receipt.pdf.store`). Errors are logged, never fail the sale.
+    `startTillHost(raw, send, renderer?)`: `server.ts` passes `parent.renderer` under Electron; otherwise the box
+    renderer is `import()`ed on first use. `tooling/build/server.mjs` marks `satori` and `@resvg/resvg-wasm`
+    external (declared in `apps/till/host/package.json`), which fixes S4's `__dirname is not defined`. The host
+    tests spawn the built `dist/server.js` (they rebuild it), so `pdf.test.ts` renders through the real bundle.
+  - S6b: migration `0018_receipts.sql` (asset policy, `sale.receipt_asset_id` + FK) and Drizzle updated;
+    `issueReceiptUpload` / `confirmReceiptUpload` in `@shopper/assets` (audits `asset.receipt.issue|confirm`);
+    `POST /sync/receipts` and `/sync/receipts/:assetId/confirm`; `receipts/` routing in both Blobs adapters,
+    box and cf runtime wiring, `RECEIPTS` bindings (edge + portal), `SHOPPER_S3_RECEIPTS_BUCKET`, RustFS
+    `shopper-receipts-dev` in `vp run storage:setup`; `createReceiptUploadWorker` in `@shopper/sync`.
+  - Deviation: `shopper_preserve_sale` (0010) rejected every update except the first store sequence, so 0018
+    replaces it to also allow the first `receipt_asset_id` assignment with all else unchanged.
+  - Review fixes: a linked receipt is final: `issueReceiptUpload` answers `{assetId, linked: true}` with no grant
+    and no new audit, and the worker then only records the upload locally (crash recovery; `recovery.test.ts`).
+    The worker honours `next_upload_at` (push backoff growing with `upload_attempts`; 404/413 take the longest
+    backoff); start, acknowledgement and PDF-stored triggers skip PDFs still backing off, Sync now forces.
+    Residual risk: `retry.test.ts` relies on the second sale taking longer than the first 0.5-1 s backoff
+    (passed 3 of 3 reruns). A confirm mismatch deletes the rejected object. `storeReceiptPdf` upserts and resets
+    the upload state, since a re-stored PDF must be uploaded afresh. `pending()` selects ids; each PDF is loaded
+    on its own. Packaging note added to `apps/till/electron/README.md`.
+  - Deviation: failures also audit `receipt.pdf.upload.failed` (every mutation is a command).
+  - Deviation: cf `cloudflareBlobs` without a `receipts` binding keeps `receipts/` keys in `BLOBS` (the shared
+    blobs conformance writes `receipts/a.pdf`); grants are 503 either way.
+  - Dev `RECEIPTS` binding is `remote: true` on `shopper-receipts-dev`, like `IMPORTS` on `shopper-imports-dev`.
+  - Owner actions: create the `shopper-receipts-dev` and `shopper-receipts-staging` R2 buckets and an Object Read & Write token scoped to
+    it; set `SHOPPER_S3_RECEIPTS_BUCKET` (+ existing `SHOPPER_S3_*`) as Worker secrets and in `apps/edge/.dev.vars`;
+    for the box set the same names. Until then grants answer 503 and tills keep retrying.

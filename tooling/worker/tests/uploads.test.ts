@@ -3,7 +3,7 @@ import { expect, test } from "vitest";
 import { v7 } from "uuid";
 import { cloudflareBlobs } from "@shopper/adapters-cf";
 import { objectStorage } from "@shopper/ports";
-import { uploadConformance } from "@shopper/conformance";
+import { receiptUploadConformance, uploadConformance } from "@shopper/conformance";
 
 uploadConformance("workerd S3 grants (RustFS transport)", test, async (now) => {
   const bindings = env as { BLOBS: R2Bucket; IMPORTS: R2Bucket };
@@ -33,6 +33,33 @@ uploadConformance("workerd S3 grants (RustFS transport)", test, async (now) => {
     blobs: { ...blobs, get: transport.get, delete: transport.delete },
     orgId: v7(),
     otherOrgId: v7(),
+  };
+});
+
+const rustfs = {
+  endpoint: "http://127.0.0.1:9200",
+  accessKeyId: "shopper_dev_access",
+  secretAccessKey: "shopper_dev_secret_at_least_32_chars",
+  region: "us-east-1",
+  bucket: "shopper-receipts-dev",
+};
+receiptUploadConformance("workerd S3 grants (RustFS transport)", test, async () => {
+  const bindings = env as { BLOBS: R2Bucket; IMPORTS: R2Bucket; RECEIPTS: R2Bucket };
+  const { blobs } = await cloudflareBlobs(bindings.BLOBS, {
+    imports: bindings.IMPORTS,
+    receipts: bindings.RECEIPTS,
+    baseUrl: "https://shopper.test/blobs",
+    secret: new Uint8Array(32),
+    objectStorage: { ...rustfs, bucket: "shopper-imports-dev" },
+    receiptsObjectStorage: rustfs,
+  });
+  // RustFS verifies the signed HTTP contract; native R2 storage is exercised separately.
+  const transport = objectStorage(rustfs);
+  return {
+    blobs: { ...blobs, get: transport.get, delete: transport.delete },
+    orgId: v7(),
+    otherOrgId: v7(),
+    bucket: rustfs.bucket,
   };
 });
 

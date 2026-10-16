@@ -39,13 +39,22 @@ export function boxCache(path: string, now = Date.now) {
 }
 export async function boxBlobs(
   path: string,
-  options: BlobUrlOptions & { objectStorage?: ObjectStorageOptions },
+  options: BlobUrlOptions & {
+    objectStorage?: ObjectStorageOptions;
+    receiptsObjectStorage?: ObjectStorageOptions;
+  },
 ) {
   const access = await blobUrlAccess(options);
   const storage = createStorage({ driver: fsDriver({ base: path }) });
   const local = storedBlobs(storage, access);
   const objects = options.objectStorage ? objectStorage(options.objectStorage) : undefined;
-  const selected = (key: string) => (key.startsWith("imports/") && objects ? objects : local);
+  const receipts = options.receiptsObjectStorage
+    ? objectStorage(options.receiptsObjectStorage)
+    : undefined;
+  // Without a receipts store, receipts keys fall to `local`, whose grants fail with BlobUploadUnavailable.
+  const selected = (key: string) =>
+    (key.startsWith("receipts/") ? receipts : key.startsWith("imports/") ? objects : undefined) ??
+    local;
   return {
     blobs: {
       put: (orgId: string, key: string, value: Uint8Array) => selected(key).put(orgId, key, value),
@@ -57,7 +66,8 @@ export async function boxBlobs(
         key: string,
         input: import("@shopper/ports").BlobUploadOptions,
       ) => {
-        if (!key.startsWith("imports/")) throw new Error("Direct uploads require an imports key");
+        if (!key.startsWith("imports/") && !key.startsWith("receipts/"))
+          throw new Error("Direct uploads require an imports or receipts key");
         return selected(key).createUpload(orgId, key, input);
       },
       signedUrl: access.sign,

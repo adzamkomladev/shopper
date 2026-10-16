@@ -9,9 +9,11 @@ const client = new AwsClient({
   service: "s3",
 });
 const bucket = "shopper-imports-dev";
-const created = await client.fetch(`${endpoint}/${bucket}`, { method: "PUT" });
-if (!created.ok && created.status !== 409)
-  throw new Error(`RustFS bucket creation failed: ${created.status} ${await created.text()}`);
+for (const name of [bucket, "shopper-receipts-dev"]) {
+  const created = await client.fetch(`${endpoint}/${name}`, { method: "PUT" });
+  if (!created.ok && created.status !== 409)
+    throw new Error(`RustFS bucket creation failed: ${created.status} ${await created.text()}`);
+}
 const cors = await client.fetch(`${endpoint}/${bucket}?cors`, {
   method: "PUT",
   headers: { "content-type": "application/xml" },
@@ -31,4 +33,4 @@ if (
   !preflight.headers.get("access-control-allow-methods")?.includes("PUT")
 )
   throw new Error("RustFS browser upload preflight failed");
-console.log("RustFS private imports bucket and browser CORS are ready");
+console.log("RustFS private imports and receipts buckets and browser CORS are ready");

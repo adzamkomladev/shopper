@@ -34,4 +34,9 @@ export {
   readRegisterSettings,
   saveRegisterSettings,
 } from "./register/settings";
-export { recordReceiptPrint } from "./register/receipts";
+export {
+  markReceiptUploaded,
+  markReceiptUploadFailed,
+  recordReceiptPrint,
+  storeReceiptPdf,
+} from "./register/receipts";

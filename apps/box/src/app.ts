@@ -34,6 +34,16 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
       SHOPPER_BOOTSTRAP_TOKEN,
     } = environment;
     if (!DATABASE_URL || !SHOPPER_AUTH_SECRET || !SHOPPER_AUTH_URL) return runtimeUnavailable();
+    const s3 = (bucket?: string) =>
+      environment.SHOPPER_S3_ENDPOINT && bucket
+        ? {
+            endpoint: environment.SHOPPER_S3_ENDPOINT,
+            bucket,
+            accessKeyId: environment.SHOPPER_S3_ACCESS_KEY_ID ?? "",
+            secretAccessKey: environment.SHOPPER_S3_SECRET_ACCESS_KEY ?? "",
+            region: environment.SHOPPER_S3_REGION ?? "",
+          }
+        : undefined;
     const connection = await boxDatabase(DATABASE_URL);
     cache ??= boxCache(environment.SHOPPER_CACHE_PATH ?? ".shopper/cache.sqlite");
     workflowPool ??= boxPool(DATABASE_URL);
@@ -81,15 +91,8 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
           await boxBlobs(environment.SHOPPER_BLOBS_PATH ?? ".shopper/blobs", {
             baseUrl: SHOPPER_AUTH_URL,
             secret: new TextEncoder().encode(SHOPPER_AUTH_SECRET),
-            objectStorage: environment.SHOPPER_S3_ENDPOINT
-              ? {
-                  endpoint: environment.SHOPPER_S3_ENDPOINT,
-                  bucket: environment.SHOPPER_S3_BUCKET ?? "",
-                  accessKeyId: environment.SHOPPER_S3_ACCESS_KEY_ID ?? "",
-                  secretAccessKey: environment.SHOPPER_S3_SECRET_ACCESS_KEY ?? "",
-                  region: environment.SHOPPER_S3_REGION ?? "",
-                }
-              : undefined,
+            objectStorage: s3(environment.SHOPPER_S3_BUCKET),
+            receiptsObjectStorage: s3(environment.SHOPPER_S3_RECEIPTS_BUCKET),
           })
         ).blobs,
         secret: SHOPPER_AUTH_SECRET,

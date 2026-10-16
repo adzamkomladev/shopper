@@ -1,4 +1,5 @@
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { sha256 } from "@shopper/utils";
 import { defineCommand, type CommandContext } from "@shopper/audit/sqlite";
 import { receiptOutput, type TillDatabase } from "@shopper/db-sqlite";
 import type { PrintOutcome } from "../types";
@@ -55,3 +56,59 @@ function printCommand(name: string, reprints: 0 | 1) {
     details: (input) => ({ entity: "sale", entityId: input.saleId }),
   });
 }
+
+/** Stores the rendered PDF with its digest and size; the upload worker picks it up once the sale is acknowledged. */
+export async function storeReceiptPdf(
+  db: TillDatabase,
+  context: CommandContext,
+  input: { saleId: string; pdf: Uint8Array },
+) {
+  const stored = { pdf: Buffer.from(input.pdf), pdfSha256: await sha256(input.pdf) };
+  return store(db, context, { saleId: input.saleId, ...stored });
+}
+
+const store = defineCommand({
+  name: "receipt.pdf.store",
+  async run(tx, context, input: { saleId: string; pdf: Buffer; pdfSha256: string }) {
+    const values = { pdf: input.pdf, pdfSha256: input.pdfSha256, pdfSize: input.pdf.length };
+    await tx
+      .insert(receiptOutput)
+      .values({ saleId: input.saleId, orgId: context.orgId, ...values })
+      // A new PDF supersedes any earlier upload state, so it is uploaded afresh.
+      .onConflictDoUpdate({
+        target: receiptOutput.saleId,
+        set: { ...values, assetId: null, uploadedAt: null, uploadAttempts: 0, nextUploadAt: null },
+      });
+  },
+  audit: (input) => ({ saleId: input.saleId, sha256: input.pdfSha256, size: input.pdf.length }),
+  details: (input) => ({ entity: "sale", entityId: input.saleId }),
+});
+
+/** Records that the server holds the PDF: the asset it was linked to and when. */
+export const markReceiptUploaded = defineCommand({
+  name: "receipt.pdf.upload",
+  async run(tx, _context, input: { saleId: string; assetId: string; at: Date }) {
+    await tx
+      .update(receiptOutput)
+      .set({ assetId: input.assetId, uploadedAt: input.at.toISOString(), nextUploadAt: null })
+      .where(eq(receiptOutput.saleId, input.saleId));
+  },
+  audit: (input) => ({ saleId: input.saleId, assetId: input.assetId }),
+  details: (input) => ({ entity: "sale", entityId: input.saleId }),
+});
+
+/** Counts a failed upload attempt and defers the next one to `nextUploadAt` (epoch ms). */
+export const markReceiptUploadFailed = defineCommand({
+  name: "receipt.pdf.upload.failed",
+  async run(tx, _context, input: { saleId: string; nextUploadAt: number; reason: string }) {
+    await tx
+      .update(receiptOutput)
+      .set({
+        uploadAttempts: sql`${receiptOutput.uploadAttempts} + 1`,
+        nextUploadAt: input.nextUploadAt,
+      })
+      .where(eq(receiptOutput.saleId, input.saleId));
+  },
+  audit: (input) => ({ saleId: input.saleId, reason: input.reason }),
+  details: (input) => ({ entity: "sale", entityId: input.saleId }),
+});

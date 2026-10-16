@@ -340,12 +340,18 @@ importers:
 
   apps/till/host:
     dependencies:
+      '@resvg/resvg-wasm':
+        specifier: 2.6.2
+        version: 2.6.2
       '@shopper/adapters-box':
         specifier: workspace:*
         version: link:../../../packages/adapters/box
       '@shopper/config':
         specifier: workspace:*
         version: link:../../../packages/config
+      satori:
+        specifier: 0.33.5
+        version: 0.33.5
 
   apps/till/ui:
     dependencies:

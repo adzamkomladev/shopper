@@ -5,43 +5,53 @@ import {
   connectionSnapshot,
   request,
   retryUpload,
+  subscribeBridge,
   subscribeConnection,
 } from "../connection/store";
 import { canSyncNow } from "../connection/sync";
 import type { ConnectionSnapshot } from "../connection/types";
+import { createSaleOperations } from "./operations";
 import type { AddInput, SaleActions, SaleFailure, SaleSnapshot } from "./types";
 
-type State = Omit<SaleSnapshot, "host" | "sync">;
+type State = Omit<SaleSnapshot, "host" | "sync" | "permissions">;
 type Edit =
   | ({ type: "add" } & AddInput)
   | { type: "setQuantity"; lineId: string; quantityThousandths: number }
   | { type: "removeLine"; lineId: string };
-
 const listeners = new Set<() => void>();
 let state: State = {
   loading: true,
   view: null,
+  held: [],
+  receipt: null,
+  paymentNotice: null,
   failure: null,
   busy: false,
   search: { query: "", status: "idle", matches: [] },
   feedback: null,
+  operationError: null,
 };
 let composed: { connection: ConnectionSnapshot; state: State; snapshot: SaleSnapshot } | undefined;
-// Edits run one at a time against the latest revision; a scan burst waits here instead of racing.
 const queue: Edit[] = [];
 let connectedBefore = false;
+let draining = false;
 
 subscribeConnection(() => {
   const connected = connectionSnapshot().host === "connected";
-  // Every (re)connection reloads the basket: an edit whose reply was lost may or may not have applied.
   if (connected && !connectedBefore) void load();
   connectedBefore = connected;
   notify();
+});
+subscribeBridge((message) => {
+  if (message.type === "draft" && !state.receipt) update({ view: message.view });
+  if (message.type === "payment") update({ paymentNotice: message.payment });
 });
 
 export function useSaleSnapshot() {
   return useSyncExternalStore(subscribe, snapshot, snapshot);
 }
+
+const operations = createSaleOperations({ canEdit, canStartNewSale, revision, update, report });
 
 export const saleActions: SaleActions = {
   search,
@@ -49,6 +59,39 @@ export const saleActions: SaleActions = {
   setQuantity: (lineId, quantityThousandths) =>
     enqueue({ type: "setQuantity", lineId, quantityThousandths }),
   removeLine: (lineId) => enqueue({ type: "removeLine", lineId }),
+  addTender: (input) =>
+    void operations.runDraft((expectedRevision) => ({
+      ...input,
+      type: "tender.add",
+      expectedRevision,
+    })),
+  charge: (input) => void operations.charge(input),
+  complete: () => void operations.complete(),
+  removeTender: (tenderId) =>
+    void operations.runDraft((expectedRevision) => ({
+      type: "tender.remove",
+      expectedRevision,
+      tenderId,
+    })),
+  startMomo: (input) =>
+    void operations.runDraft((expectedRevision) => ({
+      type: "payment.momo.start",
+      expectedRevision,
+      ...input,
+    })),
+  submitMomoOtp: (input) =>
+    void operations.runDraft((expectedRevision) => ({
+      type: "payment.momo.otp",
+      expectedRevision,
+      ...input,
+    })),
+  hold: (name) => void operations.holdSale(name),
+  listHeld: () => void operations.listHeld(),
+  resume: (draftId, expectedRevision) =>
+    void operations.runDraft(() => ({ type: "sale.resume", draftId, expectedRevision })),
+  voidSale: (reason, draftId, expectedRevision) =>
+    void operations.voidSale(reason, draftId, expectedRevision),
+  newSale: () => void operations.newSale(),
   dismissFeedback: () => update({ feedback: null }),
   syncNow: retryUpload,
   reconnect: () => (connectionSnapshot().host === "connected" ? void load() : connectRegister()),
@@ -57,73 +100,104 @@ export const saleActions: SaleActions = {
 async function load() {
   update({ loading: true });
   const reply = await request({ type: "readDraft" });
-  if (!reply) return update({ loading: false });
-  if (reply.type === "result" && reply.kind === "draft")
+  if (reply?.type === "result" && reply.kind === "draft")
     return update({ loading: false, view: reply.view, failure: null });
-  update({ loading: false, failure: failureOf(reply) ?? "storage" });
+  if (reply?.type === "error") update({ failure: failureOf(reply), operationError: reply.message });
+  update({ loading: false });
 }
 
-// The bridge refuses longer codes as an invalid message, which would end the connection.
-const MAX_CODE_LENGTH = 64;
+function canEdit() {
+  return (
+    connectionSnapshot().host === "connected" &&
+    state.failure === null &&
+    state.receipt === null &&
+    !state.busy
+  );
+}
+
+function canEnqueue() {
+  return (
+    connectionSnapshot().host === "connected" &&
+    state.failure === null &&
+    state.receipt === null &&
+    (!state.busy || draining)
+  );
+}
+
+function canStartNewSale() {
+  return connectionSnapshot().host === "connected" && state.failure === null && !state.busy;
+}
+
+function revision() {
+  return state.view?.draft?.revision ?? 0;
+}
+
+export function currentDraftRevision() {
+  return revision();
+}
 
 function enqueue(edit: Edit) {
-  if (connectionSnapshot().host !== "connected" || state.failure) return;
-  if ("code" in edit && edit.code.length > MAX_CODE_LENGTH)
+  if (!canEnqueue()) return;
+  if ("code" in edit && edit.code.length > 64)
     return update({ feedback: { kind: "unknown", code: edit.code } });
   queue.push(edit);
   if (!state.busy) void drain();
 }
 
 async function drain() {
+  draining = true;
   update({ busy: true });
-  for (let edit = queue.shift(); edit; edit = queue.shift()) {
-    const reply = await request({ ...edit, expectedRevision: state.view?.draft?.revision ?? 0 });
-    // No reply: the outcome is unknown, so nothing is retried. Reconnecting reloads the basket.
-    if (!reply) queue.length = 0;
-    else if (reply.type === "result" && reply.kind === "draft")
-      update({ view: reply.view, ...(edit.type === "add" ? { feedback: null } : {}) });
-    else await rejected(reply, edit);
+  try {
+    for (let edit = queue.shift(); edit; edit = queue.shift()) {
+      const reply = await request({ ...edit, expectedRevision: revision() });
+      if (!reply) queue.length = 0;
+      else if (reply.type === "result" && reply.kind === "draft")
+        update({ view: reply.view, ...(edit.type === "add" ? { feedback: null } : {}) });
+      else if (reply.type === "error") {
+        queue.length = 0;
+        report(reply, edit);
+      }
+    }
+  } finally {
+    draining = false;
+    update({ busy: false });
   }
-  update({ busy: false });
-}
-
-async function rejected(reply: BridgeMessage, edit: Edit) {
-  const failure = failureOf(reply);
-  if (failure) {
-    queue.length = 0;
-    return update({ failure });
-  }
-  if (reply.type !== "error") return;
-  if (reply.code === "REVISION_STALE") {
-    queue.length = 0;
-    update({
-      feedback: { kind: "rejected", message: "The basket changed. Check it, then try again." },
-    });
-    return load();
-  }
-  if (edit.type === "add" && "code" in edit && reply.code === "PRODUCT_UNKNOWN")
-    return update({ feedback: { kind: "unknown", code: edit.code } });
-  update({ feedback: { kind: "rejected", message: reply.message } });
 }
 
 async function search(query: string) {
+  if (state.receipt) return;
   const text = query.trim();
   if (!text) return update({ search: { query, status: "idle", matches: [] } });
   update({ search: { ...state.search, query, status: "loading" } });
   const reply = await request({ type: "search", query: text.slice(0, 200) });
-  // A reply for older text is dropped; the screen only ever shows matches for what is typed now.
   if (state.search.query !== query) return;
   if (reply?.type === "result" && reply.kind === "search")
     update({ search: { query, status: "ready", matches: reply.matches } });
   else update({ search: { query, status: "failed", matches: [] } });
 }
 
-function failureOf(reply: BridgeMessage): SaleFailure | undefined {
-  if (reply.type !== "error") return undefined;
+function report(reply: BridgeMessage | undefined, edit?: Edit) {
+  if (!reply)
+    return update({
+      operationError:
+        "The register connection ended. Reconnect and check Purchases before retrying.",
+    });
+  if (reply.type !== "error") return;
+  const failure = failureOf(reply);
+  if (failure) update({ failure, operationError: reply.message });
+  else if (reply.code === "REVISION_STALE") {
+    update({ operationError: "The basket changed. Check it, then try again." });
+    void load();
+  } else if (edit?.type === "add" && "code" in edit && reply.code === "PRODUCT_UNKNOWN")
+    update({ feedback: { kind: "unknown", code: edit.code } });
+  else update({ operationError: reply.message });
+}
+
+function failureOf(reply: Extract<BridgeMessage, { type: "error" }>): SaleFailure | null {
   if (reply.code === "SESSION_REQUIRED" || reply.code === "session") return "session";
   if (reply.code === "permission" || reply.code === "scope") return "permission";
   if (reply.code === "STORAGE_FAILED") return "storage";
-  return undefined;
+  return null;
 }
 
 function snapshot(): SaleSnapshot {
@@ -134,6 +208,7 @@ function snapshot(): SaleSnapshot {
     ...state,
     host,
     loading: state.loading && host !== "disconnected",
+    permissions: status?.permissions ?? [],
     sync: {
       offline: status?.server === "offline",
       pendingCount: status?.pendingCount ?? 0,
@@ -149,11 +224,9 @@ function update(change: Partial<State>) {
   state = { ...state, ...change };
   notify();
 }
-
 function notify() {
   for (const listener of listeners) listener();
 }
-
 function subscribe(listener: () => void) {
   listeners.add(listener);
   return () => listeners.delete(listener);

@@ -12,7 +12,14 @@ import {
 
 type Dispatch = (request: BridgeRequest, trusted: boolean) => Promise<BridgeMessage>;
 // What the capability holder may ask; recordSale and shutdown stay on the trusted IPC channel.
-const browserRequests: readonly string[] = ["hello", "status", "retry", ...basketRequestTypes];
+const browserRequests: readonly string[] = [
+  "hello",
+  "status",
+  "retry",
+  "sales.list",
+  "sales.read",
+  ...basketRequestTypes,
+];
 export async function openHostTransport(options: {
   port: number;
   origins: string[];

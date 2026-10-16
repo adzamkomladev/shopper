@@ -1,22 +1,22 @@
-// Test-only fixtures for the sale screen harness. Never imported by src/, never built into the app.
+// Test-only fixtures for the till UI harness. Never imported by src/ or built into the app.
 import { add, money, mulQty, mulRate, mulRatio, sub, type Money } from "@shopper/money";
 import type {
   CatalogueMatch,
   DraftLine,
   DraftView,
   QuoteLine,
-  SaleSnapshot,
   SaleTotals,
 } from "../src/sale/types";
 
 const rates = { vatBps: 1500, nhilBps: 250, getfundBps: 250, covidBps: 0 };
-const pesewas = (ghs: number) => money(Math.round(ghs * 10_000));
+export const today = "2026-10-15T09:30:00.000Z";
+export const id = (suffix: string) => `10000000-0000-7000-8000-${suffix.padStart(12, "0")}`;
 
 type Spec = {
   id: string;
   sku: string;
   name: string;
-  unitGhs: number;
+  unitPrice: Money;
   quantityThousandths?: number;
   baseUnit?: string;
   label?: DraftLine["label"];
@@ -25,55 +25,71 @@ type Spec = {
 
 function quote(spec: Spec): { line: DraftLine; quote: QuoteLine } {
   const quantity = spec.quantityThousandths ?? 1000;
-  const unitPrice = pesewas(spec.unitGhs);
-  const gross = mulQty(unitPrice, quantity);
+  const gross = mulQty(spec.unitPrice, quantity);
   const rule = { ...rates, covidBps: spec.covidBps ?? 0 };
+  const base = mulRatio(
+    gross,
+    10_000,
+    10_000 + rule.vatBps + rule.nhilBps + rule.getfundBps + rule.covidBps,
+  );
+  const taxes = {
+    vat: mulRate(base, rule.vatBps),
+    nhil: mulRate(base, rule.nhilBps),
+    getfund: mulRate(base, rule.getfundBps),
+    covid: mulRate(base, rule.covidBps),
+  };
+  const calculated = add(add(taxes.vat, taxes.nhil), add(add(taxes.getfund, taxes.covid), base));
   return {
     line: {
       id: spec.id,
       productId: `p-${spec.id}`,
       quantityThousandths: quantity,
+      discount: money(0),
       label: spec.label,
     },
     quote: {
       lineId: spec.id,
       productId: `p-${spec.id}`,
+      priceId: `price-${spec.id}`,
       sku: spec.sku,
       name: spec.name,
       baseUnit: spec.baseUnit ?? "each",
-      tax: { unitPrice, gross, rule },
+      tax: {
+        base,
+        ...taxes,
+        gross,
+        roundingAdjustment: sub(gross, calculated),
+        rule: { ...rule, id: `rule-${spec.id}`, effectiveFrom: "2026-01-01" },
+        on: "2026-10-15",
+        taxClass: "standard",
+        priceMode: "inclusive",
+        quantityThousandths: quantity,
+        unitPrice: spec.unitPrice,
+        discount: money(0),
+      },
     },
   };
 }
 
 function totalsOf(quotes: QuoteLine[]): SaleTotals {
-  const zero = money(0);
   const totals = {
-    base: zero,
-    vat: zero,
-    nhil: zero,
-    getfund: zero,
-    covid: zero,
-    gross: zero,
-    roundingAdjustment: zero,
+    base: money(0),
+    vat: money(0),
+    nhil: money(0),
+    getfund: money(0),
+    covid: money(0),
+    gross: money(0),
+    roundingAdjustment: money(0),
   };
   for (const line of quotes) {
     if (line.error !== undefined) continue;
-    const { gross, rule } = line.tax;
-    const sum = rule.vatBps + rule.nhilBps + rule.getfundBps + rule.covidBps;
-    const base = mulRatio(gross, 10_000, 10_000 + sum);
-    const parts = {
-      vat: mulRate(base, rule.vatBps),
-      nhil: mulRate(base, rule.nhilBps),
-      getfund: mulRate(base, rule.getfundBps),
-      covid: mulRate(base, rule.covidBps),
-    };
-    const calculated = [parts.vat, parts.nhil, parts.getfund, parts.covid].reduce(add, base);
-    totals.base = add(totals.base, base);
-    for (const key of ["vat", "nhil", "getfund", "covid"] as const)
-      totals[key] = add(totals[key], parts[key]);
-    totals.gross = add(totals.gross, gross);
-    totals.roundingAdjustment = add(totals.roundingAdjustment, sub(gross, calculated));
+    totals.base = add(totals.base, line.tax.base);
+    totals.vat = add(totals.vat, line.tax.vat);
+    totals.nhil = add(totals.nhil, line.tax.nhil);
+    totals.getfund = add(totals.getfund, line.tax.getfund);
+    totals.covid = add(totals.covid, line.tax.covid);
+    totals.gross = add(totals.gross, line.tax.gross);
+    totals.roundingAdjustment = add(totals.roundingAdjustment, line.tax.roundingAdjustment);
   }
   return totals;
 }
@@ -82,35 +98,70 @@ export function basket(specs: Spec[], broken: { id: string; error: string }[] = 
   const built = specs.map(quote);
   const lines = built.map((entry) => entry.line);
   const quotes: QuoteLine[] = built.map((entry) => entry.quote);
-  for (const { id, error } of broken) {
-    lines.push({ id, productId: `p-${id}`, quantityThousandths: 1000 });
-    quotes.push({ lineId: id, productId: `p-${id}`, error });
+  for (const { id: lineId, error } of broken) {
+    lines.push({
+      id: lineId,
+      productId: `p-${lineId}`,
+      quantityThousandths: 1000,
+      discount: money(0),
+    });
+    quotes.push({ lineId, productId: `p-${lineId}`, error });
   }
+  const totals = totalsOf(quotes);
   return {
-    draft: { id: "draft-1", revision: lines.length, lines },
-    quote: { lines: quotes, totals: totalsOf(quotes) },
+    draft: {
+      id: id("1"),
+      status: "open",
+      name: null,
+      revision: lines.length,
+      createdAt: today,
+      updatedAt: today,
+      tenders: [],
+      lines,
+    },
+    cashRounding: "none",
+    settlement: {
+      gross: totals.gross,
+      roundingLine: money(0),
+      total: totals.gross,
+      nonCash: money(0),
+      cash: money(0),
+      balance: totals.gross,
+      change: money(0),
+    },
+    quote: { lines: quotes, totals, changed: false },
   };
 }
 
 export const emptyView: DraftView = {
   draft: null,
-  quote: { lines: [], totals: totalsOf([]) },
+  cashRounding: "none",
+  settlement: {
+    gross: money(0),
+    roundingLine: money(0),
+    total: money(0),
+    nonCash: money(0),
+    cash: money(0),
+    balance: money(0),
+    change: money(0),
+  },
+  quote: { lines: [], totals: totalsOf([]), changed: false },
 };
 
 export const items: Spec[] = [
-  { id: "l1", sku: "10482", name: "Milo 400g tin", unitGhs: 54.5 },
+  { id: "l1", sku: "10482", name: "Milo 400g tin", unitPrice: money(545_000) },
   {
     id: "l2",
     sku: "20915",
     name: "Voltic natural water 1.5L",
-    unitGhs: 8,
+    unitPrice: money(80_000),
     quantityThousandths: 6000,
   },
   {
     id: "l3",
     sku: "30127",
     name: "Gari, white",
-    unitGhs: 22,
+    unitPrice: money(220_000),
     baseUnit: "kg",
     quantityThousandths: 500,
     label: { kind: "weight", code: "2100123005001" },
@@ -119,16 +170,16 @@ export const items: Spec[] = [
     id: "l4",
     sku: "11205",
     name: "Fan Milk Vanilla ice cream",
-    unitGhs: 6.5,
+    unitPrice: money(65_000),
     quantityThousandths: 2000,
   },
-  { id: "l5", sku: "40018", name: "Geisha soap 175g", unitGhs: 7.25 },
-  { id: "l6", sku: "40930", name: "Frytol cooking oil 1L", unitGhs: 38 },
+  { id: "l5", sku: "40018", name: "Geisha soap 175g", unitPrice: money(72_500) },
+  { id: "l6", sku: "40930", name: "Frytol cooking oil 1L", unitPrice: money(380_000) },
   {
     id: "l7",
     sku: "10611",
     name: "Titus sardines 125g",
-    unitGhs: 12.75,
+    unitPrice: money(127_500),
     quantityThousandths: 3000,
   },
 ];
@@ -145,64 +196,5 @@ export const matches: CatalogueMatch[] = [
     quantityThousandths: 24_000,
   },
 ];
-
-const base: SaleSnapshot = {
-  host: "connected",
-  loading: false,
-  view: basket(items.slice(0, 4)),
-  failure: null,
-  busy: false,
-  search: { query: "", status: "idle", matches: [] },
-  feedback: null,
-  sync: { offline: false, pendingCount: 0, canSync: true, syncing: false },
-};
-
-const searched = (
-  query: string,
-  over: Partial<SaleSnapshot["search"]>,
-): SaleSnapshot["search"] => ({
-  query,
-  status: "ready",
-  matches,
-  ...over,
-});
-
-export const scenarios: Record<string, SaleSnapshot> = {
-  lines: base,
-  many: { ...base, view: basket(items) },
-  empty: { ...base, view: emptyView },
-  loading: { ...base, loading: true, view: null },
-  busy: { ...base, busy: true },
-  levy: { ...base, view: basket([{ ...items[0]!, covidBps: 100 }, items[1]!]) },
-  results: { ...base, search: searched("milo", {}) },
-  searching: { ...base, search: searched("milo", { status: "loading", matches: [] }) },
-  nomatch: { ...base, search: searched("milo", { matches: [] }) },
-  searchfail: { ...base, search: searched("milo", { status: "failed", matches: [] }) },
-  unknown: { ...base, feedback: { kind: "unknown", code: "5012345600001" } },
-  rejected: {
-    ...base,
-    feedback: { kind: "rejected", message: "A scanned code carries its own quantity." },
-  },
-  unavailable: {
-    ...base,
-    view: basket(items.slice(0, 2), [
-      { id: "x1", error: "PRICE_MISSING" },
-      { id: "x2", error: "PRODUCT_UNKNOWN" },
-    ]),
-  },
-  session: { ...base, failure: "session" },
-  permission: { ...base, failure: "permission" },
-  storage: { ...base, failure: "storage", view: null },
-  offline: { ...base, sync: { offline: true, pendingCount: 3, canSync: false, syncing: false } },
-  disconnected: { ...base, host: "disconnected", sync: { ...base.sync, canSync: false } },
-  connecting: {
-    ...base,
-    host: "connecting",
-    view: null,
-    loading: true,
-    sync: { ...base.sync, canSync: false },
-  },
-  syncing: { ...base, sync: { offline: false, pendingCount: 2, canSync: false, syncing: true } },
-};
 
 export type { Money };

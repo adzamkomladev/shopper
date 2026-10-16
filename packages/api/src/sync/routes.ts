@@ -49,12 +49,6 @@ export function createSyncRoutes(options: {
     const data = v.parse(handshake, await c.req.json());
     if (negotiateProtocol(protocol, data.protocol) === undefined)
       return c.json({ error: "Incompatible sync protocol" }, 409);
-    if (data.protocol === 1)
-      return c.json({
-        requestId: data.requestId,
-        appVersion: buildInfo.version,
-        protocol: data.protocol,
-      });
     return c.json({
       requestId: data.requestId,
       appVersion: buildInfo.version,
@@ -139,12 +133,6 @@ export function createSyncRoutes(options: {
         return c.json({ error: "Sale sequencing unavailable" }, 503);
       }
     }
-    if (data.protocol === 1)
-      return c.json({
-        requestId: data.requestId,
-        accepted: accepted.map(({ localId, sequence }) => ({ localId, sequence })),
-        rejected,
-      });
     return c.json({
       requestId: data.requestId,
       accepted,

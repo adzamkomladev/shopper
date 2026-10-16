@@ -1,167 +1,98 @@
-import { sha256 } from "@shopper/utils";
 import * as v from "valibot";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { v7 } from "uuid";
-import { canonicalJson } from "@shopper/audit";
 import { defineCommand } from "@shopper/audit/sqlite";
-import {
-  hostSession,
-  localSale,
-  outbox,
-  saleLine,
-  tillState,
-  type TillDatabase,
-} from "@shopper/db-sqlite";
-import { add } from "@shopper/money";
-import { recordSaleInput, saleEvent, saleTotals } from "../schemas/till/sale";
-import { tillSession, type TillSession } from "../schemas/till/session";
+import { saleDraft, saleDraftLine, saleDraftTender, type TillDatabase } from "@shopper/db-sqlite";
+import { recordSaleInput } from "../schemas/till/sale";
+import { tillSession } from "../schemas/till/session";
+import { tillConfiguration } from "../schemas/till/config";
 import { checkSession, hostTime } from "./session";
 import { TillError } from "./error";
-import { quoteFrom, readQuoteReference } from "./quotation";
-import { tillConfiguration } from "../schemas/till/config";
-import { assignReceipt } from "./receipts/assign";
+import { quoteDraft } from "./drafts/quote";
+import { findDraft } from "./drafts/queries";
+import { readQuoteReference } from "./quotation";
+import { settle } from "./tenders/settle";
+import { finishDraftSale } from "./complete";
 import type { TillConfig } from "./types";
 
+/** Compatibility for direct-line callers; all persistence uses the draft completion transaction. */
 export async function recordLocalSale(
   db: TillDatabase,
-  config: TillConfig,
+  rawConfig: TillConfig,
   rawSession: unknown,
-  input: unknown,
+  raw: unknown,
 ) {
-  config = { ...v.parse(tillConfiguration, config), now: config.now };
+  const config = v.parse(tillConfiguration, rawConfig);
   const session = v.parse(tillSession, rawSession);
-  const data = v.parse(recordSaleInput, input);
-  const deviceTime = config.now?.() ?? new Date();
-  const time = await hostTime(db, config, deviceTime);
-  checkSession(session, config, "sale.create", time);
-  return record(
-    db,
-    {
-      orgId: config.orgId,
-      deviceId: config.deviceId,
-      branchId: config.branchId,
-      actorId: session.userId,
-      role: session.roleName,
-      appVersion: config.appVersion,
-      deviceTime,
-    },
-    { config, session, data, time, deviceTime },
-  );
+  const data = v.parse(recordSaleInput, raw);
+  const deviceTime = rawConfig.now?.() ?? new Date();
+  const at = await hostTime(db, config, deviceTime);
+  checkSession(session, config, "sale.create", at);
+  const context = {
+    orgId: config.orgId,
+    deviceId: config.deviceId,
+    branchId: config.branchId,
+    actorId: session.userId,
+    role: session.roleName,
+    appVersion: config.appVersion,
+    deviceTime,
+  };
+  return record(db, context, { config, session, data, at, deviceTime });
 }
 
-const coarse = new Set<string>(["PRODUCT_UNKNOWN", "PRICE_MISSING", "TAX_RULE_MISSING"]);
-
 const record = defineCommand({
-  name: "sale.record-local",
+  name: "sale.complete",
   async run(
     tx,
     context,
     input: {
-      config: TillConfig;
-      session: TillSession;
+      config: v.InferOutput<typeof tillConfiguration>;
+      session: v.InferOutput<typeof tillSession>;
       data: v.InferOutput<typeof recordSaleInput>;
-      time: Date;
+      at: Date;
       deviceTime: Date;
     },
   ) {
-    const { config, session, data, time, deviceTime } = input;
-    const receipt = await assignReceipt(tx, context.orgId, config.deviceId, config.receiptCodes);
-    const refs = await readQuoteReference(tx, context.orgId);
-    const lines = data.lines.map((line) => {
-      try {
-        return {
-          id: v7(),
-          ...quoteFrom(refs, { branchId: config.branchId, at: time, ...line }),
-        };
-      } catch (error) {
-        // Recording keeps its coarse "reference" code; quoting reports the precise one.
-        if (error instanceof TillError && coarse.has(error.code))
-          throw new TillError("reference", error.message);
-        throw error;
-      }
-    });
-    const totals = v.parse(saleTotals, {
-      base: 0,
-      vat: 0,
-      nhil: 0,
-      getfund: 0,
-      covid: 0,
-      gross: 0,
-      roundingAdjustment: 0,
-    });
-    for (const line of lines) {
-      for (const key of Object.keys(totals) as (keyof typeof totals)[])
-        totals[key] = add(totals[key], line.tax[key]);
-    }
+    const { config, session, at } = input;
+    const scope = {
+      orgId: config.orgId,
+      deviceId: config.deviceId,
+      branchId: config.branchId,
+      cashierId: session.userId,
+    };
+    if (await findDraft(tx, scope))
+      throw new TillError("conflict", "Complete the open basket before recording direct lines");
     const id = v7();
-    const event = v.parse(saleEvent, {
-      v: 2,
-      type: "sale.recorded",
-      sale: {
-        id,
-        localId: id,
-        orgId: context.orgId,
-        deviceId: context.deviceId,
-        storeId: config.storeId,
-        branchId: context.branchId,
-        cashierId: context.actorId,
-        sessionId: session.id,
-        appVersion: config.appVersion,
-        deviceTime: deviceTime.toISOString(),
-        ...receipt,
-        clockOffsetMs: deviceTime.valueOf() - time.valueOf(),
-        lines,
-        totals,
-      },
-    });
-    const [savedSession] = await tx
-      .select()
-      .from(hostSession)
-      .where(eq(hostSession.id, session.id));
-    if (savedSession && canonicalJson(savedSession) !== canonicalJson(session))
-      throw new TillError("conflict", "Saved cashier session identity has different content");
-    if (!savedSession) await tx.insert(hostSession).values(session);
-    const [state] = await tx
-      .select()
-      .from(tillState)
-      .where(and(eq(tillState.orgId, context.orgId), eq(tillState.deviceId, config.deviceId)));
-    const localSeq = (state?.lastOutboxSeq ?? 0) + 1;
-    if (!Number.isSafeInteger(localSeq))
-      throw new TillError("counter", "Local ordering counter exhausted");
+    const stamp = at.toISOString();
     await tx
-      .insert(tillState)
-      .values({
-        id: state?.id ?? v7(),
-        orgId: context.orgId,
-        deviceId: config.deviceId,
-        lastOutboxSeq: localSeq,
-      })
-      .onConflictDoUpdate({
-        target: [tillState.orgId, tillState.deviceId],
-        set: { lastOutboxSeq: localSeq },
-      });
-    const contentHash = await sha256(canonicalJson(event.sale));
-    await tx.insert(localSale).values({
-      id,
-      orgId: context.orgId,
-      deviceId: config.deviceId,
-      localId: id,
-      payload: event.sale,
-      contentHash,
-    });
-    for (const line of event.sale.lines)
+      .insert(saleDraft)
+      .values({ id, ...scope, revision: 1, totals: {}, createdAt: stamp, updatedAt: stamp });
+    for (const [position, line] of input.data.lines.entries()) {
       await tx
-        .insert(saleLine)
-        .values({ id: line.id, orgId: context.orgId, saleId: id, payload: line });
-    await tx.insert(outbox).values({
+        .insert(saleDraftLine)
+        .values({ ...line, id: v7(), orgId: scope.orgId, draftId: id, position });
+    }
+    const lines = await tx.select().from(saleDraftLine).where(eq(saleDraftLine.draftId, id));
+    const refs = await readQuoteReference(tx, scope.orgId);
+    const quote = quoteDraft(refs, scope.branchId, at, lines, {});
+    const invalid = quote.lines.find((line) => line.error);
+    if (invalid?.error) {
+      const coarse = ["PRODUCT_UNKNOWN", "PRICE_MISSING", "TAX_RULE_MISSING"].includes(
+        invalid.error,
+      );
+      throw new TillError(coarse ? "reference" : invalid.error, "Cannot quote direct sale line");
+    }
+    await tx.insert(saleDraftTender).values({
       id: v7(),
-      orgId: context.orgId,
-      deviceId: config.deviceId,
-      localId: id,
-      localSeq,
-      event,
+      orgId: scope.orgId,
+      draftId: id,
+      position: 0,
+      kind: "cash",
+      amount: settle(quote.totals.gross, [], refs.cashRounding, "cash").total,
+      status: "applied",
+      createdAt: stamp,
     });
-    return event;
+    return finishDraftSale(tx, context, { ...input, scope, expectedRevision: 1 });
   },
   audit: (_input, output) => ({ saleId: output.sale.id, lineCount: output.sale.lines.length }),
   details: (_input, output) => ({ entity: "sale", entityId: output.sale.id }),

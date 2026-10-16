@@ -7,6 +7,7 @@ type Props = {
   selectedId: string | undefined;
   editingId: string | null;
   disabled: boolean;
+  revealSelected: boolean;
   listRef: Ref<HTMLUListElement>;
   onSelect: (lineId: string) => void;
   onQuantity: (lineId: string, thousandths: number) => void;
@@ -20,6 +21,7 @@ export function Lines({
   selectedId,
   editingId,
   disabled,
+  revealSelected,
   listRef,
   onSelect,
   onQuantity,
@@ -45,13 +47,13 @@ export function Lines({
     <div className="flex min-h-0 flex-1 flex-col">
       <div
         aria-hidden="true"
-        className="flex h-7 items-center gap-3 bg-muted px-4 text-xs font-bold text-kbd-foreground"
+        className="flex h-7 items-center gap-3 bg-muted px-3 text-xs font-bold text-kbd-foreground md:px-4"
       >
         <span className="flex-1 pl-1">Item</span>
         <span className="w-36 text-center">Qty</span>
-        <span className="w-24 text-right">Price</span>
-        <span className="w-28 text-right">Total</span>
-        <span className="w-11" />
+        <span className="hidden w-24 text-right md:inline">Price</span>
+        <span className="hidden w-28 text-right md:inline">Total</span>
+        <span className="hidden w-11 md:inline" />
       </div>
       <ul
         aria-label="Basket lines"
@@ -72,6 +74,7 @@ export function Lines({
             onRemove={() => onRemove(row.lineId)}
             onSelect={() => onSelect(row.lineId)}
             row={row}
+            revealSelected={revealSelected}
             selected={row.lineId === selectedId}
           />
         ))}

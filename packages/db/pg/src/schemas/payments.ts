@@ -18,6 +18,7 @@ export const payment = pgTable(
     reference: text("reference").notNull(),
     amount: moneyColumn("amount").notNull(),
     phone: text("phone").notNull(),
+    phoneFingerprint: text("phone_fingerprint"),
     network: text("network", { enum: paymentNetworks }).notNull(),
     status: text("status", { enum: paymentStatuses }).notNull().default("pending"),
     providerReference: text("provider_reference"),
@@ -31,6 +32,10 @@ export const payment = pgTable(
     foreignKey({ columns: [t.orgId, t.cashierId], foreignColumns: [user.orgId, user.id] }),
     // MoMo amounts are whole pesewas: 100 money units each.
     check("payment_amount", sql`${t.amount} > 0 AND ${t.amount} % 100 = 0`),
+    check(
+      "payment_phone_fingerprint",
+      sql`${t.phoneFingerprint} IS NULL OR ${t.phoneFingerprint} ~ '^[0-9a-f]{64}$'`,
+    ),
     check("payment_network", sql`${t.network} IN ('mtn', 'telecel', 'airteltigo')`),
     check(
       "payment_status",

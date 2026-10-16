@@ -12,6 +12,7 @@ import {
   devices,
   principal,
   recordSale,
+  syncProtocol,
 } from "../../support/till/server";
 import { push, revokeDevice, syncHeaders } from "../../support/till/requests";
 
@@ -22,7 +23,7 @@ test("device authentication is required and an expired cashier session can uploa
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       requestId: v7(),
-      protocol: 1,
+      protocol: syncProtocol,
       events: [captured.event],
       proofs: [{ sessionId: captured.sessionId, proof: captured.proof }],
     }),
@@ -75,7 +76,7 @@ test("forged cashier proofs and cross-tenant product references are rejected wit
     headers: syncHeaders(ids.otherOrg),
     body: JSON.stringify({
       requestId: v7(),
-      protocol: 1,
+      protocol: syncProtocol,
       events: [captured.event],
       proofs: [{ sessionId: captured.sessionId, proof: captured.proof }],
     }),

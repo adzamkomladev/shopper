@@ -12,7 +12,13 @@ import {
 /** Embedded-label provenance; a price label also keeps its encoded gross and the quantity it was encoded at. */
 export type DraftLabel =
   | { kind: "weight"; code: string }
-  | { kind: "price"; code: string; gross: number; originalQuantityThousandths: number };
+  | {
+      kind: "price";
+      code: string;
+      gross: number;
+      originalQuantityThousandths: number;
+      originalPriceId: string;
+    };
 
 export const draftStatuses = ["open", "held", "voided"] as const;
 export const draftTenderKinds = ["cash", "momo", "card"] as const;

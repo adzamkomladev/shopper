@@ -135,7 +135,7 @@ async function price(
     const gross = mulRatio(money(value), 10 ** (4 - m.decimals), 1);
     const quantityThousandths = mulRatio(gross, 1000, unit.amount);
     if (quantityThousandths <= 0) throw new RangeError();
-    return { quantityThousandths, gross };
+    return { quantityThousandths, gross, originalPriceId: unit.id };
   } catch {
     throw new TillError("QUANTITY_INVALID", `Price label ${value} gives no valid quantity`);
   }

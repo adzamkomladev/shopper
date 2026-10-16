@@ -37,7 +37,9 @@ The function works in this order:
    `change = max(0, cash - due)`.
 5. It returns `{ gross, roundingLine, total: gross + roundingLine, nonCash, cash, balance, change }`.
 
-Completion requires `balance === 0` and that every MoMo tender is `confirmed`.
+Completion requires `balance === 0`; pending or OTP MoMo attempts block completion. Only applied
+cash/card and confirmed MoMo contribute to settled tenders. Failed/expired attempts remain payment
+history and are excluded from the completed sale; a later confirmation remains recoverable.
 
 ## Till SQLite (fresh schema, `tillMigrations` collapsed to one step)
 
@@ -53,6 +55,10 @@ Changes to the existing tables:
 
 New tables:
 
+- The local `stock_movement` mirror has `id`, `org_id`, `device_id`, `branch_id`, `product_id`,
+  `sale_id`, `sale_line_id`, signed `quantity_thousandths`, `reason` (`sale`) and `occurred_at`.
+  `sale.complete` inserts one negative movement per completed line in the same SQLite transaction
+  as the sale, receipt, outbox and audit. `(org_id, sale_line_id)` is unique.
 - `sale_draft_tender` has `id`, `org_id`, `draft_id`, `position`, `kind`, `amount`, `reference`
   (the MoMo payment reference), `approval_code`, `last4`, `phone` (MoMo, stored masked), `network`,
   `status` (`applied | pending | otp | confirmed | failed | expired`) and `created_at`. Cash and card
@@ -65,7 +71,9 @@ New tables:
 The v3 snapshot is the v2 snapshot plus the following:
 
 - Each line has `discount` (also in `tax.discount`) and
-  `label: null | { kind: "weight" | "price"; code: string }`.
+  `label: null | { kind: "weight"; code: string } | { kind: "price"; code: string; originalPriceId: string }`.
+  Price labels retain the immutable price version selected at scan time. Ingest derives their original
+  quantity from that version's amount, so later repricing preserves encoded gross and quantity edits.
 - `cashRounding: Money` (signed) and `total: Money`, where `total = totals.gross + cashRounding`.
 - `tenders` is an array with at least one entry, each `{ id, kind, amount, reference?,
 approvalCode?, last4?, network? }`. MoMo tenders carry `reference`. Card tenders carry
@@ -155,3 +163,28 @@ status }` to the store's StoreHub.
 6. The till host updates the draft tender status and pushes a `draft` message to the UI.
 7. Server ingest rejects a MoMo tender unless its payment is `confirmed`, its amount is equal, it
    belongs to the same org and branch, and it has not been used before.
+
+## Implementation clarifications (15 October 2026)
+
+- Fully discounted and cash-rounded zero-total baskets complete with a zero cash tender; zero card
+  and MoMo tenders remain invalid. A zero tender is refused for a nonzero sale. Forward migration
+  `0016_zero_cash` updates the PostgreSQL tender constraint.
+- The SQLite `payment_intent` mirror retains masked payment outcomes independently of an active
+  draft. A late confirmation after removal/void remains an unresolved Purchases entry. Confirmed
+  references already present in a completed local sale cannot settle another local sale.
+- Pending/OTP MoMo reserves its amount: basket quantity/removal/discount edits cannot reduce the
+  gross below reserved noncash payments. A reference-price change that makes confirmed tenders
+  exceed gross yields `settlementError` in the readable draft and blocks completion; confirmation
+  is still durable and cannot be removed or voided.
+- Charge references are reserved locally before HTTP and accepted idempotently by the API. A
+  failed/uncertain HTTP response retains the same reference for retry/reconnect recovery.
+
+- MoMo commits the audited payment intent and waiting `workflow_run` before starting the engine.
+  This deliberately differs from sleeping workflows: an immediate provider charge must never run
+  against an uncommitted intent. Launch failure returns 503 while retaining the intent; retrying
+  the locally reserved UUID repeats launch with the same business key and provider reference.
+  Recovery lists unresolved intents, including confirmed money whose draft was removed or voided.
+  PostgreSQL `payment.id` equals this reference, so another tenant cannot reserve the same key.
+- Exhausted provider charge errors and verification exceptions expire uncertain MoMo payments,
+  persist a failed `workflow_run` and publish the terminal payment state. They never imply a
+  provider decline or overwrite confirmed money. A later signed success can still confirm expiry.

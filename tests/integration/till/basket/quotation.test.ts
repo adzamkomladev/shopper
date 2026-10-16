@@ -53,7 +53,7 @@ test("the quote equals the line recordLocalSale stores for the golden sale, to t
       lines: [{ productId: ids.product, quantityThousandths: goldenSale.quantityThousandths }],
     });
     const { id: _id, ...stored } = event.sale.lines[0]!;
-    expect(quoted).toEqual(stored);
+    expect(stored).toEqual({ ...quoted, discount: quoted.tax.discount, label: null });
   });
 });
 

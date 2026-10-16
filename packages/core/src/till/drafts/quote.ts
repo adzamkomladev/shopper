@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import { canonicalJson } from "@shopper/audit";
 import type { saleDraftLine } from "@shopper/db-sqlite";
-import { add, money, mulRatio } from "@shopper/money";
+import { add, money, mulRatio, sub } from "@shopper/money";
 import { snapshotAmount } from "@shopper/tax";
 import { saleTotals } from "../../schemas/till/sale";
 import { TillError } from "../error";
@@ -51,13 +51,20 @@ export function quoteDraft(
 export function quoteDraftLine(refs: References, branchId: string, at: Date, line: Line) {
   const { productId, quantityThousandths, label } = line;
   const quote = quoteFrom(refs, { branchId, at, productId, quantityThousandths });
-  if (label?.kind !== "price") return quote;
+  if (label?.kind !== "price") {
+    if (line.discount < 0 || line.discount > quote.tax.gross)
+      throw new TillError("DISCOUNT_INVALID", "Discount exceeds line gross");
+    const tax = snapshotAmount({ ...quote.tax, gross: sub(quote.tax.gross, money(line.discount)) });
+    return { ...quote, tax: { ...tax, discount: money(line.discount) } };
+  }
   const { rule, on, taxClass, unitPrice } = quote.tax;
   const gross = mulRatio(
     money(label.gross),
     quantityThousandths,
     label.originalQuantityThousandths,
   );
+  if (line.discount < 0 || line.discount > gross)
+    throw new TillError("DISCOUNT_INVALID", "Discount exceeds line gross");
   const tax = snapshotAmount({
     rule,
     on,
@@ -65,7 +72,7 @@ export function quoteDraftLine(refs: References, branchId: string, at: Date, lin
     priceMode: "inclusive",
     unitPrice,
     quantityThousandths,
-    gross,
+    gross: sub(gross, money(line.discount)),
   });
-  return { ...quote, tax };
+  return { ...quote, tax: { ...tax, discount: money(line.discount) } };
 }

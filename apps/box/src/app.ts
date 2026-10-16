@@ -1,4 +1,6 @@
 import { Hono } from "hono";
+import { buildInfo } from "@shopper/config";
+import { createPaystack } from "@shopper/core/payments/paystack";
 import { createMaileroo } from "@shopper/auth";
 import type { BoxBindings } from "./types";
 import {
@@ -11,6 +13,7 @@ import {
   boxPriceChange,
   boxRealtime,
   boxAuthFlows,
+  boxMomoPayment,
 } from "@shopper/adapters-box";
 import { isPublicRequest, publicApi, runtimeUnavailable, serveRuntime } from "@shopper/api/runtime";
 export function createBoxApp(environment: Record<string, string | undefined> = process.env) {
@@ -18,6 +21,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
   let workflowPool: ReturnType<typeof boxPool> | undefined;
   let cache: ReturnType<typeof boxCache> | undefined;
   let authFlows: ReturnType<typeof boxAuthFlows> | undefined;
+  let momoPayment: ReturnType<typeof boxMomoPayment> | undefined;
   let priceChange: ReturnType<typeof boxPriceChange> | undefined;
   return new Hono<{ Bindings: BoxBindings }>().all("*", async (context) => {
     const request = context.req.raw;
@@ -53,6 +57,16 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
               })
             : undefined,
       });
+    if (environment.PAYSTACK_SECRET_KEY)
+      momoPayment ??= boxMomoPayment({
+        withDatabase: (run) => run(workflowDatabase),
+        realtime,
+        appVersion: buildInfo.version,
+        paystack: createPaystack({
+          secretKey: environment.PAYSTACK_SECRET_KEY,
+          baseUrl: environment.PAYSTACK_BASE_URL,
+        }),
+      });
     try {
       return await serveRuntime(request, {
         database: connection.db,
@@ -84,6 +98,8 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
         bootstrapToken: SHOPPER_BOOTSTRAP_TOKEN,
         clientIP: context.env?.requestIP?.(request)?.address ?? "127.0.0.1",
         priceChange: priceChange.launcher,
+        momoPayment,
+        paystackSecret: environment.PAYSTACK_SECRET_KEY,
         authFlows,
         linkSecret: environment.SHOPPER_LINK_SECRET,
       });

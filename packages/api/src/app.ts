@@ -1,3 +1,4 @@
+import { paymentRoutes } from "./payments/routes";
 import { createSyncRoutes } from "./sync/routes";
 import { onboardingRoutes } from "./routes/onboarding";
 import { invitationRoutes } from "./routes/invitations";
@@ -18,6 +19,7 @@ export function createApi(options: ApiOptions = {}) {
     c.header("Shopper-Version", buildInfo.version);
   });
   app.route("/", systemRoutes());
+  app.route("/", paymentRoutes(options));
   if (options.database && options.devices && options.sequencer)
     app.route(
       "/",

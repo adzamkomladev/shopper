@@ -17,6 +17,7 @@ type LineProps = {
   selected: boolean;
   editing: boolean;
   disabled: boolean;
+  revealSelected: boolean;
   onSelect: () => void;
   onQuantity: (thousandths: number) => void;
   onEditDone: () => void;
@@ -28,6 +29,7 @@ export function Line({
   selected,
   editing,
   disabled,
+  revealSelected,
   onSelect,
   onQuantity,
   onEditDone,
@@ -49,7 +51,7 @@ export function Line({
     <li
       aria-current={selected || undefined}
       className={cn(
-        "flex h-16 items-center gap-3 border-b border-l-4 px-4",
+        "flex min-h-24 flex-col justify-center gap-2 border-b border-l-4 px-3 py-2 md:h-16 md:min-h-16 md:flex-row md:items-center md:gap-3 md:px-4 md:py-0",
         priced
           ? "border-l-transparent"
           : "border-l-warning-border bg-warning text-warning-foreground",
@@ -59,80 +61,86 @@ export function Line({
       )}
       data-line={row.lineId}
       onClick={onSelect}
-      ref={selected ? reveal : undefined}
+      ref={selected && revealSelected ? reveal : undefined}
     >
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-base leading-none font-medium">{name}</p>
-        <p
-          className={cn(
-            "mt-1 truncate text-xs",
-            priced && (selected ? "text-primary" : "text-muted-foreground"),
-          )}
-        >
-          {detail}
-        </p>
-      </div>
-      <div className="flex w-36 items-center justify-between gap-1">
-        {priced && (
-          <>
-            <Button
-              aria-label={`Decrease quantity of ${name}`}
-              disabled={disabled || quantity <= QUANTITY_STEP}
-              onClick={() => onQuantity(quantity - QUANTITY_STEP)}
-              size="icon-touch"
-              variant="outline"
-            >
-              <Minus aria-hidden="true" />
-            </Button>
-            {editing ? (
-              <QuantityField
-                name={name}
-                quantity={quantity}
-                onCommit={onQuantity}
-                onCancel={onEditDone}
-              />
-            ) : (
-              <span className="min-w-6 text-center text-base font-medium tabular-nums">
-                {formatQuantity(quantity)}
-              </span>
+      <div className="flex min-w-0 items-center justify-between gap-2 md:contents">
+        <div className="min-w-0 flex-1 md:order-1">
+          <p className="truncate text-base leading-none font-medium">{name}</p>
+          <p
+            className={cn(
+              "mt-1 truncate text-xs",
+              priced && (selected ? "text-primary" : "text-muted-foreground"),
             )}
-            <Button
-              aria-label={`Increase quantity of ${name}`}
-              disabled={disabled}
-              onClick={() => onQuantity(quantity + QUANTITY_STEP)}
-              size="icon-touch"
-              variant="outline"
-            >
-              <Plus aria-hidden="true" />
-            </Button>
-          </>
-        )}
+          >
+            {detail}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2 md:order-4">
+          {priced ? (
+            <Money amount={row.tax.gross} className="w-28 text-right text-base font-bold" />
+          ) : (
+            <p className="text-right text-sm font-medium">Not priced</p>
+          )}
+          <Button
+            aria-label={`Remove ${name}`}
+            className="text-destructive hover:text-destructive"
+            disabled={disabled}
+            onClick={onRemove}
+            size="icon-touch"
+            variant="ghost"
+          >
+            <Trash2 aria-hidden="true" />
+          </Button>
+        </div>
       </div>
-      {priced ? (
-        <>
+      <div className="flex items-center justify-between gap-2 md:contents">
+        <div className="flex w-36 items-center justify-between gap-1 md:order-2">
+          {priced && (
+            <>
+              <Button
+                aria-label={`Decrease quantity of ${name}`}
+                disabled={disabled || quantity <= QUANTITY_STEP}
+                onClick={() => onQuantity(quantity - QUANTITY_STEP)}
+                size="icon-touch"
+                variant="outline"
+              >
+                <Minus aria-hidden="true" />
+              </Button>
+              {editing ? (
+                <QuantityField
+                  name={name}
+                  quantity={quantity}
+                  onCommit={onQuantity}
+                  onCancel={onEditDone}
+                />
+              ) : (
+                <span className="min-w-6 text-center text-base font-medium tabular-nums">
+                  {formatQuantity(quantity)}
+                </span>
+              )}
+              <Button
+                aria-label={`Increase quantity of ${name}`}
+                disabled={disabled}
+                onClick={() => onQuantity(quantity + QUANTITY_STEP)}
+                size="icon-touch"
+                variant="outline"
+              >
+                <Plus aria-hidden="true" />
+              </Button>
+            </>
+          )}
+        </div>
+        {priced && (
           <Money
             amount={row.tax.unitPrice}
             // On the tinted selected row muted text drops below 4.5:1; slate-600 keeps AA.
             className={cn(
-              "w-24 text-sm font-medium",
+              "w-24 text-right text-sm font-medium md:order-3",
               selected ? "text-kbd-foreground" : "text-muted-foreground",
             )}
           />
-          <Money amount={row.tax.gross} className="w-28 text-base font-bold" />
-        </>
-      ) : (
-        <p className="w-55 text-right text-sm font-medium">Not priced</p>
-      )}
-      <Button
-        aria-label={`Remove ${name}`}
-        className="text-destructive hover:text-destructive"
-        disabled={disabled}
-        onClick={onRemove}
-        size="icon-touch"
-        variant="ghost"
-      >
-        <Trash2 aria-hidden="true" />
-      </Button>
+        )}
+      </div>
     </li>
   );
 }

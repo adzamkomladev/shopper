@@ -8,11 +8,12 @@ import { ShortcutHints } from "../../components/sale/hints";
 import { addInputFor, ScanEntry, SearchResults } from "../../components/sale/search";
 import {
   EmptyBasket,
+  CompletedBasket,
   LinesSkeleton,
   SaleBanners,
   UnavailableBasket,
 } from "../../components/sale/states";
-import { TaxSummary } from "../../components/sale/summary";
+import { TenderPanel } from "../../components/sale/tender/panel";
 import { CartTotals } from "../../components/sale/totals";
 import { isPriced, rowsOf, selectedRow } from "../../sale/rows";
 import type { CatalogueMatch, SaleActions, SaleSnapshot } from "../../sale/types";
@@ -27,10 +28,14 @@ export function SaleScreen({
   snapshot,
   actions,
   onRegister,
+  onPurchases,
+  active: screenActive = true,
 }: {
   snapshot: SaleSnapshot;
   actions: SaleActions;
   onRegister: () => void;
+  onPurchases?: () => void;
+  active?: boolean;
 }) {
   const { host, view, failure, busy, search, loading, sync } = snapshot;
   const [activeIndex, setActiveIndex] = useState(0);
@@ -39,7 +44,7 @@ export function SaleScreen({
   const scanRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  const locked = host !== "connected" || failure !== null;
+  const locked = host !== "connected" || failure !== null || snapshot.receipt !== null;
   const rows = rowsOf(view);
   const selected = selectedRow(rows, selectedId);
   const matches = search.matches;
@@ -112,15 +117,19 @@ export function SaleScreen({
     field.props.onKeyDown(event);
   }
 
-  const registerShortcuts = useShortcuts({
-    F2: focusScan,
-    F3: () => listRef.current?.focus(),
-    F4: startEdit,
-    F8: () => sync.canSync && actions.syncNow(),
-    F9: actions.reconnect,
-    F10: onRegister,
-    Escape: escape,
-  });
+  const registerShortcuts = useShortcuts(
+    screenActive && !snapshot.receipt
+      ? {
+          F2: focusScan,
+          F3: () => listRef.current?.focus(),
+          F4: startEdit,
+          F8: () => sync.canSync && actions.syncNow(),
+          F9: actions.reconnect,
+          F10: onRegister,
+          Escape: escape,
+        }
+      : {},
+  );
   // With the scan field disabled nothing else takes focus, so the screen holds it for its keys.
   const shortcuts = (node: HTMLElement | null) => {
     const cleanup = registerShortcuts(node);
@@ -137,10 +146,10 @@ export function SaleScreen({
     >
       <SaleHeader host={host} onRegister={onRegister} onSyncNow={actions.syncNow} sync={sync} />
       <SaleBanners actions={actions} describedBy={bannerId} rows={rows} snapshot={snapshot} />
-      <div className="grid min-h-0 flex-1 grid-cols-12 gap-6">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto md:grid-cols-12 md:overflow-hidden md:gap-6">
         <section
           aria-label="Basket"
-          className="col-span-7 flex min-h-0 flex-col overflow-hidden rounded-lg border bg-card shadow-sm"
+          className="flex min-h-96 flex-col overflow-hidden rounded-lg border bg-card shadow-sm md:col-span-7 md:min-h-0"
         >
           <ScanEntry
             activeIndex={searching && matches.length > 0 ? active : null}
@@ -151,7 +160,9 @@ export function SaleScreen({
             onLookup={focusScan}
             value={field.query}
           />
-          {searching ? (
+          {snapshot.receipt ? (
+            <CompletedBasket />
+          ) : searching ? (
             <SearchResults
               activeIndex={active}
               onPick={pick}
@@ -169,6 +180,7 @@ export function SaleScreen({
               disabled={busyOrLocked}
               editingId={editingId}
               listRef={listRef}
+              revealSelected={selectedId !== null}
               onEditDone={() => {
                 finishEdit();
                 focusScan();
@@ -182,7 +194,13 @@ export function SaleScreen({
           )}
           <CartTotals saved={view?.draft != null} totals={totalsOf(snapshot)} />
         </section>
-        <TaxSummary className="col-span-5" rows={rows} totals={totalsOf(snapshot)} />
+        <TenderPanel
+          active={screenActive}
+          actions={actions}
+          onReturnFocus={focusScan}
+          onPurchases={onPurchases}
+          snapshot={snapshot}
+        />
       </div>
       <ShortcutHints />
     </main>

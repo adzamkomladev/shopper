@@ -7,3 +7,5 @@ export * from "./events";
 export * from "./till/reference";
 export * from "./till/session";
 export { tillReceiptCodes } from "./till/config";
+export { receiptDocument, type ReceiptDocument } from "./receipts/document";
+export { purchaseFilters, purchasesInput, purchaseInput } from "./till/purchases";

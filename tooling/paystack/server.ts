@@ -6,7 +6,7 @@ export const FAKE_OTP = "123456";
 const DECLINED =
   "Declined. Please use the test mobile money number since you are doing a test transaction.";
 
-export type PaystackBehaviour = "success" | "send_otp" | "failed" | "pending";
+export type PaystackBehaviour = "success" | "send_otp" | "failed" | "pending" | "error";
 type Outcome = "success" | "failed" | "pending" | "abandoned";
 type Charge = { phone: string; amount: number; outcome: Outcome; behaviour: PaystackBehaviour };
 export type WebhookEvent = { event: "charge.success" | "charge.failed"; reference: string };
@@ -15,6 +15,7 @@ export type WebhookEvent = { event: "charge.success" | "charge.failed"; referenc
 export async function startPaystackFake({ port = 0, secretKey = "sk_test_fake" } = {}) {
   const behaviours = new Map<string, PaystackBehaviour>();
   const charges = new Map<string, Charge>();
+  const otpOutcomes = new Map<string, "success" | "pending">();
   const requests: Array<{ path: string; body: unknown }> = [];
 
   const server = createServer(async (request, response) => {
@@ -31,6 +32,15 @@ export async function startPaystackFake({ port = 0, secretKey = "sk_test_fake" }
     if (request.method === "POST" && url.pathname === "/charge") return charge(response, body);
     if (request.method === "POST" && url.pathname === "/charge/submit_otp")
       return submitOtp(response, body);
+    const countMatch = /^\/test\/charges\/([^/]+)$/.exec(url.pathname);
+    if (request.method === "GET" && countMatch)
+      return reply(response, 200, {
+        attempts: requests.filter(
+          (entry) =>
+            entry.path === "/charge" &&
+            (entry.body as { reference?: string })?.reference === countMatch[1],
+        ).length,
+      });
     const verifyMatch = /^\/transaction\/verify\/([^/]+)$/.exec(url.pathname);
     if (request.method === "GET" && verifyMatch) return verify(response, verifyMatch[1]!);
     reply(response, 404, { status: false, message: "Not found" });
@@ -53,6 +63,8 @@ export async function startPaystackFake({ port = 0, secretKey = "sk_test_fake" }
     )
       return reply(response, 400, { status: false, message: "Invalid charge request" });
     const behaviour = behaviours.get(phone) ?? "failed";
+    if (behaviour === "error")
+      return reply(response, 503, { status: false, message: "Provider temporarily unavailable" });
     const outcome: Outcome = {
       success: "success",
       failed: "failed",
@@ -88,11 +100,11 @@ export async function startPaystackFake({ port = 0, secretKey = "sk_test_fake" }
         type: "validation_error",
         code: "invalid_otp",
       });
-    found.outcome = "success";
+    found.outcome = otpOutcomes.get(found.phone) ?? "success";
     reply(response, 200, {
       status: true,
       message: "Charge attempted",
-      data: { reference, status: "success" },
+      data: { reference, status: found.outcome === "pending" ? "pay_offline" : "success" },
     });
   }
 
@@ -139,8 +151,13 @@ export async function startPaystackFake({ port = 0, secretKey = "sk_test_fake" }
     baseUrl: `http://127.0.0.1:${address.port}`,
     requests,
     /** Sets how a phone number behaves when charged. */
-    behave(phone: string, behaviour: PaystackBehaviour) {
+    behave(
+      phone: string,
+      behaviour: PaystackBehaviour,
+      otpOutcome: "success" | "pending" = "success",
+    ) {
       behaviours.set(phone, behaviour);
+      otpOutcomes.set(phone, otpOutcome);
     },
     /** Resolves a charge that was left pending, so a later verify agrees with the webhook. */
     settle(reference: string, outcome: "success" | "failed") {

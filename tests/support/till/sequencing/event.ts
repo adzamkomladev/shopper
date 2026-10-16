@@ -19,7 +19,7 @@ export async function createSaleEvent(appVersion: string, orgId: string, storeId
   };
   const deviceTime = "2025-12-31T23:30:00.000Z";
   const event = v.parse(saleEvent, {
-    v: 2,
+    v: 3,
     type: "sale.recorded",
     sale: {
       id: ids.localId,
@@ -43,6 +43,8 @@ export async function createSaleEvent(appVersion: string, orgId: string, storeId
           sku: `CONF-${ids.productId}`,
           name: "Conformance product",
           baseUnit: "each",
+          discount: 0,
+          label: null,
           tax: {
             on: goldenSale.on,
             taxClass: "standard",
@@ -63,6 +65,11 @@ export async function createSaleEvent(appVersion: string, orgId: string, storeId
         },
       ],
       totals: goldenSale.totals,
+      cashRounding: 0,
+      total: goldenSale.totals.gross,
+      paid: goldenSale.totals.gross,
+      change: 0,
+      tenders: [{ id: v7(), kind: "cash", amount: goldenSale.totals.gross }],
     },
   });
   const digest = await crypto.subtle.digest(

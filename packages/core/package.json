@@ -39,6 +39,18 @@
     "./sales": {
       "types": "./src/sales/index.ts",
       "default": "./src/sales/index.ts"
+    },
+    "./receipts": {
+      "types": "./src/receipts/index.ts",
+      "default": "./src/receipts/index.ts"
+    },
+    "./payments": {
+      "types": "./src/payments/index.ts",
+      "default": "./src/payments/index.ts"
+    },
+    "./till/settlement": {
+      "types": "./src/till/tenders/settle.ts",
+      "default": "./src/till/tenders/settle.ts"
     }
   },
   "scripts": {

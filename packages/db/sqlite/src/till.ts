@@ -14,6 +14,12 @@ CREATE TABLE IF NOT EXISTS sale_line (
  id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, sale_id TEXT NOT NULL, payload TEXT NOT NULL,
  FOREIGN KEY(org_id,sale_id) REFERENCES local_sale(org_id,id)
 );
+CREATE TABLE IF NOT EXISTS stock_movement (
+ id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, device_id TEXT NOT NULL, branch_id TEXT NOT NULL,
+ product_id TEXT NOT NULL, sale_id TEXT NOT NULL, sale_line_id TEXT NOT NULL,
+ quantity_thousandths INTEGER NOT NULL, reason TEXT NOT NULL CHECK(reason = 'sale'), occurred_at TEXT NOT NULL,
+ UNIQUE(org_id,sale_line_id), FOREIGN KEY(org_id,sale_id) REFERENCES local_sale(org_id,id)
+);
 CREATE TABLE IF NOT EXISTS outbox (
  id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, device_id TEXT NOT NULL, local_id TEXT NOT NULL,
  local_seq INTEGER NOT NULL, event TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,
@@ -79,4 +85,17 @@ CREATE TABLE sale_draft_tender (
  * schema (tills are re-provisioned, so there is nothing to upgrade from). Shipped steps are never edited again;
  * append new ones.
  */
-export const tillMigrations: string[] = [`${initial}${lookup}${drafts}`];
+
+const payments = `
+CREATE TABLE payment_intent (
+ id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, device_id TEXT NOT NULL,
+ branch_id TEXT NOT NULL, cashier_id TEXT NOT NULL, reference TEXT NOT NULL,
+ amount INTEGER NOT NULL CHECK(amount > 0 AND amount % 100 = 0), phone TEXT NOT NULL,
+ phone_fingerprint TEXT CHECK(phone_fingerprint IS NULL OR (length(phone_fingerprint)=64 AND phone_fingerprint NOT GLOB '*[^0-9a-f]*')),
+ network TEXT NOT NULL CHECK(network IN ('mtn','telecel','airteltigo')),
+ status TEXT NOT NULL CHECK(status IN ('pending','otp','confirmed','failed','expired')),
+ failure_reason TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+ UNIQUE(org_id,reference)
+);`;
+
+export const tillMigrations: string[] = [`${initial}${lookup}${drafts}${payments}`];

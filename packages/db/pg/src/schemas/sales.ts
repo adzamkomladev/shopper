@@ -107,7 +107,7 @@ export const saleTender = pgTable(
     foreignKey({ columns: [t.orgId, t.saleId], foreignColumns: [sale.orgId, sale.id] }),
     foreignKey({ columns: [t.orgId, t.paymentId], foreignColumns: [payment.orgId, payment.id] }),
     check("sale_tender_kind", sql`${t.kind} IN ('cash', 'momo', 'card')`),
-    check("sale_tender_amount", sql`${t.amount} > 0`),
+    check("sale_tender_amount", sql`${t.amount} > 0 OR (${t.kind} = 'cash' AND ${t.amount} = 0)`),
     check("sale_tender_position", sql`${t.position} >= 0`),
     check("sale_tender_momo_payment", sql`${t.kind} <> 'momo' OR ${t.paymentId} IS NOT NULL`),
   ],

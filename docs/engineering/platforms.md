@@ -36,7 +36,11 @@ Rivet workflow. The live example of this pattern is `nextStoreSequence()`, which
   starting an existing instance id is a no-op on both engines. Ids must pass
   `workflowInstanceIdSchema` (Cloudflare's rule: letters, digits, `-`, `_`, at most 100 characters).
 - Launch inside the command that creates the business row. If that transaction rolls back, the flow
-  finds nothing and closes its `workflow_run` instead of sleeping.
+  finds nothing and closes its `workflow_run` instead of sleeping. Money-moving MoMo is the narrow
+  exception: commit the audited payment intent before acknowledging its launch, so an immediate
+  provider charge can only run against a committed intent. The till reserves its UUID reference
+  before HTTP; a failed launch returns 503 and a retry of that same reference resumes launch,
+  without creating another intent or charge. Unresolved intents remain readable for recovery.
 - Step outputs are JSON and checkpointed through `defineCommand`, so a retried step resends the same
   envelopes. A flow that runs out of retries records `failed` before it throws.
 - The `Realtime` port: device ids are UUIDv7, cursors are store sequences (`sequenceSchema`), one

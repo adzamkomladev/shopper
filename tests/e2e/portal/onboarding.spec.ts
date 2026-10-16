@@ -198,6 +198,7 @@ test("milestone: an owner sets up a shop and a cashier they invite accepts and s
   const cashier = `cashier-${tag}@shop.example.com`;
   await page.goto("/users");
   await expect(page.getByRole("heading", { name: "Users", level: 1 })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Invite user/ })).toBeVisible();
   await page.keyboard.press("i");
   await expect(page.getByRole("dialog")).toBeVisible();
   const invitation = page.getByRole("dialog");

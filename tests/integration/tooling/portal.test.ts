@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -25,7 +26,29 @@ test("the portal build prerenders a static SPA shell and routes only API and ser
   expect(config.name).toBe("shopper-portal-staging");
   expect(config.vars.SHOPPER_ENVIRONMENT).toBe("staging");
   expect(config.durable_objects.bindings).toHaveLength(2);
-  expect(config.workflows).toHaveLength(2);
+  expect(config.workflows).toHaveLength(3);
+  expect(config.workflows).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        name: "shopper-price-change-staging",
+        binding: "PRICE_CHANGE",
+        class_name: "PriceChangeWorkflow",
+        script_name: "shopper-edge-staging",
+      }),
+      expect.objectContaining({
+        name: "shopper-auth-flow-staging",
+        binding: "AUTH_FLOWS",
+        class_name: "AuthWorkflow",
+        script_name: "shopper-edge-staging",
+      }),
+      expect.objectContaining({
+        name: "shopper-momo-payment-staging",
+        binding: "MOMO_PAYMENT",
+        class_name: "MomoPaymentWorkflow",
+        script_name: "shopper-edge-staging",
+      }),
+    ]),
+  );
   expect(config.queues.producers).toHaveLength(1);
   expect(config.hyperdrive).toHaveLength(1);
   expect(config.d1_databases).toHaveLength(1);

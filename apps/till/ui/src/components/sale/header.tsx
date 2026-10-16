@@ -28,24 +28,33 @@ export function SaleHeader({
         ? "Sync is unavailable right now."
         : "Reconnect to the register host to sync.";
   return (
-    <header className="flex h-11 shrink-0 items-center justify-between gap-4">
+    <header className="flex h-11 shrink-0 items-center justify-between gap-2">
       <h1 className="text-3xl font-bold tracking-tight">Sale</h1>
-      <div aria-live="polite" className="flex items-center gap-3">
-        <p className="text-sm font-medium text-muted-foreground" id="sale-sync-note">
+      <div aria-live="polite" className="flex min-w-0 items-center gap-2 sm:gap-3">
+        <p
+          className="hidden truncate text-sm font-medium text-muted-foreground sm:block"
+          id="sale-sync-note"
+        >
           {reason ?? syncSummary(sync)}
         </p>
-        <Button aria-keyshortcuts="F10" onClick={onRegister} size="touch" variant="outline">
-          Register <Kbd className="pointer-coarse:inline-flex">F10</Kbd>
+        <Button
+          aria-keyshortcuts="F10"
+          className="px-2 sm:px-4"
+          onClick={onRegister}
+          size="touch"
+          variant="outline"
+        >
+          Register <Kbd className="hidden sm:inline-flex">F10</Kbd>
         </Button>
         <Button
           aria-describedby="sale-sync-note"
           aria-keyshortcuts="F8"
           disabled={!sync.canSync}
+          className="px-2 sm:px-4"
           onClick={onSyncNow}
           size="touch"
         >
-          {sync.syncing ? "Syncing…" : "Sync now"}{" "}
-          <Kbd className="pointer-coarse:inline-flex">F8</Kbd>
+          {sync.syncing ? "Syncing…" : "Sync now"} <Kbd className="hidden sm:inline-flex">F8</Kbd>
         </Button>
       </div>
     </header>

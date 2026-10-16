@@ -26,6 +26,8 @@ export interface ApiOptions {
   devices?: ReturnType<typeof createDeviceService>;
   // Populated by the authenticated session adapter; never derive this from request parameters.
   resolveOrgId?: (request: Request) => Promise<string | null>;
+  momoPayment?: WorkflowLauncher;
+  paystackSecret?: string;
   priceChange?: WorkflowLauncher;
   onboarding?: ReturnType<typeof createOnboarding>;
   invitations?: ReturnType<typeof createInvitations>;
@@ -43,6 +45,8 @@ export interface RuntimeOptions {
   orgId?: string;
   bootstrapToken?: string;
   clientIP?: string;
+  momoPayment?: WorkflowLauncher;
+  paystackSecret?: string;
   priceChange?: WorkflowLauncher;
   authFlows?: WorkflowLauncher;
   linkSecret?: string;

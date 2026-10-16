@@ -29,6 +29,59 @@ export const basketRequests = [
     quantityThousandths: quantity,
   }),
   v.strictObject({ id, type: v.literal("removeLine"), expectedRevision: revision, lineId: id }),
+  v.strictObject({
+    id,
+    type: v.literal("tender.add"),
+    expectedRevision: revision,
+    kind: v.picklist(["cash", "card"]),
+    amount: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
+    approvalCode: v.optional(v.pipe(v.string(), v.regex(/^[a-zA-Z0-9]{4,12}$/))),
+    last4: v.optional(v.pipe(v.string(), v.regex(/^\d{4}$/))),
+  }),
+  v.strictObject({
+    id,
+    type: v.literal("tender.remove"),
+    expectedRevision: revision,
+    tenderId: id,
+  }),
+  v.strictObject({
+    id,
+    type: v.literal("discount.set"),
+    expectedRevision: revision,
+    lineId: id,
+    discount: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
+  }),
+  v.strictObject({ id, type: v.literal("sale.complete"), expectedRevision: revision }),
+  v.strictObject({
+    id,
+    type: v.literal("payment.momo.start"),
+    expectedRevision: revision,
+    phone: v.pipe(v.string(), v.regex(/^(?:0\d{9}|\+233\d{9})$/)),
+    network: v.picklist(["mtn", "telecel", "airteltigo"]),
+    amount: v.pipe(v.number(), v.safeInteger(), v.minValue(100), v.multipleOf(100)),
+  }),
+  v.strictObject({
+    id,
+    type: v.literal("payment.momo.otp"),
+    expectedRevision: revision,
+    reference: id,
+    otp: v.pipe(v.string(), v.regex(/^\d{4,10}$/)),
+  }),
+  v.strictObject({
+    id,
+    type: v.literal("sale.hold"),
+    expectedRevision: revision,
+    name: v.optional(v.pipe(v.string(), v.trim(), v.maxLength(100))),
+  }),
+  v.strictObject({ id, type: v.literal("sale.resume"), expectedRevision: revision, draftId: id }),
+  v.strictObject({ id, type: v.literal("sale.listHeld"), expectedRevision: revision }),
+  v.strictObject({
+    id,
+    type: v.literal("sale.void"),
+    expectedRevision: revision,
+    reason: v.pipe(text, v.trim(), v.minLength(1), v.maxLength(500)),
+    draftId: v.optional(id),
+  }),
 ] as const;
 export const basketRequestTypes = basketRequests.map((schema) => schema.entries.type.literal);
 
@@ -48,6 +101,7 @@ const draftLabel = v.variant("kind", [
     code: v.string(),
     gross: v.number(),
     originalQuantityThousandths: v.number(),
+    originalPriceId: id,
   }),
 ]);
 const quotedLine = v.union([
@@ -68,6 +122,28 @@ export const draftView = v.strictObject({
   draft: v.nullable(
     v.strictObject({
       id,
+      status: v.picklist(["open", "held", "voided"]),
+      name: v.nullable(v.string()),
+      voidReason: v.optional(v.nullable(v.string())),
+      heldAt: v.optional(v.nullable(stamp)),
+      voidedAt: v.optional(v.nullable(stamp)),
+      tenders: v.array(
+        v.strictObject({
+          id,
+          orgId: id,
+          draftId: id,
+          position: revision,
+          kind: v.picklist(["cash", "momo", "card"]),
+          amount: v.number(),
+          reference: v.nullable(v.string()),
+          approvalCode: v.nullable(v.string()),
+          last4: v.nullable(v.string()),
+          phone: v.nullable(v.string()),
+          network: v.nullable(v.string()),
+          status: v.picklist(["applied", "pending", "otp", "confirmed", "failed", "expired"]),
+          createdAt: stamp,
+        }),
+      ),
       revision: v.pipe(revision, v.minValue(1)),
       createdAt: stamp,
       updatedAt: stamp,
@@ -76,15 +152,35 @@ export const draftView = v.strictObject({
           id,
           productId: id,
           quantityThousandths: v.number(),
+          discount: v.number(),
           label: v.optional(draftLabel),
         }),
       ),
+    }),
+  ),
+  cashRounding: v.optional(v.picklist(["none", "10p"])),
+  settlementError: v.optional(v.string()),
+  settlement: v.optional(
+    v.strictObject({
+      gross: v.number(),
+      roundingLine: v.number(),
+      total: v.number(),
+      nonCash: v.number(),
+      cash: v.number(),
+      balance: v.number(),
+      change: v.number(),
     }),
   ),
   quote: v.strictObject({ lines: v.array(quotedLine), totals: saleTotals, changed: v.boolean() }),
 });
 
 export const basketReplies = [
+  v.strictObject({
+    id,
+    type: v.literal("result"),
+    kind: v.literal("held"),
+    views: v.array(draftView),
+  }),
   v.strictObject({
     id,
     type: v.literal("result"),

@@ -17,3 +17,13 @@ export { resolveScan } from "./basket/scan";
 export { hostTime, validateSession } from "./session";
 export { readDraft } from "./drafts/queries";
 export { addToDraft, setDraftQuantity, removeDraftLine } from "./drafts/commands";
+export { settle } from "./tenders/settle";
+export { addDraftTender, removeDraftTender } from "./tenders/commands";
+export { completeDraftSale } from "./complete";
+export { holdDraftSale, resumeDraftSale, voidDraftSale, listHeldDraftSales } from "./drafts/status";
+export { setDraftDiscount } from "./drafts/discount";
+export { listPurchases, readPurchase } from "./purchases";
+export { applyDraftPayment } from "./tenders/payment";
+export { storePaymentUpdate } from "./tenders/status";
+
+export { paymentSale } from "./tenders/consumption";

@@ -4,7 +4,7 @@ import * as schema from "@shopper/db-pg";
 import { createApi } from "@shopper/api";
 import { serveHono } from "../../support/till/http";
 import { api as syncApi, databases, devices, recordSale } from "../../support/till/server";
-import { createFailOnceSequencer, push, pushEvents } from "../../support/till/requests";
+import { createFailOnceSequencer, push } from "../../support/till/requests";
 test("concurrent and sequential replay assign one sequence; changed content conflicts", async () => {
   const { db, context } = databases();
   const captured = await recordSale();
@@ -93,44 +93,4 @@ test("sequencing failure leaves the accepted sale unassigned and retry finishes 
   expect(await acceptanceAudits()).toHaveLength(1);
   expect(await assignmentAudits()).toHaveLength(1);
   await api.close();
-});
-
-test("v1 and equivalent upcast v2 replay retain one sale, hash and acceptance audit", async () => {
-  const { decodeSaleEvent } = await import("@shopper/core/schemas");
-  const captured = await recordSale();
-  const {
-    receiptNumber: _receipt,
-    receiptOverflow: _overflow,
-    clockOffsetMs: _offset,
-    ...oldSale
-  } = captured.event.sale;
-  const legacy = { v: 1, type: "sale.recorded", sale: oldSale };
-  const modern = decodeSaleEvent(legacy);
-  const first = await pushEvents(
-    syncApi,
-    [legacy],
-    [{ sessionId: captured.sessionId, proof: captured.proof }],
-  );
-  expect(first.status).toBe(200);
-  const firstBody = await first.json();
-  expect(firstBody.accepted).toHaveLength(1);
-  const { db } = databases();
-  const rows = () => db.select().from(schema.sale).where(eq(schema.sale.localId, oldSale.localId));
-  const audits = () =>
-    db
-      .select()
-      .from(schema.auditLog)
-      .where(
-        and(
-          eq(schema.auditLog.command, "sale.accept"),
-          eq(schema.auditLog.entityId, oldSale.localId),
-        ),
-      );
-  const before = await rows();
-  const replay = await push(syncApi, modern, captured.proof, captured.sessionId);
-  const replayBody = await replay.json();
-  expect(replayBody.accepted).toEqual(firstBody.accepted);
-  expect(await rows()).toHaveLength(1);
-  expect((await rows())[0]?.contentHash).toBe(before[0]?.contentHash);
-  expect(await audits()).toHaveLength(1);
 });

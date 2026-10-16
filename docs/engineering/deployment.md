@@ -114,7 +114,7 @@ Set under each Worker, **Settings > Build**. Connect `adzamkomladev/shopper` to 
   `vp exec drizzle-kit generate --config packages/db/pg/drizzle.config.ts`. Never edit an applied
   migration.
 - Breaking changes use **expand → migrate → contract** across at least two releases. The server
-  accepts sync protocol N and N−1. `min_till_version` forces old tills to update.
+  accepts only sync protocol 3 after the approved Day 11 till-data reset; older tills must re-bootstrap. `min_till_version` forces old tills to update.
 - Every migration is exercised by `tests/integration/db` against a fresh PG18 database, rerun to
   prove idempotency.
 - Synced events carry `v`. Changing an event's shape bumps `v` and adds an upcaster. Old events and

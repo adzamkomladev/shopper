@@ -36,7 +36,10 @@ test(
     let worker = createPushWorker(fixture.workerOptions);
     fixture.worker = worker;
     const started = performance.now();
+    let rounds = 0;
     while ((await fixture.queue()).length > 0) {
+      if (++rounds > 100)
+        throw new Error(`Push made no progress: ${JSON.stringify(worker.getStatus())}`);
       await worker.trigger();
       await worker.stop();
       fixture.advanceTime(60_001);

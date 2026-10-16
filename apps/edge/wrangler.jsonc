@@ -67,6 +67,11 @@
           "binding": "AUTH_FLOWS",
           "class_name": "AuthWorkflow",
         },
+        {
+          "name": "shopper-momo-payment-staging",
+          "binding": "MOMO_PAYMENT",
+          "class_name": "MomoPaymentWorkflow",
+        },
       ],
       "routes": [
         {
@@ -125,6 +130,11 @@
       "class_name": "PriceChangeWorkflow",
     },
     { "name": "shopper-auth-flow-dev", "binding": "AUTH_FLOWS", "class_name": "AuthWorkflow" },
+    {
+      "name": "shopper-momo-payment-dev",
+      "binding": "MOMO_PAYMENT",
+      "class_name": "MomoPaymentWorkflow",
+    },
   ],
   "account_id": "bd9ef997b398c9aeeee8ac3d3618efdc",
   "migrations": [

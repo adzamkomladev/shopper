@@ -221,17 +221,18 @@ test("another store or another organisation's changes are never visible", async 
   expect(blocked.status).toBe(401);
 });
 
-test("an incompatible protocol header is rejected with 409 and N and N-1 are both accepted", async () => {
+test("a pre-tender or future protocol is rejected and the current protocol is accepted", async () => {
   const cursor = String(await head());
   expect((await pull(api, { cursor }, pullHeaders(0))).status).toBe(409);
-  expect((await pull(api, { cursor }, pullHeaders(3))).status).toBe(409);
-  const later = await createSyncApi(2);
+  expect((await pull(api, { cursor }, pullHeaders(4))).status).toBe(409);
+  const later = await createSyncApi(3);
   try {
     for (const [protocol, status] of [
-      [1, 200],
-      [2, 200],
+      [1, 409],
+      [2, 409],
       [0, 409],
-      [3, 409],
+      [3, 200],
+      [4, 409],
     ] as const)
       expect((await pull(later, { cursor }, pullHeaders(protocol))).status).toBe(status);
   } finally {

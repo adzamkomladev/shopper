@@ -2,11 +2,13 @@ import { sha256 } from "@shopper/utils";
 import { and, eq } from "drizzle-orm";
 import * as v from "valibot";
 import { defineCommand, canonicalJson } from "@shopper/audit";
-import { sale, saleLine, type ShopperDatabase } from "@shopper/db-pg";
+import { sale, saleLine, saleTender, stockMovement, type ShopperDatabase } from "@shopper/db-pg";
 import { decodeSaleEvent, saleSnapshot, type SaleEvent } from "../schemas/till/sale";
 import { validateAuthority, validateReferences, type UploadPrincipal } from "./validate";
 import { validateReceipt } from "./receipts";
 import { SaleError } from "./error";
+import { validateTenders } from "./tenders";
+import { saleDocument } from "./document";
 
 export async function acceptSale(
   db: ShopperDatabase,
@@ -75,6 +77,7 @@ const accept = defineCommand({
     await validateAuthority(tx, ctx, input.principal, snapshot, input.proofHash, input.occurredAt);
     await validateReferences(tx, ctx.orgId, snapshot, input.occurredAt);
     await validateReceipt(tx, snapshot);
+    const tenders = await validateTenders(tx, snapshot);
     const [saved] = await tx
       .insert(sale)
       .values({
@@ -91,6 +94,11 @@ const accept = defineCommand({
         deviceTime: new Date(snapshot.deviceTime),
         occurredAt: input.occurredAt,
         receiptNumber: snapshot.receiptNumber,
+        receipt: await saleDocument(tx, snapshot),
+        total: snapshot.total,
+        cashRounding: snapshot.cashRounding,
+        paid: snapshot.paid,
+        change: snapshot.change,
         payload: snapshot,
         contentHash: input.contentHash,
       })
@@ -106,6 +114,19 @@ const accept = defineCommand({
         priceId: line.priceId,
         taxRuleId: line.tax.rule.id,
         payload: line,
+      })),
+    );
+    await tx.insert(saleTender).values(tenders);
+    await tx.insert(stockMovement).values(
+      snapshot.lines.map((line) => ({
+        orgId: ctx.orgId,
+        branchId: snapshot.branchId,
+        productId: line.productId,
+        saleId: saved.id,
+        saleLineId: line.id,
+        reason: "sale" as const,
+        quantityThousandths: -line.tax.quantityThousandths,
+        occurredAt: input.occurredAt,
       })),
     );
     return { localId: saved.localId, occurredAt: saved.occurredAt.toISOString() };

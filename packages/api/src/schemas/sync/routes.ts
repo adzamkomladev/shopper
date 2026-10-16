@@ -29,6 +29,6 @@ export const envelope = v.strictObject({
 });
 export const identity = v.object({ sale: v.object({ localId: managementId }) });
 
-export const saleVersion = v.object({ v: v.picklist([1, 2]) });
+export const saleVersion = v.object({ v: v.picklist([3]) });
 
 export const saleSession = v.object({ sale: v.object({ sessionId: managementId }) });

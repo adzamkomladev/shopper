@@ -1,6 +1,6 @@
 import type { LiveSocket, LiveMode } from "./types";
 export type { LiveSocket, LiveMode } from "./types";
-import { nudge } from "./schemas/live";
+import { paymentNudge, nudge } from "./schemas/live";
 import * as v from "valibot";
 
 const FALLBACK_MS = 30_000;
@@ -12,6 +12,8 @@ export function createLiveWorker(options: {
   trigger: () => Promise<void>;
   connect: (url: string, headers: Record<string, string>) => LiveSocket;
   onMode?: (mode: LiveMode) => void;
+  onPayment?: (payment: v.InferOutput<typeof paymentNudge>["payload"]) => Promise<void>;
+  onConnected?: () => Promise<void>;
 }) {
   let socket: LiveSocket | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -20,6 +22,7 @@ export function createLiveWorker(options: {
   let attempt = 0;
   let mode: LiveMode = "offline";
   let pulling: Promise<void> | undefined;
+  let receiving = Promise.resolve();
   const publish = (next: LiveMode) => {
     mode = next;
     options.onMode?.(next);
@@ -77,12 +80,27 @@ export function createLiveWorker(options: {
         attempt = 0;
         publish("live");
         void pull();
+        if (options.onConnected)
+          receiving = receiving.then(options.onConnected).catch(() => {
+            current.close();
+            fallback();
+          });
         catchup();
       });
       current.on("message", (data) => {
         if (stopped || socket !== current) return;
         try {
-          if (v.is(nudge, JSON.parse(String(data)))) void pull();
+          const message: unknown = JSON.parse(String(data));
+          if (v.is(nudge, message)) void pull();
+          const payment = v.safeParse(paymentNudge, message);
+          if (payment.success && options.onPayment)
+            receiving = receiving
+              .then(() => options.onPayment?.(payment.output.payload))
+              .then(() => undefined)
+              .catch(() => {
+                current.close();
+                fallback();
+              });
         } catch {
           current.close();
           fallback();
@@ -112,6 +130,7 @@ export function createLiveWorker(options: {
       clearTimeout(catchupTimer);
       socket?.close();
       await pulling;
+      await receiving;
     },
   };
 }

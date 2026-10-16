@@ -22,6 +22,13 @@ test.beforeEach(async ({ page }, testInfo) => {
         return now ?? real.get!.call(this);
       },
     });
+    document.addEventListener(
+      "keydown",
+      () => {
+        if (now !== null) now += 10;
+      },
+      true,
+    );
     Object.assign(window, { scanClock: (value: number | null) => (now = value) });
   });
 });
@@ -42,6 +49,7 @@ async function openSale(page: Page) {
 test("thirty keyboard scans land in under a minute and the basket outlives the page", async ({
   page,
 }, testInfo) => {
+  await delayFirstReply(page, "add", 1500);
   await openSale(page);
   await expect(page.getByText("Basket is empty")).toBeVisible();
   const products = scenario!.products;
@@ -49,10 +57,12 @@ test("thirty keyboard scans land in under a minute and the basket outlives the p
   for (let index = 0; index < 30; index += 1)
     await scan(page, products[index % products.length]!.barcode);
   await expect(lines(page)).toHaveCount(10);
-  for (const product of products)
-    await expect(lines(page).filter({ hasText: product.name })).toContainText(
-      `3${formatGHS(money(product.amount))}${formatGHS(mulQty(money(product.amount), 3000))}`,
-    );
+  for (const product of products) {
+    const line = lines(page).filter({ hasText: product.name });
+    await expect(line).toContainText(product.sku);
+    await expect(line).toContainText(`3${formatGHS(money(product.amount))}`);
+    await expect(line).toContainText(formatGHS(mulQty(money(product.amount), 3000)));
+  }
   const total = formatGHS(
     products.map((product) => mulQty(money(product.amount), 3000)).reduce(add),
   );
@@ -107,21 +117,88 @@ test("search adds by name, F4 sets a quantity, Delete removes and an unknown sca
   await expect(page.getByRole("heading", { name: "Register connection" })).toBeVisible();
 });
 
+test("a real till splits cash, completes the balance and finds its receipt in Purchases", async ({
+  page,
+}) => {
+  const completion = await delayFirstReply(page, "sale.complete", 1500);
+  await openSale(page);
+  await scan(page, scenario!.products[0]!.barcode);
+  await expect(page.getByRole("region", { name: "Tender" })).toBeVisible();
+  await page.getByRole("textbox", { name: "Amount tendered" }).fill("100.00");
+  await page.getByRole("button", { name: "Split" }).click();
+  await expect(page.getByRole("region", { name: "Tender" })).toContainText("GH₵ 325.00");
+  await expect(page.getByRole("textbox", { name: "Amount tendered" })).toHaveValue("325.00");
+  await page.keyboard.press("F5");
+  await completion.started;
+  await page.keyboard.press("F2");
+  await expect(field(page)).toBeFocused();
+  await scan(page, scenario!.products[1]!.barcode);
+  await expect(page.getByRole("region", { name: "Sale receipt" })).toContainText("GH₵ 0.00");
+  await expectNoSeriousAxe(page);
+  await shoot(page, test.info(), "completed-sale");
+
+  await page.keyboard.press("Enter");
+  await expect(page.getByText("Basket is empty")).toBeVisible();
+  await page.keyboard.press("F2");
+  await expect(field(page)).toBeFocused();
+  await scan(page, scenario!.products[2]!.barcode);
+  await expect(lines(page)).toHaveCount(1);
+  await expect(lines(page).filter({ hasText: scenario!.products[2]!.name })).toHaveCount(1);
+  await expect(lines(page).filter({ hasText: scenario!.products[1]!.name })).toHaveCount(0);
+  await page.getByRole("button", { name: "Purchases" }).click();
+  await expect(page.getByRole("heading", { name: "Purchases", exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: /Receipt/ })
+    .first()
+    .click();
+  await expect(page.getByRole("heading", { name: "Purchase details" })).toBeVisible();
+  await expect(page.getByRole("table", { name: "Items purchased" })).toContainText("Milo 400g tin");
+  await expectNoSeriousAxe(page);
+});
+
 let clock = 1_000_000;
 /** A scanner burst: every key, Enter included, 10 ms after the last on the page's event clock. */
 async function scan(page: Page, code: string) {
   clock += 1_000;
-  for (const key of [...code.split(""), "Enter"]) {
-    clock += 10;
-    await page.evaluate(
-      (value) => (window as unknown as { scanClock: (v: number) => void }).scanClock(value),
-      clock,
-    );
-    await page.keyboard.press(key);
-  }
+  await page.evaluate(
+    (value) => (window as unknown as { scanClock: (v: number) => void }).scanClock(value),
+    clock,
+  );
+  await page.keyboard.type(code);
+  await page.keyboard.press("Enter");
   await page.evaluate(() =>
     (window as unknown as { scanClock: (v: null) => void }).scanClock(null),
   );
+}
+
+async function delayFirstReply(page: Page, requestType: string, delayMs: number) {
+  let signal = () => {};
+  const started = new Promise<void>((resolve) => (signal = resolve));
+  await page.routeWebSocket(
+    (url) => url.pathname.endsWith("/bridge"),
+    (route) => {
+      const host = route.connectToServer();
+      let delayedRequest: string | undefined;
+      let delayed = false;
+      route.onMessage((message) => {
+        const request = JSON.parse(String(message)) as { id: string; type: string };
+        if (request.type === requestType && !delayed) {
+          delayed = true;
+          delayedRequest = request.id;
+        }
+        host.send(message);
+      });
+      host.onMessage((message) => {
+        const reply = JSON.parse(String(message)) as { id?: string };
+        if (reply.id === delayedRequest) {
+          delayedRequest = undefined;
+          signal();
+          setTimeout(() => route.send(message), delayMs);
+        } else route.send(message);
+      });
+    },
+  );
+  return { started };
 }
 
 async function shoot(page: Page, testInfo: TestInfo, name: string) {

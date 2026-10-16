@@ -20,6 +20,7 @@ import { TillError } from "../error";
 import { quoteFrom, readQuoteReference } from "../quotation";
 import type { DraftView } from "../types";
 import { findDraft, toView } from "./queries";
+import { assertTenderBalance } from "../tenders/reservation";
 import { quoteDraft } from "./quote";
 
 type Line = typeof saleDraftLine.$inferSelect;
@@ -41,7 +42,8 @@ export async function addToDraft(db: TillDatabase, context: CommandContext, raw:
         ? {
             kind: "price",
             code: code!,
-            gross: scanned.gross!,
+            gross: scanned.gross,
+            originalPriceId: scanned.originalPriceId,
             originalQuantityThousandths: scanned.quantityThousandths,
           }
         : undefined;
@@ -146,10 +148,7 @@ function known(lines: Line[], lineId: string) {
   return line;
 }
 
-/**
- * One audited revision: claim the expected revision (UPDATE ... WHERE revision = expected, so only one
- * writer wins), apply the change, requote strictly for the touched line and store the new totals.
- */
+/** The revision claim makes concurrent basket edits exclusive. */
 async function apply(
   tx: TillSqlite,
   context: CommandContext,
@@ -194,6 +193,7 @@ async function apply(
       quantityThousandths: line.quantityThousandths,
     });
   const { totals } = quoteDraft(refs, scope.branchId, at, current.lines, {});
+  await assertTenderBalance(tx, draftId, totals.gross, refs.cashRounding);
   await tx.update(saleDraft).set({ totals }).where(eq(saleDraft.id, draftId));
   return toView(tx, scope, at, { ...current, draft: { ...current.draft, totals } });
 }

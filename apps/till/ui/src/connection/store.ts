@@ -12,6 +12,7 @@ import { v7 } from "uuid";
 import * as v from "valibot";
 
 const listeners = new Set<() => void>();
+const messageListeners = new Set<(message: BridgeMessage) => void>();
 let snapshot: ConnectionSnapshot = { host: "disconnected", status: null, error: null };
 let capability: string | undefined;
 let socket: WebSocket | undefined;
@@ -30,6 +31,10 @@ export function useConnectionSnapshot() {
 
 export const connectionSnapshot = () => snapshot;
 export { subscribe as subscribeConnection };
+export function subscribeBridge(listener: (message: BridgeMessage) => void) {
+  messageListeners.add(listener);
+  return () => messageListeners.delete(listener);
+}
 
 /** Sends one request; resolves with its reply, or undefined when the connection ended before it answered. */
 export function request(body: DistributiveOmit<BridgeRequest, "id">) {
@@ -119,14 +124,23 @@ function receive(data: unknown, current: WebSocket) {
     publish({ host: "connected", status: message.status, error: null });
     return;
   }
+  if (message.type === "draft") {
+    for (const listener of messageListeners) listener(message);
+    return;
+  }
+  if (message.type === "payment") {
+    for (const listener of messageListeners) listener(message);
+    return;
+  }
   if (!message.id || !pending.has(message.id)) return fail(current);
   const waiter = pending.get(message.id);
-  pending.delete(message.id);
   if (message.type === "error" && connectionErrors.includes(message.code)) {
+    settle();
     publish({ host: "disconnected", error: message.message });
     current.close();
     return;
   }
+  pending.delete(message.id);
   // Any other error answers one request; the connection stays usable.
   if (message.type === "error" && !waiter) publish({ error: message.message });
   if (message.type === "result" && message.kind === "status")

@@ -8,6 +8,8 @@ import {
   device,
   deviceCredential,
   member,
+  rolePermission,
+  permission,
   product,
   price,
   taxClass,
@@ -15,7 +17,7 @@ import {
   type ShopperTransaction,
 } from "@shopper/db-pg";
 import { add, money } from "@shopper/money";
-import { snapshotLine } from "@shopper/tax";
+import { expectedLine } from "./labels";
 import type { SaleSnapshot } from "../schemas/till/sale";
 import { SaleError } from "./error";
 
@@ -80,6 +82,31 @@ export async function validateAuthority(
     time >= session.expiresAt
   )
     throw new SaleError("INVALID_SESSION", "Sale lacks valid historical cashier authority");
+  if (snapshot.lines.some((line) => line.discount > 0)) {
+    const [granted] = await tx
+      .select({ id: permission.id })
+      .from(member)
+      .innerJoin(
+        rolePermission,
+        and(eq(rolePermission.orgId, member.orgId), eq(rolePermission.roleId, member.roleId)),
+      )
+      .innerJoin(
+        permission,
+        and(
+          eq(permission.orgId, rolePermission.orgId),
+          eq(permission.id, rolePermission.permissionId),
+        ),
+      )
+      .where(
+        and(
+          eq(member.orgId, ctx.orgId),
+          eq(member.userId, snapshot.cashierId),
+          eq(permission.code, "sale.discount"),
+        ),
+      );
+    if (!session.permissions.includes("sale.discount") || !granted)
+      throw new SaleError("INVALID_SESSION", "Sale discount lacks cashier permission");
+  }
   ctx.role = session.roleName;
 }
 
@@ -116,34 +143,47 @@ export async function validateReferences(
     roundingAdjustment: money(0),
   };
   const lineIds = new Set<string>();
+  const references = new Map<
+    string,
+    {
+      product: typeof product.$inferSelect;
+      price: typeof price.$inferSelect;
+      taxClass: typeof taxClass.$inferSelect;
+    }
+  >();
   for (const line of snapshot.lines) {
     if (lineIds.has(line.id)) throw new SaleError("INVALID_EVENT", "Duplicate sale line identity");
     lineIds.add(line.id);
-    const [reference] = await tx
-      .select({ product, price, taxClass })
-      .from(price)
-      .innerJoin(product, and(eq(product.orgId, price.orgId), eq(product.id, price.productId)))
-      .innerJoin(
-        taxClass,
-        and(eq(taxClass.orgId, product.orgId), eq(taxClass.code, line.tax.taxClass)),
-      )
-      .where(
-        and(eq(price.orgId, orgId), eq(price.id, line.priceId), eq(product.id, line.productId)),
-      );
+    const referenceKey = `${line.priceId}:${line.productId}:${line.tax.taxClass}`;
+    let reference = references.get(referenceKey);
+    if (!reference) {
+      [reference] = await tx
+        .select({ product, price, taxClass })
+        .from(price)
+        .innerJoin(product, and(eq(product.orgId, price.orgId), eq(product.id, price.productId)))
+        .innerJoin(
+          taxClass,
+          and(eq(taxClass.orgId, product.orgId), eq(taxClass.code, line.tax.taxClass)),
+        )
+        .where(
+          and(eq(price.orgId, orgId), eq(price.id, line.priceId), eq(product.id, line.productId)),
+        );
+      if (reference) references.set(referenceKey, reference);
+    }
     if (
       !reference ||
       (reference.price.branchId !== null && reference.price.branchId !== snapshot.branchId) ||
       reference.price.validFrom > time ||
       (reference.price.validTo && reference.price.validTo <= time) ||
       line.tax.unitPrice !== reference.price.amount ||
-      line.tax.discount !== 0 ||
+      line.tax.discount !== line.discount ||
       line.tax.priceMode !== "inclusive" ||
       line.tax.taxClass !== reference.taxClass.code ||
       line.tax.on !== on ||
       canonicalJson(line.tax.rule) !== canonicalJson(capturedRule)
     )
       throw new SaleError("INVALID_REFERENCE", "Captured price or dated tax reference is invalid");
-    const expected = snapshotLine({ ...line.tax, rule: capturedRule });
+    const expected = await expectedLine(tx, orgId, line, snapshot.branchId, time);
     if (canonicalJson(expected) !== canonicalJson(line.tax))
       throw new SaleError("INVALID_TOTALS", "Sale line arithmetic is invalid");
     for (const key of Object.keys(totals) as (keyof typeof totals)[])

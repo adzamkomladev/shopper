@@ -16,6 +16,8 @@ export interface AuthEnvironment {
   MAILEROO_FROM?: string;
   MAILEROO_ENDPOINT?: string;
   SHOPPER_ENVIRONMENT?: string;
+  PAYSTACK_SECRET_KEY?: string;
+  PAYSTACK_BASE_URL?: string;
 }
 
 export interface CloudflareRuntimeEnvironment extends AuthEnvironment {
@@ -26,5 +28,6 @@ export interface CloudflareRuntimeEnvironment extends AuthEnvironment {
   STORE_SEQUENCER: Parameters<typeof cloudflareSequencer>[0];
   STORE_HUB: Parameters<typeof cloudflareLive>[0];
   PRICE_CHANGE: Parameters<typeof cloudflareLauncher>[0];
+  MOMO_PAYMENT?: Parameters<typeof cloudflareLauncher>[0];
   AUTH_FLOWS?: Parameters<typeof cloudflareLauncher>[0];
 }

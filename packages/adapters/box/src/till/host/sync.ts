@@ -1,3 +1,4 @@
+import type { createHostPayments } from "./payments";
 import WebSocket from "ws";
 import { createLiveWorker, createPullWorker, createPushWorker } from "@shopper/sync";
 import type { TillDatabase } from "@shopper/db-sqlite";
@@ -10,6 +11,7 @@ export function createHostSync(
   database: TillDatabase,
   config: HostConfiguration,
   notify: () => void,
+  payments?: Pick<ReturnType<typeof createHostPayments>, "receive" | "recover">,
 ) {
   const identity = config.identity;
   const options = {
@@ -34,6 +36,8 @@ export function createHostSync(
     },
     connect: (url, headers) => new WebSocket(url, { headers }),
     onMode: notify,
+    onPayment: payments?.receive,
+    onConnected: payments?.recover,
   });
   const push = createPushWorker({
     ...options,

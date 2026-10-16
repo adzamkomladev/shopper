@@ -20,6 +20,18 @@ Only the model behind each role differs per tool.
 
 Skip a subagent when the work is small enough that briefing it costs more than doing it.
 
+### Frontend work adds a browser pass
+
+UI changes are not done when the tests pass. Load the `ui-verify` skill and walk its nine steps with
+the `playwright-cli` skill in a real browser: desktop 1920×1080, laptop 1440×900, tablet 768×1024,
+mobile 390×844 and till 1366×768; every state; the keyboard path; console errors; horizontal
+overflow; then compare against Figma and fix. `ui-builder` does this while building, and
+`ui-reviewer` repeats it read-only before merge. The Playwright MCP is the fallback when the CLI is
+unavailable; the steps are the same.
+
+Load a skill per tool: `/ui-verify` (Claude Code), the `SKILL.md` listed in its skills list (Codex),
+and the `skill` tool with `ui-verify` or `/ui-verify` (OpenCode).
+
 ## Roles and models
 
 | Role          | Job                                                         | Claude Code                                | Codex                                        | OpenCode                                      |
@@ -66,10 +78,18 @@ money, tax, sync, auth or migrations.
   runs the guard. MCP servers are in `.mcp.json`. Default model and effort are in
   `.claude/settings.json`.
 - **Codex** reads `AGENTS.md`. Custom agents are in `.codex/agents/*.toml`, skills come from
-  `.agents/skills` (invoke with `$name`), and MCP servers and defaults are in `.codex/config.toml`.
+  `.agents/skills` (its skills list points at each `SKILL.md` to read), and MCP servers and defaults
+  are in `.codex/config.toml`.
 - **OpenCode** reads `AGENTS.md`. Agents are in `.opencode/agents/`, slash commands in
   `.opencode/commands/` (each one loads the matching skill), and skills come from
   `.agents/skills`. MCP servers and default models are in `opencode.json`.
+
+The `playwright-cli` skill comes from the Playwright CLI itself
+(`playwright-cli install --skills=agents`, shared by all three tools at
+`.agents/skills/playwright-cli`). Keep it byte-identical to the installed version; the repo-specific
+steps live in `ui-verify`. If `playwright-cli` is missing, install the global CLI from the Playwright
+CLI package (a global tool install, not a workspace dependency) and use the Playwright MCP until it
+is back.
 
 To change a role's behaviour, edit `.agents/roles/<role>.md` once. To change a model, edit that
 tool's agent file and the table above.

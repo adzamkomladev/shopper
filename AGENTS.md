@@ -83,7 +83,9 @@ Read the doc for the area you are touching **before** you change it:
   where they live).
 - Main export first, helpers below it. No helper sprawl, no speculative abstractions, no dead code.
 - UI: use @shopper/ui only (shadcn/ui, Tailwind v4, Figma tokens). Keyboard-first on the till.
-  Every action has a shortcut. Design every state. Verify in the real app with screenshots.
+  Every action has a shortcut. Design every state. Verify every UI change in a real browser with the
+  `ui-verify` skill and `playwright-cli` (Playwright MCP as fallback) at desktop, laptop, tablet,
+  mobile and till sizes; a green build is never proof on its own.
 - Ask when a decision is the user's: product behaviour, a new dependency, a sixth DO, a layer
   change. Do not guess.
 
@@ -95,5 +97,6 @@ Read the doc for the area you are touching **before** you change it:
 ## Definition of done
 
 Tests written first and green, `vp check` and `vp run guard` clean, the change reviewed with the
-`pre-merge-review` skill (Codex `gpt-6.1-sol`), UI verified on screen against Figma, and docs
-updated when a rule or contract changed.
+`pre-merge-review` skill (Codex `gpt-6.1-sol`), UI verified in the real app with the `ui-verify` loop
+(`playwright-cli`) against Figma and reported with its remaining issues, and docs updated when a rule
+or contract changed.

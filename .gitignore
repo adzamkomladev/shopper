@@ -14,3 +14,6 @@ dist-staging/
 .shopper/
 tests/e2e/.auth/
 test-results/
+# Playwright CLI and MCP output (may contain credentials)
+.playwright-cli/
+.playwright-mcp/

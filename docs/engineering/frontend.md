@@ -119,6 +119,31 @@ If none of these fit, stop and ask. Do not work around the guard with a custom w
 - **Performance:** route-level code splitting, no layout shift, lists over 100 rows virtualized
   (TanStack Virtual), images sized and lazy.
 
+## Verify in a real browser (every frontend change)
+
+The `ui-verify` skill (`.agents/skills/ui-verify`) is the process, and the `playwright-cli` skill is
+the tool. Start the app, open it in a real browser, and walk the nine steps before reporting:
+
+1. Use the design system: Figma frames, `@shopper/ui`, `@theme` tokens. No raw hex, px or arbitrary
+   values.
+2. Build with the stack's conventions: React 19, TanStack Router/Query/Form, Tailwind v4, the app's
+   existing components and patterns.
+3. Run the app (`vp run dev`) and inspect it with `playwright-cli`, never from the code alone.
+4. Screenshot and look at every target size: desktop 1920×1080, laptop 1440×900, tablet 768×1024,
+   mobile 390×844, and till 1366×768.
+5. Compare each screenshot with the design reference and correct every difference in spacing, type,
+   color, radius, alignment and component use.
+6. Test navigation, forms, hover and focus states, loading, empty, error, offline and no-permission
+   states, and the keyboard-only path (till: shortcuts shown, scan input keeps focus).
+7. Check `playwright-cli console error` for console errors and failed requests, and check every target
+   width for horizontal overflow.
+8. Fix every issue found, then screenshot again. Repeat until clean at every size and state.
+9. Do not call the UI complete because the code compiles or the tests pass. Report the screenshots
+   taken, the states covered and any remaining visual or functional issue.
+
+The Playwright MCP stays configured as the fallback when `playwright-cli` is unavailable; the steps
+do not change. The `ui-reviewer` agent repeats the loop read-only before merge.
+
 ## UI slop (rejected in review)
 
 Generic gradients, decorative blobs, emoji as icons, random shadows and border radii, inconsistent
@@ -129,10 +154,14 @@ skeletons, modal-on-modal, disabled buttons without a reason, and color as the o
 ## Definition of done for a screen
 
 1. It matches the Figma frame (spacing, type, color, states), checked side by side.
-2. It runs in the real app. Screenshots at till, desktop and mobile sizes were taken with the
-   Playwright MCP and reviewed by the `ui-reviewer` agent.
+2. It runs in the real app: the `ui-verify` loop above was walked with `playwright-cli`, screenshots
+   were taken in every state at desktop 1920×1080, laptop 1440×900, tablet 768×1024, mobile 390×844
+   and till 1366×768, and they were reviewed by the `ui-reviewer` agent. Remaining issues are
+   reported, not hidden.
 3. Its Playwright e2e test covers the keyboard path, all states and an axe check
    ([testing.md](testing.md)).
 4. `vp check`, `vp run guard` and `vp test --run` pass.
+
+A green build, a passing test or a clean `vp check` is never on its own enough to call a screen done.
 
 Backoffice queries, stores, hooks and components have separate responsibility folders nested by context. Screen entries stay under `screens/`; route configuration is under `routes/`. All web/local/Electron hosts mount the same package.

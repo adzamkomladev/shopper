@@ -28,4 +28,5 @@ export const permissionNames = [
   "device.enroll",
   "device.revoke",
   "cashier.pin.assign",
+  "register.settings",
 ] as const;

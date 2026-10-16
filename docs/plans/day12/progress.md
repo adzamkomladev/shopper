@@ -13,7 +13,7 @@ The branch is pushed once, at the end, then goes to `main` as one PR.
 | S2 Renderer port, receipt component, box renderer | done  | S2     |
 | S3 Cloud Browser Run renderer                     | done  | S3     |
 | S4 Electron shell and printToPDF                  | done  | S4     |
-| S5 Register settings and printing on sale         | todo  |        |
+| S5 Register settings and printing on sale         | done  | S5     |
 | S6 Till receipt PDF and upload                    | todo  |        |
 | S7 Till Settings screen                           | todo  |        |
 | S8 Reprint, preview, completion print status      | todo  |        |
@@ -21,7 +21,7 @@ The branch is pushed once, at the end, then goes to `main` as one PR.
 
 ## Current slice
 
-S5. Next step: `test-author` writes the register settings and printing integration tests (settings, sale, drawer, failure).
+S6. Next step: render and store the receipt PDF after each sale, then upload it to the receipts bucket after the sale is acknowledged.
 
 ## How to resume
 
@@ -77,3 +77,26 @@ S5. Next step: `test-author` writes the register settings and printing integrati
   - Review fixes: Electron quits when its IPC parent disconnects; tests spawn it in its own process group and
     kill the whole group; renders are serialised with a 10 s timeout; both windows deny popups, webviews and
     foreign navigation.
+- S5: `tests/integration/hardware` 41/41 (settings 7, sale 3, drawer 5, failure 1, plus S1-S4 suites).
+  `tests/integration/{hardware,till,sales,payments,auth}` 326 passed, 3 skipped; golden sales exact.
+  Guard, `tsc -b` and `vp check` clean; the host still bundles (`node:net` stays external).
+  - Deviation: errors reuse the bridge vocabulary: `permission` and `REVISION_STALE` (tests and design.md updated).
+  - Deviation: the store and register names apply when the receipt is built (`complete.ts` reads `till_setting`
+    in the sale transaction), so stored JSON, printout, PDF and reprints agree. No saved row, no override.
+  - `receipt_output` gets its row inside the sale transaction (one row per sale); print outcomes upsert it.
+    Audits: `receipt.print` (first automatic copy), `receipt.reprint` (any bridge reprint, even when the
+    first print failed), `receipt.print.failed` (new; carries the error). Kick-only jobs write no audit.
+  - `printerDrawer` now sends `init` before the kick (the drawer test expects it).
+  - `register.settings` added to the permission list, the till-allowed set (so cashier sessions can carry it),
+    and the back office labels/groups. Admin and superadmin get it through the existing role filters.
+  - Audit redaction hides `requirePinForReturns` in the settings before/after (the key matches the `pin` rule); the
+    flag is also audited as `returnsNeedManagerApproval {before, after}`. The shared redactor is unchanged.
+  - Added a MoMo-only drawer test (confirmed momo tender inserted directly; the provider is covered elsewhere).
+  - `hostStatus.settings/printer/registerCode` are required; no till-ui fixture builds a HostStatus, so none changed.
+  - `registerCode` comes from the host configuration's receipt codes (empty string when absent).
+  - Review fixes: all printer jobs run through one promise chain (no interleaved bytes; status follows the latest
+    job; test in `concurrency.test.ts`). A settings row that no longer parses is treated as absent, so it never
+    fails a sale or the status (test in `settings.test.ts`). `reset()` runs only when the printer config changed.
+    `afterSale` captures the seller's audit context at sale time. Each job reads settings once and carries a
+    narrowed `Ready` type. `readRegisterSettings(db, identity)` takes one argument. The basket handlers moved from
+    `dispatch.ts` (now 129 lines) to `basket.ts`, with the shared types in `host/types.ts`.

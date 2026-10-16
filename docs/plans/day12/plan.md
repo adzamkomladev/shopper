@@ -133,7 +133,7 @@ A progress/handoff doc `docs/plans/day12/progress.md` (status table, current sli
 - `packages/core/src/schemas/till/register.ts` `registerSettings`:
   - `storeName`, `registerName`, `printAutomatically`, `paperMm 80|58`, `clearCartAfterSale`, `requirePinForReturns` (stored now, enforced Day 14);
   - `printer: null | {model, connection: {kind: "network", host, port}}`.
-- `packages/core/src/till/register/settings.ts`: `readRegisterSettings` falls back to the enrolled identity. `saveRegisterSettings` is a `defineCommand` that needs `register.settings`, checks the revision (`CONFLICT` when stale) and writes audit `till.settings.save` with before and after.
+- `packages/core/src/till/register/settings.ts`: `readRegisterSettings` falls back to the enrolled identity. `saveRegisterSettings` is a `defineCommand` that needs `register.settings`, checks the revision (`REVISION_STALE` when stale) and writes audit `till.settings.save` with before and after.
 - Permission `register.settings` in `packages/auth/src/schemas/permissions.ts` and in the seed roles.
 - Bridge: `packages/sync/src/schemas/bridge/devices.ts` adds `settings.save`, `printer.test`, `drawer.test` and `receipt.print {saleId}`, registered in `browserRequests`.
   - `hostStatus` gains `settings` (with revision), `printer {state, lastJob}` and `registerCode`.

@@ -9,3 +9,4 @@ export * from "./till/session";
 export { tillReceiptCodes } from "./till/config";
 export { receiptDocument, type ReceiptDocument } from "./receipts/document";
 export { purchaseFilters, purchasesInput, purchaseInput } from "./till/purchases";
+export { registerSettings, type RegisterSettings } from "./till/register";

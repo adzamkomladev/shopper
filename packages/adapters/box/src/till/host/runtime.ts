@@ -3,13 +3,19 @@ import * as v from "valibot";
 import { and, eq } from "drizzle-orm";
 import { outbox } from "@shopper/db-sqlite";
 import { buildInfo } from "@shopper/config";
-import { provisionTillReference } from "@shopper/core/till";
+import {
+  defaultRegisterSettings,
+  provisionTillReference,
+  readRegisterSettings,
+} from "@shopper/core/till";
 import { createHostSync } from "./sync";
 import { bridgeRequest, type BridgeMessage, type HostStatus } from "@shopper/sync/bridge";
 import { openTillDatabase } from "../database";
 import { hostConfiguration } from "./config";
 import { createHostPayments } from "./payments";
+import { createDevices } from "./devices";
 import { createDispatch } from "./dispatch";
+import { createHostReceipts } from "./receipts";
 import { openHostTransport, error } from "./transport";
 
 export async function startTillHost(raw: unknown, send: (message: unknown) => void) {
@@ -50,6 +56,11 @@ export async function startTillHost(raw: unknown, send: (message: unknown) => vo
     },
     payments,
   );
+  const receipts = createHostReceipts({ database, config, publishStatus });
+  const permissions = config.session?.permissions ?? [];
+  const registerCode = config.receiptCodes
+    ? `${config.receiptCodes.branchCode}-${config.receiptCodes.deviceCode}`
+    : "";
   async function status(): Promise<HostStatus> {
     const rows = await database.read((tx) =>
       tx
@@ -57,12 +68,16 @@ export async function startTillHost(raw: unknown, send: (message: unknown) => vo
         .from(outbox)
         .where(and(eq(outbox.orgId, identity.orgId), eq(outbox.deviceId, identity.deviceId))),
     );
+    const settings = await readRegisterSettings(database, identity);
     lastKnownStatus = {
       ...(await worker.status()),
       pendingCount: rows.filter((row) => !row.blockedReason).length,
       blockedCount: rows.filter((row) => row.blockedReason).length,
       identity,
-      permissions: config.session?.permissions ?? [],
+      permissions,
+      settings: { ...settings, canEdit: permissions.includes("register.settings") },
+      printer: receipts.printer(settings.value.printer !== null),
+      registerCode,
       appVersion: buildInfo.version,
       protocol: buildInfo.syncProtocol,
     };
@@ -88,6 +103,13 @@ export async function startTillHost(raw: unknown, send: (message: unknown) => vo
           overflow: false,
           syncing: false,
           identity,
+          settings: {
+            revision: 0,
+            value: defaultRegisterSettings(identity),
+            canEdit: false,
+          },
+          printer: receipts.printer(false),
+          registerCode,
           appVersion: buildInfo.version,
           protocol: buildInfo.syncProtocol,
         }),
@@ -107,6 +129,8 @@ export async function startTillHost(raw: unknown, send: (message: unknown) => vo
     database,
     config,
     payments,
+    receipts,
+    devices: createDevices({ database, config, receipts, status }),
     status,
     publishStatus,
     sync: () => worker.trigger(),

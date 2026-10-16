@@ -16,3 +16,8 @@ export {
   type DraftView,
 } from "../schemas/bridge/basket";
 export type { PurchaseSummary, PurchaseDetails } from "../schemas/bridge/purchases";
+export {
+  deviceRequestTypes,
+  type PrinterStatus,
+  type SettingsStatus,
+} from "../schemas/bridge/devices";

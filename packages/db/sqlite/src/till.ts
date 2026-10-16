@@ -98,4 +98,16 @@ CREATE TABLE payment_intent (
  UNIQUE(org_id,reference)
 );`;
 
-export const tillMigrations: string[] = [`${initial}${lookup}${drafts}${payments}`];
+const registers = `
+CREATE TABLE till_setting (
+ org_id TEXT NOT NULL, device_id TEXT NOT NULL, revision INTEGER NOT NULL, payload TEXT NOT NULL,
+ updated_at TEXT NOT NULL, UNIQUE(org_id,device_id)
+);
+CREATE TABLE receipt_output (
+ sale_id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, printed_at TEXT, print_error TEXT,
+ reprints INTEGER NOT NULL DEFAULT 0, pdf BLOB, pdf_sha256 TEXT, pdf_size INTEGER, asset_id TEXT,
+ uploaded_at TEXT, upload_attempts INTEGER NOT NULL DEFAULT 0, next_upload_at INTEGER,
+ FOREIGN KEY(org_id,sale_id) REFERENCES local_sale(org_id,id)
+);`;
+
+export const tillMigrations: string[] = [`${initial}${lookup}${drafts}${payments}`, registers];

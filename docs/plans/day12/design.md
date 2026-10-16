@@ -64,8 +64,9 @@ registerSettings = {
 }
 ```
 
-- `revision` is an integer. A save with a stale `expectedRevision` → `CONFLICT`.
-- A save needs `register.settings`.
+- `revision` is an integer. A save with a stale `expectedRevision` → `REVISION_STALE` (the bridge's existing code).
+- A save, printer test and drawer test need `register.settings`; without it the bridge answers `permission` (the existing code).
+- The store name and register name apply when the receipt is built (`branchName`, `deviceName`), so the stored JSON, printout, PDF and reprints agree.
 - Audit `till.settings.save` stores `{before, after}`.
 
 ## Receipt output (till SQLite `receipt_output`, one row per local sale)

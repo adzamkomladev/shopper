@@ -38,5 +38,5 @@ export function networkPrinter(options: {
 }
 
 export function printerDrawer(printer: ReceiptPrinter, profile: PrinterProfile): CashDrawer {
-  return { open: () => printer.print(escpos(profile).drawer().bytes()) };
+  return { open: () => printer.print(escpos(profile).init().drawer().bytes()) };
 }

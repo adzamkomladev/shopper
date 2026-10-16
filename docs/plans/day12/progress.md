@@ -9,7 +9,7 @@ The branch is pushed once, at the end, then goes to `main` as one PR.
 | Slice                                             | State | Commit |
 | ------------------------------------------------- | ----- | ------ |
 | S0 Setup and plan docs                            | done  | S0     |
-| S1 ESC/POS encoder, profiles, TCP driver          | todo  |        |
+| S1 ESC/POS encoder, profiles, TCP driver          | done  | S1     |
 | S2 Renderer port, receipt component, box renderer | todo  |        |
 | S3 Cloud Browser Run renderer                     | todo  |        |
 | S4 Electron shell and printToPDF                  | todo  |        |
@@ -21,8 +21,7 @@ The branch is pushed once, at the end, then goes to `main` as one PR.
 
 ## Current slice
 
-S1. Next step: `test-author` writes `tests/integration/hardware/printing/profiles.test.ts` and
-`tests/support/hardware/escpos.ts`.
+S2. Next step: `test-author` writes renderer conformance and the box renderer tests.
 
 ## How to resume
 
@@ -34,8 +33,13 @@ S1. Next step: `test-author` writes `tests/integration/hardware/printing/profile
 
 ## Known failures and blockers
 
-None yet.
+
 
 ## Verification log
 
-None yet.
+
+
+- S1: `vp test --run tests/integration/hardware` 15/15. Guard and `tsc -b` clean. Manual review (Codex
+  unavailable) found unsanitised right-hand receipt columns (ESC/POS injection through cashier
+  names), a false "offline" on printers that keep 9100 open, a single-shot socket error handler and
+  an unbounded QR bitmap. All four are fixed, with regression tests for the first two.

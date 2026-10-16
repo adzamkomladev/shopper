@@ -20,6 +20,7 @@
     "@shopper/core": "workspace:*",
     "@shopper/db-pg": "workspace:*",
     "@shopper/db-sqlite": "workspace:*",
+    "@shopper/hardware": "workspace:*",
     "@shopper/money": "workspace:*",
     "@shopper/ports": "workspace:*",
     "@shopper/sync": "workspace:*",

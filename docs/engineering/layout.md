@@ -34,7 +34,7 @@ The source inventory covers every app/package project, including the assets and 
 | `packages/tax`          | Snapshot and rule modules, `schemas/`                                                                       |
 | `packages/adapters/cf`  | Thin database, storage, coordination shells; `workflows/{auth,price}.ts`                                    |
 | `packages/adapters/box` | Thin platform shells; `till/database.ts` and `till/host/` own Node durability and transports                |
-| `packages/hardware`     | Empty future package entry; no implementation to reorganize                                                 |
+| `packages/hardware`     | ESC/POS encoder, printer profiles, receipt encoding, QR matrix, TCP printer driver (`./network`)            |
 | `packages/sync`         | `push/` delivery and acknowledgments, `versions.ts`, browser-safe `bridge/` contracts                       |
 | `packages/export`       | Empty future package entry; no implementation to reorganize                                                 |
 

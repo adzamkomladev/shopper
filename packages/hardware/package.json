@@ -7,10 +7,18 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./network": {
+      "types": "./src/network.ts",
+      "default": "./src/network.ts"
     }
   },
   "scripts": {
     "build": "tsc -b"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@shopper/core": "workspace:*",
+    "@shopper/money": "workspace:*",
+    "qrcode-generator": "2.0.4"
+  }
 }

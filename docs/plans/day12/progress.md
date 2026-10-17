@@ -202,3 +202,15 @@ S9. Next step: docs pass, full verification (all suites, build, e2e), full-diff 
   - Screenshots: `docs/plans/day12/screenshots/purchases` (Figma reference, five widths with and without preview,
     failure, no printer, no permission, live) and `docs/plans/day12/screenshots/sale` (printing, printed, offline,
     manual, no printer).
+- S9 full verification:
+  - Gates: `vp check` 0 errors, guard clean, `tsc -b --force` clean, `vp run build` green.
+  - Full `vp test --run`: 709 passed, 3 skipped, 4 failed. All four reproduced in isolation and are fixed:
+    - `boxRenderer` was in the `@shopper/adapters-box` main barrel, so the box server and portal e2e
+      bundles pulled in satori and its wasm. That broke the Bun entry tests and both Playwright
+      web-server builds. It is now the `@shopper/adapters-box/renderer` subpath, imported only by the
+      till host (dynamically) and by tests.
+    - The 0018 migration had no Drizzle snapshot. `meta/0018_snapshot.json` was generated with
+      drizzle-kit against a scratch copy, and its SQL diff matched the hand-written migration exactly.
+      The metadata test now reads the latest snapshot.
+    - The portal build test expected two R2 buckets; `RECEIPTS` makes three.
+  - Till-ui connection suite: 160/160.

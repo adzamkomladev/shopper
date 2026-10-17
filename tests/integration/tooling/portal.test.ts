@@ -52,5 +52,5 @@ test("the portal build prerenders a static SPA shell and routes only API and ser
   expect(config.queues.producers).toHaveLength(1);
   expect(config.hyperdrive).toHaveLength(1);
   expect(config.d1_databases).toHaveLength(1);
-  expect(config.r2_buckets).toHaveLength(2);
+  expect(config.r2_buckets).toHaveLength(3);
 }, 300_000);

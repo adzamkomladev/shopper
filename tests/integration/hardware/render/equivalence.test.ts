@@ -4,7 +4,7 @@ import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
 import { expect, test } from "vite-plus/test";
 import type { Json } from "@shopper/ports";
-import { boxRenderer } from "@shopper/adapters-box";
+import { boxRenderer } from "@shopper/adapters-box/renderer";
 import { goldenReceipt } from "../../../support/hardware/receipt";
 import { electronRenderer } from "../../../support/hardware/electron";
 

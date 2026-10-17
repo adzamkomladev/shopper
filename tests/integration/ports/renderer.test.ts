@@ -1,6 +1,6 @@
 import { test } from "vite-plus/test";
 import type { Json } from "@shopper/ports";
-import { boxRenderer } from "@shopper/adapters-box";
+import { boxRenderer } from "@shopper/adapters-box/renderer";
 import { rendererConformance } from "@shopper/conformance";
 import { goldenReceipt } from "../../support/hardware/receipt";
 

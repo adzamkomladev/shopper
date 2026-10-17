@@ -8,6 +8,10 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./renderer": {
+      "types": "./src/renderer.ts",
+      "default": "./src/renderer.ts"
+    },
     "./till": {
       "types": "./src/till/index.ts",
       "default": "./src/till/index.ts"

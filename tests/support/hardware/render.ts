@@ -1,4 +1,4 @@
-import { boxRenderer } from "@shopper/adapters-box";
+import { boxRenderer } from "@shopper/adapters-box/renderer";
 import { goldenReceipt } from "./receipt";
 
 // Run under Bun by tests/integration/hardware/render/bun.test.ts.

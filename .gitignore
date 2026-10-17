@@ -9,7 +9,7 @@ dist/
 .dev.vars*
 !*.example
 tooling/printer/captures/
-dist-staging/
+.cloudflare/
 
 .shopper/
 tests/e2e/.auth/

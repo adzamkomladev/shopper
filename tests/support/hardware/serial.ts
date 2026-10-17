@@ -27,7 +27,12 @@ export async function startSerialPair() {
   const child = spawn("python3", ["-c", SCRIPT, record], { stdio: ["pipe", "pipe", "inherit"] });
   const path = await new Promise<string>((resolve, reject) => {
     child.once("error", reject);
+    child.once("close", () => reject(new Error("python3 exited before opening a pty")));
     child.stdout.once("data", (chunk: Buffer) => resolve(chunk.toString().trim()));
+  }).catch(async (error: unknown) => {
+    child.kill();
+    await rm(directory, { recursive: true, force: true });
+    throw error;
   });
   return {
     path,

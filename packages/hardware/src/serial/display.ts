@@ -1,6 +1,5 @@
 import { ascii } from "../escpos/encoder";
-import type { CustomerDisplay } from "../types";
-import type { SerialOptions } from "../types";
+import type { CustomerDisplay, SerialOptions } from "../types";
 import { writeOnce } from "./port";
 
 const COLUMNS = 20;

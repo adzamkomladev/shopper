@@ -1,79 +1,16 @@
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
-import { createServer } from "node:net";
-import { tmpdir } from "node:os";
+import { readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, expect, test } from "vite-plus/test";
-import { launchElectron, stopElectron } from "../../../support/hardware/electron";
+import { stopElectron } from "../../../support/hardware/electron";
+import { deviceToken, healthy, register } from "../../../support/hardware/register";
 
-const deviceToken = "a".repeat(64);
 const cleanup: Array<() => Promise<void>> = [];
 afterEach(async () => {
   for (const close of cleanup.splice(0).reverse()) await close();
 });
 
-async function register() {
-  const directory = await mkdtemp(join(tmpdir(), "shopper-secrets-"));
-  cleanup.push(() => rm(directory, { recursive: true, force: true }));
-  const ui = join(directory, "ui");
-  await mkdir(ui);
-  await writeFile(join(ui, "index.html"), "<title>till</title>");
-  const port = await freePort();
-  const userData = join(directory, "user-data");
-  await mkdir(userData);
-  await writeFile(
-    join(userData, "register.json"),
-    JSON.stringify({
-      sqlitePath: join(directory, "till.sqlite"),
-      identity: {
-        orgId: "0197b0a0-0000-7000-8000-000000000001",
-        deviceId: "0197b0a0-0000-7000-8000-000000000002",
-        storeId: "0197b0a0-0000-7000-8000-000000000003",
-        branchId: "0197b0a0-0000-7000-8000-000000000004",
-        shopName: "Secret shop",
-        registerName: "Register 1",
-      },
-      upstream: "http://127.0.0.1:9",
-      deviceToken,
-      session: null,
-      origins: ["http://127.0.0.1:5174"],
-      ui,
-      port,
-    }),
-  );
-  const start = async (extra: string[] = [], env: Record<string, string> = {}) => {
-    const child = await launchElectron(env, [
-      `--user-data-dir=${userData}`,
-      ...(extra.length ? extra : ["--password-store=basic"]),
-    ]);
-    cleanup.push(() => stopElectron(child));
-    return child;
-  };
-  return { directory, userData, port, start, sqlitePath: join(directory, "till.sqlite") };
-}
-
-async function healthy(port: number) {
-  for (let attempt = 0; attempt < 120; attempt++) {
-    const ok = await fetch(`http://127.0.0.1:${port}/health`).then(
-      (response) => response.ok,
-      () => false,
-    );
-    if (ok) return;
-    await new Promise((done) => setTimeout(done, 500));
-  }
-  throw new Error("The register host never became healthy");
-}
-
-function freePort() {
-  return new Promise<number>((resolve) => {
-    const probe = createServer().listen(0, "127.0.0.1", () => {
-      const { port } = probe.address() as { port: number };
-      probe.close(() => resolve(port));
-    });
-  });
-}
-
 test("first start seals a fresh database key and the device token and strips the token from register.json", async () => {
-  const { userData, port, start, sqlitePath } = await register();
+  const { userData, port, start, sqlitePath } = await register(cleanup);
   const child = await start();
   await healthy(port);
   const sealed = await readFile(join(userData, "register.secret"));
@@ -90,7 +27,7 @@ test("first start seals a fresh database key and the device token and strips the
 }, 120_000);
 
 test("a restart reopens the encrypted database with the sealed key", async () => {
-  const { userData, port, start } = await register();
+  const { userData, port, start } = await register(cleanup);
   const first = await start();
   await healthy(port);
   await stopElectron(first);
@@ -101,7 +38,7 @@ test("a restart reopens the encrypted database with the sealed key", async () =>
 }, 180_000);
 
 test("the app refuses to start when OS encryption is unavailable", async () => {
-  const { port, start } = await register();
+  const { port, start } = await register(cleanup);
   const child = await start([], { SHOPPER_TEST_NO_ENCRYPTION: "1" });
   const output: string[] = [];
   child.stdout?.on("data", (chunk: Buffer) => output.push(chunk.toString()));
@@ -122,7 +59,7 @@ test.each([
 ])(
   "%s",
   async (_name, token, resealed) => {
-    const { userData, port, start } = await register();
+    const { userData, port, start } = await register(cleanup);
     const first = await start();
     await healthy(port);
     await stopElectron(first);

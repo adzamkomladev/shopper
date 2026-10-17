@@ -3,8 +3,10 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { app, BrowserWindow, Menu } from "electron";
+import { openDisplay } from "./display";
 import { answerRender } from "./render";
 import { loadSecrets } from "./secrets";
+import { lockDown } from "./window";
 
 // Chromium must paint at 1 CSS px = 1 device px so a receipt window is exactly `dots` wide.
 app.commandLine.appendSwitch("force-device-scale-factor", "1");
@@ -75,12 +77,8 @@ function openTill(capability: string, url: string) {
     height: 768,
     webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true },
   });
-  const origin = new URL(url).origin;
-  window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
-  window.webContents.on("will-attach-webview", (event) => event.preventDefault());
-  window.webContents.on("will-navigate", (event, target) => {
-    if (new URL(target).origin !== origin) event.preventDefault();
-  });
+  lockDown(window, new URL(url).origin);
+  openDisplay(window, url, capability);
   // The capability stays in the URL fragment, which the till UI reads once and clears.
   void window.loadURL(`${url}#${capability}`);
 }

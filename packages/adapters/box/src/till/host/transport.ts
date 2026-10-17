@@ -6,6 +6,7 @@ import { uuidV7Schema } from "@shopper/ports";
 import {
   basketRequestTypes,
   bridgeRequest,
+  deviceRequestTypes,
   type BridgeMessage,
   type BridgeRequest,
 } from "@shopper/sync/bridge";
@@ -19,6 +20,7 @@ const browserRequests: readonly string[] = [
   "sales.list",
   "sales.read",
   ...basketRequestTypes,
+  ...deviceRequestTypes,
 ];
 export async function openHostTransport(options: {
   port: number;

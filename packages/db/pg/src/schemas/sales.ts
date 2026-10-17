@@ -17,6 +17,7 @@ import { user } from "./auth";
 import { device, cashierSession } from "./devices";
 import { product, price, taxRule } from "./catalogue";
 import { payment } from "./payments";
+import { asset } from "./assets";
 
 export const sale = pgTable(
   "sale",
@@ -47,10 +48,12 @@ export const sale = pgTable(
       .notNull()
       .default(sql`0`),
     receipt: jsonb("receipt"),
+    receiptAssetId: uuid("receipt_asset_id"),
   },
   (t) => [
     unique().on(t.orgId, t.id),
     unique().on(t.deviceId, t.localId),
+    foreignKey({ columns: [t.orgId, t.receiptAssetId], foreignColumns: [asset.orgId, asset.id] }),
     uniqueIndex("sale_receipt_unique").on(t.orgId, t.receiptNumber),
     unique().on(t.orgId, t.storeId, t.storeSequence),
     check("sale_sequence_positive", sql`${t.storeSequence} IS NULL OR ${t.storeSequence} > 0`),

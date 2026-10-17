@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 import { connectionSnapshot, request } from "../connection/store";
+import { sendReprint } from "./reprint";
 import { currentDraftRevision } from "../sale/store";
 import type { PurchaseActions, PurchaseFilters, PurchasesSnapshot } from "../sale/types";
 
@@ -22,6 +23,7 @@ let state: PurchasesSnapshot = {
   pageSize: 20,
   selected: null,
   error: null,
+  reprint: null,
 };
 
 export function usePurchasesSnapshot() {
@@ -62,12 +64,8 @@ export const purchaseActions: PurchaseActions = {
   },
   read: async (saleId) => {
     const requestId = ++selectionRequest;
-    update({ selected: null, error: null });
-    const reply = await request({
-      type: "sales.read",
-      expectedRevision: currentDraftRevision(),
-      saleId,
-    });
+    update({ selected: null, error: null, reprint: null });
+    const reply = await readReply(saleId);
     if (requestId !== selectionRequest) return;
     if (reply?.type === "result" && reply.kind === "purchase")
       update({ selected: reply.purchase, error: null });
@@ -75,9 +73,24 @@ export const purchaseActions: PurchaseActions = {
   },
   clear: () => {
     selectionRequest += 1;
-    update({ selected: null, error: null });
+    update({ selected: null, error: null, reprint: null });
+  },
+  reprint: async (saleId) => {
+    if (state.reprint?.status === "running") return state.reprint;
+    update({ reprint: { status: "running", message: null } });
+    const feedback = await sendReprint(saleId);
+    update({ reprint: feedback });
+    // The receipt stays open; only its delivery details are read again.
+    const requestId = selectionRequest;
+    const fresh = await readReply(saleId);
+    if (requestId === selectionRequest && fresh?.type === "result" && fresh.kind === "purchase")
+      update({ selected: fresh.purchase });
+    return feedback;
   },
 };
+
+const readReply = (saleId: string) =>
+  request({ type: "sales.read", expectedRevision: currentDraftRevision(), saleId });
 
 function messageOf(reply: Awaited<ReturnType<typeof request>>) {
   return reply?.type === "error"

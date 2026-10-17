@@ -6,6 +6,7 @@
       "localConnectionString": "postgresql://shopper:shopper_dev_only@127.0.0.1:5432/shopper",
     },
   ],
+  "browser": { "binding": "BROWSER" },
   "d1_databases": [
     {
       "binding": "CACHE_DB",
@@ -24,6 +25,7 @@
       "bucket_name": "shopper-imports-dev",
       "remote": true,
     },
+    { "binding": "RECEIPTS", "bucket_name": "shopper-receipts-dev", "remote": true },
   ],
   "queues": {
     "producers": [
@@ -94,6 +96,7 @@
           "localConnectionString": "postgresql://shopper:shopper_dev_only@127.0.0.1:5432/shopper",
         },
       ],
+      "browser": { "binding": "BROWSER" },
       "d1_databases": [
         {
           "binding": "CACHE_DB",
@@ -111,6 +114,7 @@
           "binding": "IMPORTS",
           "bucket_name": "shopper-imports-staging",
         },
+        { "binding": "RECEIPTS", "bucket_name": "shopper-receipts-staging" },
       ],
       "queues": {
         "producers": [

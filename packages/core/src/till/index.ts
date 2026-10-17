@@ -1,5 +1,5 @@
 export { recordLocalSale } from "./record";
-export type { DraftView, QuoteLine, ScanResult, TillConfig } from "./types";
+export type { DraftView, PrintOutcome, QuoteLine, ScanResult, TillConfig } from "./types";
 export { provisionTillReference } from "./reference";
 export { storeCashRounding } from "./settings";
 export { TillError } from "./error";
@@ -27,3 +27,16 @@ export { applyDraftPayment } from "./tenders/payment";
 export { storePaymentUpdate } from "./tenders/status";
 
 export { paymentSale } from "./tenders/consumption";
+
+export {
+  defaultRegisterSettings,
+  findRegisterSettings,
+  readRegisterSettings,
+  saveRegisterSettings,
+} from "./register/settings";
+export {
+  markReceiptUploaded,
+  markReceiptUploadFailed,
+  recordReceiptPrint,
+  storeReceiptPdf,
+} from "./register/receipts";

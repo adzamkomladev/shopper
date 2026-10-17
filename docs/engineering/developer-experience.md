@@ -119,7 +119,7 @@ The Playwright MCP configurations use `tooling/mcp/playwright.mjs`, and the MCP 
 `playwright-cli` cannot run. This launcher adds `--no-sandbox` only when the process runs as root,
 allowing browser review in the development container without changing non-root launches.
 
-Run `vp run storage:setup` after starting services to initialize private imports storage/CORS in loopback RustFS. Browser imports need the `SHOPPER_S3_*` configuration documented in [deployment.md](deployment.md). The setup script contains development-only credentials and cannot target a production endpoint.
+Run `vp run storage:setup` after starting services to initialize private imports and receipts storage/CORS in loopback RustFS. Browser imports need the `SHOPPER_S3_*` configuration documented in [deployment.md](deployment.md). The setup script contains development-only credentials and cannot target a production endpoint.
 
 For linked worktrees, validate builds with `vp run -r --no-cache build` if Vite+ caching tries to read `.git/HEAD` as a directory. The Playwright box harness disables build caching so its bundled API always reflects current workspace dependencies rather than a previous box artifact.
 

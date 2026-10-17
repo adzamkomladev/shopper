@@ -26,6 +26,8 @@ export class TillError extends Error {
       | "UNIT_INVALID"
       | "AMOUNT_INVALID"
       | "REVISION_STALE"
+      | "PRINTER_UNCONFIGURED"
+      | "PRINTER_OFFLINE"
       | "LINE_UNKNOWN",
     message: string,
   ) {

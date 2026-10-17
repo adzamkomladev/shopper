@@ -32,6 +32,8 @@ type EntryProps = {
   activeIndex: number | null;
   disabled: boolean;
   describedBy: string | undefined;
+  /** A new key remounts the field, and `autoFocus` puts the scan cursor back in it. */
+  focusKey: number;
   fieldProps: {
     onChange: (event: ChangeEvent<HTMLInputElement>) => void;
     onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => void;
@@ -48,6 +50,7 @@ export function ScanEntry({
   activeIndex,
   disabled,
   describedBy,
+  focusKey,
   fieldProps,
   onLookup,
 }: EntryProps) {
@@ -71,6 +74,7 @@ export function ScanEntry({
         className="bg-card"
         data-zone="scan"
         disabled={disabled}
+        key={focusKey}
         placeholder="Scan barcode or search items"
         ref={fieldRef}
         role="combobox"

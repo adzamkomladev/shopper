@@ -11,7 +11,9 @@
   },
   "scripts": {},
   "dependencies": {
+    "@resvg/resvg-wasm": "2.6.2",
     "@shopper/adapters-box": "workspace:*",
-    "@shopper/config": "workspace:*"
+    "@shopper/config": "workspace:*",
+    "satori": "0.33.5"
   }
 }

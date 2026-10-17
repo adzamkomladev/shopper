@@ -8,3 +8,5 @@ export * from "./schemas/till/session";
 export * from "./schemas/till/drafts";
 export * from "./schemas/till/stock";
 export * from "./schemas/till/payments";
+export * from "./schemas/till/settings";
+export * from "./schemas/till/receipts";

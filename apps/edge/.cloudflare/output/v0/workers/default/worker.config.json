@@ -1,0 +1,57 @@
+{
+  "name": "shopper-edge-staging",
+  "compatibilityDate": "2026-10-05",
+  "compatibilityFlags": ["nodejs_compat"],
+  "workersDev": true,
+  "domains": ["shopper-api-staging.temtem.dev"],
+  "observability": { "enabled": true, "traces": { "enabled": true } },
+  "env": {
+    "BLOBS": { "type": "r2", "name": "shopper-assets-staging" },
+    "IMPORTS": { "type": "r2", "name": "shopper-imports-staging" },
+    "CACHE_DB": {
+      "type": "d1",
+      "id": "44230678-333c-446c-af51-22fe0c8eb20e",
+      "name": "shopper-cache-staging"
+    },
+    "HYPERDRIVE": { "type": "hyperdrive", "id": "dfa4e3a17ca546ed8213ed257912db3f" },
+    "NOTIFICATIONS": { "type": "queue", "name": "shopper-notifications-staging" },
+    "STORE_SEQUENCER": {
+      "type": "durable-object",
+      "worker": "shopper-edge-staging",
+      "exportName": "StoreSequencer"
+    },
+    "STORE_HUB": {
+      "type": "durable-object",
+      "worker": "shopper-edge-staging",
+      "exportName": "StoreHub"
+    },
+    "PRICE_CHANGE": {
+      "type": "workflow",
+      "name": "shopper-price-change-staging",
+      "worker": "shopper-edge-staging",
+      "exportName": "PriceChangeWorkflow"
+    },
+    "AUTH_FLOWS": {
+      "type": "workflow",
+      "name": "shopper-auth-flow-staging",
+      "worker": "shopper-edge-staging",
+      "exportName": "AuthWorkflow"
+    }
+  },
+  "exports": {
+    "StoreSequencer": { "type": "durable-object", "storage": "sqlite" },
+    "StoreHub": { "type": "durable-object", "storage": "sqlite" },
+    "PriceChangeWorkflow": { "type": "workflow", "name": "shopper-price-change-staging" },
+    "AuthWorkflow": { "type": "workflow", "name": "shopper-auth-flow-staging" }
+  },
+  "manifest": {
+    "type": "complete",
+    "mainModule": "index.js",
+    "modules": {
+      "index.js": { "type": "esm" },
+      "assets/dist-TfhVGyGK.js": { "type": "esm" },
+      "assets/factory-BpuS_7LD.js": { "type": "esm" },
+      "assets/rolldown-runtime-7_rZTKki.js": { "type": "esm" }
+    }
+  }
+}

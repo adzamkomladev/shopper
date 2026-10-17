@@ -7,6 +7,7 @@ import {
   hostSession,
   localSale,
   outbox,
+  receiptOutput,
   saleDraft,
   saleDraftLine,
   saleDraftTender,
@@ -28,6 +29,7 @@ import { quoteDraft } from "./drafts/quote";
 import { readQuoteReference } from "./quotation";
 import { checkSession, hostTime } from "./session";
 import { assignReceipt } from "./receipts/assign";
+import { findRegisterSettings } from "./register/settings";
 import { settle } from "./tenders/settle";
 import { TillError } from "./error";
 import type { TillConfig } from "./types";
@@ -170,6 +172,8 @@ export async function finishDraftSale(
       target: [tillState.orgId, tillState.deviceId],
       set: { lastOutboxSeq: localSeq },
     });
+  // The register's own names go onto the receipt when it is built, so reprints and the PDF match the printout.
+  const names = await findRegisterSettings(tx, scope);
   await tx.insert(localSale).values({
     id,
     orgId: scope.orgId,
@@ -179,9 +183,11 @@ export async function finishDraftSale(
     contentHash: await sha256(canonicalJson(event.sale)),
     receipt: buildReceipt(event.sale, {
       ...config.receiptReference,
+      ...(names && { branchName: names.value.storeName, deviceName: names.value.registerName }),
       tenderPhones: Object.fromEntries(tenders.flatMap((t) => (t.phone ? [[t.id, t.phone]] : []))),
     }),
   });
+  await tx.insert(receiptOutput).values({ saleId: id, orgId: scope.orgId });
   for (const line of event.sale.lines)
     await tx
       .insert(saleLine)

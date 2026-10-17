@@ -17,7 +17,7 @@ export function DetailItems({ purchase }: { purchase: PurchaseDetails }) {
   return (
     <section
       aria-label="Items purchased"
-      className="min-w-0 overflow-hidden rounded-lg border bg-card shadow-sm xl:col-span-8"
+      className="min-w-0 overflow-hidden rounded-lg border bg-card shadow-sm"
     >
       <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
         <div>

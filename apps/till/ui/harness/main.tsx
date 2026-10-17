@@ -5,20 +5,26 @@ import { money } from "@shopper/money";
 import "../src/styles.css";
 import { createRoot } from "react-dom/client";
 import { AppBackdrop } from "@shopper/ui/components/app-backdrop";
+import { Toaster } from "@shopper/ui/components/sonner";
 import { ShortcutRoot } from "@shopper/ui/hooks/shortcuts";
 import { TillNavigation } from "../src/components/navigation/screen";
 import type { TillView } from "../src/components/navigation/types";
 import { SaleScreen } from "../src/screens/sale/screen";
 import { PurchasesScreen } from "../src/screens/purchases/screen";
+import { SettingsScreen } from "../src/screens/settings/screen";
 import type {
   DraftTender,
   PurchaseActions,
   SaleActions,
+  ReceiptPrint,
+  ReprintFeedback,
   SaleSnapshot,
   TenderInput,
 } from "../src/sale/types";
 import { scenarios } from "./scenarios";
-import { initialPurchases, purchaseDetails } from "./purchases";
+import { printFailure, purchaseOutput } from "../src/purchases/delivery";
+import { initialPurchases, purchaseDetailsFor } from "./purchases";
+import { useSettingsHarness } from "./settings";
 
 declare global {
   interface Window {
@@ -33,11 +39,16 @@ const record =
     window.saleCalls.push({ type, args });
 const name = new URLSearchParams(location.search).get("scenario") ?? "lines";
 const initialSale = scenarios[name] ?? scenarios.lines!;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const printerFails = ["lines-offline", "reprint-offline"].includes(name);
+const refused = "connection refused (192.168.1.50:9100)";
 
 function Harness() {
   const [tab, setTab] = useState<TillView>("sale");
+  const [saleFocus, setSaleFocus] = useState(0);
   const [saleSnapshot, setSaleSnapshot] = useState(initialSale);
   const [purchases, setPurchases] = useState(() => initialPurchases(name));
+  const [settings, settingsActions] = useSettingsHarness(name, record);
   const sale: SaleActions = {
     search: record("search"),
     add: record("add"),
@@ -49,11 +60,11 @@ function Harness() {
     },
     charge: (input) => {
       record("charge")(input);
-      completeSale(setSaleSnapshot);
+      completeSale(setSaleSnapshot, name === "lines-slowprint" ? 1500 : 120);
     },
     complete: () => {
       record("complete")();
-      completeSale(setSaleSnapshot);
+      completeSale(setSaleSnapshot, 120);
     },
     removeTender: record("removeTender"),
     startMomo: (input) => {
@@ -91,6 +102,19 @@ function Harness() {
           : initial,
       );
     },
+    newSaleWith: (input) => {
+      record("newSaleWith")(input);
+      sale.newSale();
+    },
+    print: async (saleId) => {
+      record("print")(saleId);
+      await sleep(300);
+      const failed = printerFails;
+      setSaleSnapshot((current) => withPrint(current, saleId, failed ? "failed" : "printed"));
+      return failed
+        ? { status: "failed", message: printFailure(refused) }
+        : { status: "done", message: null };
+    },
     dismissFeedback: record("dismissFeedback"),
     syncNow: record("syncNow"),
     reconnect: record("reconnect"),
@@ -106,15 +130,49 @@ function Harness() {
     },
     read: (saleId) => {
       window.saleCalls.push({ type: "readPurchase", args: [saleId] });
-      setPurchases((current) => ({ ...current, selected: purchaseDetails }));
+      setPurchases((current) => ({
+        ...current,
+        selected: purchaseDetailsFor(name),
+        reprint: null,
+      }));
     },
     clear: () => {
       window.saleCalls.push({ type: "clearPurchase", args: [] });
-      setPurchases((current) => ({ ...current, selected: null }));
+      setPurchases((current) => ({ ...current, selected: null, reprint: null }));
+    },
+    reprint: async (saleId) => {
+      record("reprint")(saleId);
+      const change = (reprint: ReprintFeedback) =>
+        setPurchases((current) => ({ ...current, reprint }));
+      change({ status: "running", message: null });
+      await sleep(name === "reprint-slow" ? 1500 : 300);
+      if (printerFails) {
+        const failed: ReprintFeedback = { status: "failed", message: printFailure(refused) };
+        change(failed);
+        return failed;
+      }
+      const done: ReprintFeedback = { status: "done", message: null };
+      setPurchases((current) => ({
+        ...current,
+        reprint: done,
+        selected: current.selected?.delivery
+          ? {
+              ...current.selected,
+              delivery: {
+                ...current.selected.delivery,
+                printedAt: current.selected.delivery.printedAt ?? new Date().toISOString(),
+                printError: null,
+                reprints: current.selected.delivery.reprints + 1,
+              },
+            }
+          : current.selected,
+      }));
+      return done;
     },
   };
   function navigate(next: TillView) {
     setTab(next);
+    if (next === "sale") setSaleFocus((value) => value + 1);
     if (next === "purchases") purchaseActions.list({ ...purchases.filters, page: 1 });
   }
   return (
@@ -125,6 +183,7 @@ function Harness() {
           <SaleScreen
             active={tab === "sale"}
             actions={sale}
+            focusKey={saleFocus}
             onPurchases={() => navigate("purchases")}
             onRegister={record("register")}
             snapshot={saleSnapshot}
@@ -134,7 +193,18 @@ function Harness() {
           <PurchasesScreen
             active={tab === "purchases"}
             actions={purchaseActions}
+            output={purchaseOutput(
+              settings.current,
+              name === "reprint-nopermission" ? [] : ["sale.create"],
+            )}
             snapshot={purchases}
+          />
+        </div>
+        <div className="h-full min-h-0" hidden={tab !== "settings"}>
+          <SettingsScreen
+            active={tab === "settings"}
+            actions={settingsActions}
+            snapshot={settings}
           />
         </div>
       </div>
@@ -173,12 +243,41 @@ function addTender(snapshot: SaleSnapshot, input: TenderInput): SaleSnapshot {
   };
 }
 
-function completeSale(setSnapshot: Dispatch<SetStateAction<SaleSnapshot>>) {
-  setSnapshot((current) => ({ ...current, view: null, receipt: scenarios.complete!.receipt }));
+/** Completes the sale, then plays out the automatic print after `delay` ms. */
+function completeSale(setSnapshot: Dispatch<SetStateAction<SaleSnapshot>>, delay: number) {
+  const receipt = scenarios.complete!.receipt!;
+  const pending = { saleId: receipt.saleId, outcome: null, message: null };
+  setSnapshot((current) => ({ ...current, view: null, receipt, receiptPrint: pending }));
+  setTimeout(
+    () =>
+      setSnapshot((current) => {
+        const register = current.register;
+        if (!register?.printAutomatically || register.printer.state === "unconfigured")
+          return current;
+        const outcome =
+          name === "lines-stuck"
+            ? "unknown"
+            : register.printer.state === "offline"
+              ? "failed"
+              : "printed";
+        return withPrint(current, receipt.saleId, outcome);
+      }),
+    delay,
+  );
+}
+
+function withPrint(
+  snapshot: SaleSnapshot,
+  saleId: string,
+  outcome: NonNullable<ReceiptPrint["outcome"]>,
+): SaleSnapshot {
+  const message = outcome === "failed" ? printFailure(refused) : null;
+  return { ...snapshot, receiptPrint: { saleId, outcome, message } };
 }
 
 createRoot(document.getElementById("root")!).render(
   <ShortcutRoot>
     <Harness />
+    <Toaster position="top-right" />
   </ShortcutRoot>,
 );

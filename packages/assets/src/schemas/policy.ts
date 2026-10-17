@@ -2,10 +2,12 @@ import * as v from "valibot";
 import { uuidV7Schema } from "@shopper/ports";
 
 export const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
+export const MAX_RECEIPT_BYTES = 1024 * 1024;
 export const UPLOAD_SECONDS = 900;
 export const assetPolicy = {
   catalogue_import: { bucket: "imports", visibility: "private", directUpload: true },
   sync_snapshot: { bucket: "snapshots", visibility: "private", directUpload: false },
+  sale_receipt: { bucket: "receipts", visibility: "private", directUpload: true },
 } as const;
 export const importContentType = v.picklist([
   "text/csv",
@@ -32,4 +34,9 @@ export const importUploadGrant = v.object({
   method: v.literal("PUT"),
   headers: v.record(v.string(), v.string()),
   expiresAt: v.pipe(v.number(), v.safeInteger()),
+});
+export const receiptUploadInput = v.strictObject({
+  saleId: uuidV7Schema,
+  size: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
+  sha256: v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/)),
 });

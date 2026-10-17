@@ -10,10 +10,14 @@ import {
 } from "../connection/store";
 import { canSyncNow } from "../connection/sync";
 import type { ConnectionSnapshot } from "../connection/types";
+import { sendReprint } from "../purchases/reprint";
 import { createSaleOperations } from "./operations";
-import type { AddInput, SaleActions, SaleFailure, SaleSnapshot } from "./types";
+import { asked, mirrorJob, trackPrint, unknownIfPending } from "./print";
+import { registerOf } from "./register";
+import { failureOf, isOlder } from "./replies";
+import type { AddInput, SaleActions, SaleSnapshot } from "./types";
 
-type State = Omit<SaleSnapshot, "host" | "sync" | "permissions">;
+type State = Omit<SaleSnapshot, "host" | "sync" | "permissions" | "register">;
 type Edit =
   | ({ type: "add" } & AddInput)
   | { type: "setQuantity"; lineId: string; quantityThousandths: number }
@@ -30,6 +34,7 @@ let state: State = {
   search: { query: "", status: "idle", matches: [] },
   feedback: null,
   operationError: null,
+  receiptPrint: null,
 };
 let composed: { connection: ConnectionSnapshot; state: State; snapshot: SaleSnapshot } | undefined;
 const queue: Edit[] = [];
@@ -40,6 +45,9 @@ subscribeConnection(() => {
   const connected = connectionSnapshot().host === "connected";
   if (connected && !connectedBefore) void load();
   connectedBefore = connected;
+  const register = registerOf(connectionSnapshot().status);
+  if (state.receiptPrint)
+    state = { ...state, receiptPrint: mirrorJob(state.receiptPrint, register) };
   notify();
 });
 subscribeBridge((message) => {
@@ -92,6 +100,12 @@ export const saleActions: SaleActions = {
   voidSale: (reason, draftId, expectedRevision) =>
     void operations.voidSale(reason, draftId, expectedRevision),
   newSale: () => void operations.newSale(),
+  newSaleWith: (input) => void operations.newSale().then(() => enqueue({ type: "add", ...input })),
+  print: async (saleId) => {
+    const result = await sendReprint(saleId);
+    if (state.receipt?.saleId === saleId) update({ receiptPrint: asked(saleId, result) });
+    return result;
+  },
   dismissFeedback: () => update({ feedback: null }),
   syncNow: retryUpload,
   reconnect: () => (connectionSnapshot().host === "connected" ? void load() : connectRegister()),
@@ -193,13 +207,6 @@ function report(reply: BridgeMessage | undefined, edit?: Edit) {
   else update({ operationError: reply.message });
 }
 
-function failureOf(reply: Extract<BridgeMessage, { type: "error" }>): SaleFailure | null {
-  if (reply.code === "SESSION_REQUIRED" || reply.code === "session") return "session";
-  if (reply.code === "permission" || reply.code === "scope") return "permission";
-  if (reply.code === "STORAGE_FAILED") return "storage";
-  return null;
-}
-
 function snapshot(): SaleSnapshot {
   const connection = connectionSnapshot();
   if (composed?.connection === connection && composed.state === state) return composed.snapshot;
@@ -209,6 +216,7 @@ function snapshot(): SaleSnapshot {
     host,
     loading: state.loading && host !== "disconnected",
     permissions: status?.permissions ?? [],
+    register: registerOf(status),
     sync: {
       offline: status?.server === "offline",
       pendingCount: status?.pendingCount ?? 0,
@@ -225,15 +233,13 @@ function update(change: Partial<State>) {
     const { view: _stale, ...rest } = change;
     change = rest;
   }
+  change = trackPrint(change, registerOf(connectionSnapshot().status), (saleId) =>
+    update({ receiptPrint: unknownIfPending(state.receiptPrint, saleId) }),
+  );
   state = { ...state, ...change };
   notify();
 }
 
-/** Replies and broadcasts race on the bridge; a draft never moves back to an older revision. */
-function isOlder(next: SaleSnapshot["view"], current: SaleSnapshot["view"]) {
-  const [a, b] = [next?.draft, current?.draft];
-  return !!a && !!b && a.id === b.id && a.revision < b.revision;
-}
 function notify() {
   for (const listener of listeners) listener();
 }

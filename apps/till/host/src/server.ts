@@ -8,6 +8,7 @@ let stopped = false;
 const ipc = typeof process.send === "function";
 function stop() {
   stopped = true;
+  parent?.dispose();
   void host?.close();
 }
 const send = (message: unknown) => {
@@ -19,15 +20,20 @@ const send = (message: unknown) => {
       });
   } else console.log(JSON.stringify(message));
 };
-async function start(config: unknown) {
+let parent: ReturnType<typeof import("@shopper/adapters-box/till").parentRenderer> | undefined;
+async function start(config: unknown, renderer?: unknown) {
   if (starting || stopped) return;
   starting = true;
   try {
-    const { startTillHost } = await import("@shopper/adapters-box/till");
+    const { startTillHost, parentRenderer } = await import("@shopper/adapters-box/till");
     if (stopped || (ipc && !process.connected)) return;
-    host = await startTillHost(config, send);
+    // Under Electron the parent renders receipts; otherwise the host renders them itself.
+    if (renderer === "parent") parent = parentRenderer(send);
+    host = await startTillHost(config, send, parent?.renderer);
     if (stopped) await host.close();
   } catch {
+    parent?.dispose();
+    parent = undefined;
     send({
       type: "error",
       code: "HOST_UNAVAILABLE",
@@ -46,7 +52,8 @@ process.on("message", (message) => {
     message.type === "start" &&
     "config" in message
   )
-    void start(message.config);
+    void start(message.config, "renderer" in message ? message.renderer : undefined);
+  else if (parent?.receive(message)) return;
   else if (host) void host.receive(message);
 });
 process.on("disconnect", stop);

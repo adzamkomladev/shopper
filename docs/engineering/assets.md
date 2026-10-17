@@ -4,12 +4,13 @@
 
 Only implemented uses are provisioned:
 
-| Purpose           | Policy                                                                          | Provider storage                                  |
-| ----------------- | ------------------------------------------------------------------------------- | ------------------------------------------------- |
-| Catalogue imports | Private client uploads, short-lived PUT capability, bounded verified processing | Dedicated private imports bucket in R2/RustFS     |
-| Sync snapshots    | Private server-generated outputs, authenticated device reads                    | Existing R2 binding or box generated-object store |
+| Purpose           | Policy                                                                                          | Provider storage                                            |
+| ----------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Catalogue imports | Private client uploads, short-lived PUT capability, bounded verified processing                 | Dedicated private imports bucket in R2/RustFS               |
+| Sync snapshots    | Private server-generated outputs, authenticated device reads                                    | Existing R2 binding or box generated-object store           |
+| Sale receipts     | Private till-rendered PDFs (`sale_receipt`, ≤ 1 MiB), device-authenticated PUT grant, no expiry | Dedicated private receipts bucket (`RECEIPTS`) in R2/RustFS |
 
-There are no product-image, export, backup, receipt or invoice buckets until an implemented use requires its own access/retention policy. Current assets are private; do not infer public access from a filename or content type. Public product assets will need an explicit policy and serving contract.
+There are no product-image, export, backup or invoice buckets until an implemented use requires its own access/retention policy. Current assets are private; do not infer public access from a filename or content type. Public product assets will need an explicit policy and serving contract.
 
 The browser requests a grant with metadata and digest, PUTs directly to its URL without API credentials, then sends the asset UUID as JSON for preview and final import. The API rechecks current permissions, tenant and purpose, resolves its own stored key, and fetches bounded bytes immediately before processing. Size and SHA-256 must match the registered values. The checked bytes are the bytes parsed; object metadata alone is not integrity proof. Replayed PUT URLs cannot substitute another file silently. Final import retries use the same asset identity.
 
@@ -22,3 +23,7 @@ Local cloud development uses a remote dev `IMPORTS` binding and matching R2 sign
 Box development uses `vp run services:up` and `vp run storage:setup` to provision the local RustFS imports bucket/CORS. Development credentials are loopback fixtures, never production credentials. Production configuration and migration requirements are in [deployment.md](deployment.md). Real workerd/RustFS tests prove adapter behavior locally; live external R2 verification must be recorded separately.
 
 Browser hashing uses Web Crypto: local portals need HTTPS (or a trusted loopback origin). An insecure LAN URL does not expose this API; the file check explains how to use a secure connection. Configure the browser-reachable RustFS endpoint with matching TLS/CORS before deploying the local web portal.
+
+## Receipt PDFs
+
+A till renders each sale's receipt PDF itself and uploads it after the sale is acknowledged. `POST /sync/receipts {saleId, size, sha256}` (device credential; the sale must belong to that device, else 404; over 1 MiB is 413) records an `asset` (`sale_receipt`, bucket `receipts`, key `receipts/{saleId}.pdf`, stored at `{orgId}/receipts/{saleId}.pdf`) and returns a presigned PUT; issuing again for a sale returns the same asset. The till PUTs the bytes directly to R2/RustFS, then `POST /sync/receipts/:assetId/confirm`: the server reads at most the registered size, checks size and SHA-256 (409 on a missing or different object), links `sale.receipt_asset_id` and audits (`asset.receipt.issue`, `asset.receipt.confirm`). Repeat confirms are idempotent. Without a receipts S3 store the grant is 503 and the till retries; there is no filesystem or API-upload fallback.

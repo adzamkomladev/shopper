@@ -163,3 +163,17 @@
       var(--backdrop-strong) 100%
     );
 }
+
+/* Fades the bottom edge of a scrolling region while more content waits below. The fade is a sticky
+   strip after the content: it pins to the bottom while scrolling and rests in its own space at the end. */
+@utility scroll-fade-y {
+  &::after {
+    content: "";
+    position: sticky;
+    bottom: 0;
+    display: block;
+    height: 2rem;
+    pointer-events: none;
+    background: linear-gradient(transparent, var(--background));
+  }
+}

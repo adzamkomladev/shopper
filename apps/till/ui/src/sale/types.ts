@@ -56,6 +56,14 @@ export type PurchaseFilters = {
   page: number;
   pageSize: number;
 };
+/** A reprint from the purchase detail: what it is doing, or its outcome in words the screen shows as is. */
+export type ReprintFeedback = { status: "running" | "done" | "failed"; message: string | null };
+/** What the purchase detail needs from the register to reprint and preview a receipt. */
+export type PurchaseOutput = {
+  printer: HostStatus["printer"]["state"];
+  paperMm: 58 | 80;
+  canReprint: boolean;
+};
 export type PurchasesSnapshot = {
   status: "idle" | "loading" | "ready" | "empty" | "error" | "offline";
   filters: PurchaseFilters;
@@ -65,7 +73,28 @@ export type PurchasesSnapshot = {
   pageSize: number;
   selected: PurchaseDetails | null;
   error: string | null;
+  reprint: ReprintFeedback | null;
 };
+
+/** The register settings and printer status the completion view needs. */
+export type SaleRegister = {
+  clearCartAfterSale: boolean;
+  printAutomatically: boolean;
+  printer: HostStatus["printer"];
+};
+
+/**
+ * How this sale's receipt print went. `outcome` stays null while it is pending and is kept once seen,
+ * so another job on the printer never changes it. `message` is ready to show.
+ */
+export type ReceiptPrint = {
+  saleId: string;
+  outcome: "printed" | "failed" | "unknown" | null;
+  message: string | null;
+};
+
+/** What the completion view says about the receipt. */
+export type PrintPhase = "printing" | "printed" | "failed" | "unknown" | "manual" | "unconfigured";
 
 export type SaleSnapshot = {
   host: HostConnection;
@@ -81,6 +110,10 @@ export type SaleSnapshot = {
   operationError: string | null;
   permissions: string[];
   sync: SaleSync;
+  /** Null until the host has answered. */
+  register: SaleRegister | null;
+  /** The completed sale's print, null when no sale is showing. */
+  receiptPrint: ReceiptPrint | null;
 };
 
 export type AddInput = { code: string } | { productId: string };
@@ -100,6 +133,10 @@ export type SaleActions = {
   resume: (draftId: string, expectedRevision: number) => void;
   voidSale: (reason: string, draftId?: string, expectedRevision?: number) => void;
   newSale: () => void;
+  /** Starts a new sale from the completion view with the scanned item already in it. */
+  newSaleWith: (input: AddInput) => void;
+  /** Prints (or reprints) the receipt of a completed sale. */
+  print: (saleId: string) => Promise<ReprintFeedback>;
   dismissFeedback: () => void;
   syncNow: () => void;
   reconnect: () => void;
@@ -109,6 +146,8 @@ export type PurchaseActions = {
   list: (filters: PurchaseFilters) => void;
   read: (saleId: string) => void;
   clear: () => void;
+  /** Resolves with the outcome, so the screen can toast it as well as show it inline. */
+  reprint: (saleId: string) => Promise<ReprintFeedback>;
 };
 
 export type { HostStatus };

@@ -2,6 +2,7 @@ import * as v from "valibot";
 import { and, asc, eq, gte, lt } from "drizzle-orm";
 import {
   localSale,
+  receiptOutput,
   saleDraft,
   saleDraftLine,
   saleDraftTender,
@@ -51,8 +52,23 @@ export async function readPurchase(db: TillDatabase, raw: unknown) {
     const rows = await purchases(tx, input.scope, input.at, input.saleId);
     const row = rows.find((row) => row.id === input.saleId);
     if (!row) throw new TillError("SALE_UNKNOWN", "This purchase is unavailable on this register");
-    return row;
+    return { ...row, delivery: row.sale ? await deliveryOf(tx, row.id) : null };
   });
+}
+
+/** What happened to a sale's receipt: printed or failed, reprinted, and whether its PDF reached the server. */
+async function deliveryOf(tx: TillSqlite, saleId: string) {
+  const [output] = await tx.select().from(receiptOutput).where(eq(receiptOutput.saleId, saleId));
+  return {
+    printedAt: output?.printedAt ?? null,
+    reprints: output?.reprints ?? 0,
+    printError: output?.printError ?? null,
+    pdf: !output?.pdfSha256
+      ? null
+      : output.uploadedAt
+        ? ("uploaded" as const)
+        : ("pending" as const),
+  };
 }
 
 async function purchases(tx: TillSqlite, scope: DraftScope, at: Date, saleId?: string) {

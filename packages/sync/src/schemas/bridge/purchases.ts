@@ -22,12 +22,21 @@ export const purchaseSummary = v.strictObject({
   total: v.number(),
   kinds: v.array(v.picklist(["cash", "momo", "card"])),
 });
+export const receiptDelivery = v.strictObject({
+  printedAt: v.nullable(v.string()),
+  reprints: revision,
+  printError: v.nullable(v.string()),
+  /** Null when no PDF is stored yet. */
+  pdf: v.nullable(v.picklist(["pending", "uploaded"])),
+});
 export const purchaseDetails = v.strictObject({
   ...purchaseSummary.entries,
   payment: v.optional(v.nullable(momoView)),
   sale: v.nullable(saleSnapshot),
   receipt: v.nullable(receiptDocument),
   draft: v.nullable(draftView),
+  /** Null unless the purchase is a completed sale. */
+  delivery: v.nullable(receiptDelivery),
 });
 export const purchaseReplies = [
   v.strictObject({
@@ -47,4 +56,5 @@ export const purchaseReplies = [
   }),
 ] as const;
 export type PurchaseSummary = v.InferOutput<typeof purchaseSummary>;
+export type ReceiptDelivery = v.InferOutput<typeof receiptDelivery>;
 export type PurchaseDetails = v.InferOutput<typeof purchaseDetails>;

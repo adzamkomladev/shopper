@@ -1,4 +1,5 @@
 export { cloudflareBlobs, cloudflareCache } from "./storage";
+export { cloudflareRenderer, RendererError } from "./renderer";
 export { cloudflareSequencer } from "./sequencer";
 export { cloudflareRealtime } from "./realtime";
 export { cloudflareLauncher, cloudflareWorkflow } from "./launcher";

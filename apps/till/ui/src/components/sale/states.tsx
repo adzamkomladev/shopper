@@ -187,7 +187,14 @@ export function EmptyBasket() {
   );
 }
 
-export function CompletedBasket() {
+export function CompletedBasket({
+  startsOnScan,
+  refused,
+}: {
+  startsOnScan: boolean;
+  /** A scan or keyed code was turned away because it would not start a sale. */
+  refused: boolean;
+}) {
   return (
     <Empty className="flex-1">
       <EmptyHeader>
@@ -196,9 +203,16 @@ export function CompletedBasket() {
         </EmptyMedia>
         <EmptyTitle>Sale complete</EmptyTitle>
         <EmptyDescription>
-          The receipt is ready. Press Enter or use New sale to start another basket.
+          {startsOnScan
+            ? "The receipt is ready. Scan the next item, or press Enter, to start a new sale."
+            : "The receipt is ready. Press Enter or New sale to start another basket."}
         </EmptyDescription>
       </EmptyHeader>
+      {refused && (
+        <p className="text-sm font-medium text-destructive" role="alert">
+          Sale complete. Press Enter or New sale, then scan again.
+        </p>
+      )}
     </Empty>
   );
 }

@@ -5,6 +5,7 @@ import type { cloudflareSequencer } from "../sequencer";
 export interface AuthEnvironment {
   SHOPPER_S3_ENDPOINT?: string;
   SHOPPER_S3_BUCKET?: string;
+  SHOPPER_S3_RECEIPTS_BUCKET?: string;
   SHOPPER_S3_ACCESS_KEY_ID?: string;
   SHOPPER_S3_SECRET_ACCESS_KEY?: string;
   SHOPPER_S3_REGION?: string;
@@ -24,6 +25,7 @@ export interface CloudflareRuntimeEnvironment extends AuthEnvironment {
   HYPERDRIVE: Hyperdrive;
   BLOBS: R2Bucket;
   IMPORTS: R2Bucket;
+  RECEIPTS: R2Bucket;
   CACHE_DB: D1Database;
   STORE_SEQUENCER: Parameters<typeof cloudflareSequencer>[0];
   STORE_HUB: Parameters<typeof cloudflareLive>[0];

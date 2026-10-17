@@ -2,14 +2,18 @@ import "./styles.css";
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { AppBackdrop } from "@shopper/ui/components/app-backdrop";
+import { Toaster } from "@shopper/ui/components/sonner";
 import { ShortcutRoot } from "@shopper/ui/hooks/shortcuts";
 import { ConnectionScreen } from "./screens/connection/screen";
 import { SaleScreen } from "./screens/sale/screen";
 import { PurchasesScreen } from "./screens/purchases/screen";
+import { SettingsScreen } from "./screens/settings/screen";
 import { TillNavigation } from "./components/navigation/screen";
 import { initializeConnection } from "./connection/store";
 import { saleActions, useSaleSnapshot } from "./sale/store";
+import { purchaseOutput } from "./purchases/delivery";
 import { purchaseActions, usePurchasesSnapshot } from "./purchases/store";
+import { settingsActions, useSettingsSnapshot } from "./settings/store";
 import type { TillView } from "./components/navigation/types";
 
 initializeConnection();
@@ -17,10 +21,13 @@ initializeConnection();
 function Register() {
   const [view, setView] = useState<"connection" | "till">("connection");
   const [tab, setTab] = useState<TillView>("sale");
+  const [saleFocus, setSaleFocus] = useState(0);
   const sale = useSaleSnapshot();
   const purchases = usePurchasesSnapshot();
+  const settings = useSettingsSnapshot();
   function navigate(next: TillView) {
     setTab(next);
+    if (next === "sale") setSaleFocus((value) => value + 1);
     if (next === "purchases") purchaseActions.list({ ...purchases.filters, page: 1 });
   }
   return view === "till" ? (
@@ -31,6 +38,7 @@ function Register() {
           <SaleScreen
             active={tab === "sale"}
             actions={saleActions}
+            focusKey={saleFocus}
             onPurchases={() => navigate("purchases")}
             onRegister={() => setView("connection")}
             snapshot={sale}
@@ -40,7 +48,15 @@ function Register() {
           <PurchasesScreen
             active={tab === "purchases"}
             actions={purchaseActions}
+            output={purchaseOutput(settings.current, sale.permissions)}
             snapshot={purchases}
+          />
+        </div>
+        <div hidden={tab !== "settings"} className="h-full min-h-0">
+          <SettingsScreen
+            active={tab === "settings"}
+            actions={settingsActions}
+            snapshot={settings}
           />
         </div>
       </div>
@@ -55,5 +71,6 @@ function Register() {
 createRoot(document.getElementById("root")!).render(
   <ShortcutRoot>
     <Register />
+    <Toaster position="top-right" />
   </ShortcutRoot>,
 );

@@ -67,3 +67,41 @@ export function uploadConformance(
     assert.equal(await blobs.get(orgId, key), null);
   });
 }
+
+/** `receipts/` keys are routed to their own store: `bucket` is the provider bucket their grants must address. */
+export function receiptUploadConformance(
+  name: string,
+  test: ConformanceTest,
+  fixture: () => Promise<{ blobs: Blobs; orgId: string; otherOrgId: string; bucket: string }>,
+) {
+  test(`${name}: receipt PDFs upload directly to the receipts store with bounded reads`, async () => {
+    const { blobs, orgId, otherOrgId, bucket } = await fixture();
+    const key = `receipts/${crypto.randomUUID()}.pdf`;
+    const pdf = new TextEncoder().encode("%PDF-1.4\n%%EOF\n");
+    const grant = await blobs.createUpload(orgId, key, {
+      contentType: "application/pdf",
+      expiresInSeconds: 900,
+    });
+    assert.equal(grant.method, "PUT");
+    assert.equal(new URL(grant.url).pathname, `/${bucket}/${orgId}/${key}`);
+    const put = await fetch(grant.url, { method: "PUT", headers: grant.headers, body: pdf });
+    assert.equal(put.status, 200);
+    assert.deepEqual(await blobs.get(orgId, key, pdf.length), pdf);
+    await assert.rejects(blobs.get(orgId, key, pdf.length - 1), RangeError);
+    assert.equal(await blobs.get(otherOrgId, key), null);
+    const wrongType = await fetch(grant.url, {
+      method: "PUT",
+      headers: { "Content-Type": "text/plain" },
+      body: "bad",
+    });
+    assert.equal(wrongType.status, 403);
+    const forged = new URL(grant.url);
+    forged.pathname += "-forged";
+    assert.equal(
+      (await fetch(forged, { method: "PUT", headers: grant.headers, body: "bad" })).status,
+      403,
+    );
+    await blobs.delete(orgId, key);
+    assert.equal(await blobs.get(orgId, key), null);
+  });
+}

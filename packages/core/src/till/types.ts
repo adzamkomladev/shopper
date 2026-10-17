@@ -19,3 +19,6 @@ export type QuoteLine =
   | ({ lineId: string; error?: never } & ReturnType<typeof quoteFrom>)
   | { lineId: string; productId: string; error: TillError["code"]; tax?: never };
 export type DraftView = Awaited<ReturnType<typeof viewDraft>>;
+
+/** How one print attempt ended: the automatic copy, a reprint or a failure. */
+export type PrintOutcome = "first" | "reprint" | { error: string };

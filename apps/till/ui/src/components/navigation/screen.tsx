@@ -13,6 +13,7 @@ export function TillNavigation({
   const register = useShortcuts({
     "Alt+S": () => onChange("sale"),
     "Alt+P": () => onChange("purchases"),
+    "Alt+T": () => onChange("settings"),
   });
   return (
     <nav
@@ -37,6 +38,15 @@ export function TillNavigation({
         variant={view === "purchases" ? "secondary" : "ghost"}
       >
         Purchases <Kbd className="hidden sm:inline-flex">Alt+P</Kbd>
+      </Button>
+      <Button
+        aria-current={view === "settings" ? "page" : undefined}
+        aria-keyshortcuts="Alt+T"
+        onClick={() => onChange("settings")}
+        size="touch"
+        variant={view === "settings" ? "secondary" : "ghost"}
+      >
+        Settings <Kbd className="hidden sm:inline-flex">Alt+T</Kbd>
       </Button>
     </nav>
   );

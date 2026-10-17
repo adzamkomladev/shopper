@@ -5,7 +5,7 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react";
-import { Toaster as Sonner, type ToasterProps } from "sonner";
+import { Toaster as Sonner, toast, type ToasterProps } from "sonner";
 
 // The portal follows the OS colour scheme (no theme switch), which is what "system" does.
 const Toaster = ({ ...props }: ToasterProps) => (
@@ -31,4 +31,4 @@ const Toaster = ({ ...props }: ToasterProps) => (
   />
 );
 
-export { Toaster };
+export { Toaster, toast };

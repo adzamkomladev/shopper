@@ -23,6 +23,7 @@
     "@shopper/core": "workspace:*",
     "@shopper/db-pg": "workspace:*",
     "@shopper/db-sqlite": "workspace:*",
+    "@shopper/hardware": "workspace:*",
     "@shopper/ports": "workspace:*",
     "drizzle-orm": "0.45.3",
     "pg": "8.23.1",

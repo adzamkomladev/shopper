@@ -32,6 +32,7 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   "device.enroll": "Enrol devices",
   "device.revoke": "Revoke devices",
   "cashier.pin.assign": "Set cashier PINs",
+  "register.settings": "Change register settings",
 };
 
 /** The matrix reads top to bottom in these groups. */
@@ -60,6 +61,12 @@ export const PERMISSION_GROUPS: readonly { name: string; codes: readonly Permiss
   },
   {
     name: "Devices",
-    codes: ["device.read", "device.enroll", "device.revoke", "cashier.pin.assign"],
+    codes: [
+      "device.read",
+      "device.enroll",
+      "device.revoke",
+      "cashier.pin.assign",
+      "register.settings",
+    ],
   },
 ];

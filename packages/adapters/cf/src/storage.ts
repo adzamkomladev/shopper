@@ -16,16 +16,27 @@ export function cloudflareCache(binding: D1Database, now = Date.now) {
 }
 export async function cloudflareBlobs(
   binding: R2Bucket,
-  options: BlobUrlOptions & { imports?: R2Bucket; objectStorage?: ObjectStorageOptions },
+  options: BlobUrlOptions & {
+    imports?: R2Bucket;
+    receipts?: R2Bucket;
+    objectStorage?: ObjectStorageOptions;
+    receiptsObjectStorage?: ObjectStorageOptions;
+  },
 ) {
   const access = await blobUrlAccess(options);
   const objects = options.objectStorage ? objectStorage(options.objectStorage) : undefined;
+  const receiptObjects = options.receiptsObjectStorage
+    ? objectStorage(options.receiptsObjectStorage)
+    : undefined;
   const target = (orgId: string, key: string) => {
     const scoped = scopedKey(orgId, key);
     if (key.startsWith("imports/")) {
       if (!options.imports) throw new Error("Imports R2 binding is required");
       return { bucket: options.imports, key: scoped };
     }
+    // Without a receipts binding these keys stay in BLOBS; direct upload grants are then unavailable.
+    if (key.startsWith("receipts/") && options.receipts)
+      return { bucket: options.receipts, key: scoped };
     return { bucket: binding, key: scoped.replaceAll("/", ":") };
   };
   const blobs: Blobs = {
@@ -43,9 +54,13 @@ export async function cloudflareBlobs(
       await object.bucket.delete(object.key);
     },
     async createUpload(orgId, key, input) {
-      if (!key.startsWith("imports/")) throw new Error("Direct uploads require an imports key");
-      if (!objects || !options.imports) throw new BlobUploadUnavailable();
-      return objects.createUpload(orgId, key, input);
+      const receipt = key.startsWith("receipts/");
+      if (!receipt && !key.startsWith("imports/"))
+        throw new Error("Direct uploads require an imports or receipts key");
+      const store = receipt ? receiptObjects : objects;
+      if (!store || !(receipt ? options.receipts : options.imports))
+        throw new BlobUploadUnavailable();
+      return store.createUpload(orgId, key, input);
     },
     signedUrl: access.sign,
   };

@@ -5,6 +5,7 @@ import { basketReplies, basketRequests, draftView } from "./basket";
 
 import { momoView } from "@shopper/core/payments";
 import { purchaseReplies, purchaseRequests } from "./purchases";
+import { deviceRequests, printerStatus, settingsStatus } from "./devices";
 
 const id = uuidV7Schema;
 
@@ -25,6 +26,9 @@ export const hostStatus = v.strictObject({
   appVersion: v.pipe(v.string(), v.minLength(1)),
   protocol: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
   permissions: v.optional(v.array(v.string())),
+  settings: settingsStatus,
+  printer: printerStatus,
+  registerCode: v.string(),
   server: v.picklist(["connecting", "online", "offline", "blocked", "revoked", "incompatible"]),
   pendingCount: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
   blockedCount: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
@@ -57,6 +61,7 @@ export const bridgeRequest = v.pipe(
     v.strictObject({ id, type: v.literal("shutdown") }),
     ...basketRequests,
     ...purchaseRequests,
+    ...deviceRequests,
   ]),
   v.check(
     (request) =>

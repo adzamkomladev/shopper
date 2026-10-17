@@ -8,6 +8,17 @@ import { cloudflareLauncher } from "./launcher";
 import { cloudflareSequencer } from "./sequencer";
 import type { CloudflareRuntimeEnvironment } from "./runtime/types";
 
+const s3 = (env: CloudflareRuntimeEnvironment, bucket?: string) =>
+  env.SHOPPER_S3_ENDPOINT && bucket
+    ? {
+        endpoint: env.SHOPPER_S3_ENDPOINT,
+        bucket,
+        accessKeyId: env.SHOPPER_S3_ACCESS_KEY_ID ?? "",
+        secretAccessKey: env.SHOPPER_S3_SECRET_ACCESS_KEY ?? "",
+        region: env.SHOPPER_S3_REGION ?? "",
+      }
+    : undefined;
+
 export async function cloudflareRuntime(
   request: Request,
   env: CloudflareRuntimeEnvironment,
@@ -28,15 +39,9 @@ export async function cloudflareRuntime(
           imports: env.IMPORTS,
           baseUrl: env.SHOPPER_AUTH_URL,
           secret: new TextEncoder().encode(env.SHOPPER_AUTH_SECRET),
-          objectStorage: env.SHOPPER_S3_ENDPOINT
-            ? {
-                endpoint: env.SHOPPER_S3_ENDPOINT,
-                bucket: env.SHOPPER_S3_BUCKET ?? "",
-                accessKeyId: env.SHOPPER_S3_ACCESS_KEY_ID ?? "",
-                secretAccessKey: env.SHOPPER_S3_SECRET_ACCESS_KEY ?? "",
-                region: env.SHOPPER_S3_REGION ?? "",
-              }
-            : undefined,
+          receipts: env.RECEIPTS,
+          objectStorage: s3(env, env.SHOPPER_S3_BUCKET),
+          receiptsObjectStorage: s3(env, env.SHOPPER_S3_RECEIPTS_BUCKET),
         })
       ).blobs,
       secret: env.SHOPPER_AUTH_SECRET,

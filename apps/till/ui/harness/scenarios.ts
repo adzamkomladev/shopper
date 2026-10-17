@@ -1,9 +1,15 @@
-import type { SaleSnapshot } from "../src/sale/types";
+import type { SaleRegister, SaleSnapshot } from "../src/sale/types";
 import { money } from "@shopper/money";
 import { emptyView, items, basket, id, matches } from "./fixtures";
 import { makeReceipt } from "./receipts";
 import { withCashTender, withTender } from "./sale/tenders";
 
+const register = (change: Partial<SaleRegister> = {}): SaleRegister => ({
+  clearCartAfterSale: true,
+  printAutomatically: true,
+  printer: { state: "ready", lastJob: null },
+  ...change,
+});
 const heldView = basket(items.slice(0, 1));
 const held = {
   ...heldView,
@@ -25,6 +31,8 @@ const base: SaleSnapshot = {
   operationError: null,
   permissions: ["sale.void", "payment.momo"],
   sync: { offline: false, pendingCount: 0, canSync: true, syncing: false },
+  register: register(),
+  receiptPrint: null,
 };
 const roundedView = (gross: ReturnType<typeof money>) => {
   const view = basket([
@@ -127,4 +135,18 @@ export const scenarios: Record<string, SaleSnapshot> = {
   "no-void-permission": { ...base, permissions: [] },
   "no-momo-permission": { ...base, permissions: ["sale.void"] },
   complete: { ...base, view: null, receipt: makeReceipt() },
+  // The printer scenarios start with a basket; completing the sale plays out the print.
+  "lines-keep": { ...base, register: register({ clearCartAfterSale: false }) },
+  "lines-offline": {
+    ...base,
+    register: register({ printer: { state: "offline", lastJob: null } }),
+  },
+  "lines-manual": { ...base, register: register({ printAutomatically: false }) },
+  "lines-noprinter": {
+    ...base,
+    register: register({ printer: { state: "unconfigured", lastJob: null } }),
+  },
+  "lines-slowprint": base,
+  // The printer never reports back, so the print stays unknown.
+  "lines-stuck": base,
 };

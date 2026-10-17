@@ -63,6 +63,10 @@ URL through `DATABASE_URL` in your shell's secret environment. Do not commit it.
 The development seed provisions the dev shop and tax rules, then imports 20,000
 catalogue products through the audited import command. It can be rerun.
 
+To wipe everything and repopulate (stores, branches, one user per role, catalogue), run
+`vp run db:reset [--products N]`; the credentials print at the end. See
+`docs/engineering/developer-experience.md`.
+
 Drizzle migrations live in `packages/db/pg/migrations`; generate the next forward
 migration with `vp exec drizzle-kit generate --config packages/db/pg/drizzle.config.ts`.
 Never edit an applied migration. The migration journal makes reruns a no-op;

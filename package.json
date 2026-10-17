@@ -10,6 +10,7 @@
     "services:down": "docker compose -f tooling/docker/compose.dev.yml down",
     "db:migrate": "tsx tooling/database/cli.ts migrate",
     "db:seed": "tsx tooling/database/cli.ts seed",
+    "db:reset": "tsx tooling/database/cli.ts reset",
     "guard": "tsx tooling/guard.ts",
     "e2e": "playwright test",
     "storage:setup": "tsx tooling/storage/setup.ts",

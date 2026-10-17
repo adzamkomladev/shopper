@@ -8,7 +8,7 @@ for dev services.
 ```sh
 vp install --frozen-lockfile
 vp run services:up             # PostgreSQL 18, Rivet engine, virtual ESC/POS printer
-vp run db:migrate && vp run db:seed
+vp run db:reset                # wipe, migrate and seed (or db:migrate && db:seed)
 cp apps/edge/.dev.vars.example apps/edge/.dev.vars
 vp run dev                     # portal :5173, till-ui :5174, shop :5175, edge :8787 in workerd
 ```
@@ -28,6 +28,28 @@ the template). Portal = TanStack Start in SPA mode: a prerendered static shell s
 
 Use `vp` for everything. Never call `npm` in this repo: `devEngines` rejects it. Run one-off binaries
 with `vp exec <bin>`.
+
+## Reset and seed
+
+```sh
+vp run db:reset [--products N] [--yes]   # drop public + drizzle schemas, migrate, seed
+vp run db:seed  [--products N]           # seed an empty database (no-op once the dev org exists)
+```
+
+Both target `DATABASE_URL` (then `TEST_DATABASE_URL`, then local PG18) and print the host and
+database before acting. `db:reset` always runs on localhost; any other host needs `--yes`, and is
+refused when `SHOPPER_ENVIRONMENT` is `production`. Data is disposable everywhere else, so staging
+is reset the same way.
+
+The seed goes through the real commands (provisioning, management, owner and user registration,
+catalogue import): the `dev` shop with `--products` catalogue rows (default 20,000), one store, the
+branches Accra Central, Osu and Kumasi Adum, one user per default role (`superadmin`, `admin`,
+`accountant`, `inventory`, `cashier`) and a second shop, `dev-two`, with an owner. Emails are
+`adzamkomla.dev+<300-2000>@gmail.com`, all with password `Admin@12345`. The credentials table prints
+at the end and is written to `.shopper/seed/credentials.md` (gitignored, never commit it).
+
+Not seeded: branch address, phone and TIN (no columns exist), user phone numbers, and till devices
+(enrolment needs a device keypair handshake).
 
 ## Daily commands
 

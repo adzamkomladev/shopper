@@ -1,6 +1,7 @@
 /// <reference types="node" />
-import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, readFileSync, readdirSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { beforeAll, expect, test } from "vite-plus/test";
 
@@ -8,11 +9,13 @@ const portal = resolve("apps/portal");
 const output = resolve(portal, ".cloudflare/output/v0");
 const assets = resolve(output, "workers/default/assets");
 
+const env = { ...process.env, CI: "1", CF_SEND_TELEMETRY: "false" };
+
 beforeAll(() => {
   execFileSync("vp", ["build", "--mode", "staging"], {
     cwd: portal,
     stdio: "pipe",
-    env: { ...process.env, CI: "1", CF_SEND_TELEMETRY: "false" },
+    env,
   });
 }, 300_000);
 
@@ -70,4 +73,23 @@ test("configuration is text, credentials are secrets, and the prerender flag nev
   expect(env.TSS_PRERENDERING).toBeUndefined();
   const files = readdirSync(output, { recursive: true }).map(String);
   expect(files.filter((file) => file.includes(".dev.vars"))).toEqual([]);
+});
+
+test("a dry-run deploy validates the staging build without credentials", () => {
+  const home = mkdtempSync(resolve(tmpdir(), "shopper-cf-home-"));
+  const clean = Object.fromEntries(
+    Object.entries(env).filter(([name]) => !name.startsWith("CLOUDFLARE_")),
+  );
+  const result = spawnSync(
+    "pnpm",
+    ["exec", "tsx", "../../tooling/cloudflare/deploy.ts", "portal", "--dry-run"],
+    {
+      cwd: portal,
+      encoding: "utf8",
+      env: { ...clean, HOME: home, XDG_CONFIG_HOME: home },
+    },
+  );
+  expect(result.stderr).not.toContain("Refusing");
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain("--dry-run: exiting now");
 });

@@ -1,6 +1,7 @@
 /// <reference types="node" />
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { beforeAll, expect, test } from "vite-plus/test";
 
@@ -94,6 +95,25 @@ test("no secret file lands in the build output", () => {
   const files = readdirSync(output, { recursive: true }).map(String);
   expect(files.filter((file) => file.includes(".dev.vars"))).toEqual([]);
   expect(existsSync(resolve(output, "workers/default"))).toBe(true);
+});
+
+test("a dry-run deploy validates the staging build without credentials", () => {
+  const home = mkdtempSync(resolve(tmpdir(), "shopper-cf-home-"));
+  const clean = Object.fromEntries(
+    Object.entries(env).filter(([name]) => !name.startsWith("CLOUDFLARE_")),
+  );
+  const result = spawnSync(
+    "pnpm",
+    ["exec", "tsx", "../../tooling/cloudflare/deploy.ts", "edge", "--dry-run"],
+    {
+      cwd: edge,
+      encoding: "utf8",
+      env: { ...clean, HOME: home, XDG_CONFIG_HOME: home },
+    },
+  );
+  expect(result.stderr).not.toContain("Refusing");
+  expect(result.status).toBe(0);
+  expect(result.stdout).toContain("--dry-run: exiting now");
 });
 
 test("the deploy script refuses a build that is not a staging Worker", () => {

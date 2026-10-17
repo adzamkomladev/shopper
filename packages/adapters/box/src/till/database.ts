@@ -1,6 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import Database from "better-sqlite3-multiple-ciphers";
+import { createRequire } from "node:module";
+import type Database from "better-sqlite3-multiple-ciphers";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
 import { tillMigrations, type TillDatabase } from "@shopper/db-sqlite";
 
@@ -18,7 +19,11 @@ export class TillDatabaseKeyError extends Error {
 /** With a 64-hex `key` the file is SQLCipher-encrypted (SQLite3 Multiple Ciphers); without one it is plain. */
 export function openTillDatabase(path: string, key?: string): TillDatabase {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
-  const sqlite = new Database(path, { timeout: 0 }); // fail fast on a held lock, as node:sqlite did
+  // Loaded on first open, so the box server (which never opens a till file) needs no native addon.
+  const SQLite3MC = createRequire(import.meta.url)(
+    "better-sqlite3-multiple-ciphers",
+  ) as typeof Database;
+  const sqlite = new SQLite3MC(path, { timeout: 0 }); // fail fast on a held lock, as node:sqlite did
   try {
     if (key) unlock(sqlite, key);
     sqlite.prepare("SELECT count(*) FROM sqlite_master").get(); // proves the key (or its absence) opens the file

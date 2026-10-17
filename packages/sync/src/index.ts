@@ -5,4 +5,5 @@ export type { PullOptions, PullStatus } from "./pull/worker";
 
 export { createLiveWorker, type LiveSocket, type LiveMode } from "./live";
 export { createReceiptUploadWorker } from "./uploads/receipts";
-export type { ReceiptUploadOptions } from "./uploads/types";
+export { createStockUploadWorker } from "./uploads/stock";
+export type { ReceiptUploadOptions, StockUploadOptions } from "./uploads/types";

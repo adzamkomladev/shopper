@@ -41,3 +41,10 @@ export {
   storeReceiptPdf,
 } from "./register/receipts";
 export { registerReport, registerReportCsv } from "./reports";
+export {
+  listStockDocuments,
+  markStockDocumentAccepted,
+  markStockDocumentFailed,
+  markStockDocumentRejected,
+  queueStockDocument,
+} from "./stock";

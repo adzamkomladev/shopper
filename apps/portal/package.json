@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
-    "build:staging": "CLOUDFLARE_ENV=staging vp build",
+    "build:staging": "vp build --mode staging",
     "deploy:staging": "tsx ../../tooling/cloudflare/deploy.ts portal"
   },
   "dependencies": {
@@ -17,5 +17,9 @@
     "@tanstack/react-start": "1.168.60",
     "react": "19.3.0",
     "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "2.0.0-beta.v.1",
+    "cf": "1.0.0-beta.17"
   }
 }

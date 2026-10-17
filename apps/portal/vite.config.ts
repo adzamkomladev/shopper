@@ -1,7 +1,6 @@
-import { appendFileSync } from "node:fs";
-import { join } from "node:path";
-import { defineConfig, type Plugin } from "vite-plus";
+import { defineConfig } from "vite-plus";
 import { cloudflare } from "@cloudflare/vite-plugin";
+import { bindings } from "cf/config";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
@@ -18,8 +17,21 @@ export default defineConfig(({ command, isPreview }) => ({
           cloudflare({
             viteEnvironment: { name: "ssr" },
             remoteBindings: command === "serve" && !isPreview,
+            // Start reads this flag while prerendering the SPA shell; it never reaches a deploy.
+            prerenderWorker: {
+              // Assets belong to the default Worker only, and prerendering needs no credentials.
+              config: ({ entryWorkerConfig: { assets: _assets, env, ...entry } }) => {
+                const kept = Object.entries(env ?? {}).filter(
+                  ([name, binding]) => name !== "ASSETS" && binding.type !== "secret",
+                );
+                return {
+                  ...entry,
+                  name: `${entry.name}-prerender`,
+                  env: { ...Object.fromEntries(kept), TSS_PRERENDERING: bindings.text("true") },
+                };
+              },
+            },
           }),
-          prerenderFlag(),
         ]),
     tanstackStart({
       spa: { enabled: true, prerender: { outputPath: "/index" } },
@@ -32,18 +44,3 @@ export default defineConfig(({ command, isPreview }) => ({
   define: buildDefines,
   server: { port: 5173 },
 }));
-
-/**
- * Workerd does not inherit this process's environment, so Start cannot see the flag it sets while
- * it previews the built Worker to prerender the SPA shell. A preview-only `.dev.vars` next to the
- * server bundle carries it; `.assetsignore` and the module manifest keep it out of deployments.
- */
-function prerenderFlag(): Plugin {
-  return {
-    name: "shopper:prerender-flag",
-    applyToEnvironment: (environment) => environment.name === "ssr",
-    writeBundle(options) {
-      if (options.dir) appendFileSync(join(options.dir, ".dev.vars"), "TSS_PRERENDERING=true\n");
-    },
-  };
-}

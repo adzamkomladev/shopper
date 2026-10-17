@@ -47,6 +47,12 @@ test("settings save accepts usb and serial printers and rejects malformed ones",
       code: "INVALID_MESSAGE",
     });
   expect((await register.status()).settings.revision).toBe(2);
+  const shared = { kind: "serial", path: "COM3", baudRate: 9600 };
+  const clash = { ...withConnection(shared), scanner: shared };
+  expect(await register.save(clash, 2)).toMatchObject({
+    type: "error",
+  });
+  expect((await register.status()).settings.revision).toBe(2);
 
   const scanner = { kind: "serial", path: "COM4", baudRate: 9600 };
   expect(

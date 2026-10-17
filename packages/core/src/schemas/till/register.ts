@@ -43,7 +43,16 @@ export const registerSettings = v.strictObject({
 export type RegisterSettings = v.InferOutput<typeof registerSettings>;
 
 export const saveRegisterInput = v.object({
-  settings: registerSettings,
+  settings: v.pipe(
+    registerSettings,
+    // The scanner keeps its port open, so two devices on one port would fail every write.
+    v.check((settings) => {
+      const paths = [settings.printer?.connection, settings.scanner, settings.display].flatMap(
+        (connection) => (connection?.kind === "serial" ? [connection.path] : []),
+      );
+      return new Set(paths).size === paths.length;
+    }, "Each serial device needs its own port"),
+  ),
   expectedRevision: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
   session: tillSession,
   at: v.date(),

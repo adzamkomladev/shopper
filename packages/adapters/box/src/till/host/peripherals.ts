@@ -22,36 +22,54 @@ export function createPeripherals(host: {
   let scannerKey = "null";
   let stopScanner: (() => void) | undefined;
   let display: CustomerDisplay | undefined;
-  // The pole display opens its port per write, so writes go one at a time, in order.
+  // The pole display opens its port per write, so writes go one at a time and only the newest waiting
+  // frame is kept: an unplugged display never builds a backlog behind the basket.
   let tail: Promise<unknown> = Promise.resolve();
+  let pending: [string, string] | undefined;
+  let reloading: Promise<void> = Promise.resolve();
 
   function show(first: string, second = "") {
-    const target = display;
-    if (!target) return;
+    if (!display) return;
+    const queued = pending;
+    pending = [first, second];
+    if (queued) return;
     tail = tail
-      .then(() => target.show([first, second]))
+      .then(() => {
+        const frame = pending!;
+        pending = undefined;
+        return display?.show(frame);
+      })
       .catch((error) => console.error("Pole display failed", error));
   }
 
+  async function apply() {
+    const { value } = await readRegisterSettings(host.database, host.config.identity);
+    const scanner: Serial = value.scanner;
+    if (JSON.stringify(scanner) !== scannerKey) {
+      scannerKey = JSON.stringify(scanner);
+      stopScanner?.();
+      stopScanner = scanner
+        ? serialScanner({
+            ...scanner,
+            onError: (error) => console.error("Serial scanner failed", error),
+          }).onScan((code) => host.broadcast({ type: "scan", code }))
+        : undefined;
+    }
+    display = value.display ? serialDisplay(value.display) : undefined;
+  }
+
   return {
-    /** Starts, swaps or stops the scanner and display to match the saved settings. */
-    async reload() {
-      const { value } = await readRegisterSettings(host.database, host.config.identity);
-      const scanner: Serial = value.scanner;
-      if (JSON.stringify(scanner) !== scannerKey) {
-        scannerKey = JSON.stringify(scanner);
-        stopScanner?.();
-        stopScanner = scanner
-          ? serialScanner({
-              ...scanner,
-              onError: (error) => console.error("Serial scanner failed", error),
-            }).onScan((code) => host.broadcast({ type: "scan", code }))
-          : undefined;
-      }
-      display = value.display ? serialDisplay(value.display) : undefined;
+    /** Starts, swaps or stops the scanner and display to match the saved settings. Never throws. */
+    reload() {
+      reloading = reloading
+        .then(apply)
+        .catch((error) => console.error("Peripherals reload failed", error));
+      return reloading;
     },
-    /** After a basket change: the last line and the total. */
-    basket({ draft, quote, settlement }: DraftView) {
+    /** After a basket change: every bridge client (the customer display) gets the draft, the pole display the last line and total. */
+    basket(view: DraftView) {
+      host.broadcast({ type: "draft", view });
+      const { draft, quote, settlement } = view;
       const last = draft?.lines.at(-1);
       if (!last) return show("Welcome");
       const quoted = quote.lines.find((line) => line.lineId === last.id);
@@ -59,6 +77,7 @@ export function createPeripherals(host: {
       show(quoted && "name" in quoted ? quoted.name : "", `Total ${ghs(total)}`);
     },
     sold(receipt: ReceiptDocument) {
+      host.broadcast({ type: "sold", total: receipt.total, change: receipt.change });
       const cash = receipt.tenders.some((tender) => tender.kind === "cash");
       if (cash) show(`Change ${ghs(receipt.change)}`, "Thank you");
       else show("Thank you");

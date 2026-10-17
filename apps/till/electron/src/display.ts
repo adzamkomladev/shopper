@@ -14,7 +14,11 @@ export function openDisplay(main: BrowserWindow, url: string, capability: string
   const sync = () => {
     const primary = screen.getPrimaryDisplay().id;
     const display = screen.getAllDisplays().find((candidate) => candidate.id !== primary);
-    if (shown && shown.id !== display?.id) shown.window.close();
+    if (shown && shown.id !== display?.id) {
+      shown.window.destroy(); // synchronous, so a swapped monitor gets its window in this same pass
+      shown = undefined;
+    }
+    if (display && shown) shown.window.setBounds(display.bounds); // a resolution change
     if (display && !shown) {
       const window = new BrowserWindow({
         ...display.bounds,
@@ -32,9 +36,11 @@ export function openDisplay(main: BrowserWindow, url: string, capability: string
   };
   screen.on("display-added", sync);
   screen.on("display-removed", sync);
+  screen.on("display-metrics-changed", sync);
   main.on("closed", () => {
     screen.off("display-added", sync);
     screen.off("display-removed", sync);
+    screen.off("display-metrics-changed", sync);
     shown?.window.close();
   });
   sync();

@@ -5,11 +5,12 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
-import { buildDefines, buildTask } from "../../tooling/build/info";
+import { buildDefines, buildTask, productionBuild } from "../../tooling/build/info";
 
 export default defineConfig(({ command, isPreview }) => ({
   run: { tasks: { build: buildTask("vp build") } },
   plugins: [
+    productionBuild(),
     ...(process.env.SHOPPER_PORTAL_TEST_HOST
       ? []
       : [

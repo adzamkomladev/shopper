@@ -9,7 +9,8 @@ const portal = resolve("apps/portal");
 const output = resolve(portal, ".cloudflare/output/v0");
 const assets = resolve(output, "workers/default/assets");
 
-const env = { ...process.env, CI: "1", CF_SEND_TELEMETRY: "false" };
+// The test runner exports NODE_ENV=test; a release build must not inherit it.
+const env = { ...process.env, CI: "1", CF_SEND_TELEMETRY: "false", NODE_ENV: "test" };
 
 beforeAll(() => {
   execFileSync("vp", ["build", "--mode", "staging"], {
@@ -32,6 +33,15 @@ test("the build prerenders a static SPA shell", () => {
   for (const [asset] of shell.matchAll(/\/assets\/[\w.-]+\.(?:js|css)/g))
     expect(existsSync(resolve(assets, asset.slice(1)))).toBe(true);
   expect(existsSync(resolve(assets, "login/index.html"))).toBe(false);
+});
+
+test("the staging client ships production React even when the shell sets NODE_ENV", () => {
+  const scripts = readdirSync(resolve(assets, "assets")).filter((file) => file.endsWith(".js"));
+  expect(scripts.length).toBeGreaterThan(0);
+  for (const script of scripts)
+    expect(readFileSync(resolve(assets, "assets", script), "utf8")).not.toContain(
+      "registerInternalModuleStart",
+    );
 });
 
 test("only API and server functions reach the staging Worker", () => {

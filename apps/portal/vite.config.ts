@@ -1,15 +1,16 @@
-import { defineConfig } from "vite-plus";
+import { defineConfig, type Plugin } from "vite-plus";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { bindings } from "cf/config";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
-import { buildDefines, buildTask } from "../../tooling/build/info";
+import { buildDefines, buildTask, productionBuild } from "../../tooling/build/info";
 
 export default defineConfig(({ command, isPreview }) => ({
   run: { tasks: { build: buildTask("vp build") } },
   plugins: [
+    productionBuild(),
     ...(process.env.SHOPPER_PORTAL_TEST_HOST
       ? []
       : [
@@ -32,6 +33,7 @@ export default defineConfig(({ command, isPreview }) => ({
               },
             },
           }),
+          prerenderManifest(),
         ]),
     tanstackStart({
       spa: { enabled: true, prerender: { outputPath: "/index" } },
@@ -44,3 +46,26 @@ export default defineConfig(({ command, isPreview }) => ({
   define: buildDefines,
   server: { port: 5173 },
 }));
+
+/**
+ * Start writes the client asset manifest into the `ssr` environment only, so the prerender Worker
+ * would render a shell that loads Vite's dev client entry. The `ssr` build runs before the
+ * prerender Worker's; hand its manifest over and fail the build if that order ever changes.
+ */
+function prerenderManifest(): Plugin {
+  const manifestId = "\0tanstack-start-manifest:v";
+  let manifest: string | undefined;
+  return {
+    name: "shopper:prerender-manifest",
+    apply: "build",
+    enforce: "pre",
+    transform(code, id) {
+      if (id === manifestId && this.environment.name === "ssr") manifest = code;
+    },
+    load(id) {
+      if (id !== manifestId || ["ssr", "client"].includes(this.environment.name)) return;
+      if (!manifest) throw new Error("The ssr build must finish before the prerender Worker's");
+      return manifest;
+    },
+  };
+}

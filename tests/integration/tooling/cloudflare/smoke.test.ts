@@ -60,6 +60,19 @@ test("portal reports every failing check, and a refused connection counts as one
   expect(failures).toHaveLength(3);
 });
 
+test("portal fails a shell prerendered against the dev client entry", async () => {
+  const dev = shell.replace("</script>", '</script><script src="/@id/virtual:entry"></script>');
+  const url = await serve({
+    "/": [200, html, dev],
+    "/products": [200, html, dev],
+    "/api/health": [200, json, '{"status":"ok"}'],
+  });
+  expect(await smoke("portal", url, "1.2.3", options)).toEqual([
+    "GET /: shell loads dev-server modules",
+    "GET /products: shell loads dev-server modules",
+  ]);
+});
+
 test("a check that recovers on a later attempt passes", async () => {
   let calls = 0;
   server = createServer((_request, response) => {

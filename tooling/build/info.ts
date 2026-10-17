@@ -45,3 +45,17 @@ export function buildTask(command: string) {
     },
   };
 }
+
+/**
+ * Vite keeps a NODE_ENV the shell already exports (`vp test` sets `test`), so a build run from a
+ * test or a dev shell would ship development React. Every release build is production; `--mode`
+ * still selects the environment's config.
+ */
+export function productionBuild() {
+  return {
+    name: "shopper:production-build",
+    config(_config: unknown, { command }: { command: "build" | "serve" }) {
+      if (command === "build") process.env.NODE_ENV = "production";
+    },
+  };
+}

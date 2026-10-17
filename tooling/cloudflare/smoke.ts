@@ -47,6 +47,8 @@ async function check(target: SmokeTarget, baseUrl: string, version: string) {
     if (response.status !== 200) return `status ${response.status}`;
     if (!response.headers.get("content-type")?.includes("text/html")) return "not HTML";
     if (!body.includes("$tsr")) return "not the SPA shell";
+    // A shell prerendered without the client manifest points at Vite's dev server and renders blank.
+    if (body.includes('"/@id/')) return "shell loads dev-server modules";
   };
   await get("/", shell);
   await get("/products", shell);

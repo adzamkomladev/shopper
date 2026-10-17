@@ -15,6 +15,7 @@
     "@shopper/adapters-box": "workspace:*",
     "@shopper/config": "workspace:*",
     "better-sqlite3-multiple-ciphers": "13.0.3",
-    "satori": "0.33.5"
+    "satori": "0.33.5",
+    "serialport": "13.0.0"
   }
 }

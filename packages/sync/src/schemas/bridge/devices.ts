@@ -14,6 +14,7 @@ export const deviceRequests = [
   v.strictObject({ id, type: v.literal("printer.test") }),
   v.strictObject({ id, type: v.literal("drawer.test") }),
   v.strictObject({ id, type: v.literal("receipt.print"), saleId: id }),
+  v.strictObject({ id, type: v.literal("printers.list") }),
 ] as const;
 export const deviceRequestTypes = deviceRequests.map((schema) => schema.entries.type.literal);
 
@@ -34,5 +35,15 @@ export const printerStatus = v.strictObject({
     }),
   ),
 });
+/** Ports and Windows printers the host can see, for the settings pickers. */
+export const printerList = v.strictObject({
+  id,
+  type: v.literal("result"),
+  kind: v.literal("printers"),
+  serial: v.array(v.strictObject({ path: v.string(), manufacturer: v.optional(v.string()) })),
+  usb: v.array(v.string()),
+});
+/** One barcode from the serial scanner, pushed to every authorized bridge client. */
+export const scanMessage = v.strictObject({ type: v.literal("scan"), code: v.string() });
 export type SettingsStatus = v.InferOutput<typeof settingsStatus>;
 export type PrinterStatus = v.InferOutput<typeof printerStatus>;

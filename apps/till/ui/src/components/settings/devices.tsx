@@ -83,7 +83,7 @@ function PrinterRow({
     <div className="flex flex-col gap-2">
       <DeviceRow
         badge={<PrinterBadge badge={badge} />}
-        description={`Network · ${printer.host || "No address"}:${printer.port} · ${draft.paperMm} mm paper`}
+        description={`${where(printer)} · ${draft.paperMm} mm paper`}
         icon={<Printer aria-hidden="true" className="size-4" />}
         note={succeeded}
         title={`${modelName(printer.model)} printer`}
@@ -204,3 +204,10 @@ function DeviceMessage({ device }: { device: DeviceFeedback }) {
     </p>
   );
 }
+
+const where = (printer: NonNullable<SettingsDraft["printer"]>) =>
+  printer.kind === "usb"
+    ? `USB · ${printer.printerName || "No printer"}`
+    : printer.kind === "serial"
+      ? `Serial · ${printer.path || "No port"} @ ${printer.baudRate}`
+      : `Network · ${printer.host || "No address"}:${printer.port}`;

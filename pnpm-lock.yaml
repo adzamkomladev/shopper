@@ -352,6 +352,9 @@ importers:
       pdf-lib:
         specifier: 1.17.1
         version: 1.17.1
+      serialport:
+        specifier: 13.0.0
+        version: 13.0.0(supports-color@10.2.2)
       valibot:
         specifier: 1.1.0
         version: 1.1.0(typescript@7.0.2)
@@ -377,6 +380,9 @@ importers:
       satori:
         specifier: 0.33.5
         version: 0.33.5
+      serialport:
+        specifier: 13.0.0
+        version: 13.0.0(supports-color@10.2.2)
 
   apps/till/ui:
     dependencies:
@@ -8875,7 +8881,7 @@ snapshots:
   '@serialport/binding-mock@10.2.2(supports-color@10.2.2)':
     dependencies:
       '@serialport/bindings-interface': 1.2.2
-      debug: 4.4.3(supports-color@10.2.2)
+      debug: 4.4.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 

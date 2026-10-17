@@ -20,6 +20,8 @@ const value: RegisterSettings = {
   clearCartAfterSale: true,
   requirePinForReturns: false,
   printer,
+  scanner: null,
+  display: null,
 };
 const ready: SettingsCurrent = {
   revision: 4,

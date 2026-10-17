@@ -3,6 +3,7 @@ import type { BridgeRequest, HostStatus } from "@shopper/sync/bridge";
 import type { HostConfiguration } from "./config";
 import type { createDevices } from "./devices";
 import type { createHostPayments } from "./payments";
+import type { createPeripherals } from "./peripherals";
 import type { createHostReceipts } from "./receipts";
 
 export type Basket = Extract<
@@ -35,4 +36,5 @@ export type Host = {
   payments: ReturnType<typeof createHostPayments>;
   devices: ReturnType<typeof createDevices>;
   receipts: ReturnType<typeof createHostReceipts>;
+  peripherals: ReturnType<typeof createPeripherals>;
 };

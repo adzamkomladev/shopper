@@ -5,7 +5,7 @@ import { basketReplies, basketRequests, draftView } from "./basket";
 
 import { momoView } from "@shopper/core/payments";
 import { purchaseReplies, purchaseRequests } from "./purchases";
-import { deviceRequests, printerStatus, settingsStatus } from "./devices";
+import { deviceRequests, printerList, printerStatus, scanMessage, settingsStatus } from "./devices";
 
 const id = uuidV7Schema;
 
@@ -80,6 +80,8 @@ export const bridgeMessage = v.union([
   }),
   ...basketReplies,
   ...purchaseReplies,
+  printerList,
+  scanMessage,
   v.strictObject({
     id: v.optional(id),
     type: v.literal("error"),

@@ -17,6 +17,7 @@ import { createHostPayments } from "./payments";
 import { createDevices } from "./devices";
 import { createDispatch } from "./dispatch";
 import { createHostReceipts } from "./receipts";
+import { createPeripherals } from "./peripherals";
 import { openHostTransport, error } from "./transport";
 
 export async function startTillHost(
@@ -67,6 +68,11 @@ export async function startTillHost(
     publishStatus,
     renderer,
     onPdfStored: () => void worker.uploadReceipts(),
+  });
+  const peripherals = createPeripherals({
+    database,
+    config,
+    broadcast: (message) => transport?.broadcast(message),
   });
   const permissions = config.session?.permissions ?? [];
   const registerCode = config.receiptCodes
@@ -141,7 +147,8 @@ export async function startTillHost(
     config,
     payments,
     receipts,
-    devices: createDevices({ database, config, receipts, status }),
+    devices: createDevices({ database, config, receipts, peripherals, status }),
+    peripherals,
     status,
     publishStatus,
     sync: () => worker.trigger(),
@@ -165,11 +172,13 @@ export async function startTillHost(
     if (closed) return;
     closed = true;
     await worker.stop();
+    await peripherals.close();
     await transport?.close();
     await database.close();
     if (process.connected) process.disconnect?.();
   }
   worker.start();
+  void peripherals.reload();
   send({
     type: "ready",
     port: transport.port,

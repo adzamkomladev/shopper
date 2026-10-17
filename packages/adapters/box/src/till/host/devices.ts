@@ -2,11 +2,13 @@ import { hostTime, saveRegisterSettings, TillError, validateSession } from "@sho
 import type { BridgeMessage, BridgeRequest, HostStatus } from "@shopper/sync/bridge";
 import type { TillDatabase } from "@shopper/db-sqlite";
 import type { HostConfiguration } from "./config";
+import { listPrinters } from "./peripherals/printers";
+import type { createPeripherals } from "./peripherals";
 import { auditContext, type createHostReceipts } from "./receipts";
 
 type DeviceRequest = Extract<
   BridgeRequest,
-  { type: "settings.save" | "printer.test" | "drawer.test" | "receipt.print" }
+  { type: "settings.save" | "printer.test" | "drawer.test" | "receipt.print" | "printers.list" }
 >;
 
 /** Register settings and the printer and drawer actions; every failure is a TillError the dispatcher reports. */
@@ -14,6 +16,7 @@ export function createDevices(host: {
   database: TillDatabase;
   config: HostConfiguration;
   receipts: ReturnType<typeof createHostReceipts>;
+  peripherals: ReturnType<typeof createPeripherals>;
   status: () => Promise<HostStatus>;
 }) {
   const { database, config, receipts } = host;
@@ -36,6 +39,7 @@ export function createDevices(host: {
         });
         if (JSON.stringify(saved.before.printer) !== JSON.stringify(saved.after.printer))
           receipts.reset();
+        await host.peripherals.reload();
         break;
       case "printer.test":
         await receipts.testPrint();
@@ -45,6 +49,9 @@ export function createDevices(host: {
         break;
       case "receipt.print":
         await receipts.print(request.saleId);
+        break;
+      case "printers.list":
+        return { id: request.id, type: "result", kind: "printers", ...(await listPrinters()) };
     }
     return { id: request.id, type: "result", kind: "status", status: await host.status() };
   };

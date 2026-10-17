@@ -79,6 +79,7 @@ export function createDispatch(host: Host) {
         case "printer.test":
         case "drawer.test":
         case "receipt.print":
+        case "printers.list":
           return await host.devices(request);
         case "shutdown":
           if (!trusted)

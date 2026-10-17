@@ -10,12 +10,13 @@ import {
   TillError,
 } from "@shopper/core/till";
 import { encodeReceipt, escpos, paper, printerProfiles } from "@shopper/hardware";
-import { networkPrinter, printerDrawer } from "@shopper/hardware/network";
+import { printerDrawer } from "@shopper/hardware/network";
 import type { ReceiptPrinter } from "@shopper/hardware";
 import type { Renderer } from "@shopper/ports";
 import type { PrinterStatus } from "@shopper/sync/bridge";
 import type { TillDatabase } from "@shopper/db-sqlite";
 import type { HostConfiguration } from "./config";
+import { describeConnection, printerFor } from "./peripherals/printers";
 
 type Job = {
   kind: NonNullable<PrinterStatus["lastJob"]>["kind"];
@@ -28,7 +29,7 @@ type Settings = Awaited<ReturnType<typeof readRegisterSettings>>["value"];
 type Ready = Settings & { printer: NonNullable<Settings["printer"]> };
 type Write = (printer: ReceiptPrinter, current: Ready) => Promise<void>;
 
-/** Prints receipts and kicks the drawer on the till's network printer; a printer fault never fails a sale. */
+/** Prints receipts and kicks the drawer on the till's configured printer; a printer fault never fails a sale. */
 export function createHostReceipts(options: {
   database: TillDatabase;
   config: HostConfiguration;
@@ -75,12 +76,17 @@ export function createHostReceipts(options: {
 
   /** Sends one job, records the attempt when it belongs to a sale, and throws PRINTER_OFFLINE on failure. */
   async function send(current: Ready, context: Context, job: Job, write: Write) {
-    const { host, port } = current.printer.connection;
     let message: string | null = null;
     try {
-      await write(networkPrinter({ host, port }), current);
+      await write(printerFor(current.printer.connection), current);
     } catch (caught) {
-      message = caught instanceof Error ? caught.message : String(caught);
+      // The driver errors name the failure only in their cause (no such port, USB needs Windows).
+      message =
+        caught instanceof Error
+          ? caught.cause instanceof Error
+            ? `${caught.message}: ${caught.cause.message}`
+            : caught.message
+          : String(caught);
     }
     offline = message !== null;
     lastJob = {
@@ -206,7 +212,7 @@ export function createHostReceipts(options: {
                 .bold(false)
                 .text(`Model: ${model}`)
                 .text(`Paper: ${current.paperMm} mm (${paper[current.paperMm].cols} columns)`)
-                .text(`${connection.host}:${connection.port}`)
+                .text(describeConnection(connection))
                 .cut()
                 .bytes(),
             );

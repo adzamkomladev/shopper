@@ -78,7 +78,9 @@ export function createBasket(host: Host, localConfig: LocalConfig) {
       await host.publishStatus();
       void host.sync();
       void host.receipts.afterSale(event.sale.id);
-      return { id, type: "result", kind: "sale", event, receipt: await receiptFor(event.sale.id) };
+      const receipt = await receiptFor(event.sale.id);
+      host.peripherals.sold(receipt);
+      return { id, type: "result", kind: "sale", event, receipt };
     }
     if (type === "sale.listHeld")
       return {
@@ -120,6 +122,7 @@ export function createBasket(host: Host, localConfig: LocalConfig) {
         view = await voidDraftSale(database, context, { ...edit, session: config.session });
         break;
     }
+    if (type !== "readDraft") host.peripherals.basket(view);
     return { id, type: "result", kind: "draft", view };
   }
   return { basket, receiptFor };

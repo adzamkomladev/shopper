@@ -2,6 +2,14 @@ import * as v from "valibot";
 import { tillSession } from "./session";
 
 const name = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(100));
+const device = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(128));
+
+/** A COM port or tty; also the scanner and pole display connection. */
+const serialConnection = v.strictObject({
+  kind: v.literal("serial"),
+  path: device,
+  baudRate: v.picklist([9600, 19200, 38400, 57600, 115200]),
+});
 
 /** Per-register settings, edited with `register.settings` and kept in till SQLite. */
 export const registerSettings = v.strictObject({
@@ -15,13 +23,21 @@ export const registerSettings = v.strictObject({
   printer: v.nullable(
     v.strictObject({
       model: v.picklist(["epson", "xprinter", "bixolon"]),
-      connection: v.strictObject({
-        kind: v.literal("network"),
-        host: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(253)),
-        port: v.pipe(v.number(), v.safeInteger(), v.minValue(1), v.maxValue(65535)),
-      }),
+      connection: v.variant("kind", [
+        v.strictObject({
+          kind: v.literal("network"),
+          host: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(253)),
+          port: v.pipe(v.number(), v.safeInteger(), v.minValue(1), v.maxValue(65535)),
+        }),
+        v.strictObject({ kind: v.literal("usb"), printerName: device }),
+        serialConnection,
+      ]),
     }),
   ),
+  /** `null` is a keyboard-wedge scanner, which needs no host support. */
+  scanner: v.optional(v.nullable(serialConnection), null),
+  /** `null` uses the second screen when there is one, else nothing. */
+  display: v.optional(v.nullable(serialConnection), null),
 });
 
 export type RegisterSettings = v.InferOutput<typeof registerSettings>;

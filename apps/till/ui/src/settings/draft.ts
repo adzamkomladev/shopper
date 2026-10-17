@@ -3,16 +3,33 @@ import type { RegisterSettings } from "@shopper/core/schemas";
 import { settingsForm, type SettingsDraft } from "../schemas/settings";
 import type { DeviceFeedback, DraftErrors, PrinterBadge, PrinterStatus } from "./types";
 
-export const newPrinter = { model: "epson", host: "", port: "9100" } as const;
+export const newPrinter = {
+  model: "epson",
+  kind: "network",
+  host: "",
+  port: "9100",
+  printerName: "",
+  path: "",
+  baudRate: "9600",
+} as const;
 
 export function toDraft(settings: RegisterSettings): SettingsDraft {
   const { printer, ...rest } = settings;
   return {
     ...rest,
     printer: printer && {
+      ...newPrinter,
       model: printer.model,
-      host: printer.connection.host,
-      port: String(printer.connection.port),
+      kind: printer.connection.kind,
+      ...(printer.connection.kind === "network" && {
+        host: printer.connection.host,
+        port: String(printer.connection.port),
+      }),
+      ...(printer.connection.kind === "usb" && { printerName: printer.connection.printerName }),
+      ...(printer.connection.kind === "serial" && {
+        path: printer.connection.path,
+        baudRate: String(printer.connection.baudRate),
+      }),
     },
   };
 }

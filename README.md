@@ -131,7 +131,7 @@ Build with `vp -C apps/edge run build:staging`, then use
 build time, and deployment uses the generated staging configuration.
 Staging API: https://shopper-api-staging.temtem.dev.
 
-Infrastructure identifiers are recorded in `apps/edge/wrangler.jsonc`.
+Infrastructure identifiers are recorded in `apps/edge/cloudflare.config.ts`.
 
 The [workspace source layout](docs/engineering/layout.md) inventories every app and package.
 Shared layout rules apply across the whole workspace; the guard enforces re-export-only indexes.

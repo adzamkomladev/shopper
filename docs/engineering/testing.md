@@ -27,7 +27,7 @@ tests/
   integration/<area>/         Vitest, run by `vp test`
     api/  audit/  auth/  core/  db/  edge/  hardware/  ports/  tax/  tooling/
   e2e/<app>/                  Playwright user flows per app: portal/, shop/, till/ui/
-tooling/worker/tests/         Workers runtime suite (Vitest 4 + Cloudflare plugin), invoked from
+tooling/worker/tests/         Workers runtime suite (Vitest 4 + Cloudflare plugin, reading `apps/edge/cloudflare.config.ts`), invoked from
                               tests/integration/edge/worker.test.ts
 ```
 
@@ -87,8 +87,10 @@ is reported done. See [frontend.md](frontend.md#verify-in-a-real-browser-every-f
 `playwright.config.ts` (repo root, `vp run e2e`) starts the real stack: the box binary on Bun (port 3101) against PostgreSQL 18, the portal on 5183 and the till-ui on 5184, all with `--strictPort`. The portal host
 (`tests/support/portal/server.ts`) mirrors the Worker: it serves `dist/client` statically with the
 `index.html` fallback for document navigations, sends `/api*` to the shared API with box adapters
-and only `/_serverFn/*` to the Start bundle. `tests/integration/tooling/portal.test.ts` builds the
-portal and checks the prerendered shell and the Static Assets routing; `tooling/worker/tests/portal.test.ts`
+and only `/_serverFn/*` to the Start bundle. `tests/integration/tooling/cloudflare/{edge,portal}.test.ts` build each Worker
+with the `cf` toolchain (`--mode staging`) and check `.cloudflare/output/v0`: bindings, text values,
+secret declarations, domains, the prerendered shell and the Static Assets routing, plus the deploy
+script's refusal and credential-free `--dry-run`; `tooling/worker/tests/portal.test.ts`
 checks the Worker context and API in workerd.
 Servers already running are reused outside CI. One worker, no parallelism.
 

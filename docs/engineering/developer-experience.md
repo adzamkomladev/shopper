@@ -27,7 +27,10 @@ edge dev Worker on :8787. `apps/edge/.dev.vars` holds the local secrets (`.dev.v
 the template). Portal = TanStack Start in SPA mode: a prerendered static shell served by Workers Static Assets; one Worker runs only for `/api/*` (the shared Hono API through native Hyperdrive, D1, R2, Durable Object and Workflow bindings) and `/_serverFn/*` (host-only server functions). Backoffice data stays on the shared API so the box SPA and Electron reuse it.
 
 Use `vp` for everything. Never call `npm` in this repo: `devEngines` rejects it. Run one-off binaries
-with `vp exec <bin>`.
+with `vp exec <bin>`. Cloudflare is driven with `cf` (`vp exec cf ...`); when unsure which command to
+use, run `cf cli search "<task>"` or `cf docs search "<question>"`. Keep those queries anonymous: no
+names, domains, account or resource ids, tokens. Wrangler stays only for `tail`, `rollback` and
+`secret put`.
 
 ## Reset and seed
 
@@ -86,7 +89,7 @@ exception is build config reading `build/info.ts`.
 - AI tools are not contributors. Never add assistant authors, `Co-Authored-By` trailers,
   generated-by footers or session links to commits or PRs. `.claude/settings.json` disables
   commit/PR attribution and session links.
-- Never commit secrets, `.env`, captures, `dist/`, or generated `.wrangler/` state.
+- Never commit secrets, `.env`, captures, `dist/`, or generated `.wrangler/` or `.cloudflare/` state.
 
 ## AI tooling in this repo
 

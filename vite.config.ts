@@ -5,7 +5,6 @@ export default defineConfig({
   fmt: {
     ignorePatterns: [
       "**/dist/**",
-      "**/dist-staging/**",
       "**/routeTree.gen.ts",
       "**/worker-configuration.d.ts",
       // Installed by `playwright-cli install --skills=agents`; must stay byte-identical to the tool.
@@ -16,7 +15,6 @@ export default defineConfig({
     options: { typeAware: true, typeCheck: true },
     ignorePatterns: [
       "**/dist/**",
-      "**/dist-staging/**",
       "**/routeTree.gen.ts",
       "**/worker-configuration.d.ts",
       "tooling/worker/tests/**",

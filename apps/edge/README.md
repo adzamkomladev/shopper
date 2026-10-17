@@ -8,7 +8,7 @@ tenant using `X-Shopper-Org`; see `packages/api/README.md` for signup and device
 flows. `/health`, `/about`, and `/` remain available without authentication setup.
 
 `src/worker.ts` owns the Worker request handler; `src/types.ts` owns local environment types.
-`src/index.ts` re-exports the handler and the platform classes required by Wrangler.
+`src/index.ts` re-exports the handler and the platform classes the Worker runtime requires.
 
 Configure `SHOPPER_LINK_SECRET` (a dedicated secret of at least 32 characters),
 `MAILEROO_API_KEY` and `MAILEROO_FROM` for verified registration and invitations.

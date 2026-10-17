@@ -31,7 +31,6 @@ const SOURCES = "{apps,packages,tests,tooling}/**/*.{ts,tsx,mts,mjs,js,jsx,vue,a
 const IGNORED = [
   "**/node_modules/**",
   "**/dist/**",
-  "**/dist-staging/**",
   "**/.wrangler/**",
   "**/.vite/**",
   "**/migrations/**",

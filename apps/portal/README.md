@@ -15,7 +15,8 @@ cp apps/edge/.dev.vars.example apps/edge/.dev.vars
 vp run dev                                                  # portal on :5173, edge on :8787
 ```
 
-The dev server runs the portal Worker in workerd with the bindings from `wrangler.jsonc`. The
+The dev server runs the portal Worker in workerd with the bindings from `cloudflare.config.ts`; local secrets come from `apps/portal/.dev.vars` (the
+same template as the edge's). The
 Durable Objects and Workflows it binds run in the edge dev Worker, so start both with `vp run dev`.
 
 Create the dev shop's owner once, then log in at http://localhost:5173 with shop code `dev`:
@@ -32,14 +33,14 @@ curl -s localhost:8787/api/auth/sign-up/email -H "Origin: http://localhost:5173"
   `/_serverFn/*`.
 - `src/functions/host.ts` holds the host-only server functions: `readPortalHost` (version,
   environment, public onboarding) and `checkPortalHealth` (Hyperdrive, D1 and R2 probes).
-- `wrangler.jsonc` sets `not_found_handling: "single-page-application"` and
+- `cloudflare.config.ts` sets `notFoundHandling: "single-page-application"` and
   `run_worker_first: ["/api/*", "/_serverFn/*"]`, so documents and assets never start the Worker.
 
 ## Deploy staging
 
-Workers Builds runs `vp run deploy:staging` per Worker (main to staging). `CLOUDFLARE_ENV=staging vp build`
-writes `dist/server/wrangler.json` with every binding, var, custom domain and the Static Assets
-rules above, and `wrangler deploy` picks it up through `.wrangler/deploy/config.json`. The Worker has
+Workers Builds runs `vp run deploy:staging` per Worker (main to staging). `vp build --mode staging`
+writes `.cloudflare/output/v0` with every binding, text value, custom domain and the Static Assets
+rules above, and `cf deploy --prebuilt` uploads it. The Worker has
 no `API` service binding: `/api/*` runs in the portal Worker itself. `SHOPPER_AUTH_URL` must be the
 portal origin, and the upload bucket CORS must allow that same origin. The Durable Objects and
 Workflows the portal binds live in `shopper-edge-staging`.

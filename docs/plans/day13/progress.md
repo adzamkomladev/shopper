@@ -34,3 +34,4 @@ Windows-only work is in [windows-handoff.md](windows-handoff.md) (written last).
 3. Electron tests need `xvfb-run`.
 
 ## Verification log
+- S7: `vp test --run tests/integration/hardware` 52/52 (8 new). Spooler proven only with a fake shell; real PowerShell path is in the Windows handoff.

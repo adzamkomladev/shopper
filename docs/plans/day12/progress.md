@@ -17,7 +17,7 @@ The branch is pushed once, at the end, then goes to `main` as one PR.
 | S6 Till receipt PDF and upload                    | done  | S6     |
 | S7 Till Settings screen                           | done  | S7     |
 | S8 Reprint, preview, completion print status      | done  | S8     |
-| S9 Docs, review, push, PR, merge, Notion          | todo  |        |
+| S9 Docs, review, push, PR, merge, Notion          | in progress |        |
 
 ## Current slice
 

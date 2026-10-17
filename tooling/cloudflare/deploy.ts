@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { smoke, type SmokeTarget } from "./smoke";
 
@@ -29,8 +29,8 @@ const WORKER_SECRETS = [
 
 interface BuiltConfig {
   name: string;
-  targetEnvironment?: string;
-  routes?: Array<string | { pattern: string; custom_domain?: boolean }>;
+  mode: string;
+  domains?: string[];
 }
 
 const [target, ...flags] = process.argv.slice(2);
@@ -40,7 +40,7 @@ const dryRun = flags.includes("--dry-run");
 const app = process.cwd();
 
 const config = readBuiltConfig();
-if (!config.name.endsWith("-staging") || config.targetEnvironment !== "staging")
+if (!config.name.endsWith("-staging") || config.mode !== "staging")
   throw new Error(`Refusing to deploy "${config.name}": the built config is not a staging Worker`);
 if (target === "edge") {
   if (!process.env.DATABASE_URL)
@@ -53,11 +53,12 @@ if (target === "edge") {
 deployWorker();
 if (!dryRun) await verify();
 
-/** The Vite plugin leaves `.wrangler/deploy/config.json` pointing at the generated config. */
+/** `cf build` writes the resolved Worker and its build mode under `.cloudflare/output/v0`. */
 function readBuiltConfig(): BuiltConfig {
-  const redirect = resolve(app, ".wrangler/deploy/config.json");
-  const { configPath } = JSON.parse(readFileSync(redirect, "utf8")) as { configPath: string };
-  return JSON.parse(readFileSync(resolve(dirname(redirect), configPath), "utf8")) as BuiltConfig;
+  const output = resolve(app, ".cloudflare/output/v0");
+  const read = (path: string) => JSON.parse(readFileSync(resolve(output, path), "utf8"));
+  const worker = read("workers/default/worker.config.json") as Omit<BuiltConfig, "mode">;
+  return { ...worker, mode: read("config.json").buildContext.mode };
 }
 
 function deployWorker() {
@@ -79,9 +80,7 @@ function deployWorker() {
 }
 
 async function verify() {
-  const domain = config.routes?.flatMap((route) =>
-    typeof route !== "string" && route.custom_domain ? [route.pattern] : [],
-  )[0];
+  const domain = config.domains?.[0];
   if (!domain) throw new Error(`No custom domain in the ${config.name} config to smoke test`);
   const manifest = JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf8")) as {
     version: string;

@@ -13,8 +13,7 @@
     "./workflows": "./src/workflows/index.ts"
   },
   "scripts": {
-    "build": "tsc -b",
-    "types": "wrangler types worker-configuration.d.ts --config ../../../apps/edge/wrangler.jsonc --include-env=false"
+    "build": "tsc -b"
   },
   "dependencies": {
     "@shopper/api": "workspace:*",

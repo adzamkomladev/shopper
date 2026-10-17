@@ -152,6 +152,7 @@ export async function startTillHost(
     transport = await openHostTransport({
       port: config.port,
       origins: config.origins,
+      ui: config.ui,
       capability,
       protocol: buildInfo.syncProtocol,
       dispatch,

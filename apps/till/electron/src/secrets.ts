@@ -1,24 +1,32 @@
 import { randomBytes } from "node:crypto";
-import { readFile, rename, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { open, readFile, rename } from "node:fs/promises";
 import { join } from "node:path";
 import { app, safeStorage } from "electron";
+import * as v from "valibot";
+import { registerSecrets, type RegisterSecrets } from "./schemas/secrets";
 
-type RegisterSecrets = { v: 1; databaseKey: string; deviceToken: string };
-
-/** Writes next to the target and renames over it, so a crash never leaves a half-written file. */
-export async function writeAtomic(path: string, content: string | Buffer) {
+/** Writes, syncs and renames over the target, so a crash never leaves a half-written file. */
+async function writeAtomic(path: string, content: string | Buffer) {
   const temporary = `${path}.${process.pid}.tmp`;
-  await writeFile(temporary, content, { mode: 0o600 });
+  const file = await open(temporary, "w", 0o600);
+  try {
+    await file.writeFile(content);
+    await file.sync();
+  } finally {
+    await file.close();
+  }
   await rename(temporary, path);
 }
 
 /**
  * The register's secrets live only in `userData/register.secret`, sealed by the OS (DPAPI on Windows).
- * The first start seals a fresh database key plus the device token found in `register.json`.
+ * The first start seals a fresh database key plus the device token found in `register.json`; a token
+ * still in `register.json` later (re-enrolment, or a crash before the scrub) replaces the sealed one.
  */
 export async function loadSecrets(
   userData: string,
-  config: { deviceToken?: unknown },
+  config: { deviceToken?: unknown; sqlitePath?: unknown },
   configPath: string,
 ): Promise<RegisterSecrets> {
   // Linux dev and CI have no keyring: `--password-store=basic` opts in to the plain-text backend, never in a
@@ -29,23 +37,47 @@ export async function loadSecrets(
     (!app.isPackaged || process.env.SHOPPER_INSECURE_SECRETS === "1")
   )
     safeStorage.setUsePlainTextEncryption(true);
-  if (!safeStorage.isEncryptionAvailable())
+  const forcedOff = !app.isPackaged && process.env.SHOPPER_TEST_NO_ENCRYPTION === "1";
+  if (forcedOff || !safeStorage.isEncryptionAvailable())
     throw new Error("OS encryption is unavailable, so the register cannot protect its secrets");
   const path = join(userData, "register.secret");
-  const sealed = await readFile(path).catch((error: NodeJS.ErrnoException) => {
+  const stored = await readFile(path).catch((error: NodeJS.ErrnoException) => {
     if (error.code === "ENOENT") return undefined;
     throw error;
   });
-  if (sealed) return JSON.parse(safeStorage.decryptString(sealed)) as RegisterSecrets;
-  if (typeof config.deviceToken !== "string")
-    throw new Error("register.json has no deviceToken to seal. Enroll this register again");
-  const secrets: RegisterSecrets = {
-    v: 1,
-    databaseKey: randomBytes(32).toString("hex"),
-    deviceToken: config.deviceToken,
-  };
+  if (
+    stored?.length === 0 &&
+    typeof config.sqlitePath === "string" &&
+    existsSync(config.sqlitePath)
+  )
+    throw new Error(
+      "register.secret is empty but the register database exists. Restore the secret",
+    );
+  const sealed = stored?.length ? stored : undefined;
+  const token = typeof config.deviceToken === "string" ? config.deviceToken : undefined;
+  let secrets: RegisterSecrets;
+  if (sealed) {
+    try {
+      secrets = v.parse(registerSecrets, JSON.parse(safeStorage.decryptString(sealed)));
+    } catch {
+      throw new Error("register.secret is unreadable");
+    }
+    if (!token || token === secrets.deviceToken) {
+      if (token) await scrub(configPath, config);
+      return secrets;
+    }
+    secrets = { ...secrets, deviceToken: token };
+  } else {
+    if (!token)
+      throw new Error("register.json has no deviceToken to seal. Enroll this register again");
+    secrets = { v: 1, databaseKey: randomBytes(32).toString("hex"), deviceToken: token };
+  }
   await writeAtomic(path, safeStorage.encryptString(JSON.stringify(secrets)));
-  const { deviceToken: _sealed, ...rest } = config;
-  await writeAtomic(configPath, JSON.stringify(rest, null, 2));
+  await scrub(configPath, config);
   return secrets;
+}
+
+function scrub(configPath: string, config: { deviceToken?: unknown }) {
+  const { deviceToken: _sealed, ...rest } = config;
+  return writeAtomic(configPath, JSON.stringify(rest, null, 2));
 }

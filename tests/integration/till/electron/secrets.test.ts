@@ -40,8 +40,8 @@ async function register() {
       port,
     }),
   );
-  const start = async (extra: string[] = []) => {
-    const child = await launchElectron({}, [
+  const start = async (extra: string[] = [], env: Record<string, string> = {}) => {
+    const child = await launchElectron(env, [
       `--user-data-dir=${userData}`,
       ...(extra.length ? extra : ["--password-store=basic"]),
     ]);
@@ -77,7 +77,8 @@ test("first start seals a fresh database key and the device token and strips the
   const child = await start();
   await healthy(port);
   const sealed = await readFile(join(userData, "register.secret"));
-  expect((await stat(join(userData, "register.secret"))).mode & 0o777).toBe(0o600);
+  if (process.platform !== "win32")
+    expect((await stat(join(userData, "register.secret"))).mode & 0o777).toBe(0o600);
   expect(sealed.toString("latin1")).not.toContain(deviceToken);
   const config = await readFile(join(userData, "register.json"), "utf8");
   expect(config).not.toContain("deviceToken");
@@ -101,7 +102,7 @@ test("a restart reopens the encrypted database with the sealed key", async () =>
 
 test("the app refuses to start when OS encryption is unavailable", async () => {
   const { port, start } = await register();
-  const child = await start(["--no-first-run"]);
+  const child = await start([], { SHOPPER_TEST_NO_ENCRYPTION: "1" });
   const output: string[] = [];
   child.stdout?.on("data", (chunk: Buffer) => output.push(chunk.toString()));
   child.stderr?.on("data", (chunk: Buffer) => output.push(chunk.toString()));
@@ -110,3 +111,30 @@ test("the app refuses to start when OS encryption is unavailable", async () => {
   expect(output.join(""), `exit ${code}`).toContain("OS encryption is unavailable");
   await expect(fetch(`http://127.0.0.1:${port}/health`)).rejects.toThrow();
 }, 90_000);
+
+test.each([
+  [
+    "a re-enrolled token in register.json replaces the sealed token and is scrubbed",
+    "b".repeat(64),
+    true,
+  ],
+  ["a crash after sealing still scrubs the token on the next start", deviceToken, false],
+])(
+  "%s",
+  async (_name, token, resealed) => {
+    const { userData, port, start } = await register();
+    const first = await start();
+    await healthy(port);
+    await stopElectron(first);
+    const before = await readFile(join(userData, "register.secret"));
+    const configPath = join(userData, "register.json");
+    const config = JSON.parse(await readFile(configPath, "utf8"));
+    await writeFile(configPath, JSON.stringify({ ...config, deviceToken: token }));
+    await start();
+    await healthy(port);
+    expect(await readFile(configPath, "utf8")).not.toContain("deviceToken");
+    const after = await readFile(join(userData, "register.secret"));
+    expect(after.equals(before)).toBe(!resealed);
+  },
+  180_000,
+);

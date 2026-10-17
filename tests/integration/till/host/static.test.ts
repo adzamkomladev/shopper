@@ -50,6 +50,13 @@ describe("till host static UI", () => {
     );
   });
 
+  it("answers a missing asset with 404, not index.html", async () => {
+    const host = await startWithUi();
+    const base = `http://127.0.0.1:${host.ready.port}`;
+    expect((await fetch(`${base}/assets/missing.js`)).status).toBe(404);
+    expect((await fetch(`${base}/backoffice/assets/missing.css`)).status).toBe(404);
+  });
+
   it("refuses a request with a non-loopback Host header", async () => {
     const host = await startWithUi();
     const status = await new Promise<number>((resolve, reject) => {

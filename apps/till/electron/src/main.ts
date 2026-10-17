@@ -49,7 +49,11 @@ async function startRegister() {
     process.argv.slice(1).find((arg) => arg.endsWith(".json")) ??
     process.env.SHOPPER_TILL_CONFIG ??
     join(userData, "register.json");
-  const stored = JSON.parse(await readFile(configPath, "utf8")) as { ui?: string };
+  const stored = JSON.parse(await readFile(configPath, "utf8")) as {
+    ui?: string;
+    deviceToken?: unknown;
+    sqlitePath?: unknown;
+  };
   const { v: _version, ...secrets } = await loadSecrets(userData, stored, configPath);
   const config = { ...stored, ...secrets };
   const host = fork(hostEntry, [], { env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" } });

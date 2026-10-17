@@ -40,3 +40,4 @@ export {
   recordReceiptPrint,
   storeReceiptPdf,
 } from "./register/receipts";
+export { registerReport, registerReportCsv } from "./reports";

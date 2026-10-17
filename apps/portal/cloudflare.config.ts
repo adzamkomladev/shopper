@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => {
       entrypoint: "src/worker.ts",
       compatibilityDate: "2026-10-05",
       compatibilityFlags: ["nodejs_compat"],
-      observability: { enabled: true },
+      observability: { enabled: true, traces: { enabled: true } },
       assets: {
         notFoundHandling: "single-page-application",
         runWorkerFirst: ["/api/*", "/_serverFn/*"],

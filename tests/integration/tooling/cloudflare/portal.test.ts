@@ -28,6 +28,9 @@ test("the build prerenders a static SPA shell", () => {
   expect(shell).toContain("<script");
   expect(shell).toContain("$tsr");
   expect(shell).not.toContain("Sign in");
+  expect(shell).not.toContain("/@id/");
+  for (const [asset] of shell.matchAll(/\/assets\/[\w.-]+\.(?:js|css)/g))
+    expect(existsSync(resolve(assets, asset.slice(1)))).toBe(true);
   expect(existsSync(resolve(assets, "login/index.html"))).toBe(false);
 });
 

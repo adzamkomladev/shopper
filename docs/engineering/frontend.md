@@ -81,6 +81,10 @@ If none of these fit, stop and ask. Do not work around the guard with a custom w
   components. Read it through the Figma MCP before building a screen. Map values to Tailwind v4
   `@theme` tokens in `@shopper/ui` once. Screens use tokens only, never raw hex, px, or arbitrary
   values like `text-[13px]` or `mt-[7px]`.
+- **One exception: the receipt.** `ReceiptView` (`@shopper/hardware/receipt`) is drawn by Satori, Browser
+  Run and Electron as well as the browser, so it uses inline styles in Satori's flexbox subset, whole-pixel
+  sizes on a 576/384-dot canvas, black on white and the Geist font. Screens embed it (for a preview) but
+  never restyle it; change the receipt there and the equivalence test proves every renderer still agrees.
 - One type scale, one spacing scale (4px base), one radius set. If a design needs a value outside the
   scale, raise it with the designer rather than inventing one.
 - Light and dark themes come from tokens. Icons: one set (lucide, shadcn's default), always with an

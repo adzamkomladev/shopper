@@ -10,33 +10,33 @@ module; re-exporting that module preserves startup side effects.
 
 The source inventory covers every app/package project, including the assets and utils additions:
 
-| Project                 | Source organization                                                                                                     |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `apps/box`              | `app.ts`, `server.ts`, `types.ts`; re-export entry                                                                      |
-| `apps/edge`             | `worker.ts`, `types.ts`; Worker and platform class re-exports                                                           |
-| `apps/portal`           | `router.tsx`, `server.ts`, `worker.ts`, `functions/` (host-only server functions), `components/`, `routes/`             |
-| `apps/till/ui`          | `app.tsx`, `connection/store.ts`, `screens/connection/`; re-export HTML entry                                           |
-| `apps/till/host`        | `server.ts` starts the compiled Node host through the box adapter; private IPC/config-file entry                        |
-| `apps/till/electron`    | `main.ts` forks the till host and shows the till UI; `render.ts` prints receipts (`printToPDF`, `capturePage`)          |
-| `apps/shop`             | TanStack `routes/`; required route names retained                                                                       |
-| `packages/auth`         | `session/`, `devices/`, `schemas/`, roles and users                                                                     |
-| `packages/core`         | `catalogue/`, `schemas/{catalogue,till}/`, `till/` local commands, `sales/` ingest and assignment                       |
-| `packages/backoffice`   | `screens/`, `components/`, `queries/`, `stores/`, `hooks/`, `schemas/`, `routes/`; each nested by context               |
-| `packages/ui`           | `components/input/`, `components/table/`, other distinct primitives, hooks and styles                                   |
-| `packages/config`       | `build.ts`; metadata re-export                                                                                          |
-| `packages/conformance`  | `register.ts`, `cases/`, `types.ts`; API re-exports                                                                     |
-| `packages/db/pg`        | `schemas/`, `types.ts`, forward-only migrations                                                                         |
-| `packages/db/sqlite`    | `schemas/{cache,till}/`, `cache.ts`, `till.ts`; cache and durable till schemas                                          |
-| `packages/api`          | `app.ts`, `routes/`, `sync/`, `middleware/`, `schemas/`, `runtime.ts`, `types.ts`                                       |
-| `packages/audit`        | Command and chain modules, `sqlite/` command adapter, `schemas/`, `types.ts`                                            |
-| `packages/ports`        | Port modules, `schemas/`, `types.ts`                                                                                    |
-| `packages/money`        | Arithmetic and formatting modules, `schemas/`                                                                           |
-| `packages/tax`          | Snapshot and rule modules, `schemas/`                                                                                   |
-| `packages/adapters/cf`  | Thin database, storage, coordination shells; `workflows/{auth,price}.ts`                                                |
-| `packages/adapters/box` | Thin platform shells; `till/database.ts` and `till/host/` own Node durability and transports                            |
-| `packages/hardware`     | ESC/POS encoder, printer profiles, receipt encoding, QR matrix, TCP printer driver (`./network`), render IPC `schemas/` |
-| `packages/sync`         | `push/` delivery and acknowledgments, `versions.ts`, browser-safe `bridge/` contracts                                   |
-| `packages/export`       | Empty future package entry; no implementation to reorganize                                                             |
+| Project                 | Source organization                                                                                                                                                        |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/box`              | `app.ts`, `server.ts`, `types.ts`; re-export entry                                                                                                                         |
+| `apps/edge`             | `worker.ts`, `types.ts`; Worker and platform class re-exports                                                                                                              |
+| `apps/portal`           | `router.tsx`, `server.ts`, `worker.ts`, `functions/` (host-only server functions), `components/`, `routes/`                                                                |
+| `apps/till/ui`          | `app.tsx`, `connection/store.ts`, `screens/connection/`; re-export HTML entry                                                                                              |
+| `apps/till/host`        | `server.ts` starts the compiled Node host through the box adapter; private IPC/config-file entry                                                                           |
+| `apps/till/electron`    | `main.ts` forks the till host and shows the till UI; `render.ts` prints receipts (`printToPDF`, `capturePage`)                                                             |
+| `apps/shop`             | TanStack `routes/`; required route names retained                                                                                                                          |
+| `packages/auth`         | `session/`, `devices/`, `schemas/`, roles and users                                                                                                                        |
+| `packages/core`         | `catalogue/`, `schemas/{catalogue,till}/`, `till/` local commands, `sales/` ingest and assignment                                                                          |
+| `packages/backoffice`   | `screens/`, `components/`, `queries/`, `stores/`, `hooks/`, `schemas/`, `routes/`; each nested by context                                                                  |
+| `packages/ui`           | `components/input/`, `components/table/`, other distinct primitives, hooks and styles                                                                                      |
+| `packages/config`       | `build.ts`; metadata re-export                                                                                                                                             |
+| `packages/conformance`  | `register.ts`, `cases/`, `types.ts`; API re-exports                                                                                                                        |
+| `packages/db/pg`        | `schemas/`, `types.ts`, forward-only migrations                                                                                                                            |
+| `packages/db/sqlite`    | `schemas/{cache,till}/`, `cache.ts`, `till.ts`; cache and durable till schemas                                                                                             |
+| `packages/api`          | `app.ts`, `routes/`, `sync/`, `middleware/`, `schemas/`, `runtime.ts`, `types.ts`                                                                                          |
+| `packages/audit`        | Command and chain modules, `sqlite/` command adapter, `schemas/`, `types.ts`                                                                                               |
+| `packages/ports`        | Port modules, `schemas/`, `types.ts`                                                                                                                                       |
+| `packages/money`        | Arithmetic and formatting modules, `schemas/`                                                                                                                              |
+| `packages/tax`          | Snapshot and rule modules, `schemas/`                                                                                                                                      |
+| `packages/adapters/cf`  | Thin database, storage, coordination shells; `workflows/{auth,price}.ts`                                                                                                   |
+| `packages/adapters/box` | Thin platform shells; `till/database.ts` and `till/host/` own Node durability and transports                                                                               |
+| `packages/hardware`     | ESC/POS encoder, printer profiles, receipt encoding, QR matrix; `./network` TCP driver, `./receipt` shared receipt view, `./render` HTML/PDF/fonts, render IPC `./schemas` |
+| `packages/sync`         | `push/` delivery and acknowledgments, `versions.ts`, browser-safe `bridge/` contracts                                                                                      |
+| `packages/export`       | Empty future package entry; no implementation to reorganize                                                                                                                |
 
 UI's established `components/input`, `components/input-group`, `components/table` and
 `components/data-table` imports remain stable through explicit package export mappings. The

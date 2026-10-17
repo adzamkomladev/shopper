@@ -1,4 +1,4 @@
-import { and, eq, inArray, lte, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, lte, sql } from "drizzle-orm";
 import { canonicalJson, defineCommand, type CommandContext } from "@shopper/audit";
 import {
   stockDocument,
@@ -100,8 +100,23 @@ async function post(tx: ShopperTransaction, ctx: CommandContext, input: Input) {
   if (document.kind === "receipt")
     for (const line of document.lines) deltas.set(line.productId, line.quantityThousandths);
   else {
-    // ponytail: late offline sales dated before countedAt shift this delta; upgrade with a
-    // count-aware on-hand projection.
+    // ponytail: late offline sales dated before countedAt shift this delta, and an older count
+    // is rejected whole (SUPERSEDED) once a newer one exists; upgrade with a count-aware on-hand
+    // projection that re-bases later counts.
+    const [newer] = await tx
+      .select({ productId: stockMovement.productId })
+      .from(stockMovement)
+      .where(
+        and(
+          eq(stockMovement.orgId, ctx.orgId),
+          eq(stockMovement.branchId, input.principal.branchId),
+          eq(stockMovement.reason, "count"),
+          inArray(stockMovement.productId, productIds),
+          gt(stockMovement.occurredAt, input.occurredAt),
+        ),
+      )
+      .limit(1);
+    if (newer) throw new StockError("SUPERSEDED", `A newer count exists for ${newer.productId}`);
     const onHand = await tx
       .select({
         productId: stockMovement.productId,

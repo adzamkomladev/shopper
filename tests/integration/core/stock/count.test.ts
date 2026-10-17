@@ -138,6 +138,23 @@ test("the stock.count.accept audit holds on-hand before, counted and delta", asy
   });
 });
 
+test("an older count arriving after a newer one is SUPERSEDED", async () => {
+  const session = await inventorySession();
+  const productId = await stockProduct(10_000);
+  const newer = await count(session, [{ productId, countedThousandths: 9_000 }]);
+  await newer.run();
+  const older = {
+    ...(await count(session, [{ productId, countedThousandths: 1_000 }])).document,
+    countedAt: "2025-12-31T21:00:00.000Z",
+  };
+  await expect(
+    acceptStockDocument(databases().db, principalFor(), older, session.proof, options),
+  ).rejects.toMatchObject({ code: "SUPERSEDED", message: expect.stringContaining(productId) });
+  expect(
+    await databases().db.select().from(stockDocument).where(eq(stockDocument.id, older.id)),
+  ).toEqual([]);
+});
+
 function db() {
   return databases().db;
 }

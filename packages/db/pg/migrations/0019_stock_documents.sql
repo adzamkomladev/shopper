@@ -40,3 +40,5 @@ ALTER TABLE stock_movement DROP CONSTRAINT IF EXISTS stock_movement_receipt;
 --> statement-breakpoint
 ALTER TABLE stock_movement ADD CONSTRAINT stock_movement_receipt
   CHECK (reason <> 'receipt' OR quantity_thousandths > 0);
+--> statement-breakpoint
+UPDATE "permission" SET till_allowed = true WHERE code IN ('report.read', 'stock.read', 'stock.write');

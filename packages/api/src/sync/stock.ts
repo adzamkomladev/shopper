@@ -6,7 +6,10 @@ import type { ShopperDatabase } from "@shopper/db-pg";
 import type { createDeviceService } from "@shopper/auth/devices";
 import { stockUpload } from "../schemas/sync/routes";
 
-/** Device-authenticated stock count and receiving upload; one document per request. */
+/**
+ * Device-authenticated stock count and receiving upload; one document per request.
+ * `rejected` is terminal for the till: it must not retry, only surface the code and message.
+ */
 export function createStockRoutes(options: {
   database: ShopperDatabase;
   devices: ReturnType<typeof createDeviceService>;

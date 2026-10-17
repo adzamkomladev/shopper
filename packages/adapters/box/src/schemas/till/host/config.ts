@@ -5,6 +5,7 @@ import { registerIdentity } from "@shopper/sync/bridge";
 
 export const hostConfiguration = v.strictObject({
   sqlitePath: v.pipe(v.string(), v.minLength(1)),
+  databaseKey: v.optional(v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/))),
   identity: registerIdentity,
   upstream: v.pipe(v.string(), v.url()),
   deviceToken: v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/)),

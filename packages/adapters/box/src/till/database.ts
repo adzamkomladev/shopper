@@ -1,29 +1,39 @@
-import { createRequire } from "node:module";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import type { SQLInputValue, DatabaseSync } from "node:sqlite";
+import Database from "better-sqlite3-multiple-ciphers";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
 import { tillMigrations, type TillDatabase } from "@shopper/db-sqlite";
 
-export function openTillDatabase(path: string): TillDatabase {
+type SQLite = InstanceType<typeof Database>;
+
+export class TillDatabaseKeyError extends Error {
+  constructor() {
+    super("Till database key is wrong or the file is not an encrypted till database");
+    this.name = "TillDatabaseKeyError";
+  }
+}
+
+/** With a 64-hex `key` the file is SQLCipher-encrypted (SQLite3 Multiple Ciphers); without one it is plain. */
+export function openTillDatabase(path: string, key?: string): TillDatabase {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
-  const require = createRequire(import.meta.url);
-  const sqlite: DatabaseSync = new (require("node:sqlite").DatabaseSync)(path);
-  sqlite.exec("PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;");
-  migrate(sqlite);
-  const db = drizzle(async (query, params: SQLInputValue[], method) => {
+  const sqlite = new Database(path, { timeout: 0 }); // fail fast on a held lock, as node:sqlite did
+  try {
+    if (key) unlock(sqlite, key);
+    sqlite.exec("PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;");
+    migrate(sqlite);
+  } catch (error) {
+    sqlite.close();
+    throw error;
+  }
+  const db = drizzle(async (query, params: unknown[], method) => {
     const statement = sqlite.prepare(query);
-    if (method === "run") {
+    if (method === "run" || !statement.reader) {
       statement.run(...params);
       return { rows: [] };
     }
     // Proxy selections need numeric access; raw SQL queries retain named result columns.
-    statement.setReturnArrays(true);
     const columns = statement.columns();
-    const valuesRows: unknown[][] = statement.all(...params).map((row) => {
-      if (!Array.isArray(row)) throw new Error("SQLite array result mode was not applied");
-      return row;
-    });
+    const valuesRows = statement.raw(true).all(...params) as unknown[][];
     if (method === "values") return { rows: valuesRows };
     const rows = valuesRows.map((values) => {
       const row = Object.fromEntries(values.map((value, index) => [columns[index].name, value]));
@@ -46,15 +56,28 @@ export function openTillDatabase(path: string): TillDatabase {
     close() {
       if (closed) return tail.then(() => undefined);
       closed = true;
-      const result = tail.then(() => sqlite.close());
+      const result = tail.then(() => void sqlite.close());
       tail = result;
       return result;
     },
   };
 }
 
+/** The key pragmas must run before any other statement; the read proves the key opens the file. */
+function unlock(sqlite: SQLite, key: string) {
+  if (!/^[a-f0-9]{64}$/i.test(key)) throw new Error("Till database key must be 64 hex characters");
+  sqlite.pragma("cipher='sqlcipher'");
+  sqlite.pragma("legacy=4");
+  sqlite.pragma(`key="x'${key}'"`);
+  try {
+    sqlite.prepare("SELECT count(*) FROM sqlite_master").get();
+  } catch {
+    throw new TillDatabaseKeyError();
+  }
+}
+
 /** Runs each pending step and its user_version bump in one transaction, reading the version under the lock. */
-function migrate(sqlite: DatabaseSync) {
+function migrate(sqlite: SQLite) {
   for (let step = 0; step < tillMigrations.length; step++) {
     sqlite.exec("BEGIN IMMEDIATE");
     try {

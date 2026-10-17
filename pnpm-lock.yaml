@@ -343,6 +343,9 @@ importers:
       '@shopper/hardware':
         specifier: workspace:*
         version: link:../../../packages/hardware
+      better-sqlite3-multiple-ciphers:
+        specifier: 13.0.3
+        version: 13.0.3
       electron:
         specifier: 44.5.1
         version: 44.5.1(supports-color@10.2.2)
@@ -368,6 +371,9 @@ importers:
       '@shopper/config':
         specifier: workspace:*
         version: link:../../../packages/config
+      better-sqlite3-multiple-ciphers:
+        specifier: 13.0.3
+        version: 13.0.3
       satori:
         specifier: 0.33.5
         version: 0.33.5

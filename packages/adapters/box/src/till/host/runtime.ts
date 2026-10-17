@@ -25,7 +25,7 @@ export async function startTillHost(
   renderer?: Renderer,
 ) {
   const config = v.parse(hostConfiguration, raw);
-  const database = openTillDatabase(config.sqlitePath);
+  const database = openTillDatabase(config.sqlitePath, config.databaseKey);
   const identity = config.identity;
   try {
     if (config.references && config.session)

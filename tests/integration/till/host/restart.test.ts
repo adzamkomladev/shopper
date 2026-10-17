@@ -1,15 +1,16 @@
-import { DatabaseSync } from "node:sqlite";
 import { and, eq } from "drizzle-orm";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { auditLog, sale } from "@shopper/db-pg";
 import { api, databases, syncProtocol } from "../../../support/till/server";
 import { createFailOnceSequencer, createSyncApi } from "../../../support/till/requests";
+import { Database } from "../../../support/till/sqlcipher";
 import { createHostFixture } from "../../../support/till/host/fixture";
 import { startHostUpstream } from "../../../support/till/host/upstream";
 
 let fixture: Awaited<ReturnType<typeof createHostFixture>> | undefined;
 let upstream: Awaited<ReturnType<typeof startHostUpstream>> | undefined;
-let heldLock: DatabaseSync | undefined;
+// Same SQLite build as the host: two builds in one process would drop each other's POSIX file locks.
+let heldLock: InstanceType<typeof Database> | undefined;
 afterEach(async () => {
   if (heldLock) {
     heldLock.close();
@@ -95,7 +96,7 @@ describe("till host restart recovery", () => {
     host = await fixture.start({ ...fixture.config, upstream: upstream.url, session: null });
     await gate.entered;
     // The host may be mid-write (its pull worker starts with the push), so wait for the lock briefly.
-    heldLock = new DatabaseSync(fixture.sqlitePath, { timeout: 5_000 });
+    heldLock = new Database(fixture.sqlitePath, { timeout: 5_000 });
     heldLock.exec("BEGIN IMMEDIATE");
     expect(upstream.requests.find((request) => request.path === "/sync/push")).toMatchObject({
       status: 200,

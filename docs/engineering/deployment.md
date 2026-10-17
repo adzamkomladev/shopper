@@ -160,6 +160,8 @@ The dev/staging private imports buckets are `shopper-imports-dev` and `shopper-i
 
 Receipt PDFs use a second private bucket, bound as `RECEIPTS` in `apps/edge` and `apps/portal` (`shopper-receipts-dev` for dev with `remote: true`, like `IMPORTS`, and `shopper-receipts-staging` for staging). Set `SHOPPER_S3_RECEIPTS_BUCKET` next to the other `SHOPPER_S3_*` values (the box reads the same name; its RustFS bucket is `shopper-receipts-dev`, created by `vp run storage:setup`). Owner action before receipts upload on staging: create the `shopper-receipts-dev` and `shopper-receipts-staging` buckets and an Object Read & Write token scoped to them (or extend the imports token), then set the secret. Until then grants answer 503 and tills keep their PDFs and retry.
 
+The new `register.settings` permission (till Register settings, test print, drawer test) is seeded only for orgs created after Day 12. For an existing org, an admin grants it to the owner and manager roles on the portal Roles screen, or the environment's data is reset.
+
 Configure CORS for exact portal/local origins with PUT and Content-Type. Use HTTPS for non-loopback endpoints and keep the bucket private. Validate provider storage quotas and retention for abandoned uploads separately from the application's bounded processing limit. No production storage policy is changed by the development setup script.
 
 Local tests require `vp run services:up` then `vp run storage:setup`; the latter targets only loopback RustFS with fixture credentials. No dev database reset is required for this cleanup; migrations are forward-only. External R2 deployment, real hardware and the future production box embedding are separate release verification.

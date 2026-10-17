@@ -110,7 +110,7 @@ Device-authenticated endpoints:
   - The server does a bounded read and checks size and sha256. A mismatch → 409.
   - It links `sale.receipt_asset_id`. Audited.
 
-Object key: `{orgId}/receipts/{saleId}.pdf` in the receipts bucket. Storage per adapter:
+Asset key: `receipts/{saleId}.pdf`; Blobs scopes it per org, so the object lives at `{orgId}/receipts/{saleId}.pdf` in the receipts bucket. Storage per adapter:
 
 - cloud: R2 `RECEIPTS` binding, plus an S3 signer;
 - box: RustFS.

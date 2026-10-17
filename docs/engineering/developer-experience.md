@@ -35,14 +35,16 @@ names, domains, account or resource ids, tokens. Wrangler stays only for `tail`,
 ## Reset and seed
 
 ```sh
-vp run db:reset [--products N] [--yes]   # drop public + drizzle schemas, migrate, seed
+vp run db:reset [--products N] [--confirm <host>]   # drop public + drizzle schemas, migrate, seed
 vp run db:seed  [--products N]           # seed an empty database (no-op once the dev org exists)
 ```
 
 Both target `DATABASE_URL` (then `TEST_DATABASE_URL`, then local PG18) and print the host and
-database before acting. `db:reset` always runs on localhost; any other host needs `--yes`, and is
-refused when `SHOPPER_ENVIRONMENT` is `production`. Data is disposable everywhere else, so staging
-is reset the same way.
+database before acting. Both run freely on localhost. Any other host needs `--confirm <host>`, and
+that host must exactly match the one pg resolves; a `?host=` override counts. Anything that looks
+like production is always refused: `SHOPPER_ENVIRONMENT` containing `prod`, or `prod` in the host or
+database name. Data is disposable everywhere else, so staging is reset the same way. For example:
+`DATABASE_URL=<staging url> vp run db:reset -- --confirm <staging host>`.
 
 The seed goes through the real commands (provisioning, management, owner and user registration,
 catalogue import): the `dev` shop with `--products` catalogue rows (default 20,000), one store, the

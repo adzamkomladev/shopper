@@ -6,30 +6,33 @@ import * as schema from "../../packages/db/pg/src/schemas";
 import { migrateDatabase } from "./migrate";
 import { seedCatalogue, seedDevelopment } from "./seed";
 import { credentialsTable, seedDemo } from "./demo";
-import { assertResettable, resetSchemas } from "./reset";
+import { assertWritable, resetSchemas } from "./reset";
 
 const { positionals, values } = parseArgs({
   allowPositionals: true,
-  options: { yes: { type: "boolean" }, products: { type: "string", default: "20000" } },
+  options: { confirm: { type: "string" }, products: { type: "string", default: "20000" } },
 });
 const action = positionals[0];
 if (action !== "migrate" && action !== "seed" && action !== "reset")
-  throw new Error("Usage: db:migrate, db:seed or db:reset [--products N] [--yes]");
+  throw new Error(
+    "Usage: db:migrate, db:seed or db:reset [--products N] [--confirm <remote host>]",
+  );
 const url =
   process.env.DATABASE_URL ??
   process.env.TEST_DATABASE_URL ??
   "postgresql://shopper:shopper_dev_only@127.0.0.1:5432/shopper";
 const products = Number(values.products);
 if (!Number.isSafeInteger(products) || products < 0) throw new Error("--products must be >= 0");
-if (action === "reset") {
+if (action !== "migrate") {
   try {
-    assertResettable(url, Boolean(values.yes), process.env.SHOPPER_ENVIRONMENT);
+    const { host, database } = assertWritable(url, values.confirm, process.env.SHOPPER_ENVIRONMENT);
+    console.log(
+      `${action === "reset" ? "Resetting" : "Seeding"} database "${database}" on ${host}`,
+    );
   } catch (error) {
     console.error((error as Error).message);
     process.exit(1);
   }
-  const target = new URL(url);
-  console.log(`Resetting database "${target.pathname.slice(1)}" on ${target.hostname}`);
 }
 const client = new Client({ connectionString: url });
 try {

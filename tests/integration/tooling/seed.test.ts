@@ -64,12 +64,29 @@ test("reset then seed builds role users, branches and a verifiable password; res
   }
 }, 120_000);
 
-test("reset refuses a remote database without --yes, and a production marker with it", () => {
+test("reset and seed refuse remote databases unless the exact host is confirmed", () => {
   const remote = "postgresql://u:p@db.example.com:5432/shopper";
-  const refused = cli(["reset"], remote);
-  expect(refused.status).toBe(1);
-  expect(refused.stderr).toContain("Refusing");
-  const production = cli(["reset", "--yes"], remote, { SHOPPER_ENVIRONMENT: "production" });
-  expect(production.status).toBe(1);
-  expect(production.stderr).toContain("production");
+  for (const action of ["reset", "seed"]) {
+    const refused = cli([action], remote);
+    expect(refused.status).toBe(1);
+    expect(refused.stderr).toContain("--confirm db.example.com");
+    const wrong = cli([action, "--confirm", "other.example.com"], remote);
+    expect(wrong.status).toBe(1);
+  }
+  // pg takes the host from ?host=, so the URL's own hostname must never decide "local".
+  const disguised = cli(["reset"], "postgresql://u:p@localhost/shopper?host=db.example.com");
+  expect(disguised.status).toBe(1);
+  expect(disguised.stderr).toContain("db.example.com");
+});
+
+test("anything that looks like production is refused even when confirmed", () => {
+  const confirm = ["reset", "--confirm", "db.example.com"];
+  const marked = cli(confirm, "postgresql://u:p@db.example.com/shopper", {
+    SHOPPER_ENVIRONMENT: "production",
+  });
+  expect(marked.status).toBe(1);
+  expect(marked.stderr).toContain("production");
+  const named = cli(confirm, "postgresql://u:p@db.example.com/shopper_prod");
+  expect(named.status).toBe(1);
+  expect(named.stderr).toContain("production");
 });

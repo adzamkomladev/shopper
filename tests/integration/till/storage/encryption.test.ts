@@ -30,7 +30,7 @@ test("the wrong key is refused and the file is left intact", async () => {
   await till.database.close();
   const before = await readFile(till.path);
   expect(() => openTillDatabase(till.path, otherKey)).toThrow(TillDatabaseKeyError);
-  expect(() => openTillDatabase(till.path)).toThrow();
+  expect(() => openTillDatabase(till.path)).toThrow(TillDatabaseKeyError);
   expect(await readFile(till.path)).toEqual(before);
   await till.restart();
   const tables = await till.database.read((tx) =>

@@ -8,7 +8,9 @@ type SQLite = InstanceType<typeof Database>;
 
 export class TillDatabaseKeyError extends Error {
   constructor() {
-    super("Till database key is wrong or the file is not an encrypted till database");
+    super(
+      "Till database key does not open this file (wrong key, missing key, or a plain file opened with a key)",
+    );
     this.name = "TillDatabaseKeyError";
   }
 }
@@ -19,12 +21,16 @@ export function openTillDatabase(path: string, key?: string): TillDatabase {
   const sqlite = new Database(path, { timeout: 0 }); // fail fast on a held lock, as node:sqlite did
   try {
     if (key) unlock(sqlite, key);
+    sqlite.prepare("SELECT count(*) FROM sqlite_master").get(); // proves the key (or its absence) opens the file
     sqlite.exec("PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;");
     migrate(sqlite);
   } catch (error) {
     sqlite.close();
-    throw error;
+    throw (error as { code?: string }).code === "SQLITE_NOTADB"
+      ? new TillDatabaseKeyError()
+      : error;
   }
+  // better-sqlite3 returns plain numbers: integer columns must stay below 2^53 (money and thousandths do).
   const db = drizzle(async (query, params: unknown[], method) => {
     const statement = sqlite.prepare(query);
     if (method === "run" || !statement.reader) {
@@ -63,17 +69,13 @@ export function openTillDatabase(path: string, key?: string): TillDatabase {
   };
 }
 
-/** The key pragmas must run before any other statement; the read proves the key opens the file. */
+/** The key pragmas must run before any other statement. */
 function unlock(sqlite: SQLite, key: string) {
-  if (!/^[a-f0-9]{64}$/i.test(key)) throw new Error("Till database key must be 64 hex characters");
+  if (!/^[a-f0-9]{64}$/.test(key))
+    throw new Error("Till database key must be 64 lowercase hex characters");
   sqlite.pragma("cipher='sqlcipher'");
   sqlite.pragma("legacy=4");
   sqlite.pragma(`key="x'${key}'"`);
-  try {
-    sqlite.prepare("SELECT count(*) FROM sqlite_master").get();
-  } catch {
-    throw new TillDatabaseKeyError();
-  }
 }
 
 /** Runs each pending step and its user_version bump in one transaction, reading the version under the lock. */

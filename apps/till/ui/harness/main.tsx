@@ -5,11 +5,13 @@ import { money } from "@shopper/money";
 import "../src/styles.css";
 import { createRoot } from "react-dom/client";
 import { AppBackdrop } from "@shopper/ui/components/app-backdrop";
+import { Toaster } from "@shopper/ui/components/sonner";
 import { ShortcutRoot } from "@shopper/ui/hooks/shortcuts";
 import { TillNavigation } from "../src/components/navigation/screen";
 import type { TillView } from "../src/components/navigation/types";
 import { SaleScreen } from "../src/screens/sale/screen";
 import { PurchasesScreen } from "../src/screens/purchases/screen";
+import { SettingsScreen } from "../src/screens/settings/screen";
 import type {
   DraftTender,
   PurchaseActions,
@@ -19,6 +21,7 @@ import type {
 } from "../src/sale/types";
 import { scenarios } from "./scenarios";
 import { initialPurchases, purchaseDetails } from "./purchases";
+import { useSettingsHarness } from "./settings";
 
 declare global {
   interface Window {
@@ -36,8 +39,10 @@ const initialSale = scenarios[name] ?? scenarios.lines!;
 
 function Harness() {
   const [tab, setTab] = useState<TillView>("sale");
+  const [saleFocus, setSaleFocus] = useState(0);
   const [saleSnapshot, setSaleSnapshot] = useState(initialSale);
   const [purchases, setPurchases] = useState(() => initialPurchases(name));
+  const [settings, settingsActions] = useSettingsHarness(name, record);
   const sale: SaleActions = {
     search: record("search"),
     add: record("add"),
@@ -115,6 +120,7 @@ function Harness() {
   };
   function navigate(next: TillView) {
     setTab(next);
+    if (next === "sale") setSaleFocus((value) => value + 1);
     if (next === "purchases") purchaseActions.list({ ...purchases.filters, page: 1 });
   }
   return (
@@ -125,6 +131,7 @@ function Harness() {
           <SaleScreen
             active={tab === "sale"}
             actions={sale}
+            focusKey={saleFocus}
             onPurchases={() => navigate("purchases")}
             onRegister={record("register")}
             snapshot={saleSnapshot}
@@ -135,6 +142,13 @@ function Harness() {
             active={tab === "purchases"}
             actions={purchaseActions}
             snapshot={purchases}
+          />
+        </div>
+        <div className="h-full min-h-0" hidden={tab !== "settings"}>
+          <SettingsScreen
+            active={tab === "settings"}
+            actions={settingsActions}
+            snapshot={settings}
           />
         </div>
       </div>
@@ -180,5 +194,6 @@ function completeSale(setSnapshot: Dispatch<SetStateAction<SaleSnapshot>>) {
 createRoot(document.getElementById("root")!).render(
   <ShortcutRoot>
     <Harness />
+    <Toaster position="top-right" />
   </ShortcutRoot>,
 );

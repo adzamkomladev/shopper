@@ -1,1 +1,1 @@
-export type TillView = "sale" | "purchases";
+export type TillView = "sale" | "purchases" | "settings";

@@ -30,12 +30,15 @@ export function SaleScreen({
   onRegister,
   onPurchases,
   active: screenActive = true,
+  focusKey = 0,
 }: {
   snapshot: SaleSnapshot;
   actions: SaleActions;
   onRegister: () => void;
   onPurchases?: () => void;
   active?: boolean;
+  /** Changes whenever the cashier comes back to this tab, so the scan field takes focus again. */
+  focusKey?: number;
 }) {
   const { host, view, failure, busy, search, loading, sync } = snapshot;
   const [activeIndex, setActiveIndex] = useState(0);
@@ -155,6 +158,7 @@ export function SaleScreen({
             activeIndex={searching && matches.length > 0 ? active : null}
             describedBy={locked ? bannerId : undefined}
             disabled={locked}
+            focusKey={focusKey}
             fieldProps={{ ...field.props, onKeyDown: onScanKeyDown }}
             fieldRef={scanRef}
             onLookup={focusScan}

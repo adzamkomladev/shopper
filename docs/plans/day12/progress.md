@@ -15,13 +15,13 @@ The branch is pushed once, at the end, then goes to `main` as one PR.
 | S4 Electron shell and printToPDF                  | done  | S4     |
 | S5 Register settings and printing on sale         | done  | S5     |
 | S6 Till receipt PDF and upload                    | done  | S6     |
-| S7 Till Settings screen                           | todo  |        |
+| S7 Till Settings screen                           | done  | S7     |
 | S8 Reprint, preview, completion print status      | todo  |        |
 | S9 Docs, review, push, PR, merge, Notion          | todo  |        |
 
 ## Current slice
 
-S7. Next step: design the "Edit printer" row in Figma (copy of 146:4805), then `test-author` writes the Settings screen e2e specs.
+S8. Next step: Reprint and Receipt metadata card on purchase detail (Figma 136:2137), receipt preview, and completion print status.
 
 ## How to resume
 
@@ -130,3 +130,22 @@ S7. Next step: design the "Edit printer" row in Figma (copy of 146:4805), then `
   - Owner actions: create the `shopper-receipts-dev` and `shopper-receipts-staging` R2 buckets and an Object Read & Write token scoped to
     it; set `SHOPPER_S3_RECEIPTS_BUCKET` (+ existing `SHOPPER_S3_*`) as Worker secrets and in `apps/edge/.dev.vars`;
     for the box set the same names. Until then grants answer 503 and tills keep retrying.
+- S7: Till Settings screen (Register tab only) built from Figma 146:4805. The new frame 336:1264,
+  "Settings · Register · Printer setup (Day 12)", is a duplicate: the original frame is untouched. It
+  covers Edit printer, Offline, No printer and read-only. Results: settings e2e 26/26, full till-ui
+  suite 127/127 (run serially), guard, `tsc -b` and `vp check` clean.
+  - ui-reviewer fixes:
+    - Scan focus now returns to Sale from Settings and Purchases. This was an existing bug.
+    - Device results show as a toast as well as inline.
+    - The stale-save state disables Save and Alt+L works in it.
+    - Offline errors say what to do next.
+    - A scroll fade marks more content below.
+    - Arbitrary grid values and DOM queries are replaced.
+    - One shared `modLabel` lives in `@shopper/ui`.
+    - The badge is labelled "Last print succeeded".
+    - Device buttons are disabled while a job runs.
+  - Deviations:
+    - The till's own pill nav is used and there is no tab bar.
+    - 44 px controls make the form scroll at 1366×768 (the footer stays pinned).
+    - Alt+E, Alt+X and Alt+L are extra shortcuts.
+    - The host sends no last-job time, so the badge shows a time only after a Test print on that screen.

@@ -22,6 +22,7 @@ import {
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import type { PurchaseActions, PurchasesSnapshot } from "../../sale/types";
 import { PurchaseStatus } from "../../components/purchases/status";
+import { takeFocus } from "../../hooks/focus";
 import { PurchaseDetail } from "./detail/screen";
 
 export function PurchasesScreen({
@@ -33,7 +34,12 @@ export function PurchasesScreen({
   actions: PurchaseActions;
   active?: boolean;
 }) {
-  const register = useShortcuts(active ? { Escape: actions.clear } : {});
+  const registerShortcuts = useShortcuts(active ? { Escape: actions.clear } : {});
+  const register = (node: HTMLElement | null) => {
+    const cleanup = registerShortcuts(node);
+    takeFocus(node, active);
+    return cleanup;
+  };
   const { filters, selected } = snapshot;
   const pageCount = Math.max(1, Math.ceil(snapshot.total / snapshot.pageSize));
   function changeFilters(change: Partial<typeof filters>) {

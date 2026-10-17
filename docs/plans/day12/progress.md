@@ -16,12 +16,12 @@ The branch is pushed once, at the end, then goes to `main` as one PR.
 | S5 Register settings and printing on sale         | done  | S5     |
 | S6 Till receipt PDF and upload                    | done  | S6     |
 | S7 Till Settings screen                           | done  | S7     |
-| S8 Reprint, preview, completion print status      | todo  |        |
+| S8 Reprint, preview, completion print status      | done  | S8     |
 | S9 Docs, review, push, PR, merge, Notion          | todo  |        |
 
 ## Current slice
 
-S8. Next step: Reprint and Receipt metadata card on purchase detail (Figma 136:2137), receipt preview, and completion print status.
+S9. Next step: docs pass, full verification (all suites, build, e2e), full-diff review, then push, PR, CI, merge and Notion.
 
 ## How to resume
 
@@ -149,3 +149,56 @@ S8. Next step: Reprint and Receipt metadata card on purchase detail (Figma 136:2
     - 44 px controls make the form scroll at 1366×768 (the footer stays pinned).
     - Alt+E, Alt+X and Alt+L are extra shortcuts.
     - The host sends no last-job time, so the badge shows a time only after a Test print on that screen.
+- S8: Reprint, receipt preview, completion print status and clear cart, built from Figma 136:2137 (purchase
+  detail). Tests came first for the contract (`tests/integration/till/host/receipts/delivery.test.ts`, red then
+  green); the e2e specs were written after the first UI pass (deviation from strict test-first, noted).
+  - Contract: `purchaseDetails.delivery` is `{printedAt, reprints, printError, pdf}` read from `receipt_output`
+    (`pdf` is `pending` once stored, `uploaded` once `uploaded_at` is set, null before). It is null for pending and
+    voided purchases (deviation: the brief had it always present), so the card shows for completed sales only.
+  - Purchase detail: header Reprint (Alt+R) and a "Receipt metadata" card under the items table with Receipt
+    number, Register / cashier (receipt `device` and `cashier`), Receipt delivery, Digital copy, Reprint receipt, and
+    a Preview receipt toggle (Alt+V). The preview draws `ReceiptView` from the stored JSON at the configured paper
+    width, scaled with CSS `zoom` from a ref callback (no effect). Alt+R and Alt+V register only while Purchases is
+    the active screen and a completed sale is open; Settings keeps Alt+R for Test print (e2e covers both).
+  - States: reprinting ("Printing…", both buttons disabled), success (toast and inline), failure (toast and inline with
+    the "Check the printer is on and on the same network." hint), no printer (disabled, "Add a printer in Settings"
+    and the Alt+T key), no permission (disabled, "Your role cannot reprint receipts"), print failed at the till.
+  - Sale-complete view: status line from the host's last job for that sale ("Printing receipt…", "Receipt printed",
+    "Printer offline" plus Reprint Alt+R, "Print receipt" Alt+R when auto-print is off, "No printer set up").
+    Clear cart ON: the scan field stays enabled and focused, the next scan calls `newSaleWith({code})` (new sale, then
+    add) and Enter alone still starts a new sale. OFF: the field stays disabled and the view says scans are ignored.
+    `SaleSnapshot.register` carries the settings and printer status; `SaleActions` gains `newSaleWith` and `print`.
+  - Fonts: the till-ui imports `@fontsource/geist` 400 and 700 (family "Geist", the name `ReceiptView` uses). The
+    existing variable Geist from `@shopper/ui` is a different family name ("Geist Variable"), so it could not be reused.
+    `@shopper/hardware` and `@fontsource/geist` were added to the till-ui dependencies (lockfile updated).
+  - Deviations from Figma: no Order number, Transaction ID or Ledger batch rows (no data behind them); no Start return
+    button (returns are not built); the card sits under the items table as in Figma but the Reprint button carries the
+    Alt+R key label; the Customer fact and "Return eligible" line are not shown (not in the data).
+  - ui-reviewer fixes (host and contract):
+    - A copy is a reprint only once `printed_at` is set. The first physical copy (manual Print receipt with auto-print
+      off, or the retry after a failed automatic print) has no REPRINT banner, is audited `receipt.print` and sets
+      `printed_at`; later copies are `receipt.reprint` with the banner and `reprints` + 1. `failure.test.ts`,
+      `drawer.test.ts` and `delivery.test.ts` were changed first (red), and design.md "Receipt output" says so.
+    - `printer.lastJob` gains `kind: "receipt" | "test" | "drawer"`. A kick-only job is `drawer`, so it never reads as
+      a printed receipt (the manual-print limit noted earlier no longer applies).
+  - ui-reviewer fixes (till UI):
+    - Each sale carries its own print state in the sale store (`receiptPrint`): only a `receipt` job for that sale
+      counts, the outcome is kept once seen, so a test print or another sale's reprint cannot change it. A 15 second
+      store timer, started when the sale completes, turns a print the host never reports into "Print status unknown"
+      with Reprint. With auto-print off the line is "Not printed" plus Print receipt, whatever drawer jobs ran.
+    - Enter on a focused Print or Reprint button now presses it (the shortcut layer cancels the key, so the handler
+      clicks the control) and keeps the completion view and focus.
+    - The scan field stays enabled on the completion view. With clear cart ON a scan, or a keyed code and Enter, starts
+      the new sale with it (`newSaleWith`). With it OFF the code is refused with "Sale complete. Press Enter or New
+      sale, then scan again." and nothing is silently dropped.
+    - Reprint buttons use `aria-disabled` while printing (focus stays on them) and show a spinner. Alt+V scrolls the
+      opened preview into view. A blocked Alt+R toasts the reason. A failed completion print shows the host's
+      message and the "Check the printer..." hint inline. `measure` in the preview is a `useCallback`.
+    - New real-host specs (`sale/print.spec.ts`): auto-print off is Not printed after a drawer kick and after a Test
+      print, then Print receipt prints the first copy without REPRINT; a printed receipt stays printed after a Test
+      print; a dropped job report becomes unknown after the real 15 seconds and Reprint prints the REPRINT copy.
+  - Files split to stay under the guard limits: `components/purchases/rows.tsx` (moved out of the screen),
+    `sale/register.ts`, `sale/replies.ts` and `sale/print.ts`.
+  - Screenshots: `docs/plans/day12/screenshots/purchases` (Figma reference, five widths with and without preview,
+    failure, no printer, no permission, live) and `docs/plans/day12/screenshots/sale` (printing, printed, offline,
+    manual, no printer).

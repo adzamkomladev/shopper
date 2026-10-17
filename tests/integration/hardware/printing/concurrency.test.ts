@@ -29,5 +29,5 @@ test("two sales back to back print two whole receipts in order", async () => {
   expect([one?.kicks, two?.kicks]).toEqual([1, 0]);
   await expect
     .poll(async () => (await register!.status()).printer.lastJob)
-    .toMatchObject({ saleId: second.saleId, outcome: "printed" });
+    .toMatchObject({ kind: "receipt", saleId: second.saleId, outcome: "printed" });
 });

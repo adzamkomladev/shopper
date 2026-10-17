@@ -1,18 +1,51 @@
+import { useState } from "react";
 import type { PurchaseDetails } from "@shopper/sync/bridge";
 import { Badge } from "@shopper/ui/components/badge";
+import { toast } from "@shopper/ui/components/sonner";
+import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { ReceiptText } from "lucide-react";
+import { reprintBlock } from "../../../purchases/delivery";
+import type { PurchaseActions, PurchaseOutput, ReprintFeedback } from "../../../sale/types";
 import { DetailItems } from "../../../components/purchases/detail/items";
 import { DetailPayment } from "../../../components/purchases/detail/payment";
+import { DetailReceipt, ReprintButton } from "../../../components/purchases/detail/receipt";
 import { DetailTotals } from "../../../components/purchases/detail/totals";
 
-export function PurchaseDetail({ purchase }: { purchase: PurchaseDetails }) {
+export function PurchaseDetail({
+  purchase,
+  output,
+  reprint,
+  actions,
+  active,
+}: {
+  purchase: PurchaseDetails;
+  output: PurchaseOutput | null;
+  reprint: ReprintFeedback | null;
+  actions: PurchaseActions;
+  active: boolean;
+}) {
+  const [previewing, setPreviewing] = useState(false);
+  const delivery = purchase.delivery;
   const receipt = purchase.receipt;
+  async function reprintReceipt() {
+    const blocked = reprintBlock(output);
+    if (blocked) return void toast.error(blocked);
+    if (reprint?.status === "running") return;
+    const result = await actions.reprint(purchase.id);
+    if (result.status === "done") toast.success("Receipt sent to the printer");
+    else toast.error(result.message ?? "Receipt could not be printed");
+  }
+  const togglePreview = () => receipt && setPreviewing((value) => !value);
+  const register = useShortcuts(
+    active && delivery ? { "Alt+R": () => void reprintReceipt(), "Alt+V": togglePreview } : {},
+  );
   const receiptNumber = purchase.receiptNumber ?? receipt?.header.receiptNumber;
   const reference = receiptNumber ?? purchase.id.slice(0, 8);
   return (
     <section
       aria-label="Purchase details"
       className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto pb-1"
+      ref={register}
       tabIndex={0}
     >
       <header className="flex shrink-0 flex-wrap items-center gap-x-6 gap-y-4 rounded-lg border bg-card p-4 shadow-sm">
@@ -46,10 +79,31 @@ export function PurchaseDetail({ purchase }: { purchase: PurchaseDetails }) {
         />
         {receipt?.header.cashier && <Fact label="Cashier" value={receipt.header.cashier} />}
         {receipt?.header.branch && <Fact label="Branch" value={receipt.header.branch} />}
+        {delivery && (
+          <ReprintButton
+            label="Reprint"
+            onClick={() => void reprintReceipt()}
+            output={output}
+            reprint={reprint}
+          />
+        )}
       </header>
 
       <div className="grid min-h-0 shrink-0 grid-cols-1 items-start gap-4 xl:grid-cols-12">
-        <DetailItems purchase={purchase} />
+        <div className="grid min-w-0 grid-cols-1 content-start gap-4 xl:col-span-8">
+          <DetailItems purchase={purchase} />
+          {delivery && (
+            <DetailReceipt
+              delivery={delivery}
+              onPreview={togglePreview}
+              onReprint={() => void reprintReceipt()}
+              output={output}
+              previewing={previewing}
+              purchase={purchase}
+              reprint={reprint}
+            />
+          )}
+        </div>
         <aside className="grid gap-4 xl:col-span-4">
           <DetailTotals purchase={purchase} />
           <DetailPayment purchase={purchase} />

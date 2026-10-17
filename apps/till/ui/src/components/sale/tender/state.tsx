@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { toast } from "@shopper/ui/components/sonner";
 import { formatGHS } from "@shopper/money";
 import { Button } from "@shopper/ui/components/button";
 import { Input } from "@shopper/ui/components/input/control";
 import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
+import { canPrint, printPhase, ReceiptPrintStatus } from "./print";
 import type { DraftTender, SaleActions, SaleSnapshot } from "../../../sale/types";
 
 export function MomoState({
@@ -69,13 +71,40 @@ function momoMessage(status: DraftTender["status"]) {
 export function ReceiptComplete({
   actions,
   receipt,
+  register,
+  print: receiptPrint,
   active,
 }: {
   actions: SaleActions;
   receipt: NonNullable<SaleSnapshot["receipt"]>;
+  register: SaleSnapshot["register"];
+  print: SaleSnapshot["receiptPrint"];
   active: boolean;
 }) {
-  const shortcuts = useShortcuts(active ? { Enter: actions.newSale } : {});
+  const [reprinting, setReprinting] = useState(false);
+  async function print() {
+    if (reprinting) return;
+    setReprinting(true);
+    const result = await actions.print(receipt.saleId);
+    setReprinting(false);
+    if (result.status === "failed") toast.error(result.message ?? "Receipt could not be printed");
+  }
+  const phase = register && printPhase(register, receiptPrint);
+  const shortcuts = useShortcuts(
+    active
+      ? {
+          // The shortcut layer has already cancelled the key, so a focused button is pressed here; a scanner
+          // or keyed code ends with Enter in the scan field, which owns that Enter.
+          Enter: (event) => {
+            const target = event.target instanceof Element ? event.target : null;
+            const control = target?.closest<HTMLElement>("button, a");
+            if (control) control.click();
+            else if (!(target instanceof HTMLInputElement && target.value)) actions.newSale();
+          },
+          "Alt+R": () => canPrint(phase) && void print(),
+        }
+      : {},
+  );
   return (
     <section
       aria-label="Sale receipt"
@@ -100,7 +129,15 @@ export function ReceiptComplete({
           </dd>
         </div>
       </dl>
-      <Button aria-keyshortcuts="Enter" onClick={actions.newSale} size="touch">
+      {phase && (
+        <ReceiptPrintStatus
+          message={receiptPrint?.message ?? null}
+          onPrint={() => void print()}
+          phase={phase}
+          reprinting={reprinting}
+        />
+      )}
+      <Button aria-keyshortcuts="Enter" onClick={() => actions.newSale()} size="touch">
         New sale <Kbd className="pointer-coarse:inline-flex">Enter</Kbd>
       </Button>
     </section>

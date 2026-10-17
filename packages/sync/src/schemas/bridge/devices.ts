@@ -26,6 +26,8 @@ export const printerStatus = v.strictObject({
   state: v.picklist(["unconfigured", "ready", "offline"]),
   lastJob: v.nullable(
     v.strictObject({
+      /** What the job was: a kick-only job is a drawer job and never a printed receipt. */
+      kind: v.picklist(["receipt", "test", "drawer"]),
       saleId: v.nullable(id),
       outcome: v.picklist(["printed", "failed"]),
       message: v.nullable(v.string()),

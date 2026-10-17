@@ -84,6 +84,9 @@ test("the first print is audited, marks the receipt printed and reports the job 
   expect(auditedSale(await register!.audit("receipt.print"), saleId)).toHaveLength(1);
   expect(await register!.audit("receipt.reprint")).toHaveLength(0);
   const status = await register!.status();
-  expect(status.printer).toMatchObject({ state: "ready", lastJob: { saleId, outcome: "printed" } });
+  expect(status.printer).toMatchObject({
+    state: "ready",
+    lastJob: { kind: "receipt", saleId, outcome: "printed" },
+  });
   expect(receipt.header.receiptNumber).toContain(status.registerCode);
 });

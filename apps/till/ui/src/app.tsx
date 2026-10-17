@@ -11,6 +11,7 @@ import { SettingsScreen } from "./screens/settings/screen";
 import { TillNavigation } from "./components/navigation/screen";
 import { initializeConnection } from "./connection/store";
 import { saleActions, useSaleSnapshot } from "./sale/store";
+import { purchaseOutput } from "./purchases/delivery";
 import { purchaseActions, usePurchasesSnapshot } from "./purchases/store";
 import { settingsActions, useSettingsSnapshot } from "./settings/store";
 import type { TillView } from "./components/navigation/types";
@@ -47,6 +48,7 @@ function Register() {
           <PurchasesScreen
             active={tab === "purchases"}
             actions={purchaseActions}
+            output={purchaseOutput(settings.current, sale.permissions)}
             snapshot={purchases}
           />
         </div>

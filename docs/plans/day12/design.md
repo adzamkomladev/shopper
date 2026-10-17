@@ -74,6 +74,7 @@ registerSettings = {
 - Columns: `printed_at`, `print_error`, `reprints`, `pdf`, `pdf_sha256`, `pdf_size`, `asset_id`, `uploaded_at`, `upload_attempts`, `next_upload_at`.
 - Audits: `receipt.print`, `receipt.reprint`, `receipt.pdf.store`, `receipt.pdf.upload`.
 - The drawer kicks only for a sale with a cash tender, and only on the first print; it never kicks on a reprint.
+- A copy is a reprint only when an earlier copy printed (`printed_at` not null). The first physical copy prints without the REPRINT banner, is audited `receipt.print` and sets `printed_at`. That covers a manual print when auto-print is off and the retry after a failed automatic print. Every later copy carries the banner, is audited `receipt.reprint` and adds to `reprints`.
 
 ## Bridge (browser ↔ host)
 
@@ -87,10 +88,10 @@ Requests:
 `hostStatus` gains:
 
 - `settings {revision, value, canEdit}`
-- `printer {state: "unconfigured" | "ready" | "offline", lastJob: {saleId|null, outcome, message} | null}`
+- `printer {state: "unconfigured" | "ready" | "offline", lastJob: {kind: "receipt" | "test" | "drawer", saleId|null, outcome, message} | null}` (a kick-only job is `kind: "drawer"` and never reads as a printed receipt)
 - `registerCode`
 
-`purchaseDetails` gains `delivery {printedAt, reprints, pdf: "pending" | "uploaded" | null}`.
+`purchaseDetails` gains `delivery {printedAt, reprints, printError, pdf: "pending" | "uploaded" | null} | null` (null unless the purchase is a completed sale).
 
 ## Upload (PG `0018_receipts.sql`, API)
 

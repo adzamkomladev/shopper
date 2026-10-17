@@ -63,16 +63,33 @@ test("with automatic printing off a cash sale sends a kick-only job and a card s
   const [kick] = await printer.waitForJobs(1);
   expect(kick?.commands).toEqual([{ name: "init" }, DRAWER_KICK]);
   expect(kick?.page.trim()).toBe("");
+  // A kick-only job is a drawer job: it never reads as a printed receipt.
+  await expect
+    .poll(async () => (await register.status()).printer.lastJob)
+    .toMatchObject({ kind: "drawer", outcome: "printed" });
+  expect((await register.receiptOutput(cash.saleId))?.printed_at).toBeNull();
 
   const card = await register.sell([{ kind: "card", amount: 12_000 }]);
   expect(await register.ask({ type: "receipt.print", saleId: card.saleId })).toMatchObject({
     type: "result",
   });
-  // The card sale printed nothing by itself: the only other job is the explicit reprint.
+  // The card sale printed nothing by itself: the explicit print is its first copy, so no banner.
   const jobs = await printer.waitForJobs(2);
-  expect(jobs[1]?.page).toContain("*** REPRINT ***");
+  expect(jobs[1]?.page).toContain("TOTAL");
+  expect(jobs[1]?.page).not.toContain("REPRINT");
   expect(jobs[1]?.kicks).toBe(0);
+  expect(auditedSale(await register.audit("receipt.print"), card.saleId)).toHaveLength(1);
+  expect(await register.audit("receipt.reprint")).toHaveLength(0);
+  expect(await register.receiptOutput(card.saleId)).toMatchObject({ reprints: 0 });
+  expect((await register.receiptOutput(card.saleId))?.printed_at).toEqual(expect.any(String));
   expect(await register.receiptOutput(cash.saleId)).toMatchObject({ reprints: 0 });
+  // A second copy is the reprint.
+  expect(await register.ask({ type: "receipt.print", saleId: card.saleId })).toMatchObject({
+    type: "result",
+  });
+  const [, , third] = await printer.waitForJobs(3);
+  expect(third?.page).toContain("*** REPRINT ***");
+  expect(await register.receiptOutput(card.saleId)).toMatchObject({ reprints: 1 });
 });
 
 test("a MoMo-only sale prints the receipt without kicking the drawer", async () => {

@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import { eq } from "drizzle-orm";
 import { buildInfo } from "@shopper/config";
-import { localSale } from "@shopper/db-sqlite";
+import { localSale, receiptOutput } from "@shopper/db-sqlite";
 import { receiptDocument, type ReceiptDocument } from "@shopper/core/receipts";
 import {
   readRegisterSettings,
@@ -17,7 +17,11 @@ import type { PrinterStatus } from "@shopper/sync/bridge";
 import type { TillDatabase } from "@shopper/db-sqlite";
 import type { HostConfiguration } from "./config";
 
-type Job = { saleId: string | null; record?: "first" | "reprint" };
+type Job = {
+  kind: NonNullable<PrinterStatus["lastJob"]>["kind"];
+  saleId: string | null;
+  record?: "first" | "reprint";
+};
 type Context = ReturnType<typeof auditContext>;
 type Settings = Awaited<ReturnType<typeof readRegisterSettings>>["value"];
 /** Settings with a printer; the type proves the unconfigured case was handled. */
@@ -79,7 +83,12 @@ export function createHostReceipts(options: {
       message = caught instanceof Error ? caught.message : String(caught);
     }
     offline = message !== null;
-    lastJob = { saleId: job.saleId, outcome: message ? "failed" : "printed", message };
+    lastJob = {
+      kind: job.kind,
+      saleId: job.saleId,
+      outcome: message ? "failed" : "printed",
+      message,
+    };
     if (job.saleId && job.record)
       await recordReceiptPrint(
         database,
@@ -105,6 +114,17 @@ export function createHostReceipts(options: {
       reprint,
       openDrawer,
     });
+
+  /** A copy is a reprint only once a copy has printed; until then the next one is the original. */
+  async function printedBefore(saleId: string) {
+    const [output] = await database.read((tx) =>
+      tx
+        .select({ printedAt: receiptOutput.printedAt })
+        .from(receiptOutput)
+        .where(eq(receiptOutput.saleId, saleId)),
+    );
+    return !!output?.printedAt;
+  }
 
   /** Renders the digital receipt and stores it. Never throws: the sale is committed and the PDF can be reprinted later. */
   async function storePdf(saleId: string, seller: Context) {
@@ -143,10 +163,10 @@ export function createHostReceipts(options: {
           const receipt = await receiptOf(saleId);
           const cash = receipt.tenders.some((tender) => tender.kind === "cash");
           if (current.printAutomatically)
-            await send(current, seller, { saleId, record: "first" }, (printer) =>
+            await send(current, seller, { kind: "receipt", saleId, record: "first" }, (printer) =>
               printer.print(printReceipt(receipt, current, false, cash)),
             );
-          else if (cash) await send(current, seller, { saleId }, kick);
+          else if (cash) await send(current, seller, { kind: "drawer", saleId }, kick);
         } catch (error) {
           // The sale is committed. A printer fault is already on the status and in print_error;
           // anything else (a database or encoding fault) must still be visible to the operator.
@@ -158,33 +178,45 @@ export function createHostReceipts(options: {
     print(saleId: string) {
       const context = auditContext(config);
       return queued(async () => {
-        const [current, receipt] = await Promise.all([required(), receiptOf(saleId)]);
-        await send(current, context, { saleId, record: "reprint" }, (printer) =>
-          printer.print(printReceipt(receipt, current, true, false)),
+        const [current, receipt, reprint] = await Promise.all([
+          required(),
+          receiptOf(saleId),
+          printedBefore(saleId),
+        ]);
+        const record = reprint ? "reprint" : "first";
+        await send(current, context, { kind: "receipt", saleId, record }, (printer) =>
+          printer.print(printReceipt(receipt, current, reprint, false)),
         );
       });
     },
     testPrint: () =>
       queued(async () =>
-        send(await required(), auditContext(config), { saleId: null }, (printer, current) => {
-          const { model, connection } = current.printer;
-          return printer.print(
-            escpos(printerProfiles[model], current.paperMm)
-              .init()
-              .align("center")
-              .bold(true)
-              .text("Printer test")
-              .bold(false)
-              .text(`Model: ${model}`)
-              .text(`Paper: ${current.paperMm} mm (${paper[current.paperMm].cols} columns)`)
-              .text(`${connection.host}:${connection.port}`)
-              .cut()
-              .bytes(),
-          );
-        }),
+        send(
+          await required(),
+          auditContext(config),
+          { kind: "test", saleId: null },
+          (printer, current) => {
+            const { model, connection } = current.printer;
+            return printer.print(
+              escpos(printerProfiles[model], current.paperMm)
+                .init()
+                .align("center")
+                .bold(true)
+                .text("Printer test")
+                .bold(false)
+                .text(`Model: ${model}`)
+                .text(`Paper: ${current.paperMm} mm (${paper[current.paperMm].cols} columns)`)
+                .text(`${connection.host}:${connection.port}`)
+                .cut()
+                .bytes(),
+            );
+          },
+        ),
       ),
     openDrawer: () =>
-      queued(async () => send(await required(), auditContext(config), { saleId: null }, kick)),
+      queued(async () =>
+        send(await required(), auditContext(config), { kind: "drawer", saleId: null }, kick),
+      ),
   };
 }
 

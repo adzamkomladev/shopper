@@ -18,13 +18,31 @@ export const purchaseSummary: PurchaseSummary = {
   kinds: ["cash"],
 };
 
-export const purchaseDetails: PurchaseDetails = {
+const delivery: NonNullable<PurchaseDetails["delivery"]> = {
+  printedAt: today,
+  reprints: 0,
+  printError: null,
+  pdf: "pending",
+};
+const deliveries: Record<string, PurchaseDetails["delivery"]> = {
+  "reprint-twice": { ...delivery, reprints: 2, pdf: "uploaded" },
+  "reprint-failedprint": {
+    printedAt: null,
+    reprints: 0,
+    printError: "connection refused (192.168.1.50:9100)",
+    pdf: null,
+  },
+  "reprint-noprinter": { printedAt: null, reprints: 0, printError: null, pdf: null },
+};
+
+export const purchaseDetailsFor = (scenario: string): PurchaseDetails => ({
   ...purchaseSummary,
   payment: null,
   sale: makeSaleSnapshot(),
   receipt: makeReceipt(),
   draft: null,
-};
+  delivery: deliveries[scenario] ?? delivery,
+});
 
 const emptyPurchases = (
   status: PurchasesSnapshot["status"],
@@ -38,6 +56,7 @@ const emptyPurchases = (
   pageSize: 20,
   selected: null,
   error,
+  reprint: null,
 });
 
 const purchaseScenarios: Record<string, PurchasesSnapshot> = {
@@ -50,6 +69,7 @@ const purchaseScenarios: Record<string, PurchasesSnapshot> = {
     pageSize: 20,
     selected: null,
     error: null,
+    reprint: null,
   },
   "purchases-loading": emptyPurchases("loading"),
   "purchases-empty": emptyPurchases("empty"),

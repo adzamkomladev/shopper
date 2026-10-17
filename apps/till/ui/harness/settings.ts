@@ -28,8 +28,9 @@ const ready: SettingsCurrent = {
   printer: { state: "ready", lastJob: null },
   registerCode: "REG-001",
 };
-const printed = { saleId: null, outcome: "printed", message: null } as const;
+const printed = { kind: "test", saleId: null, outcome: "printed", message: null } as const;
 const refused = {
+  kind: "test",
   saleId: null,
   outcome: "failed",
   message: "connection refused (192.168.1.50:9100)",
@@ -44,6 +45,13 @@ const currents: Record<string, SettingsCurrent> = {
     printer: { state: "unconfigured", lastJob: null },
   },
   "settings-readonly": { ...ready, canEdit: false },
+  "reprint-noprinter": {
+    ...ready,
+    value: { ...value, printer: null },
+    printer: { state: "unconfigured", lastJob: null },
+  },
+  "reprint-offline": { ...ready, printer: { state: "offline", lastJob: refused } },
+  "reprint-58": { ...ready, value: { ...value, paperMm: 58 } },
 };
 const hostStates = {
   "settings-loading": "connecting",

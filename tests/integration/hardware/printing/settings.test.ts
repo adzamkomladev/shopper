@@ -124,7 +124,7 @@ test("a printer test prints a page that names the configured printer model", asy
   expect(job?.kicks).toBe(0);
   await expect
     .poll(async () => (await register!.status()).printer.lastJob)
-    .toMatchObject({ saleId: null, outcome: "printed" });
+    .toMatchObject({ kind: "test", saleId: null, outcome: "printed" });
 });
 
 test("a drawer test sends only the initialise and kick commands", async () => {

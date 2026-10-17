@@ -355,12 +355,18 @@ importers:
 
   apps/till/ui:
     dependencies:
+      '@fontsource/geist':
+        specifier: 5.2.9
+        version: 5.2.9
       '@shopper/config':
         specifier: workspace:*
         version: link:../../../packages/config
       '@shopper/core':
         specifier: workspace:*
         version: link:../../../packages/core
+      '@shopper/hardware':
+        specifier: workspace:*
+        version: link:../../../packages/hardware
       '@shopper/money':
         specifier: workspace:*
         version: link:../../../packages/money

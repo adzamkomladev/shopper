@@ -44,22 +44,37 @@ export function SaleScreen({
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  // The completed sale whose scan was refused, so the message goes with that sale and not the next.
+  const [refusedFor, setRefusedFor] = useState<string | null>(null);
   const scanRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  const locked = host !== "connected" || failure !== null || snapshot.receipt !== null;
+  // On the completion view a scan or keyed code starts a new sale only with "clear cart after a sale" on.
+  const startsOnScan = snapshot.receipt !== null && !!snapshot.register?.clearCartAfterSale;
+  const locked = host !== "connected" || failure !== null;
   const rows = rowsOf(view);
   const selected = selectedRow(rows, selectedId);
   const matches = search.matches;
   const active = Math.min(activeIndex, matches.length - 1);
 
+  /** A code arriving on the completion view: it starts the next sale, or is refused out loud. */
+  function codeOnCompletion(code: string) {
+    if (startsOnScan) actions.newSaleWith({ code });
+    else setRefusedFor(snapshot.receipt?.saleId ?? null);
+  }
+
   const field = useScanField({
-    onScan: (code) => actions.add({ code }),
+    onScan: (code) => (snapshot.receipt ? codeOnCompletion(code) : actions.add({ code })),
     onSearch: (text) => {
       setActiveIndex(0);
       actions.search(text);
     },
     onEnter: (text) => {
+      if (snapshot.receipt) {
+        if (text) codeOnCompletion(text);
+        field.clear();
+        return;
+      }
       const match = matches[active];
       // A reply for older text may still be on its way; Enter never adds from it.
       if (match && search.query === text) pick(match);
@@ -158,14 +173,17 @@ export function SaleScreen({
             activeIndex={searching && matches.length > 0 ? active : null}
             describedBy={locked ? bannerId : undefined}
             disabled={locked}
-            focusKey={focusKey}
+            focusKey={focusKey * 2 + Number(snapshot.receipt !== null)}
             fieldProps={{ ...field.props, onKeyDown: onScanKeyDown }}
             fieldRef={scanRef}
             onLookup={focusScan}
             value={field.query}
           />
           {snapshot.receipt ? (
-            <CompletedBasket />
+            <CompletedBasket
+              refused={refusedFor === snapshot.receipt.saleId}
+              startsOnScan={startsOnScan}
+            />
           ) : searching ? (
             <SearchResults
               activeIndex={active}

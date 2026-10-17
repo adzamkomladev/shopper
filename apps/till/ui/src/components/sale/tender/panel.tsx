@@ -145,7 +145,15 @@ export function TenderPanel({
   }
 
   if (snapshot.receipt)
-    return <ReceiptComplete actions={actions} active={active} receipt={snapshot.receipt} />;
+    return (
+      <ReceiptComplete
+        actions={actions}
+        active={active}
+        receipt={snapshot.receipt}
+        print={snapshot.receiptPrint}
+        register={snapshot.register}
+      />
+    );
 
   const total = money(settlement?.total ?? gross);
   const received = settlement ? add(money(settlement.cash), money(settlement.nonCash)) : money(0);

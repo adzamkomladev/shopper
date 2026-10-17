@@ -6,7 +6,7 @@ Electron shell for the till.
   plain Node with `ELECTRON_RUN_AS_NODE=1` and sends `{type:"start", config, renderer:"parent"}`. The
   config path is the first `.json` argument or `SHOPPER_TILL_CONFIG`. When the host reports `ready`,
   it opens a window on `SHOPPER_TILL_UI_URL` (default `http://127.0.0.1:5174/`) with the bridge
-  capability in the URL fragment. Installer and USB come on Day 13.
+  capability in the URL fragment.
 - `src/render.ts` answers the host's `render` messages (`@shopper/hardware/schemas`). A hidden,
   script-less window at the paper's dots width (device scale factor 1) loads `receiptHtml`. PNG uses
   `capturePage`; PDF uses `printToPDF` scaled so 576 dots print as 72 mm, then crops the media box to
@@ -21,5 +21,5 @@ Build with `vp -C apps/till/electron run build` (`dist/main.js`, `electron` exte
 ## Packaging note
 
 The till host loads `satori` and `@resvg/resvg-wasm` (including `index_bg.wasm`) from `node_modules` at runtime
-when it renders receipt PDFs itself (`tooling/build/server.mjs` marks them external). The Day 13 installer must
+when it renders receipt PDFs itself (`tooling/build/server.mjs` marks them external). Any installer must
 ship them next to the host (`files`, and `asarUnpack` for the wasm), or the host cannot render without Electron.

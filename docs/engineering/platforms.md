@@ -65,8 +65,8 @@ Rivet workflow. The live example of this pattern is `nextStoreSequence()`, which
 | The one watchdog               | One **Cron Trigger**                                                            | One Rivet **cron job / schedule**                                | Scheduler port                                  |
 | Receipt PNG/PDF                | **Browser Run** `quickAction` (cloud) · Electron `printToPDF` (till)            | Satori → resvg-wasm → pdf-lib in the binary                      | Renderer port + receipt JSON                    |
 | Abuse protection               | **Turnstile** on public shop forms; **Rate Limiting** binding per IP            | RateLimiter actor (LAN only)                                     | RateLimiter port for tenant limits              |
-| Secrets                        | `wrangler secret` / **Secrets Store**                                           | Sealed box config, never in the repo                             | `@shopper/config` reads both                    |
-| Logs and traces                | **Workers Logs + Traces** (enabled in `wrangler.jsonc`), structured JSON        | Rivet **inspector** + **OpenTelemetry** for actors and workflows | One log shape: `{ event, orgId, storeId, ... }` |
+| Secrets                        | `cf workers secrets` / **Secrets Store**                                        | Sealed box config, never in the repo                             | `@shopper/config` reads both                    |
+| Logs and traces                | **Workers Logs + Traces** (enabled in `cloudflare.config.ts`) , structured JSON | Rivet **inspector** + **OpenTelemetry** for actors and workflows | One log shape: `{ event, orgId, storeId, ... }` |
 | Usage metrics                  | **Workers Analytics Engine** (requests, sales count per tenant)                 | Local counters in PG                                             | Never used for reports                          |
 | Releases                       | **Versions + gradual deployments**, staging env                                 | Signed binary + migration on start                               | [deployment.md](deployment.md)                  |
 
@@ -74,12 +74,11 @@ Rivet workflow. The live example of this pattern is `nextStoreSequence()`, which
 
 Portal = TanStack Start in SPA mode: a prerendered static shell served by Workers Static Assets; one Worker runs only for `/api/*` (the shared Hono API through native Hyperdrive, D1, R2, Durable Object and Workflow bindings) and `/_serverFn/*` (host-only server functions). Backoffice data stays on the shared API so the box SPA and Electron reuse it.
 
-- `wrangler.jsonc` sets `assets.not_found_handling: "single-page-application"` and
-  `run_worker_first: ["/api/*", "/_serverFn/*"]`, so documents and static files never start the
+- `cloudflare.config.ts` sets `assets.notFoundHandling: "single-page-application"` and
+  `runWorkerFirst: ["/api/*", "/_serverFn/*"]`, so documents and static files never start the
   Worker. Every other binding (Hyperdrive, D1, R2, queue, Durable Objects, Workflows) sits on the
   same Worker.
-- Durable Object classes are declared in `wrangler.jsonc` `exports` (`{ "type": "durable-object",
-"storage": "sqlite" }`), never `migrations`: the deployed Workers use the declarative exports flow
+- Durable Object classes are declared in `cloudflare.config.ts` `exports` (`exports.durableObject({ storage: "sqlite" })`), never `migrations`: the deployed Workers use the declarative exports flow
   and Cloudflare rejects a switch back to migrations (code 100403).
 - `worker.ts` stays thin: `cloudflarePortalContext(env)` from `@shopper/adapters-cf/portal` returns
   the request context (`portalRuntime`, `portalHost`, `portalHealth`). Bindings never leave the
@@ -112,7 +111,7 @@ Before using a Cloudflare product that is not in this table, load the `cloudflar
   Images resizing), the shared code must not depend on it. Put it behind an optional port, and have
   the box return the plain result.
 - **Workers runtime rules:** stream unbounded bodies, tie async work to `ctx.waitUntil`, no module-level
-  request state, generated `Env` types (`wrangler types`), `this.env` inside DO classes, compatibility
+  request state, generated `Env` types (`cf workers types`), `this.env` inside DO classes, compatibility
   date kept current with tests run on change.
 - **Serialization differs per transport** (Queues, Workflow step outputs, DO storage, WebSockets).
   Step outputs must be `Json` (the port enforces this). Check limits per API before sending large data.

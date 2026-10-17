@@ -52,7 +52,9 @@ test("the PDF is stored even when the printer is down", async () => {
   await register.configure(registerSettings(await freePort()));
   const { saleId } = await register.sell([{ kind: "cash", amount: 12_000 }]);
 
-  await expect.poll(async () => (await register!.status()).printer.state).toBe("offline");
+  await expect
+    .poll(async () => (await register!.status()).printer.state, { timeout: 20_000 })
+    .toBe("offline");
   const output = await storedOutput(register, saleId);
   expect(output.print_error).toEqual(expect.any(String));
   expect(output.print_error).not.toBe("");

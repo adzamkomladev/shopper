@@ -11,11 +11,7 @@ MAILEROO_FROM=
 # Paystack secret key (sk_test_... in development) for MoMo charges and webhook signatures.
 PAYSTACK_SECRET_KEY=
 
-# R2 direct upload signing; IMPORTS uses the remote dev bucket in wrangler.jsonc.
-# Endpoint format: https://<ACCOUNT_ID>.r2.cloudflarestorage.com
-SHOPPER_S3_ENDPOINT=
-SHOPPER_S3_BUCKET=shopper-imports-dev
-SHOPPER_S3_RECEIPTS_BUCKET=shopper-receipts-staging
-SHOPPER_S3_REGION=auto
+# R2 direct upload signing credentials. The endpoint, bucket names and region are text bindings
+# in cloudflare.config.ts; IMPORTS and RECEIPTS use the remote dev buckets.
 SHOPPER_S3_ACCESS_KEY_ID=
 SHOPPER_S3_SECRET_ACCESS_KEY=

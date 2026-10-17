@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { smoke, type SmokeTarget } from "./smoke";
 
@@ -10,27 +10,16 @@ import { smoke, type SmokeTarget } from "./smoke";
  * `pnpm --filter <app> run deploy:staging`, after that app's `build:staging`.
  */
 const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
-// Pushed only when present in the build environment; otherwise set once with `wrangler secret put`.
-// The portal keeps SHOPPER_AUTH_URL as a plain var in wrangler.jsonc; the edge needs it as a secret.
-const WORKER_SECRETS = [
-  "SHOPPER_AUTH_SECRET",
-  "SHOPPER_BOOTSTRAP_TOKEN",
-  "SHOPPER_LINK_SECRET",
-  "MAILEROO_API_KEY",
-  "MAILEROO_FROM",
-  "PAYSTACK_SECRET_KEY",
-  "SHOPPER_S3_ENDPOINT",
-  "SHOPPER_S3_BUCKET",
-  "SHOPPER_S3_RECEIPTS_BUCKET",
-  "SHOPPER_S3_REGION",
-  "SHOPPER_S3_ACCESS_KEY_ID",
-  "SHOPPER_S3_SECRET_ACCESS_KEY",
-];
 
+interface Binding {
+  type: string;
+  id?: string;
+}
 interface BuiltConfig {
   name: string;
-  targetEnvironment?: string;
-  routes?: Array<string | { pattern: string; custom_domain?: boolean }>;
+  mode: string;
+  domains?: string[];
+  env: Record<string, Binding>;
 }
 
 const [target, ...flags] = process.argv.slice(2);
@@ -40,48 +29,58 @@ const dryRun = flags.includes("--dry-run");
 const app = process.cwd();
 
 const config = readBuiltConfig();
-if (!config.name.endsWith("-staging") || config.targetEnvironment !== "staging")
+if (!config.name.endsWith("-staging") || config.mode !== "staging")
   throw new Error(`Refusing to deploy "${config.name}": the built config is not a staging Worker`);
-if (target === "edge") {
-  if (!process.env.DATABASE_URL)
-    throw new Error("DATABASE_URL (the direct, non-pooled staging URL) is required to migrate");
-  if (!dryRun) {
-    run("pnpm", ["--dir", repoRoot, "run", "db:migrate"]);
-    run("wrangler", ["d1", "migrations", "apply", "CACHE_DB", "--remote", "--env", "staging"]);
-  }
-}
+if (target === "edge" && !dryRun) migrate();
 deployWorker();
 if (!dryRun) await verify();
 
-/** The Vite plugin leaves `.wrangler/deploy/config.json` pointing at the generated config. */
+/** `cf build` writes the resolved Worker and its build mode under `.cloudflare/output/v0`. */
 function readBuiltConfig(): BuiltConfig {
-  const redirect = resolve(app, ".wrangler/deploy/config.json");
-  const { configPath } = JSON.parse(readFileSync(redirect, "utf8")) as { configPath: string };
-  return JSON.parse(readFileSync(resolve(dirname(redirect), configPath), "utf8")) as BuiltConfig;
+  const output = resolve(app, ".cloudflare/output/v0");
+  const read = (path: string) => JSON.parse(readFileSync(resolve(output, path), "utf8"));
+  const worker = read("workers/default/worker.config.json") as Omit<BuiltConfig, "mode">;
+  return { ...worker, mode: read("config.json").buildContext.mode };
 }
 
-function deployWorker() {
-  const secrets = Object.fromEntries(
-    (target === "edge" ? ["SHOPPER_AUTH_URL", ...WORKER_SECRETS] : WORKER_SECRETS)
-      .filter((name) => process.env[name])
-      .map((name) => [name, process.env[name]]),
+function migrate() {
+  if (!process.env.DATABASE_URL)
+    throw new Error("DATABASE_URL (the direct, non-pooled staging URL) is required to migrate");
+  run("pnpm", ["--dir", repoRoot, "run", "db:migrate"]);
+  const database = Object.values(config.env).find((binding) => binding.type === "d1")?.id;
+  if (!database) throw new Error(`No D1 binding in the ${config.name} config to migrate`);
+  const directory = ["--dir", resolve(repoRoot, "packages/db/sqlite/migrations")];
+  run("cf", ["d1", "migrations", "apply", database, ...directory]);
+  // `list` prints the unapplied migrations as JSON: an empty array means the database is current.
+  const pending = JSON.parse(
+    run("cf", ["d1", "migrations", "list", database, ...directory], "pipe"),
   );
-  const args = ["deploy", ...(dryRun ? ["--dry-run"] : [])];
-  if (dryRun || Object.keys(secrets).length === 0) return run("wrangler", args);
+  if (pending.length > 0)
+    throw new Error(`D1 migrations are still pending after apply: ${JSON.stringify(pending)}`);
+}
+
+/** Secrets the Worker declares are pushed when the build environment carries them. */
+function deployWorker() {
+  const args = ["deploy", "--prebuilt", "--mode", "staging", "--no-provision"];
+  if (dryRun) return void run("cf", [...args, "--dry-run"]);
+  const secrets = Object.fromEntries(
+    Object.entries(config.env)
+      .filter(([name, binding]) => binding.type === "secret" && process.env[name])
+      .map(([name]) => [name, process.env[name]]),
+  );
+  if (Object.keys(secrets).length === 0) return void run("cf", args);
   const directory = mkdtempSync(join(tmpdir(), "shopper-secrets-"));
   try {
     const file = join(directory, "secrets.json");
     writeFileSync(file, JSON.stringify(secrets), { mode: 0o600 });
-    run("wrangler", [...args, "--secrets-file", file]);
+    run("cf", [...args, "--secrets-file", file]);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
 }
 
 async function verify() {
-  const domain = config.routes?.flatMap((route) =>
-    typeof route !== "string" && route.custom_domain ? [route.pattern] : [],
-  )[0];
+  const domain = config.domains?.[0];
   if (!domain) throw new Error(`No custom domain in the ${config.name} config to smoke test`);
   const manifest = JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf8")) as {
     version: string;
@@ -92,6 +91,7 @@ async function verify() {
   console.log(`${config.name} deployed and healthy at https://${domain}`);
 }
 
-function run(command: string, args: string[]) {
-  execFileSync(command, args, { cwd: app, stdio: "inherit" });
+function run(command: string, args: string[], stdio: "inherit" | "pipe" = "inherit") {
+  const output = execFileSync(command, args, { cwd: app, stdio, encoding: "utf8" });
+  return output ?? "";
 }

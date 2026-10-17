@@ -8,7 +8,7 @@ for dev services.
 ```sh
 vp install --frozen-lockfile
 vp run services:up             # PostgreSQL 18, Rivet engine, virtual ESC/POS printer
-vp run db:migrate && vp run db:seed
+vp run db:reset                # wipe, migrate and seed (or db:migrate && db:seed)
 cp apps/edge/.dev.vars.example apps/edge/.dev.vars
 vp run dev                     # portal :5173, till-ui :5174, shop :5175, edge :8787 in workerd
 ```
@@ -27,7 +27,34 @@ edge dev Worker on :8787. `apps/edge/.dev.vars` holds the local secrets (`.dev.v
 the template). Portal = TanStack Start in SPA mode: a prerendered static shell served by Workers Static Assets; one Worker runs only for `/api/*` (the shared Hono API through native Hyperdrive, D1, R2, Durable Object and Workflow bindings) and `/_serverFn/*` (host-only server functions). Backoffice data stays on the shared API so the box SPA and Electron reuse it.
 
 Use `vp` for everything. Never call `npm` in this repo: `devEngines` rejects it. Run one-off binaries
-with `vp exec <bin>`.
+with `vp exec <bin>`. Cloudflare is driven with `cf` (`vp exec cf ...`); when unsure which command to
+use, run `cf cli search "<task>"` or `cf docs search "<question>"`. Keep those queries anonymous: no
+names, domains, account or resource ids, tokens. Wrangler stays only for `tail`, `rollback` and
+`secret put`.
+
+## Reset and seed
+
+```sh
+vp run db:reset [--products N] [--confirm <host>]   # drop public + drizzle schemas, migrate, seed
+vp run db:seed  [--products N]           # seed an empty database (no-op once the dev org exists)
+```
+
+Both target `DATABASE_URL` (then `TEST_DATABASE_URL`, then local PG18) and print the host and
+database before acting. Both run freely on localhost. Any other host needs `--confirm <host>`, and
+that host must exactly match the one pg resolves; a `?host=` override counts. Anything that looks
+like production is always refused: `SHOPPER_ENVIRONMENT` containing `prod`, or `prod` in the host or
+database name. Data is disposable everywhere else, so staging is reset the same way. For example:
+`DATABASE_URL=<staging url> vp run db:reset -- --confirm <staging host>`.
+
+The seed goes through the real commands (provisioning, management, owner and user registration,
+catalogue import): the `dev` shop with `--products` catalogue rows (default 20,000), one store, the
+branches Accra Central, Osu and Kumasi Adum, one user per default role (`superadmin`, `admin`,
+`accountant`, `inventory`, `cashier`) and a second shop, `dev-two`, with an owner. Emails are
+`adzamkomla.dev+<300-2000>@gmail.com`, all with password `Admin@12345`. The credentials table prints
+at the end and is written to `.shopper/seed/credentials.md` (gitignored, never commit it).
+
+Not seeded: branch address, phone and TIN (no columns exist), user phone numbers, and till devices
+(enrolment needs a device keypair handshake).
 
 ## Daily commands
 
@@ -64,7 +91,7 @@ exception is build config reading `build/info.ts`.
 - AI tools are not contributors. Never add assistant authors, `Co-Authored-By` trailers,
   generated-by footers or session links to commits or PRs. `.claude/settings.json` disables
   commit/PR attribution and session links.
-- Never commit secrets, `.env`, captures, `dist/`, or generated `.wrangler/` state.
+- Never commit secrets, `.env`, captures, `dist/`, or generated `.wrangler/` or `.cloudflare/` state.
 
 ## AI tooling in this repo
 

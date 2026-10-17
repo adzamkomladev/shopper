@@ -80,7 +80,7 @@ Use the standard library or the platform before writing a helper: `Intl`, `struc
 
 - Strict mode. No `any`, no `as unknown as T`, no non-null `!` without a comment saying why it holds.
 - Types come from the source of truth: `v.InferOutput<typeof schema>`, Drizzle's `$inferSelect`,
-  `wrangler types` for bindings. Never hand-write a type that a schema already describes.
+  `cf workers types` for bindings. Never hand-write a type that a schema already describes.
 - Validate at every trust boundary with Valibot (`import * as v from "valibot"`): HTTP input, IPC
   messages, queue payloads, workflow events, files, env. Never use Zod (guard). Inside the boundary,
   trust the types and do not re-validate.

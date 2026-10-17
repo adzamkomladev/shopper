@@ -9,11 +9,15 @@ Nothing reaches staging or production unless CI is green: `vp check`, `vp run gu
 | ----------- | -------------------------------------------------------------- | --------------------------------------------------- |
 | Dev         | `vp run dev` (workerd locally), Neon dev or local PG18         | `vp -C apps/box run dev` against local PG18 + Rivet |
 | Staging     | `shopper-edge-staging`, https://shopper-api-staging.temtem.dev | A staging box on the LAN                            |
-| Production  | Workers + Neon (per `wrangler.jsonc`)                          | Sealed Bun binary at the customer's site            |
+| Production  | Workers + Neon (per `cloudflare.config.ts`)                    | Sealed Bun binary at the customer's site            |
 
-Infrastructure identifiers live in the Workers' `wrangler.jsonc` files only. Secrets never go in the
-repo, `.env.example` excepted: `wrangler secret put` or Workers Builds secrets for Workers, and the
-sealed config for the box.
+Infrastructure identifiers live in each Worker's `cloudflare.config.ts` only (`apps/edge`,
+`apps/portal`), evaluated per `--mode` (`staging`, anything else is dev). Plain configuration (bucket
+names, the R2 S3 endpoint and region, the portal origin) is a `bindings.text()` value there. Credentials
+are `bindings.secret()` declarations: the name is in the repo, the value never is. Set values with
+`vp exec wrangler secret put <NAME> --name <worker>` or Workers Builds secrets for Workers, and the sealed
+config for the box. A declared secret that is missing on the Worker fails the deploy (code 10057); verify
+names with `vp exec cf workers secrets list --script-name <worker>`.
 
 ## Cloud release
 
@@ -24,25 +28,29 @@ Workers Builds does not wait for GitHub CI, so merge to `main` only when CI is g
 Both Workers run from the repo root. Each app owns two scripts, invoked as `pnpm --filter <app> run
 <script>`:
 
-| Script           | Edge (`@shopper/edge`)                                                                                                                                                       | Portal (`@shopper/portal`)                       |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `build:staging`  | `CLOUDFLARE_ENV=staging vp build`                                                                                                                                            | Same; the build also prerenders the SPA shell    |
-| `deploy:staging` | `tooling/cloudflare/deploy.ts edge`: PG migrations (`DATABASE_URL`, fails fast), D1 migrations (`--env staging`), `wrangler deploy`, optional Worker secrets, smoke test       | `deploy.ts portal`: `wrangler deploy`, smoke test |
+| Script           | Edge (`@shopper/edge`)                                                                                                                                              | Portal (`@shopper/portal`)                                |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `build:staging`  | `cf build --mode staging`                                                                                                                                           | `vp build --mode staging`; the build also prerenders the SPA shell |
+| `deploy:staging` | `tooling/cloudflare/deploy.ts edge`: PG migrations (`DATABASE_URL`, fails fast), `cf d1 migrations apply <id>` then a pending check, `cf deploy --prebuilt`, smoke test | `deploy.ts portal`: `cf deploy --prebuilt`, smoke test    |
 
-- The Vite plugin writes `.wrangler/deploy/config.json`, so plain `wrangler deploy` uploads the
-  generated `dist-staging/.../wrangler.json` (edge) or `dist/server/wrangler.json` (portal) with
-  every binding, var and domain. `deploy.ts` refuses to run unless that config is a `*-staging`
-  Worker. D1 commands do not follow the redirect, hence `--env staging`.
-- `vp` and `wrangler` are repo devDependencies, so `pnpm run` finds them with no bootstrap step.
-  The image's default pnpm is older than ours: set `PNPM_VERSION`.
-- Worker secrets in the build environment are pushed with `wrangler deploy --secrets-file` (listed in
-  `deploy.ts`). Prefer setting them once (below); they persist across deploys.
+- Both builds write `.cloudflare/output/v0` (gitignored): `config.json` (the build mode) and
+  `workers/default/worker.config.json` with every binding, text value, secret declaration and domain.
+  `deploy.ts` refuses to run unless that output is mode `staging` and a `*-staging` Worker. The portal
+  uses `vp build` because `cf build` hands the framework build no `--mode`; the output is the same.
+- D1 migrations run by database id, read from the build output (`cf d1 migrations apply <id> --dir
+  packages/db/sqlite/migrations`); after applying, `deploy.ts` lists again and fails if anything is pending.
+- `vp`, `cf` and `wrangler` are repo devDependencies, so `pnpm run` finds them with no bootstrap step.
+  The image's default pnpm is older than ours: set `PNPM_VERSION`. Set `CF_SEND_TELEMETRY=false` in CI.
+- Worker secrets in the build environment are pushed with `cf deploy --secrets-file`: `deploy.ts` writes
+  the declared secrets that are present in the environment to a private temporary file. Prefer setting them
+  once (below); they persist across deploys.
 - `tooling/cloudflare/smoke.ts <edge|portal> <url>` checks edge `/health` (200 and `Shopper-Version`)
   and portal `/`, `/products` (SPA shell) and `/api/health` (JSON). `deploy.ts` runs it against the
-  custom domain, retrying while it propagates.
+  custom domain from the build output, retrying while it propagates.
 - Production uses Worker **versions with gradual deployment**: ship to a small percentage, watch
   Workers Logs/Traces for errors, then promote.
-- After changing bindings, run `vp -C apps/edge run types` and commit the regenerated types.
+- `worker-configuration.d.ts` in `packages/adapters/cf` holds the workerd runtime types; there are no
+  generated binding types to commit.
 - Bump `compatibility_date` deliberately, in its own PR, with the Workers suite green.
 
 ### Workers Builds settings
@@ -57,16 +65,19 @@ Set under each Worker, **Settings > Build**. Connect `adzamkomladev/shopper` to 
 | Build command                | `pnpm --filter @shopper/edge run build:staging`                                | `pnpm --filter @shopper/portal run build:staging`                       |
 | Deploy command               | `pnpm --filter @shopper/edge run deploy:staging`                               | `pnpm --filter @shopper/portal run deploy:staging`                      |
 | Build watch paths            | `apps/edge/*`, `packages/*`, `tooling/database/*`, `tooling/cloudflare/*`, `pnpm-lock.yaml` | `apps/portal/*`, `packages/*`, `tooling/cloudflare/*`, `pnpm-lock.yaml` |
-| Build variables              | `NODE_VERSION=24.21.0`, `PNPM_VERSION=12.9.1`, `CLOUDFLARE_ENV=staging`        | Same                                                                    |
+| Build variables              | `NODE_VERSION=24.21.0`, `PNPM_VERSION=12.9.1`, `CF_SEND_TELEMETRY=false`           | Same                                                                    |
 | Build secrets                | `DATABASE_URL` (required); Worker secrets (optional)                           | Worker secrets (optional)                                               |
 
 - Watch paths keep docs-only changes (`docs/`, `tests/`, `.github/`) from redeploying. Edge and
   portal both include `packages/*`, so a shared change triggers both.
 - `DATABASE_URL` is the Neon staging **direct, non-pooled** URL, because migrations take locks.
   Hyperdrive uses its own configured connection.
-- Optional Worker secrets as build secrets: `SHOPPER_AUTH_SECRET`, `SHOPPER_LINK_SECRET`,
-  `SHOPPER_BOOTSTRAP_TOKEN`, `PAYSTACK_SECRET_KEY`, `MAILEROO_API_KEY`, `MAILEROO_FROM`,
-  `SHOPPER_S3_*`, plus `SHOPPER_AUTH_URL` on the edge only (the portal has it as a var).
+- Optional Worker secrets as build secrets: the `bindings.secret()` names in `cloudflare.config.ts`
+  (`SHOPPER_AUTH_SECRET`, `SHOPPER_LINK_SECRET`, `PAYSTACK_SECRET_KEY`, `MAILEROO_API_KEY`,
+  `MAILEROO_FROM`, `SHOPPER_S3_ACCESS_KEY_ID`, `SHOPPER_S3_SECRET_ACCESS_KEY`, plus
+  `SHOPPER_AUTH_URL` on the edge only; the portal has it as text). `SHOPPER_BOOTSTRAP_TOKEN` is dev only.
+- No `CLOUDFLARE_ENV` variable: the build mode comes from `--mode staging` in the scripts. Delete a
+  leftover `CLOUDFLARE_ENV` or `SHOPPER_S3_BUCKET` build variable on both triggers.
 
 ### Order and rollback
 
@@ -88,9 +99,19 @@ Set under each Worker, **Settings > Build**. Connect `adzamkomladev/shopper` to 
 2. Connect the repo to both Workers and enter the table above. Keep non-production builds off.
 3. Add the build secret `DATABASE_URL` to the edge.
 4. Set the Worker secrets once, for each Worker, unless pushed as build secrets (the secrets from
-   `apps/edge/.dev.vars.example`): `vp exec wrangler secret put <NAME> --env staging`, run in
-   `apps/edge` or `apps/portal`.
+   `apps/edge/.dev.vars.example`): `vp exec wrangler secret put <NAME> --name shopper-edge-staging` (or
+   `shopper-portal-staging`). Bucket names, the S3 endpoint and region are config, not secrets.
 5. Push a commit that touches the edge and check the build log: migrations, deploy, smoke.
+
+### Toolchain pins and age-rule waiver
+
+`cf` is `1.0.0-beta.17`, `@cloudflare/vite-plugin` is `2.0.0-beta.v.1` (apps/edge and apps/portal) and
+`@cloudflare/vitest-plugin` is `1.4.4` (`tooling/worker/tests`), all exact. The two-week
+package-age rule is waived for this beta toolchain; the waived packages and their transitive Cloudflare
+deps are listed in `minimumReleaseAgeExclude` in `pnpm-workspace.yaml`. `apps/shop` still uses
+`@cloudflare/vite-plugin` 1.62.5 with its own `wrangler.jsonc`; the root `wrangler` (4.147.0) serves
+`tail`, `rollback`, `secret put` and the snapshot test's `unstable_dev`. Re-check after 2026-10-30:
+move to stable releases, drop the waiver entries, and migrate `apps/shop`.
 
 ## Box release
 
@@ -156,9 +177,9 @@ records agree without requiring injected globals in raw TypeScript tooling.
 
 Apply the asset-table migration before deploying the upload API/browser together. The catalogue import endpoint now accepts JSON `{ assetId }`, while `/catalogue/imports/uploads` issues grants; multipart clients must migrate. Sync envelopes, audit hashes and public auth/tax URLs retain their existing contracts.
 
-The dev/staging private imports buckets are `shopper-imports-dev` and `shopper-imports-staging`, bound as `IMPORTS`; existing `shopper-assets-dev`/`shopper-assets-staging` remain bound as `BLOBS` for snapshots. Cloud internal operations use these native bindings. Provision a private imports bucket independently of the existing generated-snapshot R2 binding. Set `SHOPPER_S3_ENDPOINT`, `SHOPPER_S3_BUCKET`, `SHOPPER_S3_ACCESS_KEY_ID`, `SHOPPER_S3_SECRET_ACCESS_KEY` and `SHOPPER_S3_REGION` in Worker secrets/sealed box configuration. R2 uses its S3 API endpoint and region `auto`; RustFS uses the browser-reachable S3 endpoint and configured region. Use a separate Object Read & Write token scoped to each imports bucket; these credentials sign grants only on the cloud. Internal R2 reads/writes/deletes require no S3 credentials. Bind credentials to the imports bucket and required operations. Never expose credentials in browser or log signed URLs.
+The dev/staging private imports buckets are `shopper-imports-dev` and `shopper-imports-staging`, bound as `IMPORTS`; existing `shopper-assets-dev`/`shopper-assets-staging` remain bound as `BLOBS` for snapshots. Cloud internal operations use these native bindings. Provision a private imports bucket independently of the existing generated-snapshot R2 binding. Set `SHOPPER_S3_ACCESS_KEY_ID` and `SHOPPER_S3_SECRET_ACCESS_KEY` as Worker secrets; the endpoint, bucket and region are text bindings in `cloudflare.config.ts` (sealed box configuration holds all five on-prem). R2 uses its S3 API endpoint and region `auto`; RustFS uses the browser-reachable S3 endpoint and configured region. Use a separate Object Read & Write token scoped to each imports bucket; these credentials sign grants only on the cloud. Internal R2 reads/writes/deletes require no S3 credentials. Bind credentials to the imports bucket and required operations. Never expose credentials in browser or log signed URLs.
 
-Receipt PDFs use a second private bucket, bound as `RECEIPTS` in `apps/edge` and `apps/portal` (`shopper-receipts-dev` for dev with `remote: true`, like `IMPORTS`, and `shopper-receipts-staging` for staging). Set `SHOPPER_S3_RECEIPTS_BUCKET` next to the other `SHOPPER_S3_*` values (the box reads the same name; its RustFS bucket is `shopper-receipts-dev`, created by `vp run storage:setup`). Owner action before receipts upload on staging: create the `shopper-receipts-dev` and `shopper-receipts-staging` buckets and an Object Read & Write token scoped to them (or extend the imports token), then set the secret. Until then grants answer 503 and tills keep their PDFs and retry.
+Receipt PDFs use a second private bucket, bound as `RECEIPTS` in `apps/edge` and `apps/portal` (`shopper-receipts-dev` for dev with `dev: { remote: true }`, like `IMPORTS`, and `shopper-receipts-staging` for staging). `SHOPPER_S3_BUCKET`, `SHOPPER_S3_RECEIPTS_BUCKET`, `SHOPPER_S3_ENDPOINT` and `SHOPPER_S3_REGION` are text bindings in `cloudflare.config.ts` (the endpoint is `https://<account id>.r2.cloudflarestorage.com`, the region `auto`); only the access key pair stays a secret. The box reads the same names from its sealed config; its RustFS bucket is `shopper-receipts-dev`, created by `vp run storage:setup`. Owner action before receipts upload on staging: create the `shopper-receipts-dev` and `shopper-receipts-staging` buckets and an Object Read & Write token scoped to them (or extend the imports token). Until then grants answer 503 and tills keep their PDFs and retry.
 
 The new `register.settings` permission (till Register settings, test print, drawer test) is seeded only for orgs created after Day 12. For an existing org, an admin grants it to the owner and manager roles on the portal Roles screen, or the environment's data is reset.
 
@@ -166,8 +187,8 @@ Configure CORS for exact portal/local origins with PUT and Content-Type. Use HTT
 
 Local tests require `vp run services:up` then `vp run storage:setup`; the latter targets only loopback RustFS with fixture credentials. No dev database reset is required for this cleanup; migrations are forward-only. External R2 deployment, real hardware and the future production box embedding are separate release verification.
 
-Portal = TanStack Start in SPA mode: a prerendered static shell served by Workers Static Assets; one Worker runs only for `/api/*` (the shared Hono API through native Hyperdrive, D1, R2, Durable Object and Workflow bindings) and `/_serverFn/*` (host-only server functions). Backoffice data stays on the shared API so the box SPA and Electron reuse it. The staging portal is hosted at `https://shopper-staging.temtem.dev` with its own Hyperdrive, D1, R2, queue, Durable Object and Workflow bindings (the Durable Objects and Workflows live in `shopper-edge-staging`); there is no `API` service binding. Workers Builds runs `deploy:staging` per Worker (see Cloud release); the Vite build's `dist/server/wrangler.json` carries every binding, var, domain and `run_worker_first` rule. Set staging `SHOPPER_AUTH_URL` to the portal origin, and permit that exact origin in imports-bucket PUT/Content-Type CORS. Local dev imports CORS permits `http://localhost:5173` and `http://127.0.0.1:5173`; no wildcard or public bucket access is needed.
+Portal = TanStack Start in SPA mode: a prerendered static shell served by Workers Static Assets; one Worker runs only for `/api/*` (the shared Hono API through native Hyperdrive, D1, R2, Durable Object and Workflow bindings) and `/_serverFn/*` (host-only server functions). Backoffice data stays on the shared API so the box SPA and Electron reuse it. The staging portal is hosted at `https://shopper-staging.temtem.dev` with its own Hyperdrive, D1, R2, queue, Durable Object and Workflow bindings (the Durable Objects and Workflows live in `shopper-edge-staging`); there is no `API` service binding. Workers Builds runs `deploy:staging` per Worker (see Cloud release); the build output (`.cloudflare/output/v0`) carries every binding, text value, domain and `runWorkerFirst` rule. Set staging `SHOPPER_AUTH_URL` to the portal origin, and permit that exact origin in imports-bucket PUT/Content-Type CORS. Local dev imports CORS permits `http://localhost:5173` and `http://127.0.0.1:5173`; no wildcard or public bucket access is needed.
 
 ## Browser Run (receipt rendering)
 
-`apps/edge` and `apps/portal` bind `BROWSER` (`"browser": {"binding": "BROWSER"}`; compatibility date 2026-03-24 or later) and need Browser Run enabled on the Cloudflare account (owner action) before deploy. `quickAction` does not run in local dev; no local code path calls it yet, so the binding is not marked `"remote": true`. Add that flag (it requires a Wrangler login) when a route starts rendering online-order PDFs. Tests use `tooling/browser/server.ts`, a Playwright Chromium stand-in (CI installs Chromium before `vp test --run`).
+`apps/edge` and `apps/portal` bind `BROWSER` (`bindings.browser({})`; compatibility date 2026-03-24 or later). Browser Run is available on every Workers account and needs nothing enabled in the dashboard. `quickAction` does not run in local dev; no local code path calls it yet, so the binding has no `dev: { remote: true }`. Add that (it requires a Cloudflare login) when a route starts rendering online-order PDFs. Tests use `tooling/browser/server.ts`, a Playwright Chromium stand-in (CI installs Chromium before `vp test --run`).

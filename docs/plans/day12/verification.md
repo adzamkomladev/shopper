@@ -29,8 +29,8 @@ Ubuntu with PostgreSQL 18, Rivet, RustFS and the virtual printer from `vp run se
 
 ## Not verified
 
-- No real printer, USB or serial hardware, and no Windows machine. These are Day 13 work.
-- No live Browser Run call; the `BROWSER` binding needs Browser Run enabled on the account.
+- No real printer, USB or serial hardware, and no Windows machine.
+- No live Browser Run call (no route renders through it yet).
 - No live R2 upload. Owner action: create the `shopper-receipts-dev` and `shopper-receipts-staging`
   buckets and a scoped token, then set `SHOPPER_S3_RECEIPTS_BUCKET`.
 - No deployment.

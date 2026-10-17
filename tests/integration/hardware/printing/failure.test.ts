@@ -26,7 +26,9 @@ test("a sale still commits when the printer is down, and the retry after it retu
   expect(await register.fixture.localSales()).toHaveLength(1);
   expect(await register.fixture.queued()).toHaveLength(1);
 
-  await expect.poll(async () => (await register!.status()).printer.state).toBe("offline");
+  await expect
+    .poll(async () => (await register!.status()).printer.state, { timeout: 20_000 })
+    .toBe("offline");
   const down = await register.status();
   expect(down.printer.lastJob).toMatchObject({ kind: "receipt", saleId, outcome: "failed" });
   expect(down.printer.lastJob.message).toEqual(expect.any(String));

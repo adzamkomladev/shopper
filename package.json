@@ -10,6 +10,7 @@
     "services:down": "docker compose -f tooling/docker/compose.dev.yml down",
     "db:migrate": "tsx tooling/database/cli.ts migrate",
     "db:seed": "tsx tooling/database/cli.ts seed",
+    "db:reset": "tsx tooling/database/cli.ts reset",
     "guard": "tsx tooling/guard.ts",
     "e2e": "playwright test",
     "storage:setup": "tsx tooling/storage/setup.ts",
@@ -17,7 +18,6 @@
   },
   "devDependencies": {
     "@babel/core": "7.29.7",
-    "@cloudflare/vite-plugin": "1.62.5",
     "@fontsource/geist": "5.2.9",
     "@playwright/test": "1.64.0",
     "@rolldown/plugin-babel": "0.2.4",

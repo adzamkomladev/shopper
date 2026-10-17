@@ -39,9 +39,16 @@ export default defineConfig({
     { name: "browser-fake", closeBundle: () => browser.stop() },
     cloudflareTest({
       remoteBindings: false,
-      wrangler: { configPath: "../../../apps/edge/wrangler.jsonc" },
+      experimental: { newConfig: { configPath: "../../../apps/edge/cloudflare.config.ts" } },
       miniflare: {
+        // The config names this Worker explicitly; the pool runs it under its own runner name.
+        durableObjects: {
+          STORE_SEQUENCER: { className: "StoreSequencer", useSQLite: true },
+          STORE_HUB: { className: "StoreHub", useSQLite: true },
+        },
         bindings: {
+          // Signing credentials never exist in tests; without an endpoint the grants stay off.
+          SHOPPER_S3_ENDPOINT: "",
           BROWSER_FAKE_URL: browser.baseUrl,
           PAYSTACK_SECRET_KEY: paystack.secretKey,
           PAYSTACK_BASE_URL: paystack.baseUrl,

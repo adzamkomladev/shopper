@@ -6,5 +6,4 @@ export default defineConfig({
   plugins: [cloudflare()],
   define: buildDefines,
   server: { port: 8787 },
-  build: { outDir: process.env.CLOUDFLARE_ENV === "staging" ? "dist-staging" : "dist" },
 });

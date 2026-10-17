@@ -7,12 +7,16 @@ import {
   rolePermission,
   permission,
   member,
+  user,
   deviceCredential,
   cashierPin,
   cashierSession,
+  type ShopperTransaction,
 } from "@shopper/db-pg";
 import { cashierLoginInput } from "../schemas/devices";
 import { digest, minutes, randomToken } from "./commands";
+import { passwordIdentity } from "./password";
+import type { Identity, Rejected } from "./types";
 
 export const loginCommand = defineCommand({
   name: "cashier.login",
@@ -29,44 +33,14 @@ export const loginCommand = defineCommand({
         ),
       );
     if (!registered) return { error: "Invalid device credential", status: 401 as const };
-    const [record] = await tx
-      .select()
-      .from(cashierPin)
-      .where(and(eq(cashierPin.orgId, c.orgId), eq(cashierPin.userId, input.userId)));
-    if (!record) return { error: "Invalid PIN", status: 401 as const };
-    if (record.lockedUntil && record.lockedUntil > new Date())
-      return {
-        error: "PIN temporarily locked",
-        status: 429 as const,
-        attempts: record.attempts,
-        lockedUntil: record.lockedUntil.toISOString(),
-      };
-    const attempts = record.lockedUntil ? 0 : record.attempts;
-    if (!(await verifyPassword({ hash: record.pinHash, password: input.pin }))) {
-      const lockedUntil = attempts + 1 >= 5 ? minutes(15) : null;
-      await tx
-        .update(cashierPin)
-        .set({ attempts: attempts + 1, lockedUntil })
-        .where(eq(cashierPin.id, record.id));
-      return {
-        error: "Invalid PIN",
-        status: 401 as const,
-        attempts: attempts + 1,
-        lockedUntil: lockedUntil?.toISOString() ?? null,
-      };
-    }
-    const [membership] = await tx
-      .select({ roleId: member.roleId, roleName: role.name })
-      .from(member)
-      .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
-      .where(and(eq(member.orgId, c.orgId), eq(member.userId, input.userId)));
-    if (!membership) return { error: "Invalid PIN", status: 401 as const };
-    c.actorId = input.userId.toLowerCase();
-    c.role = membership.roleName;
-    await tx
-      .update(cashierPin)
-      .set({ attempts: 0, lockedUntil: null })
-      .where(eq(cashierPin.id, record.id));
+    const identity =
+      "email" in input
+        ? await passwordIdentity(tx, c.orgId, input)
+        : await pinIdentity(tx, c.orgId, input);
+    if ("error" in identity) return identity;
+    const { userId, name, roleId, roleName } = identity;
+    c.actorId = userId.toLowerCase();
+    c.role = roleName;
     const grants = await tx
       .select({ code: permission.code })
       .from(rolePermission)
@@ -80,7 +54,7 @@ export const loginCommand = defineCommand({
       .where(
         and(
           eq(rolePermission.orgId, c.orgId),
-          eq(rolePermission.roleId, membership.roleId),
+          eq(rolePermission.roleId, roleId),
           eq(permission.tillAllowed, true),
         ),
       );
@@ -94,12 +68,12 @@ export const loginCommand = defineCommand({
         orgId: c.orgId,
         deviceId: input.deviceId,
         branchId: c.branchId!,
-        userId: input.userId,
-        roleId: membership.roleId,
+        userId,
+        roleId: roleId,
         tokenHash: await digest(token),
         issuedAt,
         permissions,
-        roleName: membership.roleName,
+        roleName: roleName,
         expiresAt,
       })
       .returning();
@@ -110,10 +84,60 @@ export const loginCommand = defineCommand({
       issuedAt,
       expiresAt,
       permissions,
-      roleName: membership.roleName,
+      roleName: roleName,
+      userId,
+      userName: name,
       attempts: 0,
       lockedUntil: null,
     };
   },
-  audit: (input, result) => ({ userId: input.userId, success: !("error" in result) }),
+  audit: (input, result) => ({
+    userId: "userId" in input ? input.userId : "userId" in result ? result.userId : null,
+    success: !("error" in result),
+  }),
 });
+
+async function pinIdentity(
+  tx: ShopperTransaction,
+  orgId: string,
+  input: Extract<v.InferOutput<typeof cashierLoginInput>, { pin: string }>,
+): Promise<Identity | Rejected> {
+  const [record] = await tx
+    .select()
+    .from(cashierPin)
+    .where(and(eq(cashierPin.orgId, orgId), eq(cashierPin.userId, input.userId)));
+  if (!record) return { error: "Invalid PIN", status: 401 };
+  if (record.lockedUntil && record.lockedUntil > new Date())
+    return {
+      error: "PIN temporarily locked",
+      status: 429,
+      attempts: record.attempts,
+      lockedUntil: record.lockedUntil.toISOString(),
+    };
+  const attempts = record.lockedUntil ? 0 : record.attempts;
+  if (!(await verifyPassword({ hash: record.pinHash, password: input.pin }))) {
+    const lockedUntil = attempts + 1 >= 5 ? minutes(15) : null;
+    await tx
+      .update(cashierPin)
+      .set({ attempts: attempts + 1, lockedUntil })
+      .where(eq(cashierPin.id, record.id));
+    return {
+      error: "Invalid PIN",
+      status: 401,
+      attempts: attempts + 1,
+      lockedUntil: lockedUntil?.toISOString() ?? null,
+    };
+  }
+  const [membership] = await tx
+    .select({ roleId: member.roleId, roleName: role.name, name: user.name })
+    .from(member)
+    .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
+    .innerJoin(user, and(eq(user.orgId, member.orgId), eq(user.id, member.userId)))
+    .where(and(eq(member.orgId, orgId), eq(member.userId, input.userId)));
+  if (!membership) return { error: "Invalid PIN", status: 401 };
+  await tx
+    .update(cashierPin)
+    .set({ attempts: 0, lockedUntil: null })
+    .where(eq(cashierPin.id, record.id));
+  return { userId: input.userId, ...membership };
+}

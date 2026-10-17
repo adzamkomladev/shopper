@@ -134,7 +134,7 @@ export function createDeviceService(
         { orgId: d.orgId, deviceId: d.id, branchId: d.branchId, appVersion },
         data,
       );
-      if (scope && "attempts" in result) {
+      if (scope && "userId" in data && "attempts" in result) {
         try {
           await scope.put(
             d.orgId,
@@ -157,6 +157,8 @@ export function createDeviceService(
         expiresAt: result.expiresAt!,
         permissions: result.permissions!,
         roleName: result.roleName!,
+        userId: result.userId!,
+        userName: result.userName!,
       };
     },
     revoke: (p: DevicePrincipal, input: unknown) =>

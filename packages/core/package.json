@@ -36,6 +36,10 @@
       "types": "./src/payments/paystack/index.ts",
       "default": "./src/payments/paystack/index.ts"
     },
+    "./stock": {
+      "types": "./src/stock/index.ts",
+      "default": "./src/stock/index.ts"
+    },
     "./sales": {
       "types": "./src/sales/index.ts",
       "default": "./src/sales/index.ts"

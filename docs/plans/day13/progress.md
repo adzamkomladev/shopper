@@ -14,7 +14,7 @@ Windows-only work is in [windows-handoff.md](windows-handoff.md) (written last).
 | S3 Username/password sign-in, online/offline | pending |
 | S4 Back-office proxy on the host             | pending |
 | S5 Register day report                       | pending |
-| S6 Stock count and receiving                 | pending |
+| S6 Stock count and receiving                 | server done, till side pending |
 | S7 Serial and spooler drivers                | pending |
 | S8 Device kinds in settings and host wiring  | pending |
 | S9 Customer display window                   | pending |
@@ -35,3 +35,4 @@ Windows-only work is in [windows-handoff.md](windows-handoff.md) (written last).
 
 ## Verification log
 - S7: `vp test --run tests/integration/hardware` 52/52 (8 new). Spooler proven only with a fake shell; real PowerShell path is in the Windows handoff.
+- S6a: PG 0019_stock_documents, acceptStockDocument (count/receipt), POST /sync/stock; 10 new tests, 95 related green. tillPermissions gain report.read, stock.read, stock.write.

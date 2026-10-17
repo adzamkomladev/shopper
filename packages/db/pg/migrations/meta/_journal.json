@@ -134,6 +134,13 @@
       "when": 1792231200002,
       "tag": "0018_receipts",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792231200003,
+      "tag": "0019_stock_documents",
+      "breakpoints": true
     }
   ]
 }

@@ -6,17 +6,17 @@ The branch is pushed once, at the end, then goes to `main` as one PR.
 
 ## Status
 
-| Slice                                             | State | Commit |
-| ------------------------------------------------- | ----- | ------ |
-| S0 Setup and plan docs                            | done  | S0     |
-| S1 ESC/POS encoder, profiles, TCP driver          | done  | S1     |
-| S2 Renderer port, receipt component, box renderer | done  | S2     |
-| S3 Cloud Browser Run renderer                     | done  | S3     |
-| S4 Electron shell and printToPDF                  | done  | S4     |
-| S5 Register settings and printing on sale         | done  | S5     |
-| S6 Till receipt PDF and upload                    | done  | S6     |
-| S7 Till Settings screen                           | done  | S7     |
-| S8 Reprint, preview, completion print status      | done  | S8     |
+| Slice                                             | State       | Commit |
+| ------------------------------------------------- | ----------- | ------ |
+| S0 Setup and plan docs                            | done        | S0     |
+| S1 ESC/POS encoder, profiles, TCP driver          | done        | S1     |
+| S2 Renderer port, receipt component, box renderer | done        | S2     |
+| S3 Cloud Browser Run renderer                     | done        | S3     |
+| S4 Electron shell and printToPDF                  | done        | S4     |
+| S5 Register settings and printing on sale         | done        | S5     |
+| S6 Till receipt PDF and upload                    | done        | S6     |
+| S7 Till Settings screen                           | done        | S7     |
+| S8 Reprint, preview, completion print status      | done        | S8     |
 | S9 Docs, review, push, PR, merge, Notion          | in progress |        |
 
 ## Current slice
@@ -214,3 +214,5 @@ S9. Next step: docs pass, full verification (all suites, build, e2e), full-diff 
       The metadata test now reads the latest snapshot.
     - The portal build test expected two R2 buckets; `RECEIPTS` makes three.
   - Till-ui connection suite: 160/160.
+- PR: https://github.com/adzamkomladev/shopper/pull/19. First CI run: e2e passed on both the push and
+  pull-request runs. Foundation failed on `vp check` formatting of this file, which is fixed.

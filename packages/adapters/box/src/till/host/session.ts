@@ -4,6 +4,8 @@ import { buildInfo } from "@shopper/config";
 import {
   failStaffSignIn,
   hostTime,
+  LOCK_MS,
+  MAX_FAILURES,
   readStaff,
   readStoredSession,
   signInStaff,
@@ -18,8 +20,6 @@ import { checkVerifier, hashVerifier } from "./session/verifier";
 
 // ponytail: offline sign-in knobs; make them register settings if a shop needs different ones.
 const VERIFIER_DAYS = 7;
-const MAX_FAILURES = 5;
-const LOCK_MS = 15 * 60_000;
 const OFFLINE_SESSION_MS = 8 * 3_600_000;
 /**
  * What an offline sign-in without a valid server session may do. Accepted limit: a role change, a revoked

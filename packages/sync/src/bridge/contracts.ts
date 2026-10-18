@@ -26,3 +26,4 @@ export {
   type SettingsStatus,
 } from "../schemas/bridge/devices";
 export { sessionRequestTypes } from "../schemas/bridge/session";
+export { approval, approvalRequestTypes, type Approval } from "../schemas/bridge/approvals";

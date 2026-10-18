@@ -33,7 +33,12 @@ export class TillError extends Error {
       | "SIGN_IN_LOCKED"
       | "OFFLINE_UNAVAILABLE"
       | "DEVICE_REJECTED"
-      | "SIGN_IN_UNAVAILABLE",
+      | "SIGN_IN_UNAVAILABLE"
+      | "APPROVAL_REQUIRED"
+      | "APPROVAL_FORBIDDEN"
+      | "APPROVAL_OFFLINE"
+      | "APPROVAL_LOCKED"
+      | "APPROVAL_INVALID",
     message: string,
   ) {
     super(message);

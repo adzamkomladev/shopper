@@ -7,3 +7,4 @@ export { createLiveWorker, type LiveSocket, type LiveMode } from "./live";
 export { createReceiptUploadWorker } from "./uploads/receipts";
 export { createStockUploadWorker } from "./uploads/stock";
 export type { ReceiptUploadOptions, StockUploadOptions } from "./uploads/types";
+export { refreshApprovers } from "./pull/approvers";

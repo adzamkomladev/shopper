@@ -6,6 +6,7 @@ export * from "./schemas/till/audit";
 export * from "./till";
 export * from "./schemas/till/session";
 export * from "./schemas/till/staff";
+export * from "./schemas/till/approvers";
 export * from "./schemas/till/drafts";
 export * from "./schemas/till/stock";
 export * from "./schemas/till/payments";

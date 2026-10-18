@@ -125,9 +125,17 @@ CREATE TABLE till_staff (
  PRIMARY KEY(org_id,user_id), UNIQUE(org_id,email)
 );`;
 
+const approvers = `
+CREATE TABLE till_approver (
+ org_id TEXT NOT NULL, user_id TEXT NOT NULL, name TEXT NOT NULL, pin_hash TEXT NOT NULL, permissions TEXT NOT NULL,
+ attempts INTEGER NOT NULL DEFAULT 0, locked_until INTEGER, refreshed_at TEXT NOT NULL,
+ PRIMARY KEY(org_id,user_id)
+);`;
+
 export const tillMigrations: string[] = [
   `${initial}${lookup}${drafts}${payments}`,
   registers,
   stockDocuments,
   staff,
+  approvers,
 ];

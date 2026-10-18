@@ -86,6 +86,13 @@ export function createDispatch(host: Host) {
         case "receipt.print":
         case "printers.list":
           return await host.devices(request);
+        case "approvers.list":
+          return {
+            id: request.id,
+            type: "result",
+            kind: "approvers",
+            ...(await host.approvals.list(request.permission)),
+          };
         case "session.signIn":
           await host.session.signIn(request.email, request.password);
           await host.publishStatus();

@@ -2,6 +2,7 @@ import type { TillDatabase } from "@shopper/db-sqlite";
 import type { BridgeRequest, HostStatus } from "@shopper/sync/bridge";
 import type { HostConfiguration } from "./config";
 import type { createDevices } from "./devices";
+import type { createApprovals } from "./approvals";
 import type { createHostPayments } from "./payments";
 import type { createPeripherals } from "./peripherals";
 import type { createHostReceipts } from "./receipts";
@@ -40,4 +41,5 @@ export type Host = {
   receipts: ReturnType<typeof createHostReceipts>;
   peripherals: ReturnType<typeof createPeripherals>;
   session: ReturnType<typeof createHostSession>;
+  approvals: ReturnType<typeof createApprovals>;
 };

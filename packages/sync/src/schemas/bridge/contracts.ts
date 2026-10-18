@@ -6,6 +6,7 @@ import { basketReplies, basketRequests, draftView } from "./basket";
 import { momoView } from "@shopper/core/payments";
 import { purchaseReplies, purchaseRequests } from "./purchases";
 import { deviceRequests, printerList, printerStatus, scanMessage, settingsStatus } from "./devices";
+import { approvalReplies, approvalRequests } from "./approvals";
 import { sessionRequests, sessionUser } from "./session";
 
 const id = uuidV7Schema;
@@ -65,6 +66,7 @@ export const bridgeRequest = v.pipe(
     ...purchaseRequests,
     ...deviceRequests,
     ...sessionRequests,
+    ...approvalRequests,
   ]),
   v.check(
     (request) =>
@@ -83,6 +85,7 @@ export const bridgeMessage = v.union([
   }),
   ...basketReplies,
   ...purchaseReplies,
+  ...approvalReplies,
   printerList,
   scanMessage,
   v.strictObject({

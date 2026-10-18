@@ -19,6 +19,7 @@ import { createDispatch } from "./dispatch";
 import { createHostReceipts } from "./receipts";
 import { createPeripherals } from "./peripherals";
 import { createHostSession } from "./session";
+import { createApprovals } from "./approvals";
 import { mountDesktop } from "./http/desktop";
 import type { Host } from "./types";
 import { openHostTransport, error } from "./transport";
@@ -161,6 +162,7 @@ export async function startTillHost(
     devices: createDevices({ database, config, receipts, peripherals, status }),
     peripherals,
     session,
+    approvals: createApprovals({ database, config }),
     status,
     publishStatus,
     sync: () => worker.trigger(),

@@ -92,7 +92,8 @@ async function transitionReads(page: Page) {
       });
       host.onMessage((raw) => {
         const reply = JSON.parse(String(raw)) as { id?: string };
-        if (reply.id !== delayedRead) return route.send(raw);
+        // Broadcasts carry no id; only the reply to the open-basket read is held.
+        if (!delayedRead || reply.id !== delayedRead) return route.send(raw);
         delayedRead = undefined;
         if (transition === "hold") {
           heldStarted();

@@ -1,5 +1,5 @@
 // The settings screen against a real register host: a serial printer saved from the screen takes a test print over a pty.
-import { expect, test, type TestInfo } from "@playwright/test";
+import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { expectNoSeriousAxe } from "../../../../support/e2e";
 import { startSerialPair } from "../../../../support/hardware/serial";
 import { startSaleScenario } from "../../../../support/till/sale/scenario";
@@ -21,6 +21,7 @@ test.afterEach(async () => {
 test("a serial printer is saved from the screen and Test print reaches the port", async ({
   page,
 }, testInfo) => {
+  await hideListedPorts(page);
   await page.goto(scenario!.url);
   await expect(page.getByRole("region", { name: "Host connection" })).toContainText("Connected");
   await page.keyboard.press("S");
@@ -33,7 +34,7 @@ test("a serial printer is saved from the screen and Test print reaches the port"
   await page.getByRole("combobox", { name: "Connection", exact: true }).click();
   await page.getByRole("option", { name: "Serial port" }).click();
   await expect(page.getByRole("button", { name: /^Refresh list/ })).toBeVisible();
-  // A pty is not in the host's port list, so the field is the typed fallback.
+  // A pty is not in any host's port list, so with none listed the field is the typed fallback.
   const port = page.getByRole("textbox", { name: "Port", exact: true });
   await expect(port).toBeVisible();
   await expect(
@@ -53,6 +54,21 @@ test("a serial printer is saved from the screen and Test print reaches the port"
   await expectNoSeriousAxe(page);
   await shoot(page, testInfo, "settings-serial-live");
 });
+
+/** The test box may list real ports (a Linux container has ttyS0-31); this spec needs the host to list none. */
+async function hideListedPorts(page: Page) {
+  await page.routeWebSocket(
+    (url) => url.pathname.endsWith("/bridge"),
+    (route) => {
+      const host = route.connectToServer();
+      route.onMessage((message) => host.send(message));
+      host.onMessage((message) => {
+        const reply = JSON.parse(String(message)) as { kind?: string };
+        route.send(reply.kind === "printers" ? JSON.stringify({ ...reply, serial: [] }) : message);
+      });
+    },
+  );
+}
 
 function appOrigin(testInfo: TestInfo) {
   const baseURL = testInfo.project.use.baseURL;

@@ -121,7 +121,7 @@ test("search adds by name, F4 sets a quantity, Delete removes and an unknown sca
 test("a real till splits cash, completes the balance and finds its receipt in Purchases", async ({
   page,
 }) => {
-  const completion = await delayFirstReply(page, "sale.complete", 1500);
+  const completion = await delayFirstReply(page, "sale.complete");
   await openSale(page);
   await scan(page, scenario!.products[0]!.barcode);
   await openCheckout(page);
@@ -134,6 +134,8 @@ test("a real till splits cash, completes the balance and finds its receipt in Pu
   await page.keyboard.press("F2");
   await expect(field(page)).toBeFocused();
   await scan(page, scenario!.products[1]!.barcode);
+  // The completion reply is held until the scan has been refused, however slow the machine is.
+  completion.release();
   await expect(page.getByRole("region", { name: "Sale receipt" })).toContainText("GH₵ 0.00");
   await expectNoSeriousAxe(page);
   await shoot(page, test.info(), "completed-sale");
@@ -172,8 +174,11 @@ async function scan(page: Page, code: string) {
   );
 }
 
-async function delayFirstReply(page: Page, requestType: string, delayMs: number) {
+/** Holds the first reply to `requestType` until `release()`, or for `delayMs` when given. */
+async function delayFirstReply(page: Page, requestType: string, delayMs?: number) {
   let signal = () => {};
+  let release = () => {};
+  const released = new Promise<void>((resolve) => (release = resolve));
   const started = new Promise<void>((resolve) => (signal = resolve));
   await page.routeWebSocket(
     (url) => url.pathname.endsWith("/bridge"),
@@ -191,15 +196,17 @@ async function delayFirstReply(page: Page, requestType: string, delayMs: number)
       });
       host.onMessage((message) => {
         const reply = JSON.parse(String(message)) as { id?: string };
-        if (reply.id === delayedRequest) {
+        // Broadcasts carry no id; only the reply to the request is held.
+        if (delayedRequest && reply.id === delayedRequest) {
           delayedRequest = undefined;
           signal();
-          setTimeout(() => route.send(message), delayMs);
+          if (delayMs !== undefined) setTimeout(release, delayMs);
+          void released.then(() => route.send(message));
         } else route.send(message);
       });
     },
   );
-  return { started };
+  return { started, release };
 }
 
 async function shoot(page: Page, testInfo: TestInfo, name: string) {

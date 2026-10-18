@@ -6,6 +6,7 @@ import { basketReplies, basketRequests, draftView } from "./basket";
 import { momoView } from "@shopper/core/payments";
 import { purchaseReplies, purchaseRequests } from "./purchases";
 import { deviceRequests, printerList, printerStatus, scanMessage, settingsStatus } from "./devices";
+import { sessionRequests, sessionUser } from "./session";
 
 const id = uuidV7Schema;
 
@@ -26,6 +27,7 @@ export const hostStatus = v.strictObject({
   appVersion: v.pipe(v.string(), v.minLength(1)),
   protocol: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
   permissions: v.optional(v.array(v.string())),
+  user: v.optional(v.nullable(sessionUser)),
   settings: settingsStatus,
   printer: printerStatus,
   registerCode: v.string(),
@@ -62,6 +64,7 @@ export const bridgeRequest = v.pipe(
     ...basketRequests,
     ...purchaseRequests,
     ...deviceRequests,
+    ...sessionRequests,
   ]),
   v.check(
     (request) =>

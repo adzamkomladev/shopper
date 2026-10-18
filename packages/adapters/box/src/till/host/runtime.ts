@@ -18,6 +18,9 @@ import { createDevices } from "./devices";
 import { createDispatch } from "./dispatch";
 import { createHostReceipts } from "./receipts";
 import { createPeripherals } from "./peripherals";
+import { createHostSession } from "./session";
+import { mountDesktop } from "./http/desktop";
+import type { Host } from "./types";
 import { openHostTransport, error } from "./transport";
 
 export async function startTillHost(
@@ -74,7 +77,7 @@ export async function startTillHost(
     config,
     broadcast: (message) => transport?.broadcast(message),
   });
-  const permissions = config.session?.permissions ?? [];
+  const session = createHostSession({ database, config });
   const registerCode = config.receiptCodes
     ? `${config.receiptCodes.branchCode}-${config.receiptCodes.deviceCode}`
     : "";
@@ -86,8 +89,16 @@ export async function startTillHost(
         .where(and(eq(outbox.orgId, identity.orgId), eq(outbox.deviceId, identity.deviceId))),
     );
     const settings = await readRegisterSettings(database, identity);
+    const permissions = config.session?.permissions ?? [];
+    const signedIn = session.current();
     lastKnownStatus = {
       ...(await worker.status()),
+      user: signedIn && {
+        userId: signedIn.userId,
+        name: signedIn.name,
+        permissions: signedIn.permissions,
+        offline: signedIn.offline,
+      },
       pendingCount: rows.filter((row) => !row.blockedReason).length,
       blockedCount: rows.filter((row) => row.blockedReason).length,
       identity,
@@ -142,18 +153,21 @@ export async function startTillHost(
     send(message);
     transport?.broadcast(message);
   }
-  const dispatch = createDispatch({
+  const host: Host = {
     database,
     config,
     payments,
     receipts,
     devices: createDevices({ database, config, receipts, peripherals, status }),
     peripherals,
+    session,
     status,
     publishStatus,
     sync: () => worker.trigger(),
+    uploadStock: () => worker.uploadStock(),
     close: () => void close(),
-  });
+  };
+  const dispatch = createDispatch(host);
   const capability = randomBytes(32).toString("hex");
   try {
     transport = await openHostTransport({
@@ -163,6 +177,7 @@ export async function startTillHost(
       capability,
       protocol: buildInfo.syncProtocol,
       dispatch,
+      mount: (app, port) => mountDesktop(app, { host, capability, port }),
     });
   } catch (caught) {
     await database.close();

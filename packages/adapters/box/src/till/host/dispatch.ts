@@ -17,10 +17,15 @@ export function createDispatch(host: Host) {
     ...identity,
     appVersion: buildInfo.version,
     receiptCodes: config.receiptCodes,
-    receiptReference: {
-      orgName: identity.shopName,
-      deviceName: identity.registerName,
-      ...config.receiptReference,
+    // Read per sale: the cashier on the receipt is whoever is signed in now.
+    get receiptReference() {
+      const name = host.session.current()?.name;
+      return {
+        orgName: identity.shopName,
+        deviceName: identity.registerName,
+        ...config.receiptReference,
+        ...(name ? { cashierName: name } : {}),
+      };
     },
   };
   const { basket, receiptFor } = createBasket(host, localConfig);
@@ -81,6 +86,14 @@ export function createDispatch(host: Host) {
         case "receipt.print":
         case "printers.list":
           return await host.devices(request);
+        case "session.signIn":
+          await host.session.signIn(request.email, request.password);
+          await host.publishStatus();
+          break;
+        case "session.signOut":
+          await host.session.signOut();
+          await host.publishStatus();
+          break;
         case "shutdown":
           if (!trusted)
             return error(request, "FORBIDDEN", "This action requires the private till connection");

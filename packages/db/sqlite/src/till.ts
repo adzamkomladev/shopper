@@ -118,8 +118,16 @@ CREATE TABLE stock_document (
  blocked_code TEXT, blocked_reason TEXT, accepted_at TEXT, result TEXT
 );`;
 
+const staff = `
+CREATE TABLE till_staff (
+ org_id TEXT NOT NULL, user_id TEXT NOT NULL, email TEXT NOT NULL, name TEXT NOT NULL, verifier TEXT NOT NULL,
+ attempts INTEGER NOT NULL DEFAULT 0, locked_until INTEGER, verified_at TEXT NOT NULL, last_session_id TEXT,
+ PRIMARY KEY(org_id,user_id), UNIQUE(org_id,email)
+);`;
+
 export const tillMigrations: string[] = [
   `${initial}${lookup}${drafts}${payments}`,
   registers,
   stockDocuments,
+  staff,
 ];

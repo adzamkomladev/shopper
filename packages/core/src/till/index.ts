@@ -48,3 +48,4 @@ export {
   markStockDocumentRejected,
   queueStockDocument,
 } from "./stock";
+export { failStaffSignIn, readStaff, readStoredSession, signInStaff, signOutStaff } from "./staff";

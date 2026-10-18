@@ -47,6 +47,8 @@ const PUBLISHED_ROUTES = new Set([
   "verify-registration",
   "/accept-invitation",
   "accept-invitation",
+  "/auth/get-session",
+  "/auth/sign-out",
 ]);
 
 export function architectureRules(file: string, program: unknown): Violation[] {

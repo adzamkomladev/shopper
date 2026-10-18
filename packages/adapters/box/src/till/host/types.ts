@@ -5,6 +5,7 @@ import type { createDevices } from "./devices";
 import type { createHostPayments } from "./payments";
 import type { createPeripherals } from "./peripherals";
 import type { createHostReceipts } from "./receipts";
+import type { createHostSession } from "./session";
 
 export type Basket = Extract<
   BridgeRequest,
@@ -32,9 +33,11 @@ export type Host = {
   status: () => Promise<HostStatus>;
   publishStatus: () => Promise<void>;
   sync: () => Promise<void>;
+  uploadStock: () => Promise<void>;
   close: () => void;
   payments: ReturnType<typeof createHostPayments>;
   devices: ReturnType<typeof createDevices>;
   receipts: ReturnType<typeof createHostReceipts>;
   peripherals: ReturnType<typeof createPeripherals>;
+  session: ReturnType<typeof createHostSession>;
 };

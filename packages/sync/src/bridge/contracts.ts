@@ -25,3 +25,4 @@ export {
   type PrinterStatus,
   type SettingsStatus,
 } from "../schemas/bridge/devices";
+export { sessionRequestTypes } from "../schemas/bridge/session";

@@ -28,7 +28,12 @@ export class TillError extends Error {
       | "REVISION_STALE"
       | "PRINTER_UNCONFIGURED"
       | "PRINTER_OFFLINE"
-      | "LINE_UNKNOWN",
+      | "LINE_UNKNOWN"
+      | "INVALID_CREDENTIALS"
+      | "SIGN_IN_LOCKED"
+      | "OFFLINE_UNAVAILABLE"
+      | "DEVICE_REJECTED"
+      | "SIGN_IN_UNAVAILABLE",
     message: string,
   ) {
     super(message);

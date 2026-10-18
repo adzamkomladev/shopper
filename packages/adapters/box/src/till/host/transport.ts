@@ -9,6 +9,7 @@ import {
   basketRequestTypes,
   bridgeRequest,
   deviceRequestTypes,
+  sessionRequestTypes,
   type BridgeMessage,
   type BridgeRequest,
 } from "@shopper/sync/bridge";
@@ -23,6 +24,7 @@ const browserRequests: readonly string[] = [
   "sales.read",
   ...basketRequestTypes,
   ...deviceRequestTypes,
+  ...sessionRequestTypes,
 ];
 export async function openHostTransport(options: {
   port: number;
@@ -31,11 +33,14 @@ export async function openHostTransport(options: {
   capability: string;
   protocol: number;
   dispatch: Dispatch;
+  /** Mounts the desktop and back-office routes ahead of the static UI. */
+  mount?: (app: Hono, port: () => number) => void;
 }) {
   const app = new Hono();
   let port = options.port;
   app.use(loopbackGuard(() => port));
   app.get("/health", (c) => c.json({ status: "ok" }));
+  options.mount?.(app, () => port);
   if (options.ui) app.get("*", serveTillUi(options.ui));
   const server = serve({ fetch: app.fetch, port: options.port, hostname: "127.0.0.1" });
   await new Promise<void>((resolve, reject) => {

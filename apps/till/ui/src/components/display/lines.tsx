@@ -1,6 +1,6 @@
 import { cn } from "cn";
 import { formatGHS, money } from "@shopper/money";
-import { formatQuantity } from "../../sale/quantity";
+import { formatQuantity } from "@shopper/utils";
 import type { PricedRow } from "../../sale/types";
 
 /**

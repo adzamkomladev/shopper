@@ -1,6 +1,12 @@
 import "./styles.css";
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
+import {
+  RegisterDashboard,
+  RegisterInventory,
+  RegisterProvider,
+  RegisterReports,
+} from "@shopper/backoffice/register";
 import { AppBackdrop } from "@shopper/ui/components/app-backdrop";
 import { Toaster } from "@shopper/ui/components/sonner";
 import { ShortcutRoot } from "@shopper/ui/hooks/shortcuts";
@@ -72,49 +78,62 @@ function Workspace({ onRegister }: { onRegister: () => void }) {
     if (next === "sale") setSaleFocus((value) => value + 1);
     if (next === "purchases") purchaseActions.list({ ...purchases.filters, page: 1 });
   }
+  const link = shellLink(connection.host, status);
   return (
-    <ShellFrame
-      link={shellLink(connection.host, status)}
-      onSignOut={() => void signOut()}
-      onView={navigate}
-      permissions={permissions}
-      registerName={status?.identity.registerName ?? ""}
-      user={status?.user?.name ?? ""}
-      view={tab}
-    >
-      {can("report.read") && (
-        <RegisterSlot active={tab === "dashboard"} slot="register-dashboard" title="Dashboard" />
-      )}
-      {can("stock.read") && (
-        <RegisterSlot active={tab === "inventory"} slot="register-inventory" title="Inventory" />
-      )}
-      {can("report.read") && (
-        <RegisterSlot active={tab === "reports"} slot="register-reports" title="Sales Reports" />
-      )}
-      {can("sale.create") && (
-        <div hidden={tab !== "sale"} className="h-full min-h-0">
-          <SaleScreen
-            active={tab === "sale"}
-            actions={saleActions}
-            focusKey={saleFocus}
-            onPurchases={() => navigate("purchases")}
-            onRegister={onRegister}
-            snapshot={sale}
+    <RegisterProvider>
+      <ShellFrame
+        link={link}
+        onSignOut={() => void signOut()}
+        onView={navigate}
+        permissions={permissions}
+        registerName={status?.identity.registerName ?? ""}
+        user={status?.user?.name ?? ""}
+        view={tab}
+      >
+        {can("report.read") && (
+          <RegisterSlot active={tab === "dashboard"} slot="register-dashboard" title="Dashboard">
+            <RegisterDashboard online={link.online} onOpen={navigate} />
+          </RegisterSlot>
+        )}
+        {can("stock.read") && (
+          <RegisterSlot active={tab === "inventory"} slot="register-inventory" title="Inventory">
+            <RegisterInventory online={link.online} />
+          </RegisterSlot>
+        )}
+        {can("report.read") && (
+          <RegisterSlot active={tab === "reports"} slot="register-reports" title="Sales Reports">
+            <RegisterReports online={link.online} />
+          </RegisterSlot>
+        )}
+        {can("sale.create") && (
+          <div hidden={tab !== "sale"} className="h-full min-h-0">
+            <SaleScreen
+              active={tab === "sale"}
+              actions={saleActions}
+              focusKey={saleFocus}
+              onPurchases={() => navigate("purchases")}
+              onRegister={onRegister}
+              snapshot={sale}
+            />
+          </div>
+        )}
+        <div hidden={tab !== "purchases"} className="h-full min-h-0">
+          <PurchasesScreen
+            active={tab === "purchases"}
+            actions={purchaseActions}
+            output={purchaseOutput(settings.current, sale.permissions)}
+            snapshot={purchases}
           />
         </div>
-      )}
-      <div hidden={tab !== "purchases"} className="h-full min-h-0">
-        <PurchasesScreen
-          active={tab === "purchases"}
-          actions={purchaseActions}
-          output={purchaseOutput(settings.current, sale.permissions)}
-          snapshot={purchases}
-        />
-      </div>
-      <div hidden={tab !== "settings"} className="h-full min-h-0">
-        <SettingsScreen active={tab === "settings"} actions={settingsActions} snapshot={settings} />
-      </div>
-    </ShellFrame>
+        <div hidden={tab !== "settings"} className="h-full min-h-0">
+          <SettingsScreen
+            active={tab === "settings"}
+            actions={settingsActions}
+            snapshot={settings}
+          />
+        </div>
+      </ShellFrame>
+    </RegisterProvider>
   );
 }
 

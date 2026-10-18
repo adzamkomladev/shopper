@@ -12,7 +12,7 @@ import {
 import { Input } from "@shopper/ui/components/input";
 import { Skeleton } from "@shopper/ui/components/skeleton";
 import { cn } from "cn";
-import { formatQuantity } from "../../sale/quantity";
+import { formatQuantity } from "@shopper/utils";
 import { reveal } from "./line";
 import type { AddInput, CatalogueMatch, SearchState } from "../../sale/types";
 

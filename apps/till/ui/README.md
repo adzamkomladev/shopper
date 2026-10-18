@@ -68,3 +68,15 @@ connection" while the server is unreachable) and Sign out.
 
 `<section data-slot="register-dashboard">`, `register-inventory` and `register-reports` are the
 regions the back-office slice fills.
+
+## Register sections and the back office (Day 13)
+
+Dashboard, Inventory and Sales Reports are `@shopper/backoffice/register` components mounted in the shell's
+`data-slot="register-*"` regions. The tab strip and the heading stay in the shell; the shell passes
+`online` (server reachable) so the sections can say what offline changes. In `harness/index.html` they run
+against the real components, and the specs in `tests/e2e/till/ui/backoffice/` stand in for the host's `/api`
+with `page.route`.
+
+The build has two pages: `index.html` (the register) and `backoffice/index.html`, the full back office the
+host serves under `/backoffice/` (router `basepath: "/backoffice"`, `/login` leaves for the register's `/`).
+In `vp dev` only `/backoffice/` itself resolves; deep links need the host's SPA fallback.

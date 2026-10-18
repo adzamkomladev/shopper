@@ -8,6 +8,12 @@
   "include": ["src"],
   "references": [
     {
+      "path": "../../../packages/backoffice"
+    },
+    {
+      "path": "../../../packages/utils"
+    },
+    {
       "path": "../../../packages/config"
     },
     {

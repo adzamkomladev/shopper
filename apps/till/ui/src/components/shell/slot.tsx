@@ -1,14 +1,17 @@
+import type { ReactNode } from "react";
 import { takeFocus } from "../../hooks/focus";
 
-/** Where the back-office slice draws a register section; the shell only reserves the region. */
+/** A register section: the shell owns the region and its heading, the back-office screen fills it. */
 export function RegisterSlot({
   slot,
   title,
   active,
+  children,
 }: {
   slot: "register-dashboard" | "register-inventory" | "register-reports";
   title: string;
   active: boolean;
+  children: ReactNode;
 }) {
   return (
     <section
@@ -20,9 +23,10 @@ export function RegisterSlot({
       ref={(node) => takeFocus(node, active)}
       tabIndex={-1}
     >
-      <h1 className="text-3xl font-bold tracking-tight" id={`${slot}-title`}>
+      <h1 className="mb-6 text-3xl font-bold tracking-tight" id={`${slot}-title`}>
         {title}
       </h1>
+      {children}
     </section>
   );
 }

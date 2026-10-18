@@ -389,6 +389,9 @@ importers:
       '@fontsource/geist':
         specifier: 5.2.9
         version: 5.2.9
+      '@shopper/backoffice':
+        specifier: workspace:*
+        version: link:../../../packages/backoffice
       '@shopper/config':
         specifier: workspace:*
         version: link:../../../packages/config
@@ -407,6 +410,15 @@ importers:
       '@shopper/ui':
         specifier: workspace:*
         version: link:../../../packages/ui
+      '@shopper/utils':
+        specifier: workspace:*
+        version: link:../../../packages/utils
+      '@tanstack/react-query':
+        specifier: 5.103.3
+        version: 5.103.3(react@19.3.0)
+      '@tanstack/react-router':
+        specifier: 1.170.41
+        version: 1.170.41(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       cn:
         specifier: 0.4.0
         version: 0.4.0

@@ -1,4 +1,6 @@
 @import "@shopper/ui/styles.css";
+/* The register sections come from the back office package, so its classes are generated here too. */
+@import "@shopper/backoffice/styles.css";
 /* The receipt preview names the family "Geist", like the PDF renderer, so the preview matches the printout. */
 @import "@fontsource/geist/400.css";
 @import "@fontsource/geist/700.css";

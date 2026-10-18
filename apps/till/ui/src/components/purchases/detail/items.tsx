@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@shopper/ui/components/table";
 import type { PurchaseDetails } from "@shopper/sync/bridge";
-import { formatQuantity } from "../../../sale/quantity";
+import { formatQuantity } from "@shopper/utils";
 
 export function DetailItems({ purchase }: { purchase: PurchaseDetails }) {
   const receipt = purchase.receipt;

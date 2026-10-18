@@ -14,8 +14,14 @@ import { publicAuthRoutes } from "./auth/public";
 import { currentOrgQuery, requireSession } from "../queries/session/session";
 import type { BackofficeContext } from "../types";
 
-/** Mounts login and the signed-in shell under the host's root route. */
-export function createBackofficeRoutes(rootRoute: AnyRoute): AnyRoute {
+/**
+ * Mounts login and the signed-in shell under the host's root route. `signIn` names a page outside this
+ * router that signs people in instead (the register's own sign-in): /login then leaves for it.
+ */
+export function createBackofficeRoutes(
+  rootRoute: AnyRoute,
+  { signIn }: { signIn?: string } = {},
+): AnyRoute {
   const indexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/",
@@ -27,6 +33,9 @@ export function createBackofficeRoutes(rootRoute: AnyRoute): AnyRoute {
     getParentRoute: () => rootRoute,
     path: "/login",
     validateSearch: shopSearch,
+    beforeLoad: () => {
+      if (signIn) throw redirect({ href: signIn, reloadDocument: true });
+    },
     loader: ({ context }: { context: BackofficeContext }) =>
       context.queryClient.ensureQueryData(currentOrgQuery),
     component: lazyRouteComponent(() => import("../screens/auth/login/screen"), "LoginScreen"),

@@ -4,7 +4,7 @@ import { formatGHS } from "@shopper/money";
 import { cn } from "cn";
 import { Input } from "@shopper/ui/components/input";
 import { Money } from "@shopper/ui/components/money";
-import { formatQuantity, parseQuantity } from "../../sale/quantity";
+import { formatQuantity, parseQuantity } from "@shopper/utils";
 import { isPriced, lineProblem } from "../../sale/rows";
 import type { Row } from "../../sale/types";
 

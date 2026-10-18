@@ -1,7 +1,7 @@
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { Kbd } from "@shopper/ui/components/kbd";
-import { formatQuantity } from "../../../sale/quantity";
+import { formatQuantity } from "@shopper/utils";
 import { isPriced } from "../../../sale/rows";
 import type { Row } from "../../../sale/types";
 import { QUANTITY_STEP, QuantityField } from "../line";

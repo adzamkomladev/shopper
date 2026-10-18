@@ -5,6 +5,7 @@ Approved 18 October 2026. Source: Notion Day 14 (https://app.notion.com/p/3eba2c
 ## Context
 
 The Notion Day 14 row is "Catch-up + refunds & overrides" (Sun 18 Oct, Ubuntu, Till + Audit).
+
 - **Catch-up:** Days 1–13 are all marked Done. The only open items are the Day 13 device steps, which need Windows and the real hardware, so they stay deferred. There is no code catch-up.
 - **The day's work:**
   - refunds against an original sale, full or partial, with the items going back into stock;
@@ -16,6 +17,7 @@ The Notion Day 14 row is "Catch-up + refunds & overrides" (Sun 18 Oct, Ubuntu, T
 - **Weekly review:** update statuses and re-plan days 15–21.
 
 **Your decisions:**
+
 1. **Which sales:** this till's sales refund offline. Sales from other registers are found and refunded through the server, online only.
 2. **Offline approvals:** each manager's PIN hash and approval permissions sync down to the till. 5 wrong PINs lock the manager for 15 minutes.
 3. **How money goes back:** cash, which opens the drawer. Card and MoMo refunds are recorded manually with a reference. No Paystack refund call.
@@ -23,6 +25,7 @@ The Notion Day 14 row is "Catch-up + refunds & overrides" (Sun 18 Oct, Ubuntu, T
 5. **Data:** all data is disposable, so schema resets are fine. Codex is unavailable, so the `reviewer` agent reviews. One commit per slice, and a single push at the end.
 
 **Defaults I took (change them at approval if you want):**
+
 - **Branch:** work on branch `day14-refunds-overrides`, cut from `origin/main` in this checkout. Your modified `.claude/settings.json` is never staged.
 - **Approval PIN:** when approval is mandatory, a signed-in manager still types their own PIN. The approver may be the actor.
 - **Final-sale lines:** never refundable, even with approval.
@@ -38,6 +41,7 @@ The Notion Day 14 row is "Catch-up + refunds & overrides" (Sun 18 Oct, Ubuntu, T
 This keeps every sale rule and every sale report unchanged.
 
 **Postgres:**
+
 - `packages/db/pg/src/schemas/refunds.ts` adds two tables:
   - `refund`: org, device, store, branch, cashier, session, `approver_id`, `original_sale_id`, reason, `tender_kind` and `tender_reference` (required unless cash), gross, `cash_rounding`, total, receipt jsonb, `content_hash`, `event_version`;
   - `refund_line`: `original_line_id`, `product_id`, `quantity_thousandths > 0`, and the tax-share payload.
@@ -46,6 +50,7 @@ This keeps every sale rule and every sale report unchanged.
 - Migrations are generated with drizzle-kit: `0021_final_sale.sql` and `0022_refunds.sql`.
 
 **Till SQLite** (`packages/db/sqlite/src/till.ts`). New steps are appended; shipped steps are never edited.
+
 - Step 5: `till_approver`.
 - Step 6: the draft-line override columns.
 - Step 7: the `refund` table, and a rebuild of `stock_movement` so it allows `return` and nullable sale ids.
@@ -88,11 +93,11 @@ This keeps every sale rule and every sale report unchanged.
   - `till.approvers.refresh` runs on start, after pulls and on Sync now.
 - **Host** (`packages/adapters/box/src/till/host/approvals.ts`): checks the PIN and then passes only the verified `approverId` to the core command. The UI can never send a bare approver id.
 
-| Action | Approver needs | Approval mandatory when |
-| --- | --- | --- |
-| Refund (actor needs `refund.request`) | `refund.approve` | `requirePinForReturns`, or the sale is outside the window |
-| Price override | `sale.price_override` | unless the actor holds it |
-| Void after tender | `sale.void` | the draft has an applied cash or card tender (a confirmed MoMo tender still blocks the void) |
+| Action                                | Approver needs        | Approval mandatory when                                                                      |
+| ------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------- |
+| Refund (actor needs `refund.request`) | `refund.approve`      | `requirePinForReturns`, or the sale is outside the window                                    |
+| Price override                        | `sale.price_override` | unless the actor holds it                                                                    |
+| Void after tender                     | `sale.void`           | the draft has an applied cash or card tender (a confirmed MoMo tender still blocks the void) |
 
 ### Price override
 
@@ -124,6 +129,7 @@ This keeps every sale rule and every sale report unchanged.
 ### Final-sale flag
 
 It goes in four places:
+
 - the catalogue input and view schemas;
 - the feed projection and snapshot;
 - the till's reference decoder;
@@ -158,6 +164,7 @@ The till screens are built with `@shopper/ui`. There are no Figma frames for the
 - **Verification:** `/ui-verify` with `playwright-cli` at desktop, laptop, tablet, mobile and till sizes, checking every state, the keyboard path, axe, the console and overflow.
 
 **Left out:**
+
 - refund receipt numbers and GRA credit notes;
 - refund PDFs;
 - Paystack refunds;
@@ -170,6 +177,7 @@ The till screens are built with `@shopper/ui`. There are no Figma frames for the
 ## Tests, written first
 
 **Notion-required:**
+
 - `tests/integration/sales/refunds/tax.test.ts`:
   - a partial refund reverses exactly the refunded lines' tax;
   - two partial refunds sum to the original line exactly;
@@ -177,26 +185,32 @@ The till screens are built with `@shopper/ui`. There are no Figma frames for the
 - `tests/integration/till/basket/drafts/override.test.ts`: an override without a PIN is refused with `APPROVAL_REQUIRED`. With a PIN, `till_audit` shows both actor and approver, and the chain verifies.
 
 **Approvals:**
+
 - `sync/approvers/refresh`: managers' PIN hashes and grants reach the till and cashiers' do not; a PIN change replaces the till's copy.
 - `till/approvals/pin`: 5 wrong PINs lock the manager; a missing permission is refused; a list older than 7 days stops offline approval.
 
 **Price override:**
+
 - `sales/tenders/override`: an override is accepted when the approver holds the grant; it is rejected without the grant; a changed price with no override is still rejected.
 
 **Void after tender:**
+
 - `till/basket/drafts/void`: a tendered draft needs a PIN; a cashier without `sale.void` can void with a PIN; a confirmed MoMo draft still cannot be voided.
 
 **Server refunds:**
+
 - `sales/refunds/quantity`: refunding more than was sold is rejected; when two registers refund at once, only one is accepted.
 - `sales/refunds/accept`: the refund writes its rows, a return stock movement and an audit row with the approver; a replay writes no second audit row; a session without `refund.request` is rejected.
 - `sync/refunds/lookup`: another register's sale is found; a sale from another store is not.
 
 **Till refunds:**
+
 - `till/refunds/record`: a partial local refund records, kicks the drawer for cash, and uploads after the sale.
 - `till/refunds/policy`: the window, `requirePinForReturns` and final-sale rules hold.
 - `till/refunds/cross`: an online refund of another register's sale waits for the server; offline it shows the connect message; a server rejection records nothing.
 
 **Receipts, reports and storage:**
+
 - `receipts/refund`: the refund heading appears in HTML, ESC/POS and PNG.
 - `till/reports/returns`: the report counts refunds.
 - `till/storage/migrations`: the new steps keep existing sale movements.
@@ -204,6 +218,7 @@ The till screens are built with `@shopper/ui`. There are no Figma frames for the
 **Workerd:** the new `/sync/*` routes return 401 without a device credential.
 
 **E2E:**
+
 - `tests/e2e/till/ui/purchases/return.spec.ts`
 - `tests/e2e/till/ui/sale/approval.spec.ts`
 - `tests/e2e/portal/catalogue/final.spec.ts`
@@ -211,6 +226,7 @@ The till screens are built with `@shopper/ui`. There are no Figma frames for the
 ## Slices
 
 Each slice runs `/tdd-slice`:
+
 1. `test-author` writes the failing tests.
 2. `implementer` or `ui-builder` makes them pass.
 3. `checker` runs `vp check`, `vp run guard` and `vp test --run`.

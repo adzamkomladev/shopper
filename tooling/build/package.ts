@@ -42,6 +42,8 @@ writeFileSync(
   resolve(stage, "package.json"),
   JSON.stringify({
     name: "shopper-register",
+    // Electron names userData after productName (%APPDATA%\Shopper), where till:provision writes.
+    productName: "Shopper",
     version: JSON.parse(buildDefines.SHOPPER_VERSION),
     description: "Shopper register",
     author: "Shopper",
@@ -52,11 +54,12 @@ writeFileSync(
 );
 run("pnpm", ["install", "--ignore-workspace", "--prod", "--ignore-scripts"], stage);
 
-const electronDist = dirname(
-  createRequire(resolve(electronApp, "package.json"))("electron") as string,
-);
+const load = createRequire(resolve(electronApp, "package.json"));
+const electronDist = dirname(load("electron") as string);
 const electronVersion = manifest("apps/till/electron/package.json").dependencies.electron;
-run(resolve(electronApp, "node_modules/.bin/electron-builder"), [
+// The CLI script through Node: Windows cannot exec the extensionless `.bin` shim without a shell.
+run(process.execPath, [
+  load.resolve("electron-builder/cli.js"),
   "--projectDir",
   stage,
   "--config",

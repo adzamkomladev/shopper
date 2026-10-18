@@ -1,4 +1,4 @@
-import { execFileSync, spawn, type ChildProcess } from "node:child_process";
+import { execFileSync, spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { parentRenderer } from "@shopper/adapters-box/till";
@@ -10,45 +10,57 @@ export const electronMain = resolve(root, "apps/till/electron/dist/main.js");
 const binary = createRequire(import.meta.url)("electron") as string;
 let built: Promise<void> | undefined;
 
-/** Bundles apps/till/electron once per test process. */
+/** Bundles apps/till/electron and the host it forks, once per test process. */
 export function buildElectron() {
   built ??= Promise.resolve().then(() => {
-    execFileSync(
-      "vp",
-      [
-        "-C",
-        "apps/till/electron",
-        "exec",
-        "node",
-        "../../../tooling/build/server.mjs",
-        "till-electron",
-      ],
-      { cwd: root, stdio: "pipe" },
-    );
+    for (const [app, bundle] of [
+      ["host", "till-host"],
+      ["electron", "till-electron"],
+    ])
+      execFileSync(
+        "vp",
+        ["-C", `apps/till/${app}`, "exec", "node", "../../../tooling/build/server.mjs", bundle!],
+        { cwd: root, stdio: "pipe" },
+      );
   });
   return built;
 }
 
+const windows = process.platform === "win32";
+
 /**
- * Spawns Electron on the built main with a Node IPC channel. Without a display it runs under
- * `xvfb-run -a`; `--no-sandbox` is for CI containers that run as root.
+ * Spawns Electron on the built main with a Node IPC channel. On Linux without a display it runs
+ * under `xvfb-run -a`; Windows always has a desktop. `--no-sandbox` is for CI containers that run as root.
  */
 export async function launchElectron(env: Record<string, string>, args: string[] = []) {
   await buildElectron();
   const electron = [binary, "--no-sandbox", "--disable-gpu", electronMain, ...args];
-  const [command, ...rest] = process.env.DISPLAY ? electron : ["xvfb-run", "-a", ...electron];
+  const [command, ...rest] =
+    windows || process.env.DISPLAY ? electron : ["xvfb-run", "-a", ...electron];
   // Own process group, so `stopElectron` can take xvfb-run, Xvfb, Electron and the host down together.
   return spawn(command!, rest, {
     cwd: root,
-    detached: true,
-    env: { ...process.env, ...env },
+    detached: !windows,
+    // A startup error dialog is modal and would block the test until it times out.
+    env: { ...process.env, SHOPPER_TEST_NO_DIALOG: "1", ...env },
     stdio: ["ignore", "pipe", "pipe", "ipc"],
   });
 }
 
-/** Stops the whole process group (xvfb-run, Xvfb, Electron, the forked host): TERM, then KILL stragglers. */
+/**
+ * Stops the whole process group (xvfb-run, Xvfb, Electron, the forked host): TERM, then KILL
+ * stragglers. Windows has no process groups or graceful signal for the windowless host, so
+ * `taskkill /T /F` ends the tree at once, while Electron is still alive to walk it.
+ */
 export async function stopElectron(child: ChildProcess) {
   const group = (signal: NodeJS.Signals) => {
+    if (windows) {
+      // Absolute path: a Git Bash or tool-launched PATH may not include System32.
+      const taskkill = `${process.env.SystemRoot}/System32/taskkill.exe`;
+      if (child.pid && signal === "SIGTERM")
+        spawnSync(taskkill, ["/PID", String(child.pid), "/T", "/F"]);
+      return;
+    }
     try {
       if (child.pid) process.kill(-child.pid, signal);
     } catch {

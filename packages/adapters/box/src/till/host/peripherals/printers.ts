@@ -3,7 +3,7 @@ import { promisify } from "node:util";
 import type { ReceiptPrinter } from "@shopper/hardware";
 import { networkPrinter } from "@shopper/hardware/network";
 import { listSerialPorts, serialPrinter } from "@shopper/hardware/serial";
-import { spoolerPrinter } from "@shopper/hardware/spooler";
+import { spoolerPrinter, windowsPowerShell } from "@shopper/hardware/spooler";
 import type { RegisterSettings } from "@shopper/core/schemas";
 
 type Connection = NonNullable<RegisterSettings["printer"]>["connection"];
@@ -36,7 +36,7 @@ export async function listPrinters(options: { platform?: string; shell?: string 
   const serial = await listSerialPorts().catch(() => []);
   if ((options.platform ?? process.platform) !== "win32") return { serial, usb: [] };
   const usb = await promisify(execFile)(
-    options.shell ?? "powershell.exe",
+    options.shell ?? windowsPowerShell,
     ["-NoProfile", "-NonInteractive", "-Command", "Get-Printer | Select -Expand Name"],
     { windowsHide: true, timeout: 10_000 },
   ).then(

@@ -1,9 +1,9 @@
 import { symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expect, test } from "vite-plus/test";
+import { expect } from "vite-plus/test";
 import { serialScanner } from "@shopper/hardware/serial";
-import { startSerialPair } from "../../../support/hardware/serial";
+import { ptyTest, startSerialPair } from "../../../support/hardware/serial";
 
 const text = (value: string) => new TextEncoder().encode(value);
 
@@ -32,7 +32,7 @@ async function connected(
     .toBe(true);
 }
 
-test("one trimmed barcode per CR or LF line", async () => {
+ptyTest("one trimmed barcode per CR or LF line", async () => {
   const pair = await startSerialPair();
   const scans: string[] = [];
   const { seen, listener } = collect(scans);
@@ -50,7 +50,7 @@ test("one trimmed barcode per CR or LF line", async () => {
   }
 });
 
-test("a throwing listener does not stop the others", async () => {
+ptyTest("a throwing listener does not stop the others", async () => {
   const pair = await startSerialPair();
   const scans: string[] = [];
   const scanner = serialScanner({ path: pair.path, baudRate: 9600, onError: () => undefined });
@@ -70,7 +70,7 @@ test("a throwing listener does not stop the others", async () => {
   }
 });
 
-test("close releases the port", async () => {
+ptyTest("close releases the port", async () => {
   const pair = await startSerialPair();
   try {
     const scans: string[] = [];
@@ -90,23 +90,29 @@ test("close releases the port", async () => {
   }
 });
 
-test("a scanner plugged in after the open failed is picked up again", async () => {
-  const pair = await startSerialPair();
-  const link = join(tmpdir(), `shopper-scanner-${process.pid}-${Date.now()}`);
-  const errors: Error[] = [];
-  const scans: string[] = [];
-  const { seen, listener } = collect(scans);
-  const off = serialScanner({ path: link, baudRate: 9600, onError: (e) => errors.push(e) }).onScan(
-    listener,
-  );
-  try {
-    await expect.poll(() => errors.length).toBeGreaterThan(0);
-    await symlink(pair.path, link);
-    await connected(pair, seen, 8000);
-    pair.send(text("42\n"));
-    await expect.poll(() => scans).toEqual(["42"]);
-  } finally {
-    off();
-    await pair.stop();
-  }
-}, 20_000);
+ptyTest(
+  "a scanner plugged in after the open failed is picked up again",
+  async () => {
+    const pair = await startSerialPair();
+    const link = join(tmpdir(), `shopper-scanner-${process.pid}-${Date.now()}`);
+    const errors: Error[] = [];
+    const scans: string[] = [];
+    const { seen, listener } = collect(scans);
+    const off = serialScanner({
+      path: link,
+      baudRate: 9600,
+      onError: (e) => errors.push(e),
+    }).onScan(listener);
+    try {
+      await expect.poll(() => errors.length).toBeGreaterThan(0);
+      await symlink(pair.path, link);
+      await connected(pair, seen, 8000);
+      pair.send(text("42\n"));
+      await expect.poll(() => scans).toEqual(["42"]);
+    } finally {
+      off();
+      await pair.stop();
+    }
+  },
+  20_000,
+);

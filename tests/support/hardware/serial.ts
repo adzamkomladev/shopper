@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { test } from "vite-plus/test";
 
 // A pty pair: the driver opens `path` (the slave) like a COM port; the test reads what it wrote and
 // can send bytes as if it were the device. Line 1 of stdout is the slave path; each stdin line is hex to send.
@@ -20,6 +21,9 @@ threading.Thread(target=pump, daemon=True).start()
 for line in sys.stdin:
     os.write(master, bytes.fromhex(line.strip()))
 `;
+
+/** Python has no pty on Windows; real COM ports are proven by hand there (Day 13 Windows handoff, step 7). */
+export const ptyTest = test.skipIf(process.platform === "win32");
 
 export async function startSerialPair() {
   const directory = await mkdtemp(join(tmpdir(), "shopper-serial-"));

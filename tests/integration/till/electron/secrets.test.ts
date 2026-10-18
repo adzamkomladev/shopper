@@ -1,4 +1,4 @@
-import { readFile, stat, writeFile } from "node:fs/promises";
+import { copyFile, readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, expect, test } from "vite-plus/test";
 import { stopElectron } from "../../../support/hardware/electron";
@@ -72,6 +72,34 @@ test.each([
     expect(await readFile(configPath, "utf8")).not.toContain("deviceToken");
     const after = await readFile(join(userData, "register.secret"));
     expect(after.equals(before)).toBe(!resealed);
+  },
+  180_000,
+);
+
+test.runIf(process.platform === "win32")(
+  "on Windows DPAPI wraps the key, and a register.secret copied to another profile is refused",
+  async () => {
+    const original = await register(cleanup);
+    const first = await original.start();
+    await healthy(original.port);
+    await stopElectron(first);
+    // Chromium's os_crypt key in Local State is sealed for this Windows user by DPAPI.
+    const state = JSON.parse(await readFile(join(original.userData, "Local State"), "utf8"));
+    const key = Buffer.from(state.os_crypt.encrypted_key, "base64");
+    expect(key.subarray(0, 5).toString()).toBe("DPAPI");
+
+    const other = await register(cleanup);
+    await copyFile(
+      join(original.userData, "register.secret"),
+      join(other.userData, "register.secret"),
+    );
+    const child = await other.start();
+    const output: string[] = [];
+    child.stdout?.on("data", (chunk: Buffer) => output.push(chunk.toString()));
+    child.stderr?.on("data", (chunk: Buffer) => output.push(chunk.toString()));
+    const code = await new Promise<number | null>((done) => child.once("close", done));
+    expect(code).not.toBe(0);
+    expect(output.join(""), `exit ${code}`).toContain("register.secret is unreadable");
   },
   180_000,
 );

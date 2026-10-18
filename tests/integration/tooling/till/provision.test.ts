@@ -21,13 +21,13 @@ beforeAll(async () => {
   const db = drizzle(pool, { schema });
   await migrateDatabase(db);
   await provisionOrg(db, tenant, { name: "Provision" });
+  // Multi-tenant like the cloud API: every request names its shop.
   host = createBoxApp({
     DATABASE_URL: fixture.connectionString,
     SHOPPER_AUTH_SECRET: "provision-integration-secret-more-than-32-chars",
     SHOPPER_AUTH_URL: "http://localhost",
     SHOPPER_CACHE_PATH: ":memory:",
     SHOPPER_BOOTSTRAP_TOKEN: "provision-bootstrap",
-    SHOPPER_ORG_ID: tenant.orgId,
   });
 });
 afterAll(async () => {
@@ -40,7 +40,7 @@ test("provision enrolls with a code and writes a 0600 register.json", async () =
     host.fetch(
       new Request(`http://localhost${path}`, {
         method: "POST",
-        headers: { "content-type": "application/json", ...headers },
+        headers: { "content-type": "application/json", "X-Shopper-Org": tenant.orgId, ...headers },
         body: JSON.stringify(data),
       }),
     );
@@ -70,7 +70,7 @@ test("provision enrolls with a code and writes a 0600 register.json", async () =
       out,
       fetch: (url, init) => host.fetch(new Request(url, init)),
     });
-    expect((await stat(out)).mode & 0o777).toBe(0o600);
+    if (process.platform !== "win32") expect((await stat(out)).mode & 0o777).toBe(0o600);
     const config = JSON.parse(await readFile(out, "utf8"));
     expect(config).toMatchObject({
       upstream: "http://localhost",

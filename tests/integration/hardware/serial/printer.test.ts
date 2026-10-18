@@ -3,9 +3,9 @@ import { encodeReceipt, printerProfiles } from "@shopper/hardware";
 import { PrinterOffline } from "@shopper/hardware/network";
 import { serialPrinter } from "@shopper/hardware/serial";
 import { goldenReceipt } from "../../../support/hardware/receipt";
-import { startSerialPair } from "../../../support/hardware/serial";
+import { ptyTest, startSerialPair } from "../../../support/hardware/serial";
 
-test("a serial printer receives the exact receipt bytes", async () => {
+ptyTest("a serial printer receives the exact receipt bytes", async () => {
   const pair = await startSerialPair();
   try {
     const bytes = encodeReceipt(goldenReceipt(), {

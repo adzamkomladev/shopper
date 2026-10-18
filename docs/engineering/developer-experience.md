@@ -26,6 +26,13 @@ Hono API (it strips `/api` except for `/api/auth`, which Better Auth serves unde
 edge dev Worker on :8787. `apps/edge/.dev.vars` holds the local secrets (`.dev.vars.example` is
 the template). Portal = TanStack Start in SPA mode: a prerendered static shell served by Workers Static Assets; one Worker runs only for `/api/*` (the shared Hono API through native Hyperdrive, D1, R2, Durable Object and Workflow bindings) and `/_serverFn/*` (host-only server functions). Backoffice data stays on the shared API so the box SPA and Electron reuse it.
 
+On Windows: `.gitattributes` checks every text file out with LF (pnpm 12 cannot parse a CRLF
+`pnpm-lock.yaml`, and fixtures are byte-exact). If an older global pnpm on `PATH` makes `vp install`
+fail with `ERR_PNPM_BROKEN_LOCKFILE`, run `vp exec pnpm install --frozen-lockfile`. If a native
+PostgreSQL already holds port 5432, start the container on another port and point the tools at it:
+`SHOPPER_POSTGRES_PORT=5433 vp run services:up`, then set `TEST_DATABASE_URL` and `E2E_DATABASE_URL`
+to `postgresql://shopper:shopper_dev_only@127.0.0.1:5433/shopper` (`/shopper_e2e` for e2e).
+
 Use `vp` for everything. Never call `npm` in this repo: `devEngines` rejects it. Run one-off binaries
 with `vp exec <bin>`. Cloudflare is driven with `cf` (`vp exec cf ...`); when unsure which command to
 use, run `cf cli search "<task>"` or `cf docs search "<question>"`. Keep those queries anonymous: no

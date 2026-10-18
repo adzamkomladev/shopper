@@ -91,6 +91,11 @@ export const bridgeMessage = v.union([
   v.strictObject({ type: v.literal("status"), status: hostStatus }),
   v.strictObject({ type: v.literal("draft"), view: draftView }),
   v.strictObject({ type: v.literal("payment"), payment: momoView }),
+  v.strictObject({
+    type: v.literal("sold"),
+    total: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
+    change: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
+  }),
 ]);
 /** Error codes that end the connection; every other error answers one request and the socket stays open. */
 export const connectionErrors: readonly string[] = [

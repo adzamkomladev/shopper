@@ -4,19 +4,23 @@ import { createRoot } from "react-dom/client";
 import { AppBackdrop } from "@shopper/ui/components/app-backdrop";
 import { Toaster } from "@shopper/ui/components/sonner";
 import { ShortcutRoot } from "@shopper/ui/hooks/shortcuts";
+import { DisplayScreen } from "./screens/display/screen";
 import { ConnectionScreen } from "./screens/connection/screen";
 import { SaleScreen } from "./screens/sale/screen";
 import { PurchasesScreen } from "./screens/purchases/screen";
 import { SettingsScreen } from "./screens/settings/screen";
 import { TillNavigation } from "./components/navigation/screen";
 import { initializeConnection } from "./connection/store";
+import { initializeDisplay, useDisplaySnapshot } from "./display/store";
 import { saleActions, useSaleSnapshot } from "./sale/store";
 import { purchaseOutput } from "./purchases/delivery";
 import { purchaseActions, usePurchasesSnapshot } from "./purchases/store";
 import { settingsActions, useSettingsSnapshot } from "./settings/store";
 import type { TillView } from "./components/navigation/types";
 
+const display = new URLSearchParams(window.location.search).has("display");
 initializeConnection();
+if (display) initializeDisplay();
 
 function Register() {
   const [view, setView] = useState<"connection" | "till">("connection");
@@ -68,9 +72,18 @@ function Register() {
   );
 }
 
+function Display() {
+  return <DisplayScreen snapshot={useDisplaySnapshot()} />;
+}
+
+// The Electron customer-display window opens this same UI with `?display`.
 createRoot(document.getElementById("root")!).render(
-  <ShortcutRoot>
-    <Register />
-    <Toaster position="top-right" />
-  </ShortcutRoot>,
+  display ? (
+    <Display />
+  ) : (
+    <ShortcutRoot>
+      <Register />
+      <Toaster position="top-right" />
+    </ShortcutRoot>
+  ),
 );

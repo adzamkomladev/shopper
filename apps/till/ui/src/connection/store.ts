@@ -128,7 +128,7 @@ function receive(data: unknown, current: WebSocket) {
     for (const listener of messageListeners) listener(message);
     return;
   }
-  if (message.type === "payment" || message.type === "scan") {
+  if (message.type === "payment" || message.type === "scan" || message.type === "sold") {
     for (const listener of messageListeners) listener(message);
     return;
   }

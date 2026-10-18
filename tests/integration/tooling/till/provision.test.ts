@@ -101,3 +101,25 @@ test("provision enrolls with a code and writes a 0600 register.json", async () =
     await rm(directory, { recursive: true, force: true });
   }
 }, 60_000);
+
+test("provision refuses a bad code, a plain-http upstream and a malformed response before writing", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "shopper-provision-"));
+  const out = join(directory, "register.json");
+  const base = { org: tenant.orgId, name: "Till", store: "s", shop: "Shop", out };
+  const ok = () => new Response(JSON.stringify({ deviceId: "d" }), { status: 200 });
+  try {
+    await expect(
+      provision({ ...base, upstream: "https://api.example.com", code: "12ab", fetch: ok }),
+    ).rejects.toThrow("6 digits");
+    await expect(
+      provision({ ...base, upstream: "http://api.example.com", code: "123456", fetch: ok }),
+    ).rejects.toThrow("https");
+    await expect(
+      provision({ ...base, upstream: "http://127.0.0.1:9", code: "123456", fetch: ok }),
+    ).rejects.toThrow();
+    await expect(stat(out)).rejects.toThrow();
+    expect((await stat(directory)).isDirectory()).toBe(true);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

@@ -9,6 +9,14 @@ export const enrollmentInput = v.strictObject({
   code: v.pipe(v.string(), v.regex(/^\d{6}$/)),
   name: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(200)),
 });
+export const enrollmentResult = v.object({
+  deviceId: id,
+  branchId: id,
+  deviceToken: v.pipe(v.string(), v.regex(/^[0-9a-f]{64}$/)),
+  receiptCodes: v.unknown(),
+});
+export const parseEnrollmentResult = (data: unknown) => v.parse(enrollmentResult, data);
+export const isEnrollmentCode = (code: string) => v.is(enrollmentInput.entries.code, code);
 export const pinInput = v.strictObject({ userId: id, pin });
 const deviceLogin = {
   deviceId: id,

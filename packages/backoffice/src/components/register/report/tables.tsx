@@ -66,7 +66,7 @@ export function ProductsTable({ products }: { products: RegisterReport["topProdu
 
 /** The hours that had sales, each with a bar sized against the busiest hour. */
 export function HoursList({ hours }: { hours: RegisterReport["byHour"] }) {
-  const busiest = Math.max(...hours.map((hour) => hour.amount));
+  const busiest = Math.max(1, ...hours.map((hour) => hour.amount));
   return (
     <ul className="flex flex-col divide-y">
       {hours.map((hour) => (
@@ -78,7 +78,7 @@ export function HoursList({ hours }: { hours: RegisterReport["byHour"] }) {
             {/* Bar length is a drawing ratio, not money, so a plain division is fine. */}
             <span
               className="block h-full rounded-full bg-primary"
-              style={{ width: `${(hour.amount / busiest) * 100}%` }}
+              style={{ width: `${Math.min(100, Math.max(0, (hour.amount / busiest) * 100))}%` }}
             />
           </span>
           <span className="w-28 shrink-0 text-right tabular-nums">

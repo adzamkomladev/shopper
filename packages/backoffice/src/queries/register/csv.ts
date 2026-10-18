@@ -20,5 +20,5 @@ export async function downloadReportCsv(range: DayRange) {
   link.href = URL.createObjectURL(await response.blob());
   link.download = `register-${range.from}-${range.to}.csv`;
   link.click();
-  URL.revokeObjectURL(link.href);
+  setTimeout(() => URL.revokeObjectURL(link.href), 0);
 }

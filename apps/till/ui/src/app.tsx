@@ -67,7 +67,8 @@ function Workspace({ onRegister }: { onRegister: () => void }) {
   const connection = useConnectionSnapshot();
   const { status } = connection;
   const permissions = status?.user?.permissions ?? status?.permissions ?? [];
-  const [tab, setTab] = useState<ShellView>(() => landingView(permissions) ?? "purchases");
+  const [chosen, setTab] = useState<ShellView | null>(null);
+  const tab = chosen ?? landingView(permissions) ?? "purchases";
   const [saleFocus, setSaleFocus] = useState(0);
   const sale = useSaleSnapshot();
   const purchases = usePurchasesSnapshot();

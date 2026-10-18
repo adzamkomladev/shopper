@@ -1,22 +1,31 @@
 import { execFileSync, spawn } from "node:child_process";
-import { readFile, readdir, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { stopElectron } from "../../../support/hardware/electron";
 import { healthy, register } from "../../../support/hardware/register";
 
-const unpacked = resolve("apps/till/electron/release/linux-unpacked");
-const resources = join(unpacked, "resources");
+const built = resolve("apps/till/electron/release/linux-unpacked");
+// A copy outside the repo, so a bare import the package forgot to install cannot resolve from the repo's node_modules.
+let unpacked = "";
+let resources = "";
+let copy = "";
 const cleanup: Array<() => Promise<void>> = [];
 
-beforeAll(() => {
+beforeAll(async () => {
   execFileSync("vp", ["exec", "tsx", "tooling/build/package.ts", "--linux", "dir"], {
     stdio: "pipe",
     maxBuffer: 64 * 1024 * 1024,
   });
+  copy = await mkdtemp(join(tmpdir(), "shopper-packaged-"));
+  unpacked = join(copy, "linux-unpacked");
+  resources = join(unpacked, "resources");
+  await cp(built, unpacked, { recursive: true });
 }, 600_000);
 afterAll(async () => {
   for (const close of cleanup.splice(0).reverse()) await close();
+  if (copy) await rm(copy, { recursive: true, force: true });
 });
 
 test("every native module and wasm file is unpacked from app.asar", async () => {

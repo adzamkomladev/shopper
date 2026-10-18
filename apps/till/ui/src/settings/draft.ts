@@ -41,8 +41,14 @@ export function toDraft(settings: RegisterSettings): SettingsDraft {
   };
 }
 
-export const sameDraft = (a: SettingsDraft, b: SettingsDraft) =>
-  JSON.stringify(a) === JSON.stringify(b);
+const sortedJson = (value: unknown) =>
+  JSON.stringify(value, (_key, item) =>
+    item && typeof item === "object" && !Array.isArray(item)
+      ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b)))
+      : item,
+  );
+
+export const sameDraft = (a: SettingsDraft, b: SettingsDraft) => sortedJson(a) === sortedJson(b);
 
 /** Fields that can be shown next to their input, keyed by their path in the draft. */
 export function validateDraft(draft: SettingsDraft) {

@@ -1,7 +1,9 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rename, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
+import { isEnrollmentCode, parseEnrollmentResult } from "../../packages/auth/src/schemas/devices";
 
 type Options = {
   upstream: string;
@@ -17,18 +19,20 @@ type Options = {
 
 /** Redeems an enrollment code and writes the private register.json; Electron seals the token on its first start. */
 export async function provision(options: Options) {
+  if (!isEnrollmentCode(options.code)) throw new Error("The enrollment code is 6 digits");
+  const url = new URL(options.upstream);
+  if (
+    url.protocol !== "https:" &&
+    !(url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname))
+  )
+    throw new Error("Upstream must be https (http is allowed for localhost only)");
   const response = await (options.fetch ?? fetch)(`${options.upstream}/devices/enroll`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ orgId: options.org, code: options.code, name: options.name }),
   });
   if (!response.ok) throw new Error(`Enrollment failed (${response.status})`);
-  const enrolled = (await response.json()) as {
-    deviceId: string;
-    branchId: string;
-    deviceToken: string;
-    receiptCodes: unknown;
-  };
+  const enrolled = parseEnrollmentResult(await response.json());
   const config = {
     identity: {
       orgId: options.org,
@@ -46,12 +50,14 @@ export async function provision(options: Options) {
     origins: [],
     port: options.port ?? 0,
   };
-  await mkdir(dirname(options.out), { recursive: true });
-  await writeFile(options.out, JSON.stringify(config, null, 2), { mode: 0o600 });
+  await mkdir(dirname(options.out), { recursive: true, mode: 0o700 });
+  const temporary = `${options.out}.${process.pid}.tmp`;
+  await writeFile(temporary, JSON.stringify(config, null, 2), { mode: 0o600 });
+  await rename(temporary, options.out);
   return config;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const { values } = parseArgs({
     options: {
       upstream: { type: "string" },

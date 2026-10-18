@@ -3,6 +3,7 @@ import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { runtimeExternals as externals } from "./externals.mjs";
 import { buildDefines } from "./info.ts";
 
 // Packages the desktop register: `vp run till:package -- --linux dir` or `-- --win nsis` (NSIS needs Windows).
@@ -13,8 +14,7 @@ const run = (command: string, args: string[], cwd = root) =>
   execFileSync(command, args, { cwd, stdio: "inherit" });
 const manifest = (path: string) => JSON.parse(readFileSync(resolve(root, path), "utf8"));
 
-// These load from node_modules at runtime (tooling/build/server.mjs externals), so the stage installs them.
-const externals = ["satori", "@resvg/resvg-wasm", "better-sqlite3-multiple-ciphers", "serialport"];
+// These load from node_modules at runtime (externals.mjs), so the stage installs them.
 const declared = Object.assign(
   {},
   ...["apps/till/host", "apps/till/electron"].map(

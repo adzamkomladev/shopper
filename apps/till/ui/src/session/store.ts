@@ -61,11 +61,12 @@ export function initializeSession() {
 async function unlock() {
   const capability = registerCapability();
   if (!capability) return;
-  await fetch("/desktop/unlock", {
+  const response = await fetch("/desktop/unlock", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ capability }),
   }).catch(() => undefined);
+  if (!response?.ok) unlockedFor = null;
 }
 
 function failureOf(reply: Awaited<ReturnType<typeof request>>): SignInFailure {

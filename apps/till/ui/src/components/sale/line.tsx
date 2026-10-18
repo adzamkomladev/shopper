@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { X } from "lucide-react";
+import { formatGHS } from "@shopper/money";
 import { cn } from "cn";
-import { Button } from "@shopper/ui/components/button";
 import { Input } from "@shopper/ui/components/input";
 import { Money } from "@shopper/ui/components/money";
 import { formatQuantity, parseQuantity } from "../../sale/quantity";
@@ -14,27 +14,15 @@ export const reveal = (node: HTMLElement | null) => node?.scrollIntoView({ block
 
 type LineProps = {
   row: Row;
+  /** Its place in the basket, shown in the badge. */
+  position: number;
   selected: boolean;
-  editing: boolean;
-  disabled: boolean;
   revealSelected: boolean;
   onSelect: () => void;
-  onQuantity: (thousandths: number) => void;
-  onEditDone: () => void;
-  onRemove: () => void;
 };
 
-export function Line({
-  row,
-  selected,
-  editing,
-  disabled,
-  revealSelected,
-  onSelect,
-  onQuantity,
-  onEditDone,
-  onRemove,
-}: LineProps) {
+/** Figma "Order item": number, name with its detail, quantity and unit price, then the line amount. */
+export function Line({ row, position, selected, revealSelected, onSelect }: LineProps) {
   const { quantityThousandths: quantity, label } = row.line;
   const priced = isPriced(row);
   const name = priced ? row.name : "Unavailable product";
@@ -47,106 +35,54 @@ export function Line({
         .filter(Boolean)
         .join(" · ")
     : lineProblem(row.error);
+  const unitText = priced
+    ? `${quantity === QUANTITY_STEP ? "" : `${formatQuantity(quantity)} × `}${formatGHS(row.tax.unitPrice)}`
+    : "";
   return (
     <li
       aria-current={selected || undefined}
       className={cn(
-        "flex min-h-24 flex-col justify-center gap-2 border-b border-l-4 px-3 py-2 md:h-16 md:min-h-16 md:flex-row md:items-center md:gap-3 md:px-4 md:py-0",
-        priced
-          ? "border-l-transparent"
-          : "border-l-warning-border bg-warning text-warning-foreground",
-        selected && priced && "border-l-primary bg-primary/5",
+        "flex h-12 shrink-0 items-center gap-2 rounded-sm border px-2",
+        priced ? "bg-primary/5" : "border-warning-border bg-warning text-warning-foreground",
+        selected ? "border-primary" : priced && "border-transparent",
         selected &&
-          "group-focus/lines:ring-2 group-focus/lines:ring-inset group-focus/lines:ring-ring",
+          "group-focus/lines:ring-2 group-focus/lines:ring-ring group-focus/lines:ring-inset",
       )}
       data-line={row.lineId}
       onClick={onSelect}
       ref={selected && revealSelected ? reveal : undefined}
     >
-      <div className="flex min-w-0 items-center justify-between gap-2 md:contents">
-        <div className="min-w-0 flex-1 md:order-1">
-          <p className="truncate text-base leading-none font-medium">{name}</p>
-          <p
-            className={cn(
-              "mt-1 truncate text-xs",
-              priced && (selected ? "text-primary" : "text-muted-foreground"),
-            )}
-          >
-            {detail}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2 md:order-4">
-          {priced ? (
-            <Money amount={row.tax.gross} className="w-28 text-right text-base font-bold" />
-          ) : (
-            <p className="text-right text-sm font-medium">Not priced</p>
-          )}
-          <Button
-            aria-label={`Remove ${name}`}
-            className="text-destructive hover:text-destructive"
-            disabled={disabled}
-            onClick={onRemove}
-            size="icon-touch"
-            variant="ghost"
-          >
-            <Trash2 aria-hidden="true" />
-          </Button>
-        </div>
+      <span className="flex h-5 w-8 shrink-0 items-center justify-center rounded-sm bg-muted text-xs font-bold text-foreground">
+        {position}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm leading-5 font-bold">{name}</p>
+        <p className={cn("truncate text-xs", priced && "text-kbd-foreground")}>
+          {detail}
+          {priced && <span className="@md:hidden"> · {unitText}</span>}
+        </p>
       </div>
-      <div className="flex items-center justify-between gap-2 md:contents">
-        <div className="flex w-36 items-center justify-between gap-1 md:order-2">
-          {priced && (
-            <>
-              <Button
-                aria-label={`Decrease quantity of ${name}`}
-                disabled={disabled || quantity <= QUANTITY_STEP}
-                onClick={() => onQuantity(quantity - QUANTITY_STEP)}
-                size="icon-touch"
-                variant="outline"
-              >
-                <Minus aria-hidden="true" />
-              </Button>
-              {editing ? (
-                <QuantityField
-                  name={name}
-                  quantity={quantity}
-                  onCommit={onQuantity}
-                  onCancel={onEditDone}
-                />
-              ) : (
-                <span className="min-w-6 text-center text-base font-medium tabular-nums">
-                  {formatQuantity(quantity)}
-                </span>
-              )}
-              <Button
-                aria-label={`Increase quantity of ${name}`}
-                disabled={disabled}
-                onClick={() => onQuantity(quantity + QUANTITY_STEP)}
-                size="icon-touch"
-                variant="outline"
-              >
-                <Plus aria-hidden="true" />
-              </Button>
-            </>
-          )}
-        </div>
-        {priced && (
+      {priced ? (
+        <>
+          <span className="hidden shrink-0 items-center gap-0.5 text-xs font-medium text-kbd-foreground tabular-nums @md:flex">
+            {quantity !== QUANTITY_STEP && <span>{formatQuantity(quantity)}</span>}
+            {quantity !== QUANTITY_STEP && <X aria-hidden="true" className="size-3" />}
+            <Money amount={row.tax.unitPrice} />
+          </span>
           <Money
-            amount={row.tax.unitPrice}
-            // On the tinted selected row muted text drops below 4.5:1; slate-600 keeps AA.
-            className={cn(
-              "w-24 text-right text-sm font-medium md:order-3",
-              selected ? "text-kbd-foreground" : "text-muted-foreground",
-            )}
+            amount={row.tax.gross}
+            className={cn("w-24 shrink-0 text-sm", selected ? "font-bold" : "font-medium")}
           />
-        )}
-      </div>
+        </>
+      ) : (
+        <p className="shrink-0 text-sm font-medium">Not priced</p>
+      )}
     </li>
   );
 }
 
 /** Replaces the quantity while F4 edits it: Enter applies, Escape (or leaving the field) cancels. */
-function QuantityField({
+export function QuantityField({
   name,
   quantity,
   onCommit,

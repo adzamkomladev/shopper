@@ -231,20 +231,19 @@ export function UnavailableBasket() {
   );
 }
 
-/** Same row height and column widths as the lines, so nothing jumps when they arrive. */
+/** Same row height as the lines, so nothing jumps when they arrive. */
 export function LinesSkeleton() {
   return (
-    <div aria-label="Loading basket" className="flex flex-1 flex-col" role="status">
+    <div aria-label="Loading basket" className="flex flex-1 flex-col gap-1 px-2" role="status">
       {Array.from({ length: 5 }, (_, index) => (
-        <div className="flex h-16 items-center gap-3 border-b px-4" key={index}>
+        <div className="flex h-12 items-center gap-2 px-2" key={index}>
+          <Skeleton className="h-5 w-8" />
           <div className="grid flex-1 gap-2">
-            <Skeleton className="h-4 w-48" />
-            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-3 w-24" />
           </div>
-          <Skeleton className="h-11 w-36" />
-          <Skeleton className="h-5 w-24" />
-          <Skeleton className="h-6 w-28" />
-          <Skeleton className="size-11" />
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-5 w-20" />
         </div>
       ))}
     </div>

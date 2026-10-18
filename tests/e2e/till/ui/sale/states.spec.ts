@@ -28,7 +28,9 @@ const states: State[] = [
   {
     name: "busy",
     expects: (page) =>
-      expect(page.getByRole("button", { name: "Remove Milo 400g tin" })).toBeDisabled(),
+      expect(
+        page.getByRole("button", { name: "Remove Fan Milk Vanilla ice cream" }),
+      ).toBeDisabled(),
   },
   {
     name: "results",

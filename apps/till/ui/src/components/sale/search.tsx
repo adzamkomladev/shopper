@@ -1,5 +1,5 @@
 import type { ChangeEvent, KeyboardEvent, Ref } from "react";
-import { ScanLine, SearchX } from "lucide-react";
+import { Search, ScanBarcode, SearchX } from "lucide-react";
 import { Badge } from "@shopper/ui/components/badge";
 import { Button } from "@shopper/ui/components/button";
 import {
@@ -10,7 +10,6 @@ import {
   EmptyTitle,
 } from "@shopper/ui/components/empty";
 import { Input } from "@shopper/ui/components/input";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { Skeleton } from "@shopper/ui/components/skeleton";
 import { cn } from "cn";
 import { formatQuantity } from "../../sale/quantity";
@@ -43,7 +42,7 @@ type EntryProps = {
   onLookup: () => void;
 };
 
-/** The main scan field, always the first stop. Figma "Scan entry": icon, field, Lookup. */
+/** The main scan field, always the first stop. Figma "Search controls": search field and a scan action. */
 export function ScanEntry({
   fieldRef,
   value,
@@ -55,35 +54,47 @@ export function ScanEntry({
   onLookup,
 }: EntryProps) {
   return (
-    <div className="flex h-17 shrink-0 items-center gap-2.5 border-y bg-muted/50 px-4">
-      <ScanLine aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
-      <Input
-        {...fieldProps}
-        aria-activedescendant={activeIndex === null ? undefined : optionId(activeIndex)}
-        aria-autocomplete="list"
-        // The listbox exists only while there are matches to choose from.
-        aria-controls={activeIndex === null ? undefined : resultsId}
-        aria-describedby={describedBy}
-        aria-expanded={activeIndex !== null}
+    <div className="flex shrink-0 items-center gap-3">
+      <div className="relative min-w-0 flex-1">
+        <Search
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          {...fieldProps}
+          aria-activedescendant={activeIndex === null ? undefined : optionId(activeIndex)}
+          aria-autocomplete="list"
+          // The listbox exists only while there are matches to choose from.
+          aria-controls={activeIndex === null ? undefined : resultsId}
+          aria-describedby={describedBy}
+          aria-expanded={activeIndex !== null}
+          aria-keyshortcuts="F2"
+          aria-label="Scan barcode or search items"
+          autoCapitalize="off"
+          autoComplete="off"
+          autoCorrect="off"
+          autoFocus
+          className="h-15 rounded-xl bg-card pr-4 pl-12 text-lg md:text-lg"
+          data-zone="scan"
+          disabled={disabled}
+          key={focusKey}
+          placeholder="Scan barcode or search items"
+          ref={fieldRef}
+          role="combobox"
+          spellCheck={false}
+          touch
+          value={value}
+        />
+      </div>
+      <Button
         aria-keyshortcuts="F2"
-        aria-label="Scan barcode or search items"
-        autoCapitalize="off"
-        autoComplete="off"
-        autoCorrect="off"
-        autoFocus
-        className="bg-card"
-        data-zone="scan"
-        disabled={disabled}
-        key={focusKey}
-        placeholder="Scan barcode or search items"
-        ref={fieldRef}
-        role="combobox"
-        spellCheck={false}
-        touch
-        value={value}
-      />
-      <Button aria-keyshortcuts="F2" onClick={onLookup} size="touch" variant="secondary">
-        Lookup <Kbd className="pointer-coarse:inline-flex">F2</Kbd>
+        aria-label="Lookup"
+        className="h-15 w-20 rounded-xl bg-card"
+        onClick={onLookup}
+        title="Scan or search (F2)"
+        variant="outline"
+      >
+        <ScanBarcode aria-hidden="true" className="size-5" />
       </Button>
     </div>
   );

@@ -4,7 +4,13 @@ import type { Page } from "@playwright/test";
 export async function openSale(page: Page, scenario: string) {
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto(`/harness/index.html?scenario=${scenario}`);
-  await page.getByRole("heading", { name: "Sale", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "Checkout", exact: true }).waitFor();
+}
+
+/** Checkout swaps the cart for the tender step; the tender specs start here. */
+export async function openCheckout(page: Page) {
+  await page.getByRole("button", { name: /^Checkout/ }).click();
+  await page.getByRole("region", { name: "Tender" }).waitFor();
 }
 
 export type Call = { type: string; args: unknown[] };

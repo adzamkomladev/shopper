@@ -1,11 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 import { expectNoSeriousAxe } from "../../../../support/e2e";
 import { expectNoOverflow, shoot } from "../settings/harness";
-import { calls, openSale } from "./harness";
+import { calls, openCheckout, openSale } from "./harness";
 
 // Set SHOPPER_SCREENSHOTS_DIR=docs/plans/day12/screenshots/sale to keep the shots.
 async function complete(page: Page, scenario: string) {
   await openSale(page, scenario);
+  await openCheckout(page);
   await page.getByRole("textbox", { name: "Amount tendered" }).fill("200.00");
   await page.keyboard.press("F5");
   return page.getByRole("region", { name: "Sale receipt" });
@@ -27,11 +28,12 @@ test("with clear cart off, a scan or a keyed code on the completion view starts 
   page,
 }) => {
   await openSale(page, "lines-keep");
+  await openCheckout(page);
   await page.getByRole("textbox", { name: "Amount tendered" }).fill("200.00");
   await page.keyboard.press("F5");
   const receipt = page.getByRole("region", { name: "Sale receipt" });
   await expect(receipt).toBeVisible();
-  const basket = page.getByRole("region", { name: "Basket" });
+  const basket = page.getByRole("region", { name: "Add items" });
   await expect(basket).toContainText("Press Enter or New sale to start another basket");
   await expect(page.getByRole("combobox")).toBeEnabled();
   await expect(basket.getByRole("alert")).toHaveCount(0);
@@ -46,7 +48,8 @@ test("with clear cart off, a scan or a keyed code on the completion view starts 
 
   // A keyed code gets the same answer instead of vanishing.
   await page.reload();
-  await page.getByRole("heading", { name: "Sale", exact: true }).waitFor();
+  await page.getByRole("heading", { name: "Checkout", exact: true }).waitFor();
+  await openCheckout(page);
   await page.getByRole("textbox", { name: "Amount tendered" }).fill("200.00");
   await page.keyboard.press("F5");
   await expect(receipt).toBeVisible();
@@ -64,6 +67,7 @@ test("with clear cart off, a scan or a keyed code on the completion view starts 
 
 test("charges stay locked on the completion view", async ({ page }) => {
   await openSale(page, "lines-keep");
+  await openCheckout(page);
   await page.getByRole("textbox", { name: "Amount tendered" }).fill("200.00");
   await page.keyboard.press("F5");
   await expect(page.getByRole("region", { name: "Sale receipt" })).toBeVisible();
@@ -74,6 +78,7 @@ test("charges stay locked on the completion view", async ({ page }) => {
 
 test("Enter on a purchase receipt opens details without starting a new sale", async ({ page }) => {
   await openSale(page, "lines");
+  await openCheckout(page);
   await page.getByRole("textbox", { name: "Amount tendered" }).fill("200.00");
   await page.keyboard.press("F5");
   await expect(page.getByRole("region", { name: "Sale receipt" })).toBeVisible();
@@ -94,7 +99,7 @@ test("with clear cart on, the next scan starts a new sale with that item in it",
   await expect(receipt.getByText("Receipt printed")).toBeVisible();
   await expect(page.getByRole("combobox")).toBeEnabled();
   await expect(page.getByRole("combobox")).toBeFocused();
-  await expect(page.getByRole("region", { name: "Basket" })).toContainText("Scan the next item");
+  await expect(page.getByRole("region", { name: "Add items" })).toContainText("Scan the next item");
 
   // Time stands still between keys, so the burst is a scan whatever the runner's speed.
   await page.clock.install({ time: new Date("2026-10-14T09:00:00Z") });

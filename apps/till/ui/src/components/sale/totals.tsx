@@ -1,15 +1,33 @@
 import { Check } from "lucide-react";
-import { add, formatGHS } from "@shopper/money";
+import { formatGHS, money } from "@shopper/money";
 import type { SaleTotals } from "../../sale/types";
 
-/** Figma "Cart support" and "Cart totals": what the prices include, then subtotal, tax and total. */
-export function CartTotals({ totals, saved }: { totals: SaleTotals; saved: boolean }) {
-  const tax = [totals.vat, totals.nhil, totals.getfund, totals.covid].reduce(add);
+const zero = money(0);
+const emptyTotals: SaleTotals = {
+  base: zero,
+  vat: zero,
+  nhil: zero,
+  getfund: zero,
+  covid: zero,
+  gross: zero,
+  roundingAdjustment: zero,
+};
+
+/** Figma "Cart total": what the prices include, then the total and how many lines make it. */
+export function CartTotals({
+  totals = emptyTotals,
+  saved,
+  count,
+}: {
+  totals: SaleTotals | undefined;
+  saved: boolean;
+  count: number;
+}) {
   const included =
     totals.covid > 0 ? "VAT, NHIL, GETFund and COVID-19 levy" : "VAT, NHIL and GETFund";
   return (
-    <div className="shrink-0">
-      <div className="flex h-8 items-center justify-between px-5 text-xs font-medium text-muted-foreground">
+    <div className="flex shrink-0 flex-col gap-2 px-2">
+      <div className="flex min-h-5 items-center justify-between gap-2 text-xs font-medium text-muted-foreground">
         <p>Prices include {included}.</p>
         {saved && (
           <p className="flex items-center gap-1.5">
@@ -18,24 +36,18 @@ export function CartTotals({ totals, saved }: { totals: SaleTotals; saved: boole
           </p>
         )}
       </div>
-      <dl className="flex flex-col gap-1 border-t bg-muted/50 px-5 pt-2.5 pb-3 text-sm">
-        <Row label="Subtotal" value={formatGHS(totals.base)} />
-        <Row label="Tax" value={formatGHS(tax)} />
-        <div className="my-1 h-px bg-border" />
-        <div className="flex items-baseline justify-between font-bold text-foreground">
-          <dt className="text-base">Total</dt>
-          <dd className="text-2xl tracking-tight tabular-nums">{formatGHS(totals.gross)}</dd>
+      <dl className="flex items-center justify-between">
+        <div>
+          <dt className="text-lg font-medium">Total</dt>
+          <dd className="text-sm text-muted-foreground">
+            {count} item{count === 1 ? "" : "s"}
+          </dd>
+        </div>
+        <div>
+          <dt className="sr-only">Amount due</dt>
+          <dd className="text-lg font-medium tabular-nums">{formatGHS(totals.gross)}</dd>
         </div>
       </dl>
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between">
-      <dt className="font-medium text-muted-foreground">{label}</dt>
-      <dd className="font-semibold tabular-nums">{value}</dd>
     </div>
   );
 }

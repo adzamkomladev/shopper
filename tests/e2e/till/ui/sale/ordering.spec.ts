@@ -1,6 +1,7 @@
 import { expect, test, type TestInfo } from "@playwright/test";
 import { v7 } from "uuid";
 import { startSaleScenario } from "../../../../support/till/sale/scenario";
+import { openCheckout } from "./harness";
 
 test("a newer draft broadcast is not replaced by its older delayed command reply", async ({
   page,
@@ -68,12 +69,13 @@ test("a newer draft broadcast is not replaced by its older delayed command reply
     await page.goto(scenario.url);
     await expect(page.getByRole("region", { name: "Host connection" })).toContainText("Connected");
     await page.keyboard.press("s");
-    await page.getByRole("heading", { name: "Sale", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Checkout", exact: true }).waitFor();
     const scan = page.getByRole("combobox", { name: "Scan barcode or search items" });
     await scan.fill("MILO-400");
     await page.getByRole("option", { name: /Milo 400g tin/ }).click();
     // Typed amounts reset when the draft revision moves, so type only once the line has settled.
     await expect(page.getByRole("list", { name: "Basket lines" })).toContainText("Milo 400g tin");
+    await openCheckout(page);
     const amount = page.getByRole("textbox", { name: "Amount tendered" });
     await expect(amount).toHaveValue("425.00");
     await amount.fill("100.00");

@@ -4,6 +4,7 @@ import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { add, formatGHS, money, mulQty } from "@shopper/money";
 import { expectNoSeriousAxe } from "../../../../support/e2e";
 import { startSaleScenario } from "../../../../support/till/sale/scenario";
+import { openCheckout } from "./harness";
 
 // Set SHOPPER_SCREENSHOTS_DIR to keep the 1366x768 shots (docs/plans/day10/screenshots/till).
 const shots = process.env.SHOPPER_SCREENSHOTS_DIR;
@@ -42,7 +43,7 @@ async function openSale(page: Page) {
   await page.goto(scenario!.url);
   await expect(page.getByRole("region", { name: "Host connection" })).toContainText("Connected");
   await page.keyboard.press("S");
-  await expect(page.getByRole("heading", { name: "Sale", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Checkout", exact: true })).toBeVisible();
   await expect(field(page)).toBeFocused();
 }
 
@@ -123,7 +124,7 @@ test("a real till splits cash, completes the balance and finds its receipt in Pu
   const completion = await delayFirstReply(page, "sale.complete", 1500);
   await openSale(page);
   await scan(page, scenario!.products[0]!.barcode);
-  await expect(page.getByRole("region", { name: "Tender" })).toBeVisible();
+  await openCheckout(page);
   await page.getByRole("textbox", { name: "Amount tendered" }).fill("100.00");
   await page.getByRole("button", { name: "Split" }).click();
   await expect(page.getByRole("region", { name: "Tender" })).toContainText("GH₵ 325.00");

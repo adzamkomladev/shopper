@@ -10,7 +10,8 @@ import {
 } from "@shopper/money";
 import { Button } from "@shopper/ui/components/button";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
-import type { SaleActions, SaleSnapshot, TenderKind } from "../../../sale/types";
+import { hasUnappliedConfirmation } from "../../../sale/payments";
+import type { SaleActions, SaleControls, SaleSnapshot, TenderKind } from "../../../sale/types";
 import { TenderActions } from "./actions";
 import { TenderHeader } from "./header";
 import { TenderOverlays } from "./overlays";
@@ -23,12 +24,19 @@ export function TenderPanel({
   snapshot,
   actions,
   active = true,
+  controls,
+  hidden = false,
+  onBack,
   onReturnFocus,
   onPurchases,
 }: {
   snapshot: SaleSnapshot;
   actions: SaleActions;
   active?: boolean;
+  controls: SaleControls;
+  /** The cart is showing instead; the panel stays mounted so Alt+1 to Alt+4 and F5 keep working. */
+  hidden?: boolean;
+  onBack: () => void;
   onReturnFocus: () => void;
   onPurchases?: () => void;
 }) {
@@ -36,9 +44,6 @@ export function TenderPanel({
   const [kind, setKind] = useState<TenderKind>("cash");
   const [cardOpen, setCardOpen] = useState(false);
   const [momoOpen, setMomoOpen] = useState(false);
-  const [heldOpen, setHeldOpen] = useState(false);
-  const [voidOpen, setVoidOpen] = useState(false);
-  const [voidNotice, setVoidNotice] = useState("");
   const draft = snapshot.view?.draft;
   const draftKey = draft ? `${draft.id}:${draft.revision}` : null;
   const amountText = amountEntry?.draftKey === draftKey ? amountEntry.value : null;
@@ -49,7 +54,7 @@ export function TenderPanel({
   const settlementError = snapshot.view?.settlementError;
   const amount = parseAmount(amountText ?? toDecimal(balance));
   const canTender = amount !== null && amount > 0;
-  const locked = snapshot.host !== "connected" || snapshot.failure !== null || snapshot.busy;
+  const { locked } = controls;
   const momoTenders = draft?.tenders.filter((tender) => tender.kind === "momo") ?? [];
   const momo = momoTenders.at(-1);
   const momoNotice = snapshot.paymentNotice;
@@ -57,9 +62,7 @@ export function TenderPanel({
     momo && momoNotice?.reference === momo.reference && momoNotice.status === momo.status
       ? momoNotice.failureReason
       : null;
-  const unappliedConfirmation =
-    momoNotice?.status === "confirmed" &&
-    !draft?.tenders.some((tender) => tender.reference === momoNotice.reference);
+  const unappliedConfirmation = hasUnappliedConfirmation(snapshot);
   const waitingForMomo = momoTenders.some(
     (tender) => tender.status === "pending" || tender.status === "otp",
   );
@@ -71,9 +74,6 @@ export function TenderPanel({
           "Alt+3": () => openCard(),
           "Alt+4": addCash,
           F5: charge,
-          F6: hold,
-          F7: showHeld,
-          F11: askVoid,
         }
       : {},
   );
@@ -117,33 +117,12 @@ export function TenderPanel({
       actions.startMomo({ phone, network, amount: wholePesewas(amount) });
       setMomoOpen(false);
     } catch {
-      setVoidNotice("Mobile money amount must use whole pesewas.");
+      controls.setNotice("Mobile money amount must use whole pesewas.");
     }
   }
   function addMomoOtp(otp: string) {
     if (momo?.reference) actions.submitMomoOtp({ reference: momo.reference, otp });
   }
-  function hold() {
-    if (locked || !draft) return;
-    actions.hold();
-  }
-  function showHeld() {
-    if (locked) return;
-    actions.listHeld();
-    setHeldOpen(true);
-  }
-  function askVoid() {
-    if (!snapshot.permissions.includes("sale.void")) {
-      setVoidNotice("A manager permission is required to void a sale.");
-      return;
-    }
-    setVoidOpen(true);
-  }
-  function confirmVoid(reason: string) {
-    actions.voidSale(reason);
-    setVoidOpen(false);
-  }
-
   if (snapshot.receipt)
     return (
       <ReceiptComplete
@@ -166,7 +145,8 @@ export function TenderPanel({
   return (
     <section
       aria-label="Tender"
-      className="flex min-h-152 min-w-0 flex-col gap-3 overflow-visible rounded-lg border bg-card p-4 shadow-sm md:col-span-5 md:min-h-0 md:overflow-y-auto lg:overflow-visible"
+      className="flex min-h-152 min-w-0 flex-1 flex-col gap-3 overflow-visible rounded-panel border bg-card p-4 shadow-sm md:min-h-0 md:overflow-y-auto lg:overflow-visible"
+      hidden={hidden}
       ref={register}
     >
       <TenderHeader
@@ -174,11 +154,7 @@ export function TenderPanel({
         total={total}
         received={received}
         itemCount={draft?.lines.length ?? 0}
-        locked={locked}
-        hasDraft={draft !== undefined}
-        onHold={hold}
-        onShowHeld={showHeld}
-        onVoid={askVoid}
+        onBack={onBack}
       />
 
       <TenderKeypad
@@ -233,11 +209,6 @@ export function TenderPanel({
           {snapshot.operationError}
         </p>
       )}
-      {voidNotice && (
-        <p role="status" className="text-sm text-muted-foreground">
-          {voidNotice}
-        </p>
-      )}
 
       <TenderActions
         amount={formatGHS(canTender ? amount : balance)}
@@ -253,22 +224,22 @@ export function TenderPanel({
         onReturnFocus={onReturnFocus}
         cardOpen={cardOpen}
         momoOpen={momoOpen}
-        heldOpen={heldOpen}
-        voidOpen={voidOpen}
+        heldOpen={controls.heldOpen}
+        voidOpen={controls.voidOpen}
         held={snapshot.held}
         onCardOpenChange={setCardOpen}
         onCardSubmit={addCard}
         onMomoOpenChange={setMomoOpen}
         onMomoSubmit={requestMomo}
-        onHeldOpenChange={setHeldOpen}
+        onHeldOpenChange={controls.setHeldOpen}
         onResume={(id, revision) => {
           actions.resume(id, revision);
-          setHeldOpen(false);
+          controls.setHeldOpen(false);
         }}
         canVoid={snapshot.permissions.includes("sale.void")}
         onHeldVoid={(id, revision, reason) => actions.voidSale(reason, id, revision)}
-        onVoidOpenChange={setVoidOpen}
-        onVoidSubmit={confirmVoid}
+        onVoidOpenChange={controls.setVoidOpen}
+        onVoidSubmit={controls.confirmVoid}
       />
     </section>
   );

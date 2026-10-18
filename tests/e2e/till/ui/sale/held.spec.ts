@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { calls, openSale } from "./harness";
+import { calls, openCheckout, openSale } from "./harness";
 
 test("cashier can void a held sale with a reason without replacing the active basket", async ({
   page,
@@ -28,6 +28,7 @@ test("cashier can void a held sale with a reason without replacing the active ba
 
   await expect(held.getByRole("button", { name: /Resume Milo customer/ })).toHaveCount(0);
   await expect(page.getByRole("region", { name: "Basket" })).toContainText("Milo 400g tin");
+  await openCheckout(page);
   await expect(page.getByRole("region", { name: "Tender" })).toContainText("GH₵ 126.50");
   expect(await calls(page, "voidSale")).toEqual([
     {

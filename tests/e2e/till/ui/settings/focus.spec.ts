@@ -20,7 +20,7 @@ for (const [from, key] of [
     await page.keyboard.press(key);
     await expect(page.getByRole("heading", { name: from, exact: true })).toBeVisible();
     await page.keyboard.press("Alt+S");
-    await expect(page.getByRole("heading", { name: "Sale", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Checkout", exact: true })).toBeVisible();
     await expectScanWorks(page);
   });
 

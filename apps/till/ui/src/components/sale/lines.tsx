@@ -5,13 +5,10 @@ import type { Row } from "../../sale/types";
 type Props = {
   rows: Row[];
   selectedId: string | undefined;
-  editingId: string | null;
   disabled: boolean;
   revealSelected: boolean;
   listRef: Ref<HTMLUListElement>;
   onSelect: (lineId: string) => void;
-  onQuantity: (lineId: string, thousandths: number) => void;
-  onEditDone: () => void;
   onRemove: (lineId: string) => void;
 };
 
@@ -19,13 +16,10 @@ type Props = {
 export function Lines({
   rows,
   selectedId,
-  editingId,
   disabled,
   revealSelected,
   listRef,
   onSelect,
-  onQuantity,
-  onEditDone,
   onRemove,
 }: Props) {
   const index = rows.findIndex((row) => row.lineId === selectedId);
@@ -44,41 +38,25 @@ export function Lines({
     }
   }
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div
-        aria-hidden="true"
-        className="flex h-7 items-center gap-3 bg-muted px-3 text-xs font-bold text-kbd-foreground md:px-4"
-      >
-        <span className="flex-1 pl-1">Item</span>
-        <span className="w-36 text-center">Qty</span>
-        <span className="hidden w-24 text-right md:inline">Price</span>
-        <span className="hidden w-28 text-right md:inline">Total</span>
-        <span className="hidden w-11 md:inline" />
-      </div>
-      <ul
-        aria-label="Basket lines"
-        className="group/lines min-h-0 flex-1 overflow-y-auto outline-none"
-        data-zone="basket"
-        onKeyDown={onKeyDown}
-        ref={listRef}
-        // In the tab order so the list can scroll by keyboard even while every line is disabled.
-        tabIndex={0}
-      >
-        {rows.map((row) => (
-          <Line
-            disabled={disabled}
-            editing={editingId === row.lineId}
-            key={row.lineId}
-            onEditDone={onEditDone}
-            onQuantity={(thousandths) => onQuantity(row.lineId, thousandths)}
-            onRemove={() => onRemove(row.lineId)}
-            onSelect={() => onSelect(row.lineId)}
-            row={row}
-            revealSelected={revealSelected}
-            selected={row.lineId === selectedId}
-          />
-        ))}
-      </ul>
-    </div>
+    <ul
+      aria-label="Basket lines"
+      className="group/lines flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2 outline-none"
+      data-zone="basket"
+      onKeyDown={onKeyDown}
+      ref={listRef}
+      // In the tab order so the list can scroll by keyboard even while every line is disabled.
+      tabIndex={0}
+    >
+      {rows.map((row, position) => (
+        <Line
+          key={row.lineId}
+          onSelect={() => onSelect(row.lineId)}
+          position={position + 1}
+          revealSelected={revealSelected}
+          row={row}
+          selected={row.lineId === selectedId}
+        />
+      ))}
+    </ul>
   );
 }

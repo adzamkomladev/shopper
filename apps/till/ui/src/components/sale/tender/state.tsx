@@ -108,7 +108,7 @@ export function ReceiptComplete({
   return (
     <section
       aria-label="Sale receipt"
-      className="grid h-full min-w-0 content-center justify-items-center gap-5 rounded-lg border bg-card p-8 text-center md:col-span-5"
+      className="grid min-w-0 flex-1 content-center justify-items-center gap-5 rounded-panel border bg-card p-8 text-center"
       ref={shortcuts}
     >
       <p className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">

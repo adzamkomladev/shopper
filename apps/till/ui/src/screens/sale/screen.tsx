@@ -1,11 +1,13 @@
 import { useRef, useState } from "react";
-import { money } from "@shopper/money";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
+import { useSaleControls } from "../../hooks/sale/controls";
 import { useScanField } from "../../hooks/scanner";
+import { CartPanel } from "../../components/sale/cart/panel";
 import { Lines } from "../../components/sale/lines";
 import { SaleHeader } from "../../components/sale/header";
 import { ShortcutHints } from "../../components/sale/hints";
 import { addInputFor, ScanEntry, SearchResults } from "../../components/sale/search";
+import { SaleTiles } from "../../components/sale/tiles";
 import {
   EmptyBasket,
   CompletedBasket,
@@ -14,11 +16,13 @@ import {
   UnavailableBasket,
 } from "../../components/sale/states";
 import { TenderPanel } from "../../components/sale/tender/panel";
-import { CartTotals } from "../../components/sale/totals";
+import { hasUnappliedConfirmation } from "../../sale/payments";
 import { isPriced, rowsOf, selectedRow } from "../../sale/rows";
 import type { CatalogueMatch, SaleActions, SaleSnapshot } from "../../sale/types";
 
 const bannerId = "sale-banner";
+const panel =
+  "flex min-h-96 flex-1 flex-col overflow-hidden rounded-panel border bg-card shadow-sm lg:min-h-0";
 
 /**
  * The cashier workspace. It draws one snapshot and reports intent through `actions`; it fetches
@@ -44,6 +48,8 @@ export function SaleScreen({
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  // The draft the cashier pressed Checkout on, so a new, held or resumed sale starts back at the cart.
+  const [tenderingFor, setTenderingFor] = useState<string | null>(null);
   // The completed sale whose scan was refused, so the message goes with that sale and not the next.
   const [refusedFor, setRefusedFor] = useState<string | null>(null);
   const scanRef = useRef<HTMLInputElement>(null);
@@ -51,6 +57,7 @@ export function SaleScreen({
 
   // On the completion view a scan or keyed code starts a new sale only with "clear cart after a sale" on.
   const startsOnScan = snapshot.receipt !== null && !!snapshot.register?.clearCartAfterSale;
+  const controls = useSaleControls(snapshot, actions);
   const locked = host !== "connected" || failure !== null;
   const rows = rowsOf(view);
   const selected = selectedRow(rows, selectedId);
@@ -82,6 +89,13 @@ export function SaleScreen({
   });
   const searching = field.query.trim() !== "";
   const busyOrLocked = locked || busy;
+  const draftId = view?.draft?.id ?? null;
+  // Tenders already on the sale, or a MoMo payment waiting for one, keep the tender step showing.
+  const tendering =
+    snapshot.receipt === null &&
+    ((draftId !== null && tenderingFor === draftId) ||
+      (view?.draft?.tenders.length ?? 0) > 0 ||
+      hasUnappliedConfirmation(snapshot));
 
   function pick(match: CatalogueMatch) {
     actions.add(addInputFor(match));
@@ -101,6 +115,17 @@ export function SaleScreen({
 
   function finishEdit() {
     setEditingId(null);
+  }
+
+  function checkout() {
+    if (busyOrLocked || rows.length === 0) return;
+    setTenderingFor(draftId);
+    scanRef.current?.focus();
+  }
+
+  function backToCart() {
+    setTenderingFor(null);
+    focusScan();
   }
 
   function escape() {
@@ -141,6 +166,11 @@ export function SaleScreen({
           F2: focusScan,
           F3: () => listRef.current?.focus(),
           F4: startEdit,
+          F6: controls.hold,
+          F7: controls.showHeld,
+          F11: controls.askVoid,
+          "Mod+Enter": checkout,
+          "Alt+C": backToCart,
           F8: () => sync.canSync && actions.syncNow(),
           F9: actions.reconnect,
           F10: onRegister,
@@ -164,11 +194,8 @@ export function SaleScreen({
     >
       <SaleHeader host={host} onRegister={onRegister} onSyncNow={actions.syncNow} sync={sync} />
       <SaleBanners actions={actions} describedBy={bannerId} rows={rows} snapshot={snapshot} />
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto md:grid-cols-12 md:overflow-hidden md:gap-6">
-        <section
-          aria-label="Basket"
-          className="flex min-h-96 flex-col overflow-hidden rounded-lg border bg-card shadow-sm md:col-span-7 md:min-h-0"
-        >
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 overflow-y-auto lg:grid-cols-12 lg:overflow-hidden">
+        <section aria-label="Add items" className="flex min-h-0 flex-col gap-4 lg:col-span-7">
           <ScanEntry
             activeIndex={searching && matches.length > 0 ? active : null}
             describedBy={locked ? bannerId : undefined}
@@ -180,63 +207,81 @@ export function SaleScreen({
             value={field.query}
           />
           {snapshot.receipt ? (
-            <CompletedBasket
-              refused={refusedFor === snapshot.receipt.saleId}
-              startsOnScan={startsOnScan}
-            />
+            <div className={panel}>
+              <CompletedBasket
+                refused={refusedFor === snapshot.receipt.saleId}
+                startsOnScan={startsOnScan}
+              />
+            </div>
           ) : searching ? (
-            <SearchResults
-              activeIndex={active}
-              onPick={pick}
-              query={field.query.trim()}
-              search={search}
-            />
-          ) : loading && !view ? (
-            <LinesSkeleton />
-          ) : !view && locked ? (
-            <UnavailableBasket />
-          ) : rows.length === 0 ? (
-            <EmptyBasket />
+            <div className={panel}>
+              <SearchResults
+                activeIndex={active}
+                onPick={pick}
+                query={field.query.trim()}
+                search={search}
+              />
+            </div>
           ) : (
-            <Lines
-              disabled={busyOrLocked}
-              editingId={editingId}
-              listRef={listRef}
-              revealSelected={selectedId !== null}
-              onEditDone={() => {
-                finishEdit();
-                focusScan();
-              }}
-              onQuantity={setQuantity}
-              onRemove={remove}
-              onSelect={setSelectedId}
-              rows={rows}
-              selectedId={selected?.lineId}
-            />
+            <SaleTiles controls={controls} onScan={focusScan} />
           )}
-          <CartTotals saved={view?.draft != null} totals={totalsOf(snapshot)} />
         </section>
-        <TenderPanel
-          active={screenActive}
-          actions={actions}
-          onReturnFocus={focusScan}
-          onPurchases={onPurchases}
-          snapshot={snapshot}
-        />
+        <div className="flex min-h-0 flex-col gap-3 lg:col-span-5">
+          {controls.notice && (
+            <p className="text-sm text-muted-foreground" role="status">
+              {controls.notice}
+            </p>
+          )}
+          <CartPanel
+            canCheckout={!busyOrLocked && rows.length > 0}
+            canClear={!busyOrLocked && controls.hasDraft}
+            count={view?.draft?.lines.length ?? 0}
+            disabled={busyOrLocked}
+            editing={selected !== undefined && editingId === selected.lineId}
+            hidden={tendering || snapshot.receipt !== null}
+            onCheckout={checkout}
+            onClear={controls.askVoid}
+            onEditDone={() => {
+              finishEdit();
+              focusScan();
+            }}
+            onQuantity={(thousandths) => selected && setQuantity(selected.lineId, thousandths)}
+            onRemove={() => selected && remove(selected.lineId)}
+            saved={view?.draft != null}
+            selected={selected}
+            totals={view?.quote.totals}
+          >
+            {loading && !view ? (
+              <LinesSkeleton />
+            ) : !view && locked ? (
+              <UnavailableBasket />
+            ) : rows.length === 0 ? (
+              <EmptyBasket />
+            ) : (
+              <Lines
+                disabled={busyOrLocked}
+                listRef={listRef}
+                onRemove={remove}
+                onSelect={setSelectedId}
+                revealSelected={selectedId !== null}
+                rows={rows}
+                selectedId={selected?.lineId}
+              />
+            )}
+          </CartPanel>
+          <TenderPanel
+            active={screenActive}
+            actions={actions}
+            controls={controls}
+            hidden={!tendering}
+            onBack={backToCart}
+            onReturnFocus={focusScan}
+            onPurchases={onPurchases}
+            snapshot={snapshot}
+          />
+        </div>
       </div>
       <ShortcutHints />
     </main>
   );
 }
-
-const zero = money(0);
-const emptyTotals = {
-  base: zero,
-  vat: zero,
-  nhil: zero,
-  getfund: zero,
-  covid: zero,
-  gross: zero,
-  roundingAdjustment: zero,
-};
-const totalsOf = (snapshot: SaleSnapshot) => snapshot.view?.quote.totals ?? emptyTotals;

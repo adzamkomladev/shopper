@@ -25,7 +25,7 @@ test("Alt+T opens Settings from the nav and shows this register's saved values",
   await expect(page.getByRole("switch", { name: "Require PIN for returns" })).not.toBeChecked();
   await expect(page.getByText("Changes apply to this register only.")).toBeVisible();
   await page.keyboard.press("Alt+S");
-  await expect(page.getByRole("heading", { name: "Sale", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Checkout", exact: true })).toBeVisible();
 });
 
 test("the printer badge is derived from the last real job and never invented", async ({ page }) => {

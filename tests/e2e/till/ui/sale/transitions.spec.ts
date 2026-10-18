@@ -24,12 +24,12 @@ test("hold and void keep the sale locked until the open basket refresh completes
     await scan.fill("PEAK-160");
     await page.getByRole("option", { name: /Peak milk 160g/ }).click();
     await expect(page.getByRole("list", { name: "Basket lines" })).toContainText("Peak milk 160g");
-    await page.getByRole("button", { name: "Void sale" }).click();
+    await page.getByRole("button", { name: "Clear cart" }).click();
     const dialog = page.getByRole("dialog", { name: "Void sale" });
     await dialog.getByRole("textbox", { name: "Reason" }).fill("Customer changed their mind");
     await dialog.getByRole("button", { name: "Void sale" }).click();
     await reads.voided;
-    await expect(page.getByRole("button", { name: "Void sale" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Clear cart" })).toBeDisabled();
     reads.releaseVoided();
     await expect(page.getByText("Basket is empty")).toBeVisible();
   } finally {
@@ -53,12 +53,12 @@ test("active void stays locked until the open basket refresh completes", async (
     await scan.fill("MILO-400");
     await page.getByRole("option", { name: /Milo 400g tin/ }).click();
 
-    await page.getByRole("button", { name: "Void sale" }).click();
+    await page.getByRole("button", { name: "Clear cart" }).click();
     const dialog = page.getByRole("dialog", { name: "Void sale" });
     await dialog.getByRole("textbox", { name: "Reason" }).fill("Customer changed their mind");
     await dialog.getByRole("button", { name: "Void sale" }).click();
     await reads.voided;
-    await expect(page.getByRole("button", { name: "Void sale" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Clear cart" })).toBeDisabled();
     reads.releaseVoided();
     await expect(page.getByText("Basket is empty")).toBeVisible();
   } finally {

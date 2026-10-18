@@ -151,3 +151,19 @@ export type PurchaseActions = {
 };
 
 export type { HostStatus };
+
+/** Hold, held sales and void: shared by the sale tiles, Clear cart, their shortcuts and the dialogs. */
+export type SaleControls = {
+  hasDraft: boolean;
+  locked: boolean;
+  heldOpen: boolean;
+  voidOpen: boolean;
+  notice: string;
+  hold: () => void;
+  showHeld: () => void;
+  askVoid: () => void;
+  confirmVoid: (reason: string) => void;
+  setHeldOpen: (open: boolean) => void;
+  setVoidOpen: (open: boolean) => void;
+  setNotice: (notice: string) => void;
+};

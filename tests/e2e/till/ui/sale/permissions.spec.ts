@@ -1,8 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { calls, openSale } from "./harness";
+import { calls, openCheckout, openSale } from "./harness";
 
 test("missing MoMo permission leaves cash checkout available", async ({ page }) => {
   await openSale(page, "no-momo-permission");
+  await openCheckout(page);
   const momo = page.getByRole("button", { name: /MoMo/ });
   await expect(momo).toBeDisabled();
   await expect(

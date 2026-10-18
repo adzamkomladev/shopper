@@ -3,6 +3,7 @@ import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { formatGHS, money } from "@shopper/money";
 import { expectNoSeriousAxe } from "../../../../support/e2e";
 import { startSaleScenario } from "../../../../support/till/sale/scenario";
+import { openCheckout } from "../sale/harness";
 import { installScanClock, scanCode } from "../sale/scanner";
 
 let scenario: Awaited<ReturnType<typeof startSaleScenario>> | undefined;
@@ -45,6 +46,7 @@ test("a scan in the till page updates the display page", async ({ page }, testIn
   await display.screenshot({ path: testInfo.outputPath("display-live.png") });
 
   // Completing the sale shows the thank-you screen with the change due.
+  await openCheckout(page);
   await page.getByRole("textbox", { name: "Amount tendered" }).fill("5000.00");
   await page.keyboard.press("F5");
   await expect(display.getByRole("heading", { level: 1 })).toHaveText("Thank you");

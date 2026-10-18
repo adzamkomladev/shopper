@@ -282,6 +282,9 @@ UI slices also run `/ui-screen`, `/ui-verify` and `ui-reviewer`. Adapter and rou
 - **Offline PIN check:**
   - a PIN hash on the till could be brute-forced by anyone who can read the decrypted database. The DPAPI-sealed SQLCipher key is the defence, as on Day 13;
   - a revoked manager can keep approving offline for up to 7 days.
+- **Approver grants at upload:**
+  - the server checks an override, void or refund approver's grant against their current role when the sale uploads. A manager demoted before an offline sale syncs gets that sale rejected, and it stays blocked in the upload lane, visible in the sync status;
+  - the server cannot prove the PIN was typed. A compromised till can name any manager who holds the grant. This is the accepted risk of offline approval.
 - **Versions:** sale v4, protocol 4 and feed v3 have no upcaster. AGENTS.md says to add one; this is skipped under your reset decision, and Day 11 did the same. The plan and `architecture.md` record why.
 - **Boundaries:**
   - core never imports auth; the host passes in the PIN check;

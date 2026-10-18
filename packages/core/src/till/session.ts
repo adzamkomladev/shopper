@@ -35,6 +35,13 @@ export async function hostTime(db: TillDatabase, scope: Scope, deviceTime: Date)
 }
 
 export function checkSession(session: TillSession, scope: Scope, permission: string, time: Date) {
+  validateScope(session, scope, time);
+  if (!session.permissions.includes(permission))
+    throw new TillError("permission", `Session lacks ${permission} permission`);
+}
+
+/** The session belongs to this tenant, device and branch and is live at `time`; says nothing about permissions. */
+export function validateScope(session: TillSession, scope: Scope, time: Date) {
   if (
     session.orgId !== scope.orgId ||
     session.deviceId !== scope.deviceId ||
@@ -44,8 +51,6 @@ export function checkSession(session: TillSession, scope: Scope, permission: str
       "scope",
       "Cashier session is outside the configured tenant/device/branch scope",
     );
-  if (!session.permissions.includes(permission))
-    throw new TillError("permission", `Session lacks ${permission} permission`);
   if (
     !Number.isFinite(time.valueOf()) ||
     time < new Date(session.issuedAt) ||

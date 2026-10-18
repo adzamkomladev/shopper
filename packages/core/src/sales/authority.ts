@@ -98,7 +98,7 @@ export async function hasGrant(
 
 /**
  * An overridden price needs the cashier session and role, or the named approver's role, to hold
- * `sale.price_override`. Sets the audit approver when every override names the same one.
+ * `sale.price_override`. Sets the audit approver when every override names the same one and none is self-authorised.
  */
 export async function overrideAuthority(
   tx: ShopperTransaction,
@@ -115,7 +115,8 @@ export async function overrideAuthority(
       throw new SaleError("INVALID_SESSION", "Price override lacks approver permission");
   }
   const [only, ...others] = overrideApprovers(snapshot);
-  if (only && !others.length) ctx.approverId = only;
+  if (only && !others.length && overrideList(snapshot).every(({ approverId }) => approverId))
+    ctx.approverId = only;
 }
 
 const overrideList = (snapshot: SaleSnapshot) =>
@@ -124,10 +125,9 @@ const overrideApprovers = (snapshot: SaleSnapshot) => [
   ...new Set(overrideList(snapshot).flatMap(({ approverId }) => (approverId ? [approverId] : []))),
 ];
 
-/** Audit payload extra: which line each approver approved, only when more than one approver is involved. */
+/** Audit payload extra: which approver (or null, the cashier) authorised each overridden line. */
 export function overrideAudit(snapshot: SaleSnapshot) {
-  if (overrideApprovers(snapshot).length < 2) return {};
-  return {
-    overrides: overrideList(snapshot).map(({ lineId, approverId }) => ({ lineId, approverId })),
-  };
+  const overrides = overrideList(snapshot);
+  if (!overrides.length) return {};
+  return { overrides: overrides.map(({ lineId, approverId }) => ({ lineId, approverId })) };
 }

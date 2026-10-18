@@ -24,7 +24,7 @@ const voider = { ...session, permissions: [...session.permissions, "sale.void"] 
 const reason = "Customer left";
 const voidIt = (
   db: Parameters<Parameters<typeof withTill>[0]>[0],
-  over: { session?: typeof session; approverId?: string } = {},
+  over: { session?: unknown; approverId?: string } = {},
 ) =>
   voidDraftSale(db, ctx, {
     scope,
@@ -98,5 +98,19 @@ test("a draft with a confirmed MoMo tender still cannot be voided, approver or n
         tx.select().from(saleDraftTender).where(eq(saleDraftTender.draftId, draftId)),
       ),
     ).toHaveLength(1);
+  });
+});
+
+test("a named approver does not rescue an expired or out-of-scope cashier session", async () => {
+  await withTill(async (db) => {
+    await basket(db, true);
+    const expired = { ...voider, expiresAt: "2025-12-31T16:00:01.000Z" };
+    await expect(voidIt(db, { session: expired, approverId: manager })).rejects.toMatchObject(
+      fails("session"),
+    );
+    const elsewhere = { ...voider, branchId: "019a0000-0000-7000-8000-0000000000b9" };
+    await expect(voidIt(db, { session: elsewhere, approverId: manager })).rejects.toMatchObject(
+      fails("scope"),
+    );
   });
 });

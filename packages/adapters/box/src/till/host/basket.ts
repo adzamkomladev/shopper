@@ -23,7 +23,7 @@ import {
   TillError,
   validateSession,
 } from "@shopper/core/till";
-import type { Approval, BridgeMessage } from "@shopper/sync/bridge";
+import type { BridgeMessage } from "@shopper/sync/bridge";
 import type { Basket, Host } from "./types";
 import { error } from "./transport";
 
@@ -67,7 +67,7 @@ export function createBasket(host: Host, localConfig: LocalConfig) {
     };
     const { id, type, ...input } = request;
     // Only price overrides and voids carry an approval; core's strict inputs must never see it.
-    const { approval, ...fields } = input as typeof input & { approval?: Approval };
+    const { approval, ...fields } = { approval: undefined, ...input };
     const edit = { ...fields, scope, at };
     if (type === "sales.list")
       return { id, type: "result", kind: "purchases", ...(await listPurchases(database, edit)) };

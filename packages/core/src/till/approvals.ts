@@ -4,7 +4,7 @@ import type { CommandContext } from "@shopper/audit";
 import { tillApprover, type TillDatabase } from "@shopper/db-sqlite";
 import type { TillSession } from "../schemas/till/session";
 import { TillError } from "./error";
-import { checkSession } from "./session";
+import { checkSession, validateScope } from "./session";
 
 // ponytail: offline approval knobs; make them register settings if a shop needs different ones.
 export const MAX_FAILURES = 5;
@@ -77,7 +77,7 @@ async function check(db: TillDatabase, context: CommandContext, input: Approval,
 
 /**
  * Who authorises an action: a verified approver when one is given, otherwise the signed-in user when they hold
- * the permission and approval is not mandatory.
+ * the permission and approval is not mandatory. The cashier session must be in scope and live either way.
  */
 export function authorize(
   session: TillSession,
@@ -87,6 +87,7 @@ export function authorize(
   approverId: string | undefined,
   mandatory: boolean,
 ) {
+  validateScope(session, scope, at);
   if (approverId) return approverId;
   if (mandatory) throw new TillError("APPROVAL_REQUIRED", "A manager must approve this");
   checkSession(session, scope, permission, at);

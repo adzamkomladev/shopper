@@ -4,10 +4,9 @@
 import { afterEach, expect, it } from "vite-plus/test";
 import { v7 } from "uuid";
 import { verifyChain, type AuditEntry } from "@shopper/audit";
-import { hashPin } from "@shopper/auth/devices";
-import { refreshApprovers, setDraftPrice } from "@shopper/core/till";
+import { setDraftPrice } from "@shopper/core/till";
 import { tillAudit } from "@shopper/db-sqlite";
-import { createHostFixture } from "../../../../support/till/host/fixture";
+import { manager, startWithManager } from "../../../../support/till/host/approvals";
 import { pin as managerPin } from "../../../../support/till/approvers";
 import {
   add,
@@ -20,38 +19,15 @@ import {
   world,
 } from "../../../../support/till/drafts";
 
-let fixture: Awaited<ReturnType<typeof createHostFixture>> | undefined;
+let fixture: Awaited<ReturnType<typeof startWithManager>>["fixture"] | undefined;
 afterEach(async () => fixture?.close());
 
-const manager = v7();
 const reason = "Damaged pack";
 
 async function start() {
-  fixture = await createHostFixture({ freshSession: true });
-  const { identity } = fixture.config;
-  await refreshApprovers(
-    fixture.database,
-    { orgId: identity.orgId, deviceId: identity.deviceId, appVersion: "0.0.0-test" },
-    {
-      approvers: [
-        {
-          userId: manager,
-          name: "Esi Manager",
-          pinHash: await hashPin(managerPin),
-          permissions: ["sale.price_override", "sale.void"],
-        },
-      ],
-      at: new Date(),
-    },
-  );
-  const host = await fixture.start();
-  const added = await host.request({
-    type: "add",
-    expectedRevision: 0,
-    productId: fixture.config.references.products[0].id,
-  });
-  const line = (added as { view: { draft: { lines: { id: string }[] } } }).view.draft.lines[0]!;
-  return { host, lineId: line.id };
+  const started = await startWithManager();
+  fixture = started.fixture;
+  return started;
 }
 
 it("Override without manager PIN is refused; with PIN, audit shows both actor and approver", async () => {

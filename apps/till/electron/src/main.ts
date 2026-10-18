@@ -12,9 +12,11 @@ import { lockDown } from "./window";
 app.commandLine.appendSwitch("force-device-scale-factor", "1");
 
 const tillUi = process.env.SHOPPER_TILL_UI_URL ?? "http://127.0.0.1:5174/";
+// Packaged, tooling/build/package.ts puts the host bundle and the till UI beside this file inside app.asar.
+const here = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 const hostEntry =
   process.env.SHOPPER_TILL_HOST ??
-  fileURLToPath(new URL("../../host/dist/server.js", import.meta.url));
+  (app.isPackaged ? here("host/server.js") : here("../../host/dist/server.js"));
 
 // The parent that spawned us over IPC owns our lifetime: when it goes, so do we (and the host).
 process.on("disconnect", () => app.quit());
@@ -57,7 +59,7 @@ async function startRegister() {
     sqlitePath?: unknown;
   };
   const { v: _version, ...secrets } = await loadSecrets(userData, stored, configPath);
-  const config = { ...stored, ...secrets };
+  const config = { ...stored, ...(app.isPackaged && { ui: stored.ui ?? here("ui") }), ...secrets };
   const host = fork(hostEntry, [], { env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" } });
   app.on("window-all-closed", () => app.quit());
   app.on("before-quit", () => host.connected && host.disconnect());

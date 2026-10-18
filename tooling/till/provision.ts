@@ -28,7 +28,8 @@ export async function provision(options: Options) {
     throw new Error("Upstream must be https (http is allowed for localhost only)");
   const response = await (options.fetch ?? fetch)(`${options.upstream}/devices/enroll`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    // A multi-tenant API (the cloud) selects the shop by header, like every other till call.
+    headers: { "content-type": "application/json", "X-Shopper-Org": options.org },
     body: JSON.stringify({ orgId: options.org, code: options.code, name: options.name }),
   });
   if (!response.ok) throw new Error(`Enrollment failed (${response.status})`);
@@ -59,6 +60,8 @@ export async function provision(options: Options) {
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const { values } = parseArgs({
+    // `vp run till:provision -- --upstream …` passes the `--` through.
+    args: process.argv.slice(2).filter((arg) => arg !== "--"),
     options: {
       upstream: { type: "string" },
       org: { type: "string" },

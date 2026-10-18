@@ -72,9 +72,27 @@ export async function loadSecrets(
       throw new Error("register.json has no deviceToken to seal. Enroll this register again");
     secrets = { v: 1, databaseKey: randomBytes(32).toString("hex"), deviceToken: token };
   }
-  await writeAtomic(path, safeStorage.encryptString(JSON.stringify(secrets)));
+  const encrypted = safeStorage.encryptString(JSON.stringify(secrets));
+  await keyPersisted(userData);
+  await writeAtomic(path, encrypted);
   await scrub(configPath, config);
   return secrets;
+}
+
+/**
+ * On Windows Chromium keeps its DPAPI-wrapped key in `userData/Local State` and commits it about 10 s
+ * late. A crash or power cut in that window would leave register.secret sealed under a lost key, so
+ * nothing is sealed until the key is on disk; until then register.json still holds the token.
+ */
+async function keyPersisted(userData: string) {
+  if (process.platform !== "win32") return;
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    const state = await readFile(join(userData, "Local State"), "utf8").catch(() => "");
+    if (state.includes('"encrypted_key"')) return;
+    await new Promise((done) => setTimeout(done, 250));
+  }
+  throw new Error("Windows did not save the encryption key. Restart the register");
 }
 
 function scrub(configPath: string, config: { deviceToken?: unknown }) {

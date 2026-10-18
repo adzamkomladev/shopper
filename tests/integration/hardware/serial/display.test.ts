@@ -1,8 +1,8 @@
-import { expect, test } from "vite-plus/test";
+import { expect } from "vite-plus/test";
 import { serialDisplay } from "@shopper/hardware/serial";
-import { startSerialPair } from "../../../support/hardware/serial";
+import { ptyTest, startSerialPair } from "../../../support/hardware/serial";
 
-test("clear plus two 20-column lines, padded, truncated and transliterated", async () => {
+ptyTest("clear plus two 20-column lines, padded, truncated and transliterated", async () => {
   const pair = await startSerialPair();
   try {
     await serialDisplay({ path: pair.path, baudRate: 9600 }).show([

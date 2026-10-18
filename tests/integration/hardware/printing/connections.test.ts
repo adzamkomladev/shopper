@@ -10,7 +10,7 @@ import {
   type Register,
 } from "../../../support/hardware/host";
 import { decodeEscPos } from "../../../support/hardware/escpos";
-import { startSerialPair } from "../../../support/hardware/serial";
+import { ptyTest, startSerialPair } from "../../../support/hardware/serial";
 
 let register: Register | undefined;
 let printer: Printer | undefined;
@@ -77,7 +77,7 @@ test("settings save accepts usb and serial printers and rejects malformed ones",
     ).toBe(false);
 });
 
-test("a cash sale on a serial printer prints the golden receipt and kicks once", async () => {
+ptyTest("a cash sale on a serial printer prints the golden receipt and kicks once", async () => {
   register = await startRegister();
   const pair = await startSerialPair();
   try {
@@ -96,15 +96,23 @@ test("a cash sale on a serial printer prints the golden receipt and kicks once",
   }
 });
 
-test("a USB printer off Windows fails the print, not the sale", async () => {
+// Off Windows there is no spooler; on Windows the queue "Till printer" is not installed.
+test("a USB printer that cannot print fails the print, not the sale", async () => {
   register = await startRegister();
   await register.configure(withConnection({ kind: "usb", printerName: "Till printer" }));
   const { saleId } = await register.sell([{ kind: "cash", amount: 15_000 }]);
   expect(await register.fixture.localSales()).toHaveLength(1);
-  await expect.poll(async () => (await register!.status()).printer.state).toBe("offline");
+  // Windows PowerShell compiles the spooler shim first, which takes a few seconds.
+  await expect
+    .poll(async () => (await register!.status()).printer.state, { timeout: 15_000 })
+    .toBe("offline");
   const { lastJob } = (await register.status()).printer;
   expect(lastJob).toMatchObject({ kind: "receipt", saleId, outcome: "failed" });
-  expect(lastJob.message).toContain("USB printers need Windows");
+  expect(lastJob.message).toContain(
+    process.platform === "win32"
+      ? "Cannot open printer 'Till printer'"
+      : "USB printers need Windows",
+  );
   expect(await register.receiptOutput(saleId)).toMatchObject({ printed_at: null });
   // A test print reports the same failure to the caller instead of throwing the host over.
   expect(await register.ask({ type: "printer.test" })).toMatchObject({

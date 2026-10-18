@@ -52,6 +52,9 @@ catch { [Console]::Error.WriteLine($_.Exception.Message); exit $(if ([RawPrinter
 
 const encoded = Buffer.from(SCRIPT, "utf16le").toString("base64");
 
+/** Windows PowerShell by absolute path: a service or kiosk PATH may lack System32, and PATH can be planted. */
+export const windowsPowerShell = `${process.env.SystemRoot ?? "C:/Windows"}/System32/WindowsPowerShell/v1.0/powershell.exe`;
+
 /**
  * Failing before the job started is `PrinterOffline`; a failure once the job started, or a timeout,
  * is `PrinterUncertain` so a caller never silently retries into a double print.
@@ -67,7 +70,7 @@ export function spoolerPrinter(options: {
         if (!options.shell && process.platform !== "win32")
           return reject(new PrinterOffline(new Error("USB printers need Windows")));
         const child = spawn(
-          options.shell ?? "powershell.exe",
+          options.shell ?? windowsPowerShell,
           ["-NoProfile", "-NonInteractive", "-OutputFormat", "Text", "-EncodedCommand", encoded],
           {
             env: { ...process.env, SHOPPER_PRINTER_NAME: options.printerName },

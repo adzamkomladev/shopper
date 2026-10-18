@@ -2,7 +2,7 @@ import { fork } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { app, BrowserWindow, Menu } from "electron";
+import { app, BrowserWindow, Menu, nativeTheme } from "electron";
 import { openDisplay } from "./display";
 import { answerRender } from "./render";
 import { loadSecrets } from "./secrets";
@@ -74,18 +74,25 @@ async function startRegister() {
 }
 
 // The till UI draws its own 40px title bar (--card behind, --foreground on it); the OS only paints the window
-// controls over its right edge, so there is no preload and no custom window API.
-const titleBarOverlay = { color: "#ffffff", symbolColor: "#020617", height: 40 };
+// controls over its right edge, so there is no preload and no custom window API. The UI follows the OS theme
+// (prefers-color-scheme), so the controls do too: light and dark --card / --foreground from @shopper/ui.
+const titleBarOverlay = () =>
+  nativeTheme.shouldUseDarkColors
+    ? { color: "#0b1220", symbolColor: "#f8fafc", height: 40 }
+    : { color: "#ffffff", symbolColor: "#020617", height: 40 };
 
 function openTill(capability: string, url: string) {
   const window = new BrowserWindow({
     width: 1366,
     height: 768,
-    backgroundColor: titleBarOverlay.color,
+    backgroundColor: titleBarOverlay().color,
     titleBarStyle: "hidden",
-    titleBarOverlay,
+    titleBarOverlay: titleBarOverlay(),
     webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true },
   });
+  const followTheme = () => window.setTitleBarOverlay(titleBarOverlay());
+  nativeTheme.on("updated", followTheme);
+  window.once("closed", () => nativeTheme.off("updated", followTheme));
   lockDown(window, new URL(url).origin);
   openDisplay(window, url, capability);
   // The capability stays in the URL fragment, which the till UI reads once and clears.

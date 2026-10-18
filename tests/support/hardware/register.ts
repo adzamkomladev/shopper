@@ -9,7 +9,8 @@ export const deviceToken = "a".repeat(64);
 /** A register.json + served UI in a temp dir; `start` launches Electron on it and stops it with `cleanup`. */
 export async function register(cleanup: Array<() => Promise<void>>) {
   const directory = await mkdtemp(join(tmpdir(), "shopper-secrets-"));
-  cleanup.push(() => rm(directory, { recursive: true, force: true }));
+  // Chromium helpers can hold files for a moment after the process tree is killed (EBUSY on Windows).
+  cleanup.push(() => rm(directory, { recursive: true, force: true, maxRetries: 10 }));
   const ui = join(directory, "ui");
   await mkdir(ui);
   await writeFile(join(ui, "index.html"), "<title>till</title>");

@@ -41,7 +41,8 @@ export async function launchElectron(env: Record<string, string>, args: string[]
   return spawn(command!, rest, {
     cwd: root,
     detached: !windows,
-    env: { ...process.env, ...env },
+    // A startup error dialog is modal and would block the test until it times out.
+    env: { ...process.env, SHOPPER_TEST_NO_DIALOG: "1", ...env },
     stdio: ["ignore", "pipe", "pipe", "ipc"],
   });
 }

@@ -31,14 +31,10 @@ async function start(config: unknown, renderer?: unknown) {
     if (renderer === "parent") parent = parentRenderer(send);
     host = await startTillHost(config, send, parent?.renderer);
     if (stopped) await host.close();
-  } catch {
+  } catch (error) {
     parent?.dispose();
     parent = undefined;
-    send({
-      type: "error",
-      code: "HOST_UNAVAILABLE",
-      message: "Register could not start. Check its configuration and storage.",
-    });
+    send({ type: "error", code: "HOST_UNAVAILABLE", message: cause(error, config) });
     process.exitCode = 1;
     if (process.connected) process.disconnect?.();
   }
@@ -68,4 +64,28 @@ if (!ipc) {
       console.error("Register configuration could not be read");
       process.exitCode = 1;
     });
+}
+
+/**
+ * A short cause for the operator. Validation issues name the field and what it expects, never the value
+ * received (Valibot echoes strings, such as a malformed token); any secret left in a message is masked.
+ */
+function cause(error: unknown, config: unknown) {
+  type Issue = { path?: { key: unknown }[]; expected?: string | null; message: string };
+  const issues =
+    error instanceof Error && "issues" in error ? (error.issues as Issue[]) : undefined;
+  let text = issues
+    ? issues
+        .map(({ path, expected, message }) => {
+          const field = path?.map(({ key }) => String(key)).join(".") ?? "register.json";
+          return `${field}: ${expected ? `expected ${expected}` : message}`;
+        })
+        .join("; ")
+    : error instanceof Error
+      ? error.message
+      : String(error);
+  const { deviceToken, databaseKey } = (config ?? {}) as Record<string, unknown>;
+  for (const secret of [deviceToken, databaseKey])
+    if (typeof secret === "string" && secret) text = text.replaceAll(secret, "[redacted]");
+  return text;
 }

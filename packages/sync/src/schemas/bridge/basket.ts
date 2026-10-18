@@ -91,6 +91,7 @@ export const basketRequests = [
     expectedRevision: revision,
     reason: v.pipe(text, v.trim(), v.minLength(1), v.maxLength(500)),
     draftId: v.optional(id),
+    approval: v.optional(approval),
   }),
 ] as const;
 export const basketRequestTypes = basketRequests.map((schema) => schema.entries.type.literal);

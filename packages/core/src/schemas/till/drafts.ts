@@ -78,6 +78,7 @@ export const priceDraftInput = v.strictObject({
 export const voidDraftInput = v.strictObject({
   ...draftEdit,
   draftId: v.optional(tillId),
+  approverId,
   session: tillSession,
   reason: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(500)),
 });

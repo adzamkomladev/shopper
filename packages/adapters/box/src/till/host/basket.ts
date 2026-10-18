@@ -129,7 +129,11 @@ export function createBasket(host: Host, localConfig: LocalConfig) {
         view = await resumeDraftSale(database, context, edit);
         break;
       case "sale.void":
-        view = await voidDraftSale(database, context, { ...edit, session: config.session });
+        view = await voidDraftSale(database, context, {
+          ...edit,
+          session: config.session,
+          approverId: await host.approvals.verify(approval, "sale.void"),
+        });
         break;
     }
     if (type !== "readDraft") host.peripherals.basket(view);

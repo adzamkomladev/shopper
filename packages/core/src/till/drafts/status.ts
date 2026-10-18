@@ -17,7 +17,7 @@ import {
 } from "../../schemas/till/drafts";
 import { assertDraftScope, claimDraft } from "./edit";
 import { findDraft, toView } from "./queries";
-import { checkSession } from "../session";
+import { authorize } from "../approvals";
 import { TillError } from "../error";
 
 export function holdDraftSale(db: TillDatabase, context: CommandContext, raw: unknown) {
@@ -33,9 +33,8 @@ export function resumeDraftSale(db: TillDatabase, context: CommandContext, raw: 
 export async function voidDraftSale(db: TillDatabase, context: CommandContext, raw: unknown) {
   const input = v.parse(voidDraftInput, raw);
   assertDraftScope(context, input.scope);
-  checkSession(input.session, input.scope, "sale.void", input.at);
   assertDraftScope(context, { ...input.scope, cashierId: input.session.userId });
-  return voidSale(db, { ...context, reason: input.reason }, input);
+  return voidSale(db, { ...context, reason: input.reason, approverId: input.approverId }, input);
 }
 export async function listHeldDraftSales(db: TillDatabase, scope: DraftScope, input: { at: Date }) {
   const data = v.parse(readDraftInput, { scope, ...input });
@@ -124,7 +123,17 @@ const voidSale = defineCommand({
       input.at,
       input.draftId,
     );
-    await assertPayments(tx, found.draft.id, false);
+    const tendered = await assertPayments(tx, found.draft.id, false);
+    // A cash or card tender has already taken part of the money, so only a manager may undo it.
+    const holds = input.session.permissions.includes("sale.void");
+    authorize(
+      input.session,
+      input.scope,
+      "sale.void",
+      input.at,
+      input.approverId,
+      tendered || !holds,
+    );
     const [draft] = await tx
       .update(saleDraft)
       .set({ status: "voided", voidReason: input.reason, voidedAt: input.at.toISOString() })
@@ -155,4 +164,5 @@ async function assertPayments(tx: TillSqlite, draftId: string, pending: boolean)
     )
   )
     throw new TillError("DRAFT_BUSY", "The draft has an active MoMo payment");
+  return tenders.some((t) => t.kind !== "momo" && t.status === "applied");
 }

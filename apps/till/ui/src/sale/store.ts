@@ -13,6 +13,7 @@ import type { ConnectionSnapshot } from "../connection/types";
 import { sendReprint } from "../purchases/reprint";
 import { createSaleOperations } from "./operations";
 import { asked, mirrorJob, trackPrint, unknownIfPending } from "./print";
+import { fresh } from "./initial";
 import { registerOf } from "./register";
 import { failureOf, isOlder } from "./replies";
 import type { AddInput, SaleActions, SaleSnapshot } from "./types";
@@ -23,28 +24,23 @@ type Edit =
   | { type: "setQuantity"; lineId: string; quantityThousandths: number }
   | { type: "removeLine"; lineId: string };
 const listeners = new Set<() => void>();
-let state: State = {
-  loading: true,
-  view: null,
-  held: [],
-  receipt: null,
-  paymentNotice: null,
-  failure: null,
-  busy: false,
-  search: { query: "", status: "idle", matches: [] },
-  feedback: null,
-  operationError: null,
-  receiptPrint: null,
-};
+let state = fresh;
 let composed: { connection: ConnectionSnapshot; state: State; snapshot: SaleSnapshot } | undefined;
 const queue: Edit[] = [];
 let connectedBefore = false;
+let signedBefore = false;
 let draining = false;
 
 subscribeConnection(() => {
-  const connected = connectionSnapshot().host === "connected";
-  if (connected && !connectedBefore) void load();
+  const { host, status } = connectionSnapshot();
+  const connected = host === "connected";
+  // A host that reports no `user` is not asked to sign anyone in, so its answer changes nothing here.
+  const signedIn = status?.user === undefined ? signedBefore : status.user !== null;
+  // Signing out drops the basket on screen; signing in loads the next staff member's own.
+  if (!signedIn && signedBefore) state = fresh;
+  if (connected && (!connectedBefore || (signedIn && !signedBefore))) void load();
   connectedBefore = connected;
+  signedBefore = signedIn;
   const register = registerOf(connectionSnapshot().status);
   if (state.receiptPrint)
     state = { ...state, receiptPrint: mirrorJob(state.receiptPrint, register) };

@@ -71,10 +71,17 @@ async function startRegister() {
   host.send({ type: "start", config, renderer: "parent" });
 }
 
+// The till UI draws its own 40px title bar (--card behind, --foreground on it); the OS only paints the window
+// controls over its right edge, so there is no preload and no custom window API.
+const titleBarOverlay = { color: "#ffffff", symbolColor: "#020617", height: 40 };
+
 function openTill(capability: string, url: string) {
   const window = new BrowserWindow({
     width: 1366,
     height: 768,
+    backgroundColor: titleBarOverlay.color,
+    titleBarStyle: "hidden",
+    titleBarOverlay,
     webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true },
   });
   lockDown(window, new URL(url).origin);

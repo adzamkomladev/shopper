@@ -4,7 +4,7 @@ import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { add, formatGHS, money, mulQty } from "@shopper/money";
 import { expectNoSeriousAxe } from "../../../../support/e2e";
 import { startSaleScenario } from "../../../../support/till/sale/scenario";
-import { openCheckout } from "./harness";
+import { openCheckout, openFromMenu } from "./harness";
 
 // Set SHOPPER_SCREENSHOTS_DIR to keep the 1366x768 shots (docs/plans/day10/screenshots/till).
 const shots = process.env.SHOPPER_SCREENSHOTS_DIR;
@@ -146,7 +146,7 @@ test("a real till splits cash, completes the balance and finds its receipt in Pu
   await expect(lines(page)).toHaveCount(1);
   await expect(lines(page).filter({ hasText: scenario!.products[2]!.name })).toHaveCount(1);
   await expect(lines(page).filter({ hasText: scenario!.products[1]!.name })).toHaveCount(0);
-  await page.getByRole("button", { name: "Purchases" }).click();
+  await openFromMenu(page, "Previous purchases");
   await expect(page.getByRole("heading", { name: "Purchases", exact: true })).toBeVisible();
   await page
     .getByRole("button", { name: /Receipt/ })

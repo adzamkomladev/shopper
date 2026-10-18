@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { calls, openSale } from "../sale/harness";
+import { calls, openFromMenu, openSale } from "../sale/harness";
 
 const scan = (page: Page) => page.getByRole("combobox", { name: "Scan barcode or search items" });
 
@@ -28,9 +28,9 @@ for (const [from, key] of [
     page,
   }) => {
     await openSale(page, "results");
-    await page.getByRole("button", { name: new RegExp(`^${from}`) }).click();
+    await openFromMenu(page, from === "Purchases" ? "Previous purchases" : from);
     await expect(page.getByRole("heading", { name: from, exact: true })).toBeVisible();
-    await page.getByRole("button", { name: /^Sale/ }).click();
+    await page.getByRole("tab", { name: /^Checkout/ }).click();
     await expectScanWorks(page);
   });
 }

@@ -1,29 +1,27 @@
 /// <reference types="vite-plus/client" />
 import { useState, type Dispatch, type SetStateAction } from "react";
-import { settle } from "@shopper/core/till/settlement";
-import { money } from "@shopper/money";
 import "../src/styles.css";
 import { createRoot } from "react-dom/client";
-import { AppBackdrop } from "@shopper/ui/components/app-backdrop";
 import { Toaster } from "@shopper/ui/components/sonner";
 import { ShortcutRoot } from "@shopper/ui/hooks/shortcuts";
-import { TillNavigation } from "../src/components/navigation/screen";
-import type { TillView } from "../src/components/navigation/types";
+import { ShellFrame } from "../src/components/shell/frame";
+import { RegisterSlot } from "../src/components/shell/slot";
+import type { ShellView } from "../src/components/shell/types";
+import { landingView } from "../src/components/shell/views";
 import { SaleScreen } from "../src/screens/sale/screen";
 import { PurchasesScreen } from "../src/screens/purchases/screen";
 import { SettingsScreen } from "../src/screens/settings/screen";
 import type {
-  DraftTender,
   PurchaseActions,
   SaleActions,
   ReceiptPrint,
   ReprintFeedback,
   SaleSnapshot,
-  TenderInput,
 } from "../src/sale/types";
 import { scenarios } from "./scenarios";
 import { printFailure, purchaseOutput } from "../src/purchases/delivery";
 import { initialPurchases, purchaseDetailsFor } from "./purchases";
+import { addTender } from "./sale/tenders";
 import { useSettingsHarness } from "./settings";
 
 declare global {
@@ -37,14 +35,25 @@ const record =
   (type: string) =>
   (...args: unknown[]) =>
     window.saleCalls.push({ type, args });
-const name = new URLSearchParams(location.search).get("scenario") ?? "lines";
+const params = new URLSearchParams(location.search);
+const name = params.get("scenario") ?? "lines";
+// The shell specs sign in as other staff (`?permissions=report.read,stock.read`) or lose the server (`?offline`).
+const permissions = params.get("permissions")?.split(",") ?? [
+  "sale.create",
+  "report.read",
+  "stock.read",
+];
+const link = params.has("offline")
+  ? { label: "Offline", state: "problem" as const, online: false }
+  : { label: "Connected", state: "good" as const, online: true };
+const can = (permission: string) => permissions.includes(permission);
 const initialSale = scenarios[name] ?? scenarios.lines!;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const printerFails = ["lines-offline", "reprint-offline"].includes(name);
 const refused = "connection refused (192.168.1.50:9100)";
 
 function Harness() {
-  const [tab, setTab] = useState<TillView>("sale");
+  const [tab, setTab] = useState<ShellView>(landingView(permissions) ?? "purchases");
   const [saleFocus, setSaleFocus] = useState(0);
   const [saleSnapshot, setSaleSnapshot] = useState(initialSale);
   const [purchases, setPurchases] = useState(() => initialPurchases(name));
@@ -170,25 +179,43 @@ function Harness() {
       return done;
     },
   };
-  function navigate(next: TillView) {
+  function navigate(next: ShellView) {
     setTab(next);
     if (next === "sale") setSaleFocus((value) => value + 1);
     if (next === "purchases") purchaseActions.list({ ...purchases.filters, page: 1 });
   }
   return (
-    <AppBackdrop className="flex min-h-0 flex-col px-4 py-5 sm:px-8 sm:py-8 lg:px-11 lg:py-8" fill>
-      <TillNavigation view={tab} onChange={navigate} />
-      <div className="min-h-0 flex-1">
-        <div className="h-full min-h-0" hidden={tab !== "sale"}>
-          <SaleScreen
-            active={tab === "sale"}
-            actions={sale}
-            focusKey={saleFocus}
-            onPurchases={() => navigate("purchases")}
-            onRegister={record("register")}
-            snapshot={saleSnapshot}
-          />
-        </div>
+    <ShellFrame
+      link={link}
+      onSignOut={record("signOut")}
+      onView={navigate}
+      permissions={permissions}
+      registerName="Till 1"
+      user="Ama Mensah"
+      view={tab}
+    >
+      <>
+        {can("report.read") && (
+          <RegisterSlot active={tab === "dashboard"} slot="register-dashboard" title="Dashboard" />
+        )}
+        {can("stock.read") && (
+          <RegisterSlot active={tab === "inventory"} slot="register-inventory" title="Inventory" />
+        )}
+        {can("report.read") && (
+          <RegisterSlot active={tab === "reports"} slot="register-reports" title="Sales Reports" />
+        )}
+        {can("sale.create") && (
+          <div className="h-full min-h-0" hidden={tab !== "sale"}>
+            <SaleScreen
+              active={tab === "sale"}
+              actions={sale}
+              focusKey={saleFocus}
+              onPurchases={() => navigate("purchases")}
+              onRegister={record("register")}
+              snapshot={saleSnapshot}
+            />
+          </div>
+        )}
         <div className="h-full min-h-0" hidden={tab !== "purchases"}>
           <PurchasesScreen
             active={tab === "purchases"}
@@ -207,40 +234,9 @@ function Harness() {
             snapshot={settings}
           />
         </div>
-      </div>
-    </AppBackdrop>
+      </>
+    </ShellFrame>
   );
-}
-
-function addTender(snapshot: SaleSnapshot, input: TenderInput): SaleSnapshot {
-  const view = snapshot.view;
-  const draft = view?.draft;
-  if (!view || !draft) return snapshot;
-  const tender: DraftTender = {
-    id: "10000000-0000-7000-8000-000000000010",
-    orgId: "10000000-0000-7000-8000-000000000002",
-    draftId: draft.id,
-    position: draft.tenders.length,
-    kind: input.kind,
-    amount: input.amount,
-    reference: null,
-    approvalCode: input.kind === "card" ? input.approvalCode : null,
-    last4: input.kind === "card" ? (input.last4 ?? null) : null,
-    phone: null,
-    network: null,
-    status: "applied",
-    createdAt: "2026-10-15T09:30:00.000Z",
-  };
-  const tenders = [...draft.tenders, tender];
-  const settlement = settle(money(view.quote.totals.gross), tenders, view.cashRounding ?? "none");
-  return {
-    ...snapshot,
-    view: {
-      ...view,
-      draft: { ...draft, tenders, revision: draft.revision + 1 },
-      settlement,
-    },
-  };
 }
 
 /** Completes the sale, then plays out the automatic print after `delay` ms. */

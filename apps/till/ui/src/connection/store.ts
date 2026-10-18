@@ -30,6 +30,8 @@ export function useConnectionSnapshot() {
 }
 
 export const connectionSnapshot = () => snapshot;
+/** The bridge capability the host handed this page; `/desktop/unlock` trades it for the back-office cookie. */
+export const registerCapability = () => capability;
 export { subscribe as subscribeConnection };
 export function subscribeBridge(listener: (message: BridgeMessage) => void) {
   messageListeners.add(listener);

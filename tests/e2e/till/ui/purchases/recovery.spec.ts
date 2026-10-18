@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { startSaleScenario } from "../../../../support/till/sale/scenario";
-import { openCheckout } from "../sale/harness";
+import { openCheckout, openFromMenu } from "../sale/harness";
 
 let scenario: Awaited<ReturnType<typeof startSaleScenario>> | undefined;
 let clock = 1_000_000;
@@ -127,7 +127,7 @@ test("a stale purchase list reply cannot replace newer filtered results", async 
 });
 
 async function openPurchases(page: Page, waitForRows = true) {
-  await page.getByRole("button", { name: "Purchases" }).click();
+  await openFromMenu(page, "Previous purchases");
   await expect(page.getByRole("heading", { name: "Purchases", exact: true })).toBeVisible();
   if (waitForRows)
     await expect(page.getByRole("button", { name: /^Receipt / }).first()).toBeVisible();

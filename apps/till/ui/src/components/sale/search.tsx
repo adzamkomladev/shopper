@@ -77,7 +77,8 @@ export function ScanEntry({
           className="h-15 rounded-xl bg-card pr-4 pl-12 text-lg md:text-lg"
           data-zone="scan"
           disabled={disabled}
-          key={focusKey}
+          // A field that starts disabled (the basket is still loading after sign-in) cannot autofocus, so it remounts when it opens.
+          key={`${focusKey}:${disabled}`}
           placeholder="Scan barcode or search items"
           ref={fieldRef}
           role="combobox"

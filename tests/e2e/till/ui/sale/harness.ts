@@ -7,6 +7,15 @@ export async function openSale(page: Page, scenario: string) {
   await page.getByRole("heading", { name: "Checkout", exact: true }).waitFor();
 }
 
+/** Previous purchases and Settings live in the Menu drawer, not in the tabs. */
+export async function openFromMenu(page: Page, item: "Previous purchases" | "Settings") {
+  await page.getByRole("button", { name: /^Menu/ }).click();
+  await page
+    .getByRole("dialog", { name: "Menu" })
+    .getByRole("button", { name: new RegExp(`^${item}`) })
+    .click();
+}
+
 /** Checkout swaps the cart for the tender step; the tender specs start here. */
 export async function openCheckout(page: Page) {
   await page.getByRole("button", { name: /^Checkout/ }).click();

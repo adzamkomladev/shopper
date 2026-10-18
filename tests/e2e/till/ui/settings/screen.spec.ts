@@ -10,10 +10,7 @@ test("Alt+T opens Settings from the nav and shows this register's saved values",
   await openSale(page, "settings");
   await page.keyboard.press("Alt+T");
   await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: /^Settings/ })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  await expect(page.getByRole("tab", { selected: true })).toHaveCount(0);
   await expect(page.getByText("Register ID: REG-001 · Currency: GHS")).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Store name" })).toHaveValue("Osu Mart");
   await expect(page.getByRole("textbox", { name: "Register name" })).toHaveValue("Front till");

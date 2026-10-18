@@ -41,3 +41,30 @@ local host availability from server status and shows pending and blocked sales w
 
 Sales remain on the register after upload. This screen reports connection and sync status; it does
 not settle payments or enroll devices.
+
+## Sign-in and the desktop shell (Day 13)
+
+When the host reports no signed-in user (`status.user` is `null`), the UI shows the sign-in screen
+(Figma "New Login") before anything else: email and password go to the host as `session.signIn`, and
+the host's error codes (`INVALID_CREDENTIALS`, `SIGN_IN_LOCKED`, `OFFLINE_UNAVAILABLE`,
+`DEVICE_REJECTED`, `SIGN_IN_UNAVAILABLE`) each get their own message. A register that already has a
+session (`config.session`) skips it. After a sign-in the UI trades the bridge capability for the
+back-office cookie with `POST /desktop/unlock`; that only works when the page is served by the host
+(Electron), not through the Vite dev server.
+
+The signed-in shell is a 40px title bar (the drag region in Electron, a plain bar in a browser), the
+register status bar (Menu, `<user> · <register>`, Connected / Offline), and tabs shown by permission:
+Dashboard and Sales Reports need `report.read`, Checkout needs `sale.create`, Inventory needs
+`stock.read`. The landing tab is Checkout with `sale.create`, otherwise the first tab the user may
+open. The Menu drawer holds Previous purchases, Settings, Back office (disabled with "Needs
+connection" while the server is unreachable) and Sign out.
+
+| Keys                  | Action                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------ |
+| Ctrl+M                | Menu drawer (Alt+M is Settings' display-device toggle, so the shell does not use it) |
+| Ctrl+Shift+L          | Sign out (Alt+L is Settings' reload, so the shell does not use it)                   |
+| Ctrl+1 to Ctrl+4      | Dashboard, Checkout, Inventory, Sales Reports (Alt+1 to Alt+4 is the tender method)  |
+| Alt+S / Alt+P / Alt+T | Checkout, Previous purchases, Settings                                               |
+
+`<section data-slot="register-dashboard">`, `register-inventory` and `register-reports` are the
+regions the back-office slice fills.

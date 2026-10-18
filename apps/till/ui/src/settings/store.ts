@@ -15,9 +15,14 @@ import type {
   SettingsSnapshot,
 } from "./types";
 
-type State = Pick<SettingsSnapshot, "saving" | "saveError" | "device">;
+type State = Pick<SettingsSnapshot, "saving" | "saveError" | "device" | "ports">;
 const listeners = new Set<() => void>();
-let state: State = { saving: false, saveError: null, device: null };
+let state: State = {
+  saving: false,
+  saveError: null,
+  device: null,
+  ports: { status: "idle", serial: [], usb: [] },
+};
 let composed:
   | { connection: ConnectionSnapshot; state: State; snapshot: SettingsSnapshot }
   | undefined;
@@ -40,6 +45,17 @@ export const settingsActions: SettingsActions = {
   },
   testPrint: () => device("test", { type: "printer.test" }),
   openDrawer: () => device("drawer", { type: "drawer.test" }),
+  async listPorts() {
+    if (state.ports.status === "loading") return;
+    update({ ports: { ...state.ports, status: "loading" } });
+    const reply = await request({ type: "printers.list" });
+    update({
+      ports:
+        reply?.type === "result" && reply.kind === "printers"
+          ? { status: "ready", serial: reply.serial, usb: reply.usb }
+          : { ...state.ports, status: "failed" },
+    });
+  },
   async reload() {
     update({ saveError: null });
     if (connectionSnapshot().host === "connected") await request({ type: "status" });

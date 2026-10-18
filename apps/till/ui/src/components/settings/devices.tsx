@@ -1,18 +1,21 @@
-import { Barcode, CircleCheck, Printer } from "lucide-react";
+import { CircleCheck, Printer } from "lucide-react";
 import { Badge } from "@shopper/ui/components/badge";
 import { Button } from "@shopper/ui/components/button";
 import { Kbd } from "@shopper/ui/components/kbd";
-import type { SettingsDraft } from "../../schemas/settings";
+import type { SerialDraft, SettingsDraft } from "../../schemas/settings";
 import { deviceMessage, printerBadge, printTime } from "../../settings/draft";
 import type {
   DeviceFeedback,
   DraftErrors,
+  PortList,
   PrinterBadge as BadgeKind,
   PrinterStatus,
 } from "../../settings/types";
 import { SettingsCard } from "./card";
 import { useFocusRef } from "./focus";
 import { modelName, NoPrinter, PrinterEditor } from "./printer";
+import { DeviceRow } from "./row";
+import { SerialDevice } from "./serial";
 
 export const readOnlyReason = "Ask a manager to change register settings";
 const unsavedReason = "Save changes to test this printer";
@@ -26,7 +29,13 @@ type Props = {
   unsaved: boolean;
   editing: boolean;
   device: DeviceFeedback | null;
+  ports: PortList;
+  /** Which scanner and display editors are open. */
+  open: { scanner: boolean; display: boolean };
   onEditing: () => void;
+  onToggle: (kind: "scanner" | "display") => void;
+  onSerial: (kind: "scanner" | "display", device: SerialDraft | null) => void;
+  onRefresh: () => void;
   onPrinter: (change: Partial<NonNullable<SettingsDraft["printer"]>>) => void;
   onAdd: () => void;
   onRemove: () => void;
@@ -44,11 +53,20 @@ export function DevicesCard(props: Props) {
         <NoPrinter disabled={!canEdit} onAdd={props.onAdd} />
       )}
       {device && <DeviceMessage device={device} />}
-      <DeviceRow
-        description="USB keyboard input"
-        icon={<Barcode aria-hidden="true" className="size-4" />}
-        title="Barcode scanner"
-      />
+      {(["scanner", "display"] as const).map((kind) => (
+        <SerialDevice
+          canEdit={canEdit}
+          device={draft[kind]}
+          editing={props.open[kind]}
+          errors={props.errors}
+          key={kind}
+          kind={kind}
+          list={props.ports}
+          onChange={(next) => props.onSerial(kind, next)}
+          onRefresh={props.onRefresh}
+          onToggle={() => props.onToggle(kind)}
+        />
+      ))}
     </SettingsCard>
   );
 }
@@ -62,11 +80,13 @@ function PrinterRow({
   unsaved,
   editing,
   device,
+  ports,
   onEditing,
   onPrinter,
   onRemove,
   onTest,
   onDrawer,
+  onRefresh,
 }: Props & { printer: NonNullable<SettingsDraft["printer"]> }) {
   const editRef = useFocusRef("settings-edit-printer");
   const running = device?.status === "running";
@@ -144,7 +164,9 @@ function PrinterRow({
           disabled={!canEdit}
           errors={errors}
           id="settings-printer-editor"
+          list={ports}
           onChange={onPrinter}
+          onRefresh={onRefresh}
           onRemove={onRemove}
           printer={printer}
         />
@@ -162,33 +184,6 @@ function PrinterBadge({ badge }: { badge: BadgeKind | "unsaved" }) {
     );
   if (badge === "offline") return <Badge variant="destructive">Offline</Badge>;
   return <Badge variant="outline">{badge === "unsaved" ? "Not saved" : "Not checked"}</Badge>;
-}
-
-function DeviceRow({
-  icon,
-  title,
-  description,
-  note,
-  badge,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  /** A second muted line, for what the badge is based on. */
-  note?: string;
-  badge?: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-2.5 rounded-xl border bg-card px-2 py-1.5">
-      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-muted">{icon}</span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm leading-none font-medium">{title}</p>
-        <p className="mt-0.5 truncate text-xs text-muted-foreground">{description}</p>
-        {note && <p className="truncate text-xs text-muted-foreground">{note}</p>}
-      </div>
-      {badge}
-    </div>
-  );
 }
 
 function DeviceMessage({ device }: { device: DeviceFeedback }) {

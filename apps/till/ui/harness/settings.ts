@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { RegisterSettings } from "@shopper/core/schemas";
 import type {
   DeviceFeedback,
+  PortList,
   SettingsActions,
   SettingsCurrent,
   SettingsSnapshot,
@@ -30,6 +31,25 @@ const ready: SettingsCurrent = {
   printer: { state: "ready", lastJob: null },
   registerCode: "REG-001",
 };
+const serialPrinter: RegisterSettings = {
+  ...value,
+  printer: { model: "epson", connection: { kind: "serial", path: "COM3", baudRate: 9600 } },
+  scanner: { kind: "serial", path: "COM4", baudRate: 19200 },
+  display: { kind: "serial", path: "COM5", baudRate: 9600 },
+};
+const usbPrinter: RegisterSettings = {
+  ...value,
+  printer: { model: "xprinter", connection: { kind: "usb", printerName: "Xprinter XP-80C" } },
+};
+const found: PortList = {
+  status: "ready",
+  serial: [
+    { path: "COM3", manufacturer: "FTDI" },
+    { path: "COM4", manufacturer: "Prolific" },
+    { path: "COM5" },
+  ],
+  usb: ["EPSON TM-T20III Receipt", "Xprinter XP-80C"],
+};
 const printed = { kind: "test", saleId: null, outcome: "printed", message: null } as const;
 const refused = {
   kind: "test",
@@ -47,6 +67,16 @@ const currents: Record<string, SettingsCurrent> = {
     printer: { state: "unconfigured", lastJob: null },
   },
   "settings-readonly": { ...ready, canEdit: false },
+  "settings-serial": { ...ready, value: serialPrinter },
+  "settings-serial-readonly": { ...ready, value: serialPrinter, canEdit: false },
+  "settings-serial-gone": {
+    ...ready,
+    value: {
+      ...value,
+      printer: { model: "epson", connection: { kind: "serial", path: "COM9", baudRate: 9600 } },
+    },
+  },
+  "settings-usb": { ...ready, value: usbPrinter },
   "reprint-noprinter": {
     ...ready,
     value: { ...value, printer: null },
@@ -72,6 +102,7 @@ export function useSettingsHarness(
     saving: false,
     saveError: null,
     device: null,
+    ports: { status: "idle", serial: [], usb: [] },
   });
   const [saves, setSaves] = useState(0);
   const change = (next: Partial<SettingsSnapshot>) => setSnapshot((now) => ({ ...now, ...next }));
@@ -114,6 +145,18 @@ export function useSettingsHarness(
         },
       }));
       return true;
+    },
+    async listPorts() {
+      record("listPorts")();
+      setSnapshot((now) => ({ ...now, ports: { ...now.ports, status: "loading" } }));
+      await sleep(name === "settings-portsloading" ? 60_000 : 200);
+      const ports: PortList =
+        name === "settings-portsfail"
+          ? { status: "failed", serial: [], usb: [] }
+          : name === "settings-noports"
+            ? { status: "ready", serial: [], usb: [] }
+            : found;
+      change({ ports });
     },
     testPrint: () => device("test"),
     openDrawer: () => device("drawer"),

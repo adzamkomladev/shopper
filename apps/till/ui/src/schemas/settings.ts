@@ -12,13 +12,38 @@ const hostname =
 const portMessage = "Enter a port from 1 to 65535";
 
 const hostMessage = "Enter an IP address like 192.168.1.50 or a host name";
-const baudRates = ["9600", "19200", "38400", "57600", "115200"];
+const serial = registerSettings.entries.scanner.wrapped.wrapped.entries;
+/** The baud rates the host accepts, as the text a select holds. */
+export const baudRates = serial.baudRate.options.map(String);
+const baudRate = v.pipe(v.string(), v.transform(Number), serial.baudRate);
+const portMissing = "Enter the port, like COM3 or /dev/ttyUSB0";
+const isPath = (path: string) => path.trim() !== "" && path.length <= 128;
 /** An IPv4 address or a host name. A dotted run of digits is an address, so 999.1.1.1 is rejected. */
 const isHost = (input: string) => {
   const value = input.trim();
   return /^[\d.]+$/.test(value) ? ipv4.test(value) : hostname.test(value);
 };
 const isPort = (input: string) => /^\d{1,5}$/.test(input.trim()) && +input >= 1 && +input <= 65535;
+
+/** A scanner or pole display on a serial port, as typed. `null` is the default (keyboard, second screen). */
+const serialDevice = v.nullable(
+  v.pipe(
+    v.object({ path: v.string(), baudRate: v.string() }),
+    v.forward(
+      v.check((d) => isPath(d.path), portMissing),
+      ["path"],
+    ),
+    v.forward(
+      v.check((d) => v.is(baudRate, d.baudRate), "Choose a baud rate"),
+      ["baudRate"],
+    ),
+    v.transform((d) => ({
+      kind: "serial" as const,
+      path: d.path.trim(),
+      baudRate: v.parse(baudRate, d.baudRate),
+    })),
+  ),
+);
 
 /** The register settings form as typed by the cashier: ports are text until they are checked. */
 export const settingsForm = v.object({
@@ -28,8 +53,8 @@ export const settingsForm = v.object({
   paperMm: registerSettings.entries.paperMm,
   clearCartAfterSale: v.boolean(),
   requirePinForReturns: v.boolean(),
-  scanner: registerSettings.entries.scanner,
-  display: registerSettings.entries.display,
+  scanner: serialDevice,
+  display: serialDevice,
   printer: v.nullable(
     v.pipe(
       v.object({
@@ -68,15 +93,15 @@ export const settingsForm = v.object({
       v.forward(
         v.partialCheck(
           [["kind"], ["path"]],
-          (p) => p.kind !== "serial" || (p.path.trim() !== "" && p.path.length <= 128),
-          "Enter the port, like COM3 or /dev/ttyUSB0",
+          (p) => p.kind !== "serial" || isPath(p.path),
+          portMissing,
         ),
         ["path"],
       ),
       v.forward(
         v.partialCheck(
           [["kind"], ["baudRate"]],
-          (p) => p.kind !== "serial" || baudRates.includes(p.baudRate),
+          (p) => p.kind !== "serial" || v.is(baudRate, p.baudRate),
           "Choose a baud rate",
         ),
         ["baudRate"],
@@ -91,21 +116,12 @@ export const settingsForm = v.object({
               : {
                   kind: "serial" as const,
                   path: p.path.trim(),
-                  baudRate: Number(p.baudRate) as 9600,
+                  baudRate: v.parse(baudRate, p.baudRate),
                 },
       })),
     ),
   ),
 });
 
-export type SettingsDraft = Omit<v.InferInput<typeof settingsForm>, "printer"> & {
-  printer: null | {
-    model: v.InferInput<typeof printer.model>;
-    kind: "network" | "usb" | "serial";
-    host: string;
-    port: string;
-    printerName: string;
-    path: string;
-    baudRate: string;
-  };
-};
+export type SettingsDraft = v.InferInput<typeof settingsForm>;
+export type SerialDraft = NonNullable<SettingsDraft["scanner"]>;

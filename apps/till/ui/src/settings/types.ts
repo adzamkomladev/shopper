@@ -20,12 +20,19 @@ export type SettingsCurrent = {
   printer: PrinterStatus;
   registerCode: string;
 };
+/** Serial ports and installed printers the host can see, for the device pickers. */
+export type PortList = {
+  status: "idle" | "loading" | "ready" | "failed";
+  serial: { path: string; manufacturer?: string }[];
+  usb: string[];
+};
 export type SettingsSnapshot = {
   host: HostConnection;
   current: SettingsCurrent | null;
   saving: boolean;
   saveError: SaveError | null;
   device: DeviceFeedback | null;
+  ports: PortList;
 };
 export type SettingsActions = {
   /** Resolves true when the host saved the settings. */
@@ -33,6 +40,8 @@ export type SettingsActions = {
   /** Both resolve with the final feedback, so the screen can toast it as well as show it inline. */
   testPrint: () => Promise<DeviceFeedback>;
   openDrawer: () => Promise<DeviceFeedback>;
+  /** Asks the host which ports and printers it can see; the answer arrives in `snapshot.ports`. */
+  listPorts: () => Promise<void>;
   /** Re-reads the host's settings, or reconnects when the host is gone. */
   reload: () => Promise<void>;
 };

@@ -28,3 +28,13 @@ export async function expectNoOverflow(page: Page) {
   );
   expect(overflow).toBe(false);
 }
+
+/** Opens a select, chooses an option and waits for focus to come back to the select before the next key. */
+export const pick = async (page: Page, name: string, option: string | RegExp) => {
+  const trigger = page.getByRole("combobox", { name, exact: true });
+  await trigger.click();
+  await page.getByRole("option", { name: option }).click();
+  // The list hands focus back to its trigger as it closes; axe also reads colours under the pointer.
+  await expect(trigger).toBeFocused();
+  await page.mouse.move(0, 0);
+};

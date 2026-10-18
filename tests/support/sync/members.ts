@@ -2,6 +2,9 @@ import { and, eq } from "drizzle-orm";
 import { v7 } from "uuid";
 import * as schema from "@shopper/db-pg";
 import { defineCommand } from "@shopper/core";
+import { seedAuthRoles } from "@shopper/auth";
+import { hashPin } from "@shopper/auth/devices";
+import { provisioningContext } from "../../../tooling/database/seed";
 import { databases, devices, principal } from "../till/server";
 
 const addMember = defineCommand({
@@ -32,5 +35,15 @@ export async function memberWithPin(name: string, roleName: string, pin: string)
   const { db, context } = databases();
   const { userId } = await addMember(db, context, { name, roleName });
   await devices.assignPin(principal, { userId, pin });
+  return userId;
+}
+
+/** A manager with a PIN in another org; it must never reach this org's tills. */
+export async function foreignManagerWithPin(orgId: string, pin: string) {
+  const { db } = databases();
+  const context = provisioningContext(orgId);
+  await seedAuthRoles(db, context, undefined);
+  const { userId } = await addMember(db, context, { name: "Foreign Manager", roleName: "admin" });
+  await db.insert(schema.cashierPin).values({ orgId, userId, pinHash: await hashPin(pin) });
   return userId;
 }

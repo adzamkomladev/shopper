@@ -46,6 +46,19 @@ test("five wrong PINs lock the approver for 15 minutes, even against the right P
   });
 });
 
+test("parallel wrong PINs still lock after five; the sixth is refused without a guess", async () => {
+  await withTill(async (db) => {
+    await syncManager(db);
+    const tries = await Promise.allSettled(Array.from({ length: 6 }, () => tryApprove(db, "0000")));
+    const codes = tries.map((t) =>
+      t.status === "rejected" ? (t.reason as { code: string }).code : "ok",
+    );
+    expect(codes.filter((code) => code === "APPROVAL_INVALID")).toHaveLength(5);
+    expect(codes.at(-1)).toBe("APPROVAL_LOCKED");
+    expect((await row(db))?.lockedUntil).toBe(at.valueOf() + 15 * 60_000);
+  });
+});
+
 test("a correct PIN clears earlier failures and audits the reset", async () => {
   await withTill(async (db) => {
     await syncManager(db);

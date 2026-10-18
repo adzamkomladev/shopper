@@ -20,12 +20,31 @@ type Scope = { orgId: string; deviceId: string; branchId: string };
  * the approver for 15 minutes; a list older than 7 days approves nothing. `verify` is injected so core never
  * imports auth.
  */
-export async function approve(
+export function approve(
   db: TillDatabase,
   context: CommandContext,
   input: Approval,
   verify: Verify,
 ) {
+  // Guesses for one approver run one at a time, so parallel requests cannot all read the same attempt count.
+  // ponytail: in-process queue; the till host is one process. Move the count into the write if that changes.
+  const key = `${context.orgId}:${input.approverId}`;
+  const run = (pending.get(key) ?? Promise.resolve()).then(
+    () => check(db, context, input, verify),
+    () => check(db, context, input, verify),
+  );
+  const settled = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  pending.set(key, settled);
+  void settled.then(() => pending.get(key) === settled && pending.delete(key));
+  return run;
+}
+
+const pending = new Map<string, Promise<void>>();
+
+async function check(db: TillDatabase, context: CommandContext, input: Approval, verify: Verify) {
   const row = await db.read(async (tx) => {
     const [found] = await tx
       .select()

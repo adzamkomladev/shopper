@@ -5,8 +5,9 @@ import { refreshApprovers } from "@shopper/sync";
 import { verifyPin } from "@shopper/auth/devices";
 import { approve } from "@shopper/core/till";
 import { tillApprover, type TillDatabase } from "@shopper/db-sqlite";
-import { memberWithPin } from "../../../support/sync/members";
+import { foreignManagerWithPin, memberWithPin } from "../../../support/sync/members";
 import { auditRows, fails, withTill } from "../../../support/till/drafts";
+import { ids } from "../../../support/till/sales";
 import { syncHeaders } from "../../../support/till/requests";
 import {
   api,
@@ -52,6 +53,13 @@ test("a manager's PIN hash and approval grants reach the till; a cashier's do no
     ]);
     expect(await verifyPin(manager.pinHash, "2468")).toBe(true);
   });
+});
+
+test("a manager in another org never reaches this org's till", async () => {
+  const foreignId = await foreignManagerWithPin(ids.otherOrg, "1357");
+  const response = await api.request("/sync/approvers", { headers: syncHeaders() });
+  const body = (await response.json()) as { approvers: { userId: string }[] };
+  expect(body.approvers.map((row) => row.userId)).not.toContain(foreignId);
 });
 
 test("a re-assigned PIN replaces the till's copy and clears its failures", async () => {

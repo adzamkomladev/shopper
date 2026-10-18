@@ -110,3 +110,25 @@ test("the receipt cashier name is the signed-in staff name", async () => {
   const sale = await ctx.host.request({ type: "sale.complete", expectedRevision: 2 });
   expect(sale).toMatchObject({ kind: "sale", receipt: { header: { cashier: kofi.name } } });
 });
+
+test("a malformed or refused login is unavailable, never an offline fallback", async () => {
+  ctx = await startStaffHost();
+  await ctx.signIn(ama.email, ama.password);
+  await ctx.signOut();
+  ctx.upstream.state.mode = "garbage";
+  expect(await ctx.signIn(ama.email, ama.password)).toMatchObject({ code: "SIGN_IN_UNAVAILABLE" });
+  ctx.upstream.state.mode = "forbidden";
+  expect(await ctx.signIn(ama.email, ama.password)).toMatchObject({ code: "SIGN_IN_UNAVAILABLE" });
+  expect((await ctx.status()).user).toBeNull();
+});
+
+test("an email that moved to another user replaces the old cached row", async () => {
+  ctx = await startStaffHost();
+  await ctx.signIn(ama.email, ama.password);
+  ctx.upstream.users.set(ama.email, { ...kofi, email: ama.email, password: "moved" });
+  expect(await ctx.signIn(ama.email, "moved")).toMatchObject({
+    status: { user: { userId: kofi.userId } },
+  });
+  const rows = await ctx.fixture.database.read((tx) => tx.select().from(tillStaff));
+  expect(rows.map((row) => row.userId)).toEqual([kofi.userId]);
+});

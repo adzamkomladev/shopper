@@ -18,6 +18,9 @@ import { digest, minutes, randomToken } from "./commands";
 import { passwordIdentity } from "./password";
 import type { Identity, Rejected } from "./types";
 
+/** The 401 message for a revoked or unknown device token; the till tells it apart from bad credentials. */
+export const invalidDeviceCredential = "Invalid device credential";
+
 export const loginCommand = defineCommand({
   name: "cashier.login",
   async run(tx, c, input: v.InferOutput<typeof cashierLoginInput>) {
@@ -32,7 +35,7 @@ export const loginCommand = defineCommand({
           isNull(deviceCredential.revokedAt),
         ),
       );
-    if (!registered) return { error: "Invalid device credential", status: 401 as const };
+    if (!registered) return { error: invalidDeviceCredential, status: 401 as const };
     const identity =
       "email" in input
         ? await passwordIdentity(tx, c.orgId, input)

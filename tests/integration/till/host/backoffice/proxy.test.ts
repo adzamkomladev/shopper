@@ -1,5 +1,6 @@
 // The host's /api surface: guarded, proxied as the device principal, and local for the session endpoints.
 import { afterEach, expect, test } from "vite-plus/test";
+import { startUpstream } from "../../../../support/till/upstream";
 import { ama, startStaffHost, type StaffHost } from "../../../../support/till/host/staff";
 
 let ctx: StaffHost | undefined;
@@ -105,6 +106,9 @@ test("session endpoints answer from the host session, offline too", async () => 
 
   const out = await c.call("/api/auth/sign-out", { method: "POST", body: "{}" });
   expect(await out.json()).toEqual({ success: true });
+  // Signing out rotates the desktop cookie: the old one no longer opens /api.
+  expect((await c.call("/api/auth/get-session")).status).toBe(401);
+  await c.unlock();
   expect(await (await c.call("/api/auth/get-session")).json()).toBeNull();
   expect((await c.status()).user).toBeNull();
 });
@@ -114,4 +118,40 @@ test("upstream Set-Cookie headers are stripped", async () => {
   const response = await c.call("/api/products");
   expect(response.status).toBe(200);
   expect(response.headers.get("set-cookie")).toBeNull();
+});
+
+test("path tricks never reach upstream or a foreign host", async () => {
+  const c = await signedIn();
+  const evil = await startUpstream(() => Response.json({}));
+  try {
+    const before = c.upstream.requests.length;
+    for (const path of [
+      "/api//evil.example/x",
+      `/api//127.0.0.1:${new URL(evil.url).port}/x`,
+      "/api/%5Cevil.example/x",
+      "/api/%2F%2Fevil.example/x",
+      "/api/%61uth/x",
+      "/api/%73ync/push",
+      "/api/%63ashiers/login",
+      "/api/%72egister/nope",
+      "/api/%2561uth/x",
+      "/api/%zz",
+    ])
+      expect([400, 404], path).toContain((await c.call(path)).status);
+    expect(c.upstream.requests).toHaveLength(before);
+    expect(evil.requests).toHaveLength(0);
+  } finally {
+    await evil.close();
+  }
+});
+
+test("upstream CORS headers are stripped and an unknown email is omitted from get-session", async () => {
+  const ctx2 = await startStaffHost();
+  ctx = ctx2;
+  // The preloaded dev session has no known email.
+  expect(await (await ctx2.call("/api/auth/get-session")).json()).toEqual({
+    user: { id: expect.any(String), name: expect.any(String) },
+  });
+  const response = await ctx2.call("/api/products");
+  expect(response.headers.get("access-control-allow-origin")).toBeNull();
 });

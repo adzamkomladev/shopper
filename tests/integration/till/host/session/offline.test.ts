@@ -85,3 +85,9 @@ test("five offline failures lock for fifteen minutes", async () => {
     status: { user: { offline: true } },
   });
 });
+
+test("five parallel wrong offline passwords still lock", async () => {
+  const c = await cachedThenOffline();
+  await Promise.all(Array.from({ length: 5 }, () => c.signIn(ama.email, "wrong password")));
+  expect(await c.signIn(ama.email, ama.password)).toMatchObject({ code: "SIGN_IN_LOCKED" });
+});

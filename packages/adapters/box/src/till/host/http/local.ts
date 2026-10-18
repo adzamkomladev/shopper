@@ -39,7 +39,15 @@ export function localRoutes(host: Host) {
 
   app.get("/auth/get-session", (c) => {
     const user = session.current();
-    return c.json(user && { user: { id: user.userId, name: user.name, email: user.email } });
+    return c.json(
+      user && {
+        user: {
+          id: user.userId,
+          name: user.name,
+          ...(user.email ? { email: user.email } : {}),
+        },
+      },
+    );
   });
   app.post("/auth/sign-out", async (c) => {
     await session.signOut();

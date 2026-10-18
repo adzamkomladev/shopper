@@ -29,13 +29,15 @@ export const kofi: Staff = {
 export async function startStaffUpstream(staff: Staff[]) {
   const users = new Map(staff.map((user) => [user.email, { ...user }]));
   const state = {
-    mode: "ok" as "ok" | "down" | "locked",
+    mode: "ok" as "ok" | "down" | "locked" | "garbage" | "forbidden",
     issued: [] as { id: string; token: string }[],
   };
   const upstream = await startUpstream(async (request) => {
     const path = new URL(request.url).pathname;
     if (path === "/cashiers/login") {
       if (state.mode === "down") return Response.json({ error: "Unavailable" }, { status: 503 });
+      if (state.mode === "garbage") return Response.json({ nonsense: true });
+      if (state.mode === "forbidden") return Response.json({ error: "Nope" }, { status: 403 });
       if (state.mode === "locked")
         return Response.json({ error: "Sign-in temporarily locked" }, { status: 429 });
       const body = (await request.json()) as { email: string; password: string };
@@ -55,7 +57,12 @@ export async function startStaffUpstream(staff: Staff[]) {
       });
     }
     if (path === "/products")
-      return Response.json([], { headers: { "set-cookie": "upstream=1; Path=/; HttpOnly" } });
+      return Response.json([], {
+        headers: {
+          "set-cookie": "upstream=1; Path=/; HttpOnly",
+          "access-control-allow-origin": "*",
+        },
+      });
     if (path === "/sync/stock") {
       const { requestId } = (await request.json()) as { requestId: string };
       return Response.json({ requestId, accepted: { lines: [] } });

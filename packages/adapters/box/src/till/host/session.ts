@@ -1,4 +1,5 @@
 import * as v from "valibot";
+import { invalidDeviceCredential } from "@shopper/auth/devices";
 import { buildInfo } from "@shopper/config";
 import {
   failStaffSignIn,
@@ -20,8 +21,15 @@ const VERIFIER_DAYS = 7;
 const MAX_FAILURES = 5;
 const LOCK_MS = 15 * 60_000;
 const OFFLINE_SESSION_MS = 8 * 3_600_000;
-/** What an offline sign-in without a valid server session may do. */
+/**
+ * What an offline sign-in without a valid server session may do. Accepted limit: a role change, a revoked
+ * user or a new password is not seen offline until the verifier is refreshed (at most 7 days).
+ */
 const OFFLINE_PERMISSIONS = ["report.read", "stock.read", "stock.write"];
+
+const decoy = hashVerifier("decoy password");
+const unavailable = () =>
+  new TillError("SIGN_IN_UNAVAILABLE", "Sign-in is unavailable. Try again.");
 
 type User = { userId: string; name: string; email: string; offline: boolean };
 
@@ -45,6 +53,8 @@ export function createHostSession(host: { database: TillDatabase; config: HostCo
     role,
     appVersion: buildInfo.version,
   });
+  let queue: Promise<unknown> = Promise.resolve();
+  const signedOut: (() => void)[] = [];
   const set = (session: TillSession | null, next: User | null) => {
     config.session = session;
     user = next;
@@ -52,8 +62,9 @@ export function createHostSession(host: { database: TillDatabase; config: HostCo
 
   /** The login answer, a refusal to throw, or undefined when the server could not be reached. */
   async function attempt(email: string, password: string) {
+    let response: Response;
     try {
-      const response = await fetch(new URL("/cashiers/login", config.upstream), {
+      response = await fetch(new URL("/cashiers/login", config.upstream), {
         method: "POST",
         headers: { "content-type": "application/json", "X-Shopper-Org": identity.orgId },
         body: JSON.stringify({
@@ -64,17 +75,21 @@ export function createHostSession(host: { database: TillDatabase; config: HostCo
         }),
         signal: AbortSignal.timeout(10_000),
       });
-      if (response.status >= 500) return undefined;
-      if (response.status === 429)
-        return new TillError("SIGN_IN_LOCKED", "Too many attempts. Try again in 15 minutes.");
-      if (response.ok) return v.parse(cashierLogin, await response.json());
-      const body = (await response.json().catch(() => null)) as { error?: string } | null;
-      return body?.error === "Invalid device credential"
-        ? new TillError("DEVICE_REJECTED", "This register is no longer enrolled. Enroll it again.")
-        : new TillError("INVALID_CREDENTIALS", "Wrong email or password");
     } catch {
       return undefined;
     }
+    if (response.status >= 500) return undefined;
+    if (response.status === 429)
+      return new TillError("SIGN_IN_LOCKED", "Too many attempts. Try again in 15 minutes.");
+    const body: unknown = await response.json().catch(() => null);
+    if (response.ok) {
+      const login = v.safeParse(cashierLogin, body);
+      return login.success ? login.output : unavailable();
+    }
+    if (response.status !== 401) return unavailable();
+    return (body as { error?: string } | null)?.error === invalidDeviceCredential
+      ? new TillError("DEVICE_REJECTED", "This register is no longer enrolled. Enroll it again.")
+      : new TillError("INVALID_CREDENTIALS", "Wrong email or password");
   }
 
   async function signInOnline(
@@ -108,7 +123,12 @@ export function createHostSession(host: { database: TillDatabase; config: HostCo
   async function signInOffline(email: string, password: string) {
     const staff = await readStaff(database, identity.orgId, email);
     const now = Date.now();
-    if (!staff || now - Date.parse(staff.verifiedAt) > VERIFIER_DAYS * 86_400_000)
+    if (!staff) {
+      // Same scrypt cost as a real check, so an unknown email is not told apart by timing.
+      await checkVerifier(await decoy, password);
+      throw new TillError("OFFLINE_UNAVAILABLE", "Connect to the internet to sign in");
+    }
+    if (now - Date.parse(staff.verifiedAt) > VERIFIER_DAYS * 86_400_000)
       throw new TillError("OFFLINE_UNAVAILABLE", "Connect to the internet to sign in");
     if (staff.lockedUntil && staff.lockedUntil > now)
       throw new TillError("SIGN_IN_LOCKED", "Too many attempts. Try again in 15 minutes.");
@@ -145,14 +165,21 @@ export function createHostSession(host: { database: TillDatabase; config: HostCo
     set(session, { userId: staff.userId, name: staff.name, email, offline: true });
   }
 
+  async function signInNow(rawEmail: string, password: string) {
+    const email = rawEmail.trim().toLowerCase();
+    const login = await attempt(rawEmail.trim(), password);
+    if (login instanceof TillError) throw login;
+    if (login) await signInOnline(email, password, login);
+    else await signInOffline(email, password);
+  }
+
   return {
     /** Signs in with the server when it answers; only an unreachable server falls back to the cached verifier. */
-    async signIn(rawEmail: string, password: string) {
-      const email = rawEmail.trim().toLowerCase();
-      const login = await attempt(rawEmail.trim(), password);
-      if (login instanceof TillError) throw login;
-      if (login) await signInOnline(email, password, login);
-      else await signInOffline(email, password);
+    signIn(rawEmail: string, password: string) {
+      // One at a time, so parallel offline guesses cannot read the same failure count.
+      const run = queue.then(() => signInNow(rawEmail, password));
+      queue = run.catch(() => undefined);
+      return run;
     },
     async signOut() {
       const session = config.session;
@@ -162,7 +189,10 @@ export function createHostSession(host: { database: TillDatabase; config: HostCo
         sessionId: session.id,
       });
       set(null, null);
+      for (const hook of signedOut) hook();
     },
+    /** Runs after every sign-out; the desktop cookie rotates here. */
+    onSignOut: (hook: () => void) => void signedOut.push(hook),
     /** The signed-in user as the status and the back office see them, or null. */
     current() {
       return user && config.session ? { ...user, permissions: config.session.permissions } : null;

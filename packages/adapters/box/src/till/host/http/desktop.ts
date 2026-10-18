@@ -18,7 +18,10 @@ export function mountDesktop(
   app: Hono,
   options: { host: Host; capability: string; port: () => number },
 ) {
-  const token = randomBytes(32).toString("hex");
+  const fresh = () => randomBytes(32).toString("hex");
+  let token = fresh();
+  // A signed-out register invalidates every earlier unlock; the UI unlocks again after signing in.
+  options.host.session.onSignOut(() => (token = fresh()));
   const origins = () => [
     `http://127.0.0.1:${options.port()}`,
     `http://localhost:${options.port()}`,

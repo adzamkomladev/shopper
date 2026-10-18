@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit/sqlite";
 import { hostSession, tillStaff, type TillDatabase } from "@shopper/db-sqlite";
 import type { TillSession } from "../schemas/till/session";
@@ -58,6 +58,16 @@ export const signInStaff = defineCommand({
       verifiedAt: input.at.toISOString(),
       lastSessionId: input.sessionId,
     };
+    // An email that moved to another user must not collide with its old row.
+    await tx
+      .delete(tillStaff)
+      .where(
+        and(
+          eq(tillStaff.orgId, context.orgId),
+          eq(tillStaff.email, online.email),
+          ne(tillStaff.userId, input.userId),
+        ),
+      );
     await tx
       .insert(tillStaff)
       .values(row)

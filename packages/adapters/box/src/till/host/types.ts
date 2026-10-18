@@ -19,6 +19,7 @@ export type Basket = Extract<
       | "tender.add"
       | "tender.remove"
       | "discount.set"
+      | "line.price"
       | "sale.complete"
       | "sale.hold"
       | "sale.resume"

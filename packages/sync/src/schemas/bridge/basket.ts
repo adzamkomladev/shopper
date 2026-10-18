@@ -1,6 +1,7 @@
 import * as v from "valibot";
 import { uuidV7Schema } from "@shopper/ports";
 import { saleTaxSnapshot, saleTotals } from "@shopper/core/schemas";
+import { approval } from "./approvals";
 
 const id = uuidV7Schema;
 const text = v.pipe(v.string(), v.minLength(1));
@@ -50,6 +51,15 @@ export const basketRequests = [
     expectedRevision: revision,
     lineId: id,
     discount: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
+  }),
+  v.strictObject({
+    id,
+    type: v.literal("line.price"),
+    expectedRevision: revision,
+    lineId: id,
+    unitPrice: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
+    reason: v.pipe(text, v.trim(), v.minLength(1), v.maxLength(500)),
+    approval: v.optional(approval),
   }),
   v.strictObject({ id, type: v.literal("sale.complete"), expectedRevision: revision }),
   v.strictObject({
@@ -113,6 +123,7 @@ const quotedLine = v.union([
     name: v.string(),
     baseUnit: v.string(),
     tax: saleTaxSnapshot,
+    listPrice: v.optional(v.number()),
   }),
   v.strictObject({ lineId: id, productId: v.string(), error: text }),
 ]);
@@ -154,6 +165,13 @@ export const draftView = v.strictObject({
           quantityThousandths: v.number(),
           discount: v.number(),
           label: v.optional(draftLabel),
+          override: v.optional(
+            v.strictObject({
+              unitPrice: v.number(),
+              reason: v.string(),
+              approverId: v.nullable(id),
+            }),
+          ),
         }),
       ),
     }),

@@ -1,23 +1,11 @@
 import type { UploadPrincipal } from "./types";
 export type { UploadPrincipal } from "./types";
-import { and, desc, eq, isNull, lte } from "drizzle-orm";
+import { and, desc, eq, lte } from "drizzle-orm";
 import { canonicalJson, type CommandContext } from "@shopper/audit";
-import {
-  branch,
-  cashierSession,
-  device,
-  deviceCredential,
-  member,
-  rolePermission,
-  permission,
-  product,
-  price,
-  taxClass,
-  taxRule,
-  type ShopperTransaction,
-} from "@shopper/db-pg";
+import { product, price, taxClass, taxRule, type ShopperTransaction } from "@shopper/db-pg";
 import { add, money } from "@shopper/money";
 import { expectedLine } from "./labels";
+import { hasGrant, overrideAuthority, sessionAuthority } from "./authority";
 import type { SaleSnapshot } from "../schemas/till/sale";
 import { SaleError } from "./error";
 
@@ -37,76 +25,25 @@ export async function validateAuthority(
     snapshot.id !== snapshot.localId
   )
     throw new SaleError("SCOPE", "Sale is outside the enrolled device scope");
-  const [registered] = await tx
-    .select()
-    .from(deviceCredential)
-    .innerJoin(
-      device,
-      and(eq(device.orgId, deviceCredential.orgId), eq(device.id, deviceCredential.deviceId)),
-    )
-    .innerJoin(branch, and(eq(branch.orgId, device.orgId), eq(branch.id, device.branchId)))
-    .where(
-      and(
-        eq(deviceCredential.orgId, ctx.orgId),
-        eq(deviceCredential.deviceId, principal.deviceId),
-        eq(device.branchId, principal.branchId),
-        eq(branch.storeId, principal.storeId),
-        isNull(deviceCredential.revokedAt),
-      ),
-    );
-  const [session] = await tx
-    .select()
-    .from(cashierSession)
-    .where(
-      and(
-        eq(cashierSession.orgId, ctx.orgId),
-        eq(cashierSession.id, snapshot.sessionId),
-        eq(cashierSession.deviceId, principal.deviceId),
-        eq(cashierSession.branchId, principal.branchId),
-        eq(cashierSession.userId, snapshot.cashierId),
-        eq(cashierSession.tokenHash, proofHash),
-        isNull(cashierSession.revokedAt),
-      ),
-    );
-  const [membership] = await tx
-    .select({ id: member.id })
-    .from(member)
-    .where(and(eq(member.orgId, ctx.orgId), eq(member.userId, snapshot.cashierId)));
   const time = occurredAt;
+  const session = await sessionAuthority(
+    tx,
+    ctx,
+    principal,
+    snapshot,
+    proofHash,
+    time,
+    "sale.create",
+  );
   if (
-    !registered ||
-    !session ||
-    !membership ||
-    !session.permissions.includes("sale.create") ||
-    time < session.issuedAt ||
-    time >= session.expiresAt
+    snapshot.lines.some((line) => line.discount > 0) &&
+    !(
+      session.permissions.includes("sale.discount") &&
+      (await hasGrant(tx, ctx.orgId, snapshot.cashierId, "sale.discount"))
+    )
   )
-    throw new SaleError("INVALID_SESSION", "Sale lacks valid historical cashier authority");
-  if (snapshot.lines.some((line) => line.discount > 0)) {
-    const [granted] = await tx
-      .select({ id: permission.id })
-      .from(member)
-      .innerJoin(
-        rolePermission,
-        and(eq(rolePermission.orgId, member.orgId), eq(rolePermission.roleId, member.roleId)),
-      )
-      .innerJoin(
-        permission,
-        and(
-          eq(permission.orgId, rolePermission.orgId),
-          eq(permission.id, rolePermission.permissionId),
-        ),
-      )
-      .where(
-        and(
-          eq(member.orgId, ctx.orgId),
-          eq(member.userId, snapshot.cashierId),
-          eq(permission.code, "sale.discount"),
-        ),
-      );
-    if (!session.permissions.includes("sale.discount") || !granted)
-      throw new SaleError("INVALID_SESSION", "Sale discount lacks cashier permission");
-  }
+    throw new SaleError("INVALID_SESSION", "Sale discount lacks cashier permission");
+  await overrideAuthority(tx, ctx, session, snapshot);
   ctx.role = session.roleName;
 }
 
@@ -175,7 +112,7 @@ export async function validateReferences(
       (reference.price.branchId !== null && reference.price.branchId !== snapshot.branchId) ||
       reference.price.validFrom > time ||
       (reference.price.validTo && reference.price.validTo <= time) ||
-      line.tax.unitPrice !== reference.price.amount ||
+      !unitPriceMatches(line, reference.price.amount) ||
       line.tax.discount !== line.discount ||
       line.tax.priceMode !== "inclusive" ||
       line.tax.taxClass !== reference.taxClass.code ||
@@ -191,4 +128,14 @@ export async function validateReferences(
   }
   if (canonicalJson(totals) !== canonicalJson(snapshot.totals))
     throw new SaleError("INVALID_TOTALS", "Sale totals do not match its lines");
+}
+
+/** The captured unit price is the price row, or an override of exactly that row's price to a different one. */
+function unitPriceMatches(line: SaleSnapshot["lines"][number], listed: number) {
+  if (!line.override) return line.tax.unitPrice === listed;
+  return (
+    line.override.listPrice === listed &&
+    line.tax.unitPrice !== listed &&
+    line.label?.kind !== "price"
+  );
 }

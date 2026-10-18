@@ -23,7 +23,7 @@ import {
   world,
 } from "../../../support/till/drafts";
 
-test("a cash tender completes the draft once with change and a v3 outbox sale", async () => {
+test("a cash tender completes the draft once with change and a v4 outbox sale", async () => {
   await withTill(async (db) => {
     await world(db);
     const draft = await add(db, 0, {
@@ -45,7 +45,7 @@ test("a cash tender completes the draft once with change and a v3 outbox sale", 
     });
 
     expect(event).toMatchObject({
-      v: 3,
+      v: 4,
       type: "sale.recorded",
       sale: {
         total: 12_000,

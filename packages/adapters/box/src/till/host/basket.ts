@@ -10,6 +10,7 @@ import {
   addDraftTender,
   removeDraftTender,
   setDraftDiscount,
+  setDraftPrice,
   completeDraftSale,
   holdDraftSale,
   resumeDraftSale,
@@ -22,7 +23,7 @@ import {
   TillError,
   validateSession,
 } from "@shopper/core/till";
-import type { BridgeMessage } from "@shopper/sync/bridge";
+import type { Approval, BridgeMessage } from "@shopper/sync/bridge";
 import type { Basket, Host } from "./types";
 import { error } from "./transport";
 
@@ -65,7 +66,9 @@ export function createBasket(host: Host, localConfig: LocalConfig) {
       appVersion: buildInfo.version,
     };
     const { id, type, ...input } = request;
-    const edit = { ...input, scope, at };
+    // Only price overrides and voids carry an approval; core's strict inputs must never see it.
+    const { approval, ...fields } = input as typeof input & { approval?: Approval };
+    const edit = { ...fields, scope, at };
     if (type === "sales.list")
       return { id, type: "result", kind: "purchases", ...(await listPurchases(database, edit)) };
     if (type === "sales.read")
@@ -111,6 +114,13 @@ export function createBasket(host: Host, localConfig: LocalConfig) {
         break;
       case "discount.set":
         view = await setDraftDiscount(database, context, { ...edit, session: config.session });
+        break;
+      case "line.price":
+        view = await setDraftPrice(database, context, {
+          ...edit,
+          session: config.session,
+          approverId: await host.approvals.verify(approval, "sale.price_override"),
+        });
         break;
       case "sale.hold":
         view = await holdDraftSale(database, context, edit);

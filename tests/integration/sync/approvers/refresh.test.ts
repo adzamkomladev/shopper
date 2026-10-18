@@ -45,7 +45,7 @@ test("a manager's PIN hash and approval grants reach the till; a cashier's do no
     expect(rows.map((row) => row.userId)).toContain(managerId);
     expect(rows.map((row) => row.userId)).not.toContain(cashierId);
     const manager = rows.find((row) => row.userId === managerId)!;
-    expect(manager.permissions.toSorted()).toEqual([
+    expect([...manager.permissions].sort()).toEqual([
       "refund.approve",
       "sale.price_override",
       "sale.void",
@@ -83,7 +83,7 @@ test("the refresh audit holds the count and user ids, never a hash", async () =>
     const [entry] = (await auditRows(database)).filter(
       (row) => row.command === "till.approvers.refresh",
     );
-    expect(Object.keys(entry!.payload as object).toSorted()).toEqual(["count", "userIds"]);
+    expect(Object.keys(entry!.payload as object).sort()).toEqual(["count", "userIds"]);
     expect(JSON.stringify(entry)).not.toContain("scrypt");
   });
 });

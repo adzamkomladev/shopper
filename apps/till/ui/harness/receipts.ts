@@ -33,6 +33,7 @@ export function makeSaleSnapshot(): Parameters<typeof buildReceipt>[0] {
           tax: { ...line.tax, rule: { ...line.tax.rule, id: id("50") } },
           discount: line.tax.discount,
           label: source.label ?? null,
+          override: null,
         },
       ];
     },

@@ -14,7 +14,7 @@ Network failures use capped exponential backoff with jitter and honor `Retry-Aft
 retry deadlines survive restart. Empty-host connection retries use in-memory backoff. Requests
 have a 120-second timeout for a bounded batch; integration fixtures can inject clock, randomness and timeout values.
 
-Day 11 accepts only sync protocol 3 and tender-bearing sale event v3. Older registers must update
+Day 14 accepts only sync protocol 4 and sale event v4 (tenders plus price overrides). Older registers must update
 and re-bootstrap; legacy sale upcasters are removed under the approved disposable-data reset.
 Event decoding remains independent of transport negotiation. Receipt blocks, corrected clock time
 and occurrence acknowledgments remain part of the current transport.

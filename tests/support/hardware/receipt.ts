@@ -19,6 +19,7 @@ export function goldenReceipt(lineNames = saleLines) {
     baseUnit: "each" as const,
     discount: money(0),
     label: null,
+    override: null,
     tax: snapshotLine({
       rule,
       on: "2025-06-15",

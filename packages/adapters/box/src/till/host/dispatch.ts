@@ -72,6 +72,7 @@ export function createDispatch(host: Host) {
         case "tender.add":
         case "tender.remove":
         case "discount.set":
+        case "line.price":
         case "sale.complete":
         case "sale.hold":
         case "sale.resume":

@@ -22,6 +22,7 @@ export { addDraftTender, removeDraftTender } from "./tenders/commands";
 export { completeDraftSale } from "./complete";
 export { holdDraftSale, resumeDraftSale, voidDraftSale, listHeldDraftSales } from "./drafts/status";
 export { setDraftDiscount } from "./drafts/discount";
+export { setDraftPrice } from "./drafts/price";
 export { listPurchases, readPurchase } from "./purchases";
 export { applyDraftPayment } from "./tenders/payment";
 export { storePaymentUpdate } from "./tenders/status";

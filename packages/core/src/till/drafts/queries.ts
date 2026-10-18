@@ -65,12 +65,21 @@ export async function toView(tx: TillSqlite, scope: DraftScope, at: Date, found?
       revision: draft.revision,
       createdAt: draft.createdAt,
       updatedAt: draft.updatedAt,
-      lines: lines.map(({ id, productId, quantityThousandths, label, discount }) => ({
-        id,
-        productId,
-        quantityThousandths,
-        discount,
-        ...(label ? { label } : {}),
+      lines: lines.map((line) => ({
+        id: line.id,
+        productId: line.productId,
+        quantityThousandths: line.quantityThousandths,
+        discount: line.discount,
+        ...(line.label ? { label: line.label } : {}),
+        ...(line.overridePrice === null
+          ? {}
+          : {
+              override: {
+                unitPrice: line.overridePrice,
+                reason: line.overrideReason ?? "",
+                approverId: line.overrideApproverId,
+              },
+            }),
       })),
     },
     quote,

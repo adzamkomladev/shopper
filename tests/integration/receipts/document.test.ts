@@ -17,6 +17,7 @@ test("receipt preserves sale snapshots, tax classes and masked tender details", 
     baseUnit: "each" as const,
     discount: money(100),
     label: null,
+    override: null,
     tax: snapshotLine({
       rule,
       on: "2026-10-15",

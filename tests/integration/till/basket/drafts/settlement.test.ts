@@ -22,7 +22,7 @@ import {
   world,
 } from "../../../../support/till/drafts";
 
-test("split cash and card complete with a reconciled v3 event", async () => {
+test("split cash and card complete with a reconciled v4 event", async () => {
   await withTill(async (db) => {
     await world(db);
     const draft = await addOne(db);
@@ -48,7 +48,7 @@ test("split cash and card complete with a reconciled v3 event", async () => {
       expectedRevision: 3,
       at,
     });
-    expect(event).toMatchObject({ v: 3, type: "sale.recorded" });
+    expect(event).toMatchObject({ v: 4, type: "sale.recorded" });
     expect(event.sale.tenders).toMatchObject([
       { kind: "card", amount: 5_000, approvalCode: "AB1234", last4: "4242" },
       { kind: "cash", amount: 7_000 },

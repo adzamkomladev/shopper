@@ -132,10 +132,16 @@ CREATE TABLE till_approver (
  PRIMARY KEY(org_id,user_id)
 );`;
 
+const priceOverrides = `
+ALTER TABLE sale_draft_line ADD COLUMN override_price INTEGER;
+ALTER TABLE sale_draft_line ADD COLUMN override_approver_id TEXT;
+ALTER TABLE sale_draft_line ADD COLUMN override_reason TEXT;`;
+
 export const tillMigrations: string[] = [
   `${initial}${lookup}${drafts}${payments}`,
   registers,
   stockDocuments,
   staff,
   approvers,
+  priceOverrides,
 ];

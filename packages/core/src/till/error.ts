@@ -11,6 +11,7 @@ export class TillError extends Error {
       | "DRAFT_UNKNOWN"
       | "DRAFT_BUSY"
       | "DISCOUNT_INVALID"
+      | "OVERRIDE_INVALID"
       | "scope"
       | "permission"
       | "session"

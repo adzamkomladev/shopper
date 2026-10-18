@@ -65,6 +65,16 @@ export const discountDraftInput = v.strictObject({
   lineId: tillId,
   discount: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
 });
+/** `approverId` is a manager the host already verified by PIN; it is never taken from the UI. */
+const approverId = v.optional(tillId);
+export const priceDraftInput = v.strictObject({
+  ...draftEdit,
+  session: tillSession,
+  lineId: tillId,
+  unitPrice: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
+  reason: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(500)),
+  approverId,
+});
 export const voidDraftInput = v.strictObject({
   ...draftEdit,
   draftId: v.optional(tillId),

@@ -124,8 +124,9 @@ and lines in one audited PostgreSQL transaction; `Sequencer.assignSale` assigns 
 in another. Both adapters call the shared assignment command. Replays recover persisted results
 without another mutation or audit, and acknowledgment waits for sequence assignment.
 
-Protocol negotiation and event decoding are separate contracts. Day 11 resets disposable till data:
-only sync protocol 3 and sale event v3 are accepted, and older tills must update and re-bootstrap.
+Protocol negotiation and event decoding are separate contracts. Day 11 reset disposable till data and
+Day 14 did it again for price overrides: only sync protocol 4 and sale event v4 are accepted, with no
+upcaster, and older tills must update and re-bootstrap.
 The sale carries tender amounts, inclusive discounts, authoritative label provenance, signed cash
 rounding and receipt identity. Its original application version stays intact. The server validates
 and stores corrected occurrence time, capped at acceptance, alongside raw device time. Each side

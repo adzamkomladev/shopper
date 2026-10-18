@@ -71,6 +71,10 @@ export const saleDraftLine = sqliteTable(
     label: text("label", { mode: "json" }).$type<DraftLabel | null>(),
     /** Money off the line's gross, inclusive of tax. */
     discount: integer("discount").notNull().default(0),
+    /** A manager-approved unit price replacing the list price; the approver is null when the cashier held the grant. */
+    overridePrice: integer("override_price"),
+    overrideApproverId: text("override_approver_id"),
+    overrideReason: text("override_reason"),
   },
   (t) => [
     unique().on(t.draftId, t.position),

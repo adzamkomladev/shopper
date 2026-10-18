@@ -5,6 +5,7 @@ import { defineCommand, canonicalJson } from "@shopper/audit";
 import { sale, saleLine, saleTender, stockMovement, type ShopperDatabase } from "@shopper/db-pg";
 import { decodeSaleEvent, saleSnapshot, type SaleEvent } from "../schemas/till/sale";
 import { validateAuthority, validateReferences, type UploadPrincipal } from "./validate";
+import { overrideAudit } from "./authority";
 import { validateReceipt } from "./receipts";
 import { SaleError } from "./error";
 import { validateTenders } from "./tenders";
@@ -131,6 +132,6 @@ const accept = defineCommand({
     );
     return { localId: saved.localId, occurredAt: saved.occurredAt.toISOString() };
   },
-  audit: (_input, output) => output,
+  audit: (input, output) => ({ ...output, ...overrideAudit(input.event.sale) }),
   details: (_input, output) => ({ entity: "sale", entityId: output.localId }),
 });

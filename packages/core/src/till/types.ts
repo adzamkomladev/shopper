@@ -16,7 +16,7 @@ export type ScanResult = {
 );
 
 export type QuoteLine =
-  | ({ lineId: string; error?: never } & ReturnType<typeof quoteFrom>)
+  | ({ lineId: string; error?: never } & ReturnType<typeof quoteFrom> & { listPrice?: Money })
   | { lineId: string; productId: string; error: TillError["code"]; tax?: never };
 export type DraftView = Awaited<ReturnType<typeof viewDraft>>;
 

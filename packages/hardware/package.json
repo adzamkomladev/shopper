@@ -12,6 +12,14 @@
       "types": "./src/network.ts",
       "default": "./src/network.ts"
     },
+    "./serial": {
+      "types": "./src/serial/index.ts",
+      "default": "./src/serial/index.ts"
+    },
+    "./spooler": {
+      "types": "./src/spooler.ts",
+      "default": "./src/spooler.ts"
+    },
     "./receipt": {
       "types": "./src/receipt/view.tsx",
       "default": "./src/receipt/view.tsx"
@@ -35,6 +43,7 @@
     "qrcode-generator": "2.0.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "serialport": "13.0.0",
     "valibot": "1.1.0"
   }
 }

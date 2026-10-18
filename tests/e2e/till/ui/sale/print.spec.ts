@@ -3,6 +3,7 @@ import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { startPrinter, type Printer } from "../../../../support/hardware/printer";
 import { startSaleScenario } from "../../../../support/till/sale/scenario";
 import { devices, shoot } from "../settings/harness";
+import { openCheckout } from "./harness";
 import { installScanClock, scanCode } from "./scanner";
 
 let scenario: Awaited<ReturnType<typeof startSaleScenario>> | undefined;
@@ -39,6 +40,7 @@ async function addPrinter(page: Page, autoPrint: boolean) {
 
 async function sellCash(page: Page) {
   await scanCode(page, scenario!.products[0]!.barcode);
+  await openCheckout(page);
   await page.getByRole("button", { name: /^Charge / }).click();
   await expect(receipt(page)).toBeVisible();
 }

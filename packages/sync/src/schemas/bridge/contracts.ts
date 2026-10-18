@@ -5,7 +5,8 @@ import { basketReplies, basketRequests, draftView } from "./basket";
 
 import { momoView } from "@shopper/core/payments";
 import { purchaseReplies, purchaseRequests } from "./purchases";
-import { deviceRequests, printerStatus, settingsStatus } from "./devices";
+import { deviceRequests, printerList, printerStatus, scanMessage, settingsStatus } from "./devices";
+import { sessionRequests, sessionUser } from "./session";
 
 const id = uuidV7Schema;
 
@@ -26,6 +27,7 @@ export const hostStatus = v.strictObject({
   appVersion: v.pipe(v.string(), v.minLength(1)),
   protocol: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
   permissions: v.optional(v.array(v.string())),
+  user: v.optional(v.nullable(sessionUser)),
   settings: settingsStatus,
   printer: printerStatus,
   registerCode: v.string(),
@@ -62,6 +64,7 @@ export const bridgeRequest = v.pipe(
     ...basketRequests,
     ...purchaseRequests,
     ...deviceRequests,
+    ...sessionRequests,
   ]),
   v.check(
     (request) =>
@@ -80,6 +83,8 @@ export const bridgeMessage = v.union([
   }),
   ...basketReplies,
   ...purchaseReplies,
+  printerList,
+  scanMessage,
   v.strictObject({
     id: v.optional(id),
     type: v.literal("error"),
@@ -89,6 +94,11 @@ export const bridgeMessage = v.union([
   v.strictObject({ type: v.literal("status"), status: hostStatus }),
   v.strictObject({ type: v.literal("draft"), view: draftView }),
   v.strictObject({ type: v.literal("payment"), payment: momoView }),
+  v.strictObject({
+    type: v.literal("sold"),
+    total: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
+    change: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
+  }),
 ]);
 /** Error codes that end the connection; every other error answers one request and the socket stays open. */
 export const connectionErrors: readonly string[] = [

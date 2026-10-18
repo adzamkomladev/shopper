@@ -85,5 +85,7 @@ export function defaultRegisterSettings(names: Names): RegisterSettings {
     clearCartAfterSale: true,
     requirePinForReturns: false,
     printer: null,
+    scanner: null,
+    display: null,
   };
 }

@@ -14,6 +14,10 @@ overrides:
 allowBuilds:
   esbuild: true
   workerd: true
+  # Prebuilt N-API binaries are used; their install scripts would only compile from source.
+  "@serialport/bindings-cpp": false
+  # Squirrel installer support; we build NSIS.
+  electron-winstaller: false
 peerDependencyRules:
   allowAny:
     - vite

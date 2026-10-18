@@ -2,7 +2,7 @@ import { useState, type KeyboardEvent } from "react";
 import { flushSync } from "react-dom";
 import { toast } from "@shopper/ui/components/sonner";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
-import type { SettingsDraft } from "../../schemas/settings";
+import type { SerialDraft, SettingsDraft } from "../../schemas/settings";
 import { deviceMessage, newPrinter, sameDraft, toDraft, validateDraft } from "../../settings/draft";
 import type {
   DeviceFeedback,
@@ -19,12 +19,25 @@ import { SettingsNotice } from "./notices";
 import { ReceiptsCard } from "./receipts";
 import { StoreCard } from "./store";
 
-const order = ["storeName", "registerName", "printer.host", "printer.port"] as const;
+const order = [
+  "storeName",
+  "registerName",
+  "printer.host",
+  "printer.port",
+  "printer.printerName",
+  "printer.path",
+  "scanner.path",
+  "display.path",
+] as const;
 const fieldKeys: Record<(typeof order)[number], string> = {
   storeName: "settings-store-name",
   registerName: "settings-register-name",
   "printer.host": "settings-printer-host",
   "printer.port": "settings-printer-port",
+  "printer.printerName": "settings-printer-name",
+  "printer.path": "settings-printer-path",
+  "scanner.path": "settings-scanner-path",
+  "display.path": "settings-display-path",
 };
 
 /**
@@ -53,6 +66,7 @@ export function SettingsForm({
   const [draft, setDraft] = useState(initial);
   const [errors, setErrors] = useState<DraftErrors>({});
   const [editing, setEditing] = useState(false);
+  const [open, setOpen] = useState({ scanner: false, display: false });
   const [focus] = useState(createFocus);
   const { saving, saveError, device } = snapshot;
   const canEdit = current.canEdit && saveError?.kind !== "permission";
@@ -71,6 +85,9 @@ export function SettingsForm({
           "Alt+D": openDrawer,
           "Alt+E": toggleEditor,
           "Alt+X": removePrinter,
+          "Alt+B": () => toggleDevice("scanner"),
+          "Alt+M": () => toggleDevice("display"),
+          "Alt+N": () => void actions.listPorts(),
           "Alt+L": () => stale && onReload(),
         }
       : {},
@@ -79,6 +96,7 @@ export function SettingsForm({
     setDraft((previous) => ({ ...previous, ...next }));
   }
   function changePrinter(next: Partial<NonNullable<SettingsDraft["printer"]>>) {
+    if (next.kind && next.kind !== "network") void actions.listPorts();
     setDraft((previous) => ({
       ...previous,
       printer: previous.printer && { ...previous.printer, ...next },
@@ -90,6 +108,17 @@ export function SettingsForm({
     flushSync(() => setEditing(!editing));
     // The element that held focus may leave the page with its panel; hand focus to the next sensible one.
     focus.to(editing ? "settings-edit-printer" : "settings-printer-model");
+    if (!editing && draft.printer.kind !== "network") void actions.listPorts();
+  }
+  function toggleDevice(kind: "scanner" | "display") {
+    if (!canEdit) return;
+    flushSync(() => setOpen({ ...open, [kind]: !open[kind] }));
+    focus.to(open[kind] ? `settings-edit-${kind}` : `settings-${kind}-connection`);
+    if (!open[kind] && draft[kind]) void actions.listPorts();
+  }
+  function changeSerial(kind: "scanner" | "display", device: SerialDraft | null) {
+    if (device && !draft[kind]) void actions.listPorts();
+    change({ [kind]: device });
   }
   function addPrinter() {
     if (!canEdit) return;
@@ -130,7 +159,11 @@ export function SettingsForm({
     if (!result.settings) {
       flushSync(() => {
         setErrors(result.errors);
-        if (result.errors["printer.host"] || result.errors["printer.port"]) setEditing(true);
+        if (Object.keys(result.errors).some((key) => key.startsWith("printer."))) setEditing(true);
+        setOpen({
+          scanner: open.scanner || "scanner.path" in result.errors,
+          display: open.display || "display.path" in result.errors,
+        });
       });
       const first = order.find((key) => result.errors[key]);
       if (first) focus.to(fieldKeys[first]);
@@ -177,6 +210,11 @@ export function SettingsForm({
               onAdd={addPrinter}
               onDrawer={openDrawer}
               onEditing={toggleEditor}
+              onRefresh={() => void actions.listPorts()}
+              onSerial={changeSerial}
+              onToggle={toggleDevice}
+              open={open}
+              ports={snapshot.ports}
               onPrinter={changePrinter}
               onRemove={removePrinter}
               onTest={testPrint}

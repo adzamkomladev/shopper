@@ -32,6 +32,7 @@
     "@shopper/money": "workspace:*",
     "@shopper/ports": "workspace:*",
     "@shopper/sync": "workspace:*",
+    "better-sqlite3-multiple-ciphers": "13.0.3",
     "drizzle-orm": "0.45.3",
     "hono": "4.13.13",
     "pg": "8.23.1",

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { expectNoSeriousAxe } from "../../../../support/e2e";
-import { calls, openSale } from "./harness";
+import { calls, openCheckout, openSale } from "./harness";
 import { expectTouchTargets } from "../targets";
 
 const tenderAmount = (page: import("@playwright/test").Page) =>
@@ -10,7 +10,7 @@ test("the tender panel uses GHS amounts and F5 charges the selected cash amount"
   page,
 }) => {
   await openSale(page, "lines");
-  await expect(page.getByRole("region", { name: "Tender" })).toBeVisible();
+  await openCheckout(page);
   await expectTouchTargets(page);
   await expect(page.getByText("Payments are available in the next checkout step.")).toHaveCount(0);
   for (const name of [
@@ -24,7 +24,6 @@ test("the tender panel uses GHS amounts and F5 charges the selected cash amount"
     /Charge/,
     "Hold sale",
     "Held sales",
-    "Void sale",
   ]) {
     const bounds = await page
       .getByRole("button", { name, exact: typeof name === "string" })
@@ -47,6 +46,7 @@ test("the mobile till keeps tender controls within the viewport", async ({ page 
   const lines = page.getByRole("list", { name: "Basket lines" });
   expect(await lines.evaluate((element) => element.scrollTop)).toBe(0);
   await page.screenshot({ path: testInfo.outputPath("mobile-basket-390.png") });
+  await openCheckout(page);
   await page.getByRole("region", { name: "Tender" }).scrollIntoViewIfNeeded();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
   await page.getByRole("button", { name: "Held sales" }).scrollIntoViewIfNeeded();
@@ -65,6 +65,7 @@ test("the mobile till keeps tender controls within the viewport", async ({ page 
 
 test("cash preview applies 10p rounding up and down before a tender exists", async ({ page }) => {
   await openSale(page, "round-up");
+  await openCheckout(page);
   await expect(page.getByRole("region", { name: "Tender" })).toContainText("GH₵ 1.30");
   await expect(tenderAmount(page)).toHaveValue("1.30");
   await page.keyboard.press("F5");
@@ -73,6 +74,7 @@ test("cash preview applies 10p rounding up and down before a tender exists", asy
   ]);
 
   await openSale(page, "round-down");
+  await openCheckout(page);
   await expect(page.getByRole("region", { name: "Tender" })).toContainText("GH₵ 1.20");
   await expect(tenderAmount(page)).toHaveValue("1.20");
   await page.keyboard.press("F5");
@@ -85,6 +87,7 @@ test("quick cash and Split add a partial cash tender without completing the sale
   page,
 }) => {
   await openSale(page, "lines");
+  await openCheckout(page);
   await expect(page.getByRole("button", { name: "GH₵ 150.00" })).toBeVisible();
   await tenderAmount(page).fill("50.00");
   await expect(page.getByRole("button", { name: /Split/ })).toHaveAttribute(
@@ -156,6 +159,7 @@ test("MoMo explains when offline and offers phone, network, OTP and retry when o
   page,
 }) => {
   await openSale(page, "offline");
+  await openCheckout(page);
   await expect(page.getByRole("button", { name: /MoMo/ })).toBeDisabled();
   await expect(page.getByText("Mobile money needs an internet connection.")).toBeVisible();
 
@@ -226,6 +230,7 @@ test("F6 holds, F7 resumes a held sale, and F11 voids only with permission and a
 
 test("a completed sale shows its receipt and change; Enter starts a new sale", async ({ page }) => {
   await openSale(page, "lines");
+  await openCheckout(page);
   await tenderAmount(page).fill("200.00");
   await page.keyboard.press("F5");
   const receipt = page.getByRole("region", { name: "Sale receipt" });
@@ -237,6 +242,8 @@ test("a completed sale shows its receipt and change; Enter starts a new sale", a
   );
   await page.keyboard.press("Enter");
   expect(await calls(page, "newSale")).toHaveLength(1);
+  // The next sale starts at the basket again.
+  await openCheckout(page);
   await expect(tenderAmount(page)).toHaveValue("126.50");
   await expectNoSeriousAxe(page);
 });

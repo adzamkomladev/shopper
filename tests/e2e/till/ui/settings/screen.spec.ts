@@ -10,10 +10,7 @@ test("Alt+T opens Settings from the nav and shows this register's saved values",
   await openSale(page, "settings");
   await page.keyboard.press("Alt+T");
   await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: /^Settings/ })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  await expect(page.getByRole("tab", { selected: true })).toHaveCount(0);
   await expect(page.getByText("Register ID: REG-001 · Currency: GHS")).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Store name" })).toHaveValue("Osu Mart");
   await expect(page.getByRole("textbox", { name: "Register name" })).toHaveValue("Front till");
@@ -25,7 +22,7 @@ test("Alt+T opens Settings from the nav and shows this register's saved values",
   await expect(page.getByRole("switch", { name: "Require PIN for returns" })).not.toBeChecked();
   await expect(page.getByText("Changes apply to this register only.")).toBeVisible();
   await page.keyboard.press("Alt+S");
-  await expect(page.getByRole("heading", { name: "Sale", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Checkout", exact: true })).toBeVisible();
 });
 
 test("the printer badge is derived from the last real job and never invented", async ({ page }) => {

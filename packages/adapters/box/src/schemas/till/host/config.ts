@@ -5,6 +5,7 @@ import { registerIdentity } from "@shopper/sync/bridge";
 
 export const hostConfiguration = v.strictObject({
   sqlitePath: v.pipe(v.string(), v.minLength(1)),
+  databaseKey: v.optional(v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/))),
   identity: registerIdentity,
   upstream: v.pipe(v.string(), v.url()),
   deviceToken: v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/)),
@@ -13,6 +14,7 @@ export const hostConfiguration = v.strictObject({
   receiptCodes: v.optional(tillReceiptCodes),
   receiptReference: v.optional(receiptReference),
   origins: v.pipe(v.array(v.pipe(v.string(), v.url())), v.minLength(1)),
+  ui: v.optional(v.pipe(v.string(), v.minLength(1))),
   port: v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(65535)),
 });
 export type HostConfiguration = v.InferOutput<typeof hostConfiguration>;

@@ -103,7 +103,9 @@ test("while the host is disconnected every edit is disabled and Reconnect explai
   await openSale(page, "disconnected");
   await expect(field(page)).toBeDisabled();
   await expect(field(page)).toHaveAttribute("aria-describedby", "sale-banner");
-  await expect(page.getByRole("button", { name: "Remove Milo 400g tin" })).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Remove Fan Milk Vanilla ice cream" }),
+  ).toBeDisabled();
   await expect(page.getByRole("button", { name: /Sync now/ })).toBeDisabled();
   await page.keyboard.press("F4");
   await expect(page.getByRole("textbox", { name: /Quantity of/ })).toHaveCount(0);
@@ -117,7 +119,7 @@ test("while a basket call is in flight edits wait", async ({ page }) => {
   await page.keyboard.press("F4");
   await expect(page.getByRole("textbox", { name: /Quantity of/ })).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Increase quantity of Milo 400g tin" }),
+    page.getByRole("button", { name: "Increase quantity of Fan Milk Vanilla ice cream" }),
   ).toBeDisabled();
 });
 

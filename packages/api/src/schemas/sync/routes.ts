@@ -32,3 +32,9 @@ export const identity = v.object({ sale: v.object({ localId: managementId }) });
 export const saleVersion = v.object({ v: v.picklist([3]) });
 
 export const saleSession = v.object({ sale: v.object({ sessionId: managementId }) });
+
+export const stockUpload = v.strictObject({
+  requestId: managementId,
+  document: v.unknown(),
+  proof: v.pipe(v.string(), v.minLength(1), v.maxLength(256)),
+});

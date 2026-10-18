@@ -1,24 +1,23 @@
 import { Printer, Trash2 } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { Kbd } from "@shopper/ui/components/kbd";
-import { Label } from "@shopper/ui/components/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@shopper/ui/components/select";
 import type { SettingsDraft } from "../../schemas/settings";
-import type { DraftErrors } from "../../settings/types";
-import { TextField } from "./field";
+import type { DraftErrors, PortList } from "../../settings/types";
+import { SelectField, TextField } from "./field";
 import { useFocusRef } from "./focus";
+import { PortPicker } from "./ports";
+import { SerialFields } from "./serial";
 
 type PrinterDraft = NonNullable<SettingsDraft["printer"]>;
 const models = [
   ["epson", "Epson"],
   ["xprinter", "Xprinter"],
   ["bixolon", "Bixolon"],
+] as const;
+const connections = [
+  ["network", "Network"],
+  ["usb", "USB"],
+  ["serial", "Serial port"],
 ] as const;
 export const modelName = (model: PrinterDraft["model"]) =>
   models.find(([value]) => value === model)![1];
@@ -56,23 +55,26 @@ export function NoPrinter({ disabled, onAdd }: { disabled: boolean; onAdd: () =>
   );
 }
 
-/** Model, address and port of the network printer; the page's Save changes stores them. */
+/** Model and connection of the printer; the page's Save changes stores them. */
 export function PrinterEditor({
   id,
   printer,
+  list,
   errors,
   disabled,
   onChange,
   onRemove,
+  onRefresh,
 }: {
   id: string;
   printer: PrinterDraft;
+  list: PortList;
   errors: DraftErrors;
   disabled: boolean;
   onChange: (change: Partial<PrinterDraft>) => void;
   onRemove: () => void;
+  onRefresh: () => void;
 }) {
-  const modelRef = useFocusRef("settings-printer-model");
   return (
     <div
       aria-label="Edit printer"
@@ -81,47 +83,76 @@ export function PrinterEditor({
       role="group"
     >
       <h3 className="text-sm font-medium">Edit printer</h3>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="settings-printer-model">Printer model</Label>
-        <Select
+      <div className="grid items-start gap-3 sm:grid-cols-2">
+        <SelectField
           disabled={disabled}
-          onValueChange={(model) =>
+          id="settings-printer-model"
+          label="Printer model"
+          onChange={(model) =>
             onChange({ model: models.find(([value]) => value === model)?.[0] ?? "epson" })
           }
+          options={models}
           value={printer.model}
-        >
-          <SelectTrigger className="w-full" id="settings-printer-model" ref={modelRef} size="touch">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {models.map(([value, label]) => (
-              <SelectItem className="min-h-11" key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="grid items-start gap-3 sm:grid-cols-3">
-        <TextField
-          className="sm:col-span-2"
-          readOnly={disabled}
-          error={errors["printer.host"]}
-          id="settings-printer-host"
-          label="IP address or host name"
-          onChange={(host) => onChange({ host })}
-          value={printer.host}
         />
-        <TextField
-          readOnly={disabled}
-          error={errors["printer.port"]}
-          id="settings-printer-port"
-          inputMode="numeric"
-          label="Port"
-          onChange={(port) => onChange({ port })}
-          value={printer.port}
+        <SelectField
+          disabled={disabled}
+          id="settings-printer-kind"
+          label="Connection"
+          onChange={(kind) =>
+            onChange({ kind: connections.find(([value]) => value === kind)?.[0] ?? "network" })
+          }
+          options={connections}
+          value={printer.kind}
         />
       </div>
+      {printer.kind === "network" && (
+        <div className="grid items-start gap-3 sm:grid-cols-3">
+          <TextField
+            className="sm:col-span-2"
+            readOnly={disabled}
+            error={errors["printer.host"]}
+            id="settings-printer-host"
+            label="IP address or host name"
+            onChange={(host) => onChange({ host })}
+            value={printer.host}
+          />
+          <TextField
+            readOnly={disabled}
+            error={errors["printer.port"]}
+            id="settings-printer-port"
+            inputMode="numeric"
+            label="Port"
+            onChange={(port) => onChange({ port })}
+            value={printer.port}
+          />
+        </div>
+      )}
+      {printer.kind === "usb" && (
+        <PortPicker
+          choices={list.usb.map((name) => [name, name] as const)}
+          disabled={disabled}
+          emptyHint="No printers found. Type the name as Windows lists it."
+          error={errors["printer.printerName"]}
+          id="settings-printer-name"
+          label="Printer name"
+          list={list}
+          note="USB printers work on Windows."
+          onChange={(printerName) => onChange({ printerName })}
+          onRefresh={onRefresh}
+          value={printer.printerName}
+        />
+      )}
+      {printer.kind === "serial" && (
+        <SerialFields
+          device={printer}
+          disabled={disabled}
+          errors={errors}
+          id="printer"
+          list={list}
+          onChange={onChange}
+          onRefresh={onRefresh}
+        />
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">
           Saved with Save changes. Used from the next receipt.

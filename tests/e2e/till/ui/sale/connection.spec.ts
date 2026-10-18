@@ -1,5 +1,6 @@
 import { expect, test, type TestInfo } from "@playwright/test";
 import { startSaleScenario } from "../../../../support/till/sale/scenario";
+import { openCheckout } from "./harness";
 
 test("a correlated fatal bridge reply clears the pending tender after reconnect", async ({
   page,
@@ -28,7 +29,7 @@ test("a correlated fatal bridge reply clears the pending tender after reconnect"
     await expect(page.getByRole("region", { name: "Host connection" })).toContainText("Connected");
     await expect(page.getByRole("button", { name: /Start selling/ })).toBeEnabled();
     await page.keyboard.press("s");
-    await expect(page.getByRole("heading", { name: "Sale", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Checkout", exact: true })).toBeVisible();
     const scan = page.getByRole("combobox", { name: "Scan barcode or search items" });
     await scan.fill("MILO-400");
     await page.getByRole("option", { name: /Milo 400g tin/ }).click();
@@ -44,6 +45,7 @@ test("a correlated fatal bridge reply clears the pending tender after reconnect"
 
     await page.getByRole("button", { name: "Reconnect" }).click();
     await expect(page.getByRole("button", { name: "Reconnect" })).toHaveCount(0);
+    await openCheckout(page);
     await expect(page.getByRole("button", { name: "Split" })).toBeEnabled();
   } finally {
     await scenario.stop();

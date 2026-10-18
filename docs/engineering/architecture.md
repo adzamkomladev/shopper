@@ -67,7 +67,7 @@ Business code is written once and runs on Cloudflare (cloud) and on Rivet/Bun (o
 Portal = TanStack Start in SPA mode: a prerendered static shell served by Workers Static Assets; one Worker runs only for `/api/*` (the shared Hono API through native Hyperdrive, D1, R2, Durable Object and Workflow bindings) and `/_serverFn/*` (host-only server functions). Backoffice data stays on the shared API so the box SPA and Electron reuse it.
 
 - `@shopper/backoffice` exports `createBackofficeRoutes(rootRoute)`. The host owns the router, root
-  route and query client and mounts these routes: the portal today, Electron on day 13. The package
+  route and query client and mounts these routes: the portal and the desktop register (Electron). The package
   never creates a router or reads a host global.
 - From `@shopper/core`, backoffice may import only `@shopper/core/schemas` (Valibot schemas and
   inferred types, no server code).
@@ -145,5 +145,20 @@ subscribes to their combined status without receiving device credentials.
 `@shopper/assets` owns publicity/access policy, purpose and bucket selection, audited asset tracking and authorized presigned grants. Provider operations use Blobs; credentials stay in adapters. The API receives metadata and asset references, never client file bytes. Before processing, resolve the tenant-owned asset and verify bounded actual bytes against its registered digest and size. A presigned URL remains a bearer capability until expiry, so repeat verification before every use.
 
 The cloud portal, local box SPA and Electron share `@shopper/backoffice`. On-prem stores, branches, products and staff are authoritative in box PostgreSQL and available over LAN without WAN. Subscription/payment/cloud-storage/backup provisioning and cloud account setup belong to a separate cloud control plane. Local installation settings remain local. Optional cloud sync requires explicit scoped/versioned ownership contracts; two databases never become concurrent writers by implication. Desktop disconnection from its authority does not grant unrestricted offline mutations.
+
+### Desktop register (Day 13)
+
+The Electron app forks the till host and loads the till UI from it (`http://127.0.0.1:<port>/`); there
+is no preload. Staff sign in with email and password through the host, which calls
+`POST /cashiers/login` with the device token. Offline, a scrypt verifier cached on the till (7 days,
+5 failures then 15 minutes) resumes the user's unexpired session or grants only `report.read`,
+`stock.read` and `stock.write`. Revocation is not seen offline inside that window.
+
+Back office on the desktop: the host answers `/api/register/*` (this register's report and the stock
+queue) and the auth/session endpoints locally, and proxies the rest of `/api/*` upstream as the device
+principal. The proxy needs the per-start `shopper_desktop` cookie from `POST /desktop/unlock`, a loopback
+Host and a same-origin Origin on writes; it canonicalises the path, keeps the upstream origin, never
+forwards `/auth`, `/sync` or `/cashiers`, and strips cookies and CORS headers. Stock counts and receiving
+are queued in till SQLite and uploaded to `POST /sync/stock` only after the sale backlog drains.
 
 The owner approved this architecture on 14 October 2026. This cleanup documents it; it does not implement new management hosts, billing, backup services or Electron. TanStack Start remains the customer-shop SSR framework; management keeps the existing Router SPA.

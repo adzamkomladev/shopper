@@ -5,6 +5,7 @@ import {
   createPullWorker,
   createPushWorker,
   createReceiptUploadWorker,
+  createStockUploadWorker,
 } from "@shopper/sync";
 import type { TillDatabase } from "@shopper/db-sqlite";
 import { readReceiptStatus } from "@shopper/core/till";
@@ -49,12 +50,18 @@ export function createHostSync(
     config: { ...options.config, protocol: buildInfo.syncProtocol },
     onChange: notify,
   });
+  const stock = createStockUploadWorker({
+    ...options,
+    config: { ...options.config, protocol: buildInfo.syncProtocol },
+    onChange: notify,
+  });
   const push = createPushWorker({
     ...options,
     onStatus: notify,
     onAcknowledgment: () => {
       void pull.trigger();
       void uploads.trigger();
+      void stock.trigger();
     },
   });
   return {
@@ -102,16 +109,20 @@ export function createHostSync(
       pull.start();
       live.start();
       void uploads.trigger();
+      void stock.trigger();
     },
     async trigger() {
       await push.trigger();
       await pull.trigger();
       await uploads.trigger(true);
+      await stock.trigger(true);
     },
     /** Uploads any acknowledged receipt PDFs that are still pending. */
     uploadReceipts: () => uploads.trigger(),
+    /** Uploads queued stock counts and receiving once the sale backlog has drained. */
+    uploadStock: () => stock.trigger(),
     async stop() {
-      await Promise.all([live.stop(), push.stop(), pull.stop(), uploads.stop()]);
+      await Promise.all([live.stop(), push.stop(), pull.stop(), uploads.stop(), stock.stop()]);
     },
   };
 }

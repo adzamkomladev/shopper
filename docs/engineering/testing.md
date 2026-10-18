@@ -127,6 +127,23 @@ pixels. The constants at the top of the file are calibration knobs. Set `SHOPPER
 write both PNGs and the diff image. Receipt line heights are whole pixels because Satori rounds
 fractional ones up, which drifted the two engines apart by 5 px.
 
+### Desktop register (Day 13)
+
+- Electron now seals the register's secrets on every start, so suites pass `--user-data-dir=<temp>`
+  and `--password-store=basic`. On Linux that switch opts in to the plain-text `safeStorage` backend,
+  but only in an unpackaged app or with `SHOPPER_INSECURE_SECRETS=1`. `SHOPPER_TEST_NO_ENCRYPTION=1`
+  (unpackaged only) forces the "OS encryption unavailable" refusal. DPAPI itself is proven on Windows.
+- Serial drivers are tested over a python3 `os.openpty()` pair (`tests/support/hardware/serial.ts`).
+  A pty ignores baud and cannot fail a write mid-stream; those paths are checked on real COM ports.
+- The Windows spooler driver is tested with a fake shell that records argv, env and stdin. The real
+  PowerShell/winspool path runs only on Windows.
+- Xvfb 21.1 cannot show Chromium two monitors (`xrandr --setmonitor` is ignored and `+xinerama`
+  stacks screens at 0,0), so only the single-monitor customer-display case runs here.
+- Under heavy machine load the Electron and host suites hit their "never became healthy" and
+  "Host message timed out" limits. Rerun a failing file alone before treating it as a regression.
+
+See [windows-handoff.md](../plans/day13/windows-handoff.md) for what is verified on the till PC.
+
 ## Commands
 
 ```sh

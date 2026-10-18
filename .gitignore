@@ -17,3 +17,7 @@ test-results/
 # Playwright CLI and MCP output (may contain credentials)
 .playwright-cli/
 .playwright-mcp/
+
+# Packaged desktop register (tooling/build/package.ts)
+apps/till/electron/.app/
+apps/till/electron/release/

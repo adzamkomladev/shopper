@@ -110,4 +110,24 @@ CREATE TABLE receipt_output (
  FOREIGN KEY(org_id,sale_id) REFERENCES local_sale(org_id,id)
 );`;
 
-export const tillMigrations: string[] = [`${initial}${lookup}${drafts}${payments}`, registers];
+const stockDocuments = `
+CREATE TABLE stock_document (
+ id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, device_id TEXT NOT NULL,
+ kind TEXT NOT NULL CHECK(kind IN ('count','receipt')), payload TEXT NOT NULL, session_id TEXT NOT NULL,
+ created_at TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, next_attempt_at INTEGER,
+ blocked_code TEXT, blocked_reason TEXT, accepted_at TEXT, result TEXT
+);`;
+
+const staff = `
+CREATE TABLE till_staff (
+ org_id TEXT NOT NULL, user_id TEXT NOT NULL, email TEXT NOT NULL, name TEXT NOT NULL, verifier TEXT NOT NULL,
+ attempts INTEGER NOT NULL DEFAULT 0, locked_until INTEGER, verified_at TEXT NOT NULL, last_session_id TEXT,
+ PRIMARY KEY(org_id,user_id), UNIQUE(org_id,email)
+);`;
+
+export const tillMigrations: string[] = [
+  `${initial}${lookup}${drafts}${payments}`,
+  registers,
+  stockDocuments,
+  staff,
+];

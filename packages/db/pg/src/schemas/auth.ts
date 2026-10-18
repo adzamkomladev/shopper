@@ -1,4 +1,13 @@
-import { boolean, foreignKey, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  foreignKey,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { org, tenant } from "./base";
 
 export const user = pgTable(
@@ -9,6 +18,8 @@ export const user = pgTable(
     name: text("name").notNull(),
     emailVerified: boolean("email_verified").notNull().default(false),
     image: text("image"),
+    passwordAttempts: integer("password_attempts").notNull().default(0),
+    passwordLockedUntil: timestamp("password_locked_until", { withTimezone: true }),
   },
   (t) => [unique().on(t.orgId, t.id), unique().on(t.orgId, t.email)],
 );

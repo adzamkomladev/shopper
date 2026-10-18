@@ -4,6 +4,7 @@ import { expectNoSeriousAxe } from "../../../../support/e2e";
 import { startPrinter, type Printer } from "../../../../support/hardware/printer";
 import { startSaleScenario } from "../../../../support/till/sale/scenario";
 import { devices, shoot } from "../settings/harness";
+import { openCheckout } from "../sale/harness";
 import { installScanClock, scanCode } from "../sale/scanner";
 
 let scenario: Awaited<ReturnType<typeof startSaleScenario>> | undefined;
@@ -40,6 +41,7 @@ test("Reprint on a purchase prints a REPRINT copy and the card counts it", async
   await addPrinter(page);
   await page.keyboard.press("Alt+S");
   await scanCode(page, scenario!.products[0]!.barcode);
+  await openCheckout(page);
   await page.getByRole("button", { name: /^Charge / }).click();
   const receipt = page.getByRole("region", { name: "Sale receipt" });
   await expect(receipt.getByText("Receipt printed")).toBeVisible();

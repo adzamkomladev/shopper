@@ -26,4 +26,7 @@ export const tillPermissions = new Set([
   "shift.read",
   "shift.write",
   "register.settings",
+  "report.read",
+  "stock.read",
+  "stock.write",
 ]);

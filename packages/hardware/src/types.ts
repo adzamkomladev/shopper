@@ -35,3 +35,5 @@ export type EncodeOptions = {
   reprint: boolean;
   openDrawer: boolean;
 };
+
+export type SerialOptions = { path: string; baudRate: number };

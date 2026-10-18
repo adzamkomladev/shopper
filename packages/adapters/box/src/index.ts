@@ -5,6 +5,6 @@ export { boxDatabase, boxPool } from "./database";
 export { boxRealtime } from "./realtime";
 export { boxPriceChange } from "./workflows/price";
 export { boxAuthFlows } from "./workflows/auth";
-export { openTillDatabase } from "./till/database";
+export { openTillDatabase, TillDatabaseKeyError } from "./till/database";
 export { boxLive, type BoxWebSocketServer } from "./live";
 export { boxMomoPayment } from "./workflows/payments";

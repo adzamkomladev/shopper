@@ -131,10 +131,10 @@ export const pullWorker = (database: TillDatabase, upstream: string) =>
   });
 
 /** A till SQLite file that can be closed and reopened, as a register restart does. */
-export async function tempTill() {
+export async function tempTill(key?: string) {
   const dir = await mkdtemp(join(tmpdir(), "shopper-till-catalogue-"));
   const path = join(dir, "till.sqlite");
-  let database = openTillDatabase(path);
+  let database = openTillDatabase(path, key);
   return {
     path,
     get database() {
@@ -142,7 +142,7 @@ export async function tempTill() {
     },
     async restart() {
       await database.close();
-      database = openTillDatabase(path);
+      database = openTillDatabase(path, key);
       return database;
     },
     async close() {

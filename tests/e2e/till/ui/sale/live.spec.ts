@@ -4,6 +4,7 @@ import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { add, formatGHS, money, mulQty } from "@shopper/money";
 import { expectNoSeriousAxe } from "../../../../support/e2e";
 import { startSaleScenario } from "../../../../support/till/sale/scenario";
+import { openCheckout, openFromMenu } from "./harness";
 
 // Set SHOPPER_SCREENSHOTS_DIR to keep the 1366x768 shots (docs/plans/day10/screenshots/till).
 const shots = process.env.SHOPPER_SCREENSHOTS_DIR;
@@ -42,7 +43,7 @@ async function openSale(page: Page) {
   await page.goto(scenario!.url);
   await expect(page.getByRole("region", { name: "Host connection" })).toContainText("Connected");
   await page.keyboard.press("S");
-  await expect(page.getByRole("heading", { name: "Sale", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Checkout", exact: true })).toBeVisible();
   await expect(field(page)).toBeFocused();
 }
 
@@ -120,10 +121,10 @@ test("search adds by name, F4 sets a quantity, Delete removes and an unknown sca
 test("a real till splits cash, completes the balance and finds its receipt in Purchases", async ({
   page,
 }) => {
-  const completion = await delayFirstReply(page, "sale.complete", 1500);
+  const completion = await delayFirstReply(page, "sale.complete");
   await openSale(page);
   await scan(page, scenario!.products[0]!.barcode);
-  await expect(page.getByRole("region", { name: "Tender" })).toBeVisible();
+  await openCheckout(page);
   await page.getByRole("textbox", { name: "Amount tendered" }).fill("100.00");
   await page.getByRole("button", { name: "Split" }).click();
   await expect(page.getByRole("region", { name: "Tender" })).toContainText("GH₵ 325.00");
@@ -133,6 +134,8 @@ test("a real till splits cash, completes the balance and finds its receipt in Pu
   await page.keyboard.press("F2");
   await expect(field(page)).toBeFocused();
   await scan(page, scenario!.products[1]!.barcode);
+  // The completion reply is held until the scan has been refused, however slow the machine is.
+  completion.release();
   await expect(page.getByRole("region", { name: "Sale receipt" })).toContainText("GH₵ 0.00");
   await expectNoSeriousAxe(page);
   await shoot(page, test.info(), "completed-sale");
@@ -145,7 +148,7 @@ test("a real till splits cash, completes the balance and finds its receipt in Pu
   await expect(lines(page)).toHaveCount(1);
   await expect(lines(page).filter({ hasText: scenario!.products[2]!.name })).toHaveCount(1);
   await expect(lines(page).filter({ hasText: scenario!.products[1]!.name })).toHaveCount(0);
-  await page.getByRole("button", { name: "Purchases" }).click();
+  await openFromMenu(page, "Previous purchases");
   await expect(page.getByRole("heading", { name: "Purchases", exact: true })).toBeVisible();
   await page
     .getByRole("button", { name: /Receipt/ })
@@ -171,8 +174,11 @@ async function scan(page: Page, code: string) {
   );
 }
 
-async function delayFirstReply(page: Page, requestType: string, delayMs: number) {
+/** Holds the first reply to `requestType` until `release()`, or for `delayMs` when given. */
+async function delayFirstReply(page: Page, requestType: string, delayMs?: number) {
   let signal = () => {};
+  let release = () => {};
+  const released = new Promise<void>((resolve) => (release = resolve));
   const started = new Promise<void>((resolve) => (signal = resolve));
   await page.routeWebSocket(
     (url) => url.pathname.endsWith("/bridge"),
@@ -190,15 +196,17 @@ async function delayFirstReply(page: Page, requestType: string, delayMs: number)
       });
       host.onMessage((message) => {
         const reply = JSON.parse(String(message)) as { id?: string };
-        if (reply.id === delayedRequest) {
+        // Broadcasts carry no id; only the reply to the request is held.
+        if (delayedRequest && reply.id === delayedRequest) {
           delayedRequest = undefined;
           signal();
-          setTimeout(() => route.send(message), delayMs);
+          if (delayMs !== undefined) setTimeout(release, delayMs);
+          void released.then(() => route.send(message));
         } else route.send(message);
       });
     },
   );
-  return { started };
+  return { started, release };
 }
 
 async function shoot(page: Page, testInfo: TestInfo, name: string) {

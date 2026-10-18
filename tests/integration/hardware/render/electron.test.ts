@@ -57,6 +57,8 @@ test("Electron starts the real host in parent-renderer mode and opens the till w
   );
   const child = await launchElectron({ SHOPPER_TILL_UI_URL: `http://127.0.0.1:${port}/` }, [
     configPath,
+    `--user-data-dir=${join(directory, "user-data")}`,
+    "--password-store=basic",
   ]);
   cleanup.push(() => stopElectron(child));
   // The capability travels in the URL fragment, which a server never sees.

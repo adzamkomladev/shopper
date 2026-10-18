@@ -1,5 +1,6 @@
+import { settle } from "@shopper/core/till/settlement";
 import { money, sub, type Money } from "@shopper/money";
-import type { DraftTender, DraftView } from "../../src/sale/types";
+import type { DraftTender, DraftView, SaleSnapshot, TenderInput } from "../../src/sale/types";
 import { basket, id, items, today } from "../fixtures";
 
 export function withTender(status: DraftTender["status"]): DraftView {
@@ -64,6 +65,37 @@ export function withCashTender(amount: Money): DraftView {
       cash: amount,
       balance: sub(money(1_265_000), amount),
       change: money(0),
+    },
+  };
+}
+
+export function addTender(snapshot: SaleSnapshot, input: TenderInput): SaleSnapshot {
+  const view = snapshot.view;
+  const draft = view?.draft;
+  if (!view || !draft) return snapshot;
+  const tender: DraftTender = {
+    id: "10000000-0000-7000-8000-000000000010",
+    orgId: "10000000-0000-7000-8000-000000000002",
+    draftId: draft.id,
+    position: draft.tenders.length,
+    kind: input.kind,
+    amount: input.amount,
+    reference: null,
+    approvalCode: input.kind === "card" ? input.approvalCode : null,
+    last4: input.kind === "card" ? (input.last4 ?? null) : null,
+    phone: null,
+    network: null,
+    status: "applied",
+    createdAt: "2026-10-15T09:30:00.000Z",
+  };
+  const tenders = [...draft.tenders, tender];
+  const settlement = settle(money(view.quote.totals.gross), tenders, view.cashRounding ?? "none");
+  return {
+    ...snapshot,
+    view: {
+      ...view,
+      draft: { ...draft, tenders, revision: draft.revision + 1 },
+      settlement,
     },
   };
 }

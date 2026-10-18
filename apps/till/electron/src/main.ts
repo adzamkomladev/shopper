@@ -1,16 +1,22 @@
 import { fork } from "node:child_process";
 import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, Menu } from "electron";
+import { openDisplay } from "./display";
 import { answerRender } from "./render";
+import { loadSecrets } from "./secrets";
+import { lockDown } from "./window";
 
 // Chromium must paint at 1 CSS px = 1 device px so a receipt window is exactly `dots` wide.
 app.commandLine.appendSwitch("force-device-scale-factor", "1");
 
 const tillUi = process.env.SHOPPER_TILL_UI_URL ?? "http://127.0.0.1:5174/";
+// Packaged, tooling/build/package.ts puts the host bundle and the till UI beside this file inside app.asar.
+const here = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 const hostEntry =
   process.env.SHOPPER_TILL_HOST ??
-  fileURLToPath(new URL("../../host/dist/server.js", import.meta.url));
+  (app.isPackaged ? here("host/server.js") : here("../../host/dist/server.js"));
 
 // The parent that spawned us over IPC owns our lifetime: when it goes, so do we (and the host).
 process.on("disconnect", () => app.quit());
@@ -20,8 +26,8 @@ else
     .whenReady()
     .then(startRegister)
     .catch((error: unknown) => {
-      console.error("Register could not start", error);
-      app.quit();
+      console.error("Register could not start", error instanceof Error ? error.message : error);
+      app.exit(1);
     });
 
 /** Test seam: this process's own Node IPC channel carries renderRequest/renderReply; no host starts. */
@@ -41,34 +47,47 @@ function renderOnly() {
 
 /** Forks the till host as plain Node, answers its render requests and shows the till UI once it is ready. */
 async function startRegister() {
+  Menu.setApplicationMenu(null);
+  const userData = app.getPath("userData");
   const configPath =
-    process.argv.slice(1).find((arg) => arg.endsWith(".json")) ?? process.env.SHOPPER_TILL_CONFIG;
-  if (!configPath) throw new Error("Usage: electron main.js <private-host-config.json>");
-  const config: unknown = JSON.parse(await readFile(configPath, "utf8"));
+    process.argv.slice(1).find((arg) => arg.endsWith(".json")) ??
+    process.env.SHOPPER_TILL_CONFIG ??
+    join(userData, "register.json");
+  const stored = JSON.parse(await readFile(configPath, "utf8")) as {
+    ui?: string;
+    deviceToken?: unknown;
+    sqlitePath?: unknown;
+  };
+  const { v: _version, ...secrets } = await loadSecrets(userData, stored, configPath);
+  const config = { ...stored, ...(app.isPackaged && { ui: stored.ui ?? here("ui") }), ...secrets };
   const host = fork(hostEntry, [], { env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" } });
   app.on("window-all-closed", () => app.quit());
   app.on("before-quit", () => host.connected && host.disconnect());
   host.on("exit", () => app.quit());
-  host.on("message", (message: { type?: string; capability?: string } | null) => {
-    if (message?.type === "ready" && message.capability) openTill(message.capability);
+  host.on("message", (message: { type?: string; capability?: string; port?: number } | null) => {
+    if (message?.type === "ready" && message.capability)
+      openTill(message.capability, config.ui ? `http://127.0.0.1:${message.port}/` : tillUi);
     else if (message?.type === "render")
       void answerRender(message).then((reply) => reply && host.connected && host.send(reply));
   });
   host.send({ type: "start", config, renderer: "parent" });
 }
 
-function openTill(capability: string) {
+// The till UI draws its own 40px title bar (--card behind, --foreground on it); the OS only paints the window
+// controls over its right edge, so there is no preload and no custom window API.
+const titleBarOverlay = { color: "#ffffff", symbolColor: "#020617", height: 40 };
+
+function openTill(capability: string, url: string) {
   const window = new BrowserWindow({
     width: 1366,
     height: 768,
+    backgroundColor: titleBarOverlay.color,
+    titleBarStyle: "hidden",
+    titleBarOverlay,
     webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true },
   });
-  const origin = new URL(tillUi).origin;
-  window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
-  window.webContents.on("will-attach-webview", (event) => event.preventDefault());
-  window.webContents.on("will-navigate", (event, url) => {
-    if (new URL(url).origin !== origin) event.preventDefault();
-  });
+  lockDown(window, new URL(url).origin);
+  openDisplay(window, url, capability);
   // The capability stays in the URL fragment, which the till UI reads once and clears.
-  void window.loadURL(`${tillUi}#${capability}`);
+  void window.loadURL(`${url}#${capability}`);
 }

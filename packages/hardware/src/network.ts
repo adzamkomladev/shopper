@@ -1,13 +1,9 @@
 import { connect } from "node:net";
+import { PrinterOffline } from "./errors";
 import { escpos } from "./escpos/encoder";
 import type { CashDrawer, PrinterProfile, ReceiptPrinter } from "./types";
 
-export class PrinterOffline extends Error {
-  constructor(cause: unknown) {
-    super("Printer is offline", { cause });
-    this.name = "PrinterOffline";
-  }
-}
+export { PrinterOffline, PrinterUncertain } from "./errors";
 
 /**
  * Raw TCP (port 9100). A print is complete when the printer closes the socket after our `end`, or,

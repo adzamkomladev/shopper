@@ -14,6 +14,8 @@
     "@resvg/resvg-wasm": "2.6.2",
     "@shopper/adapters-box": "workspace:*",
     "@shopper/config": "workspace:*",
-    "satori": "0.33.5"
+    "better-sqlite3-multiple-ciphers": "13.0.3",
+    "satori": "0.33.5",
+    "serialport": "13.0.0"
   }
 }

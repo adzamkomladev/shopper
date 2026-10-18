@@ -1,29 +1,50 @@
-import { createRequire } from "node:module";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import type { SQLInputValue, DatabaseSync } from "node:sqlite";
+import { createRequire } from "node:module";
+import type Database from "better-sqlite3-multiple-ciphers";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
 import { tillMigrations, type TillDatabase } from "@shopper/db-sqlite";
 
-export function openTillDatabase(path: string): TillDatabase {
+type SQLite = InstanceType<typeof Database>;
+
+export class TillDatabaseKeyError extends Error {
+  constructor() {
+    super(
+      "Till database key does not open this file (wrong key, missing key, or a plain file opened with a key)",
+    );
+    this.name = "TillDatabaseKeyError";
+  }
+}
+
+/** With a 64-hex `key` the file is SQLCipher-encrypted (SQLite3 Multiple Ciphers); without one it is plain. */
+export function openTillDatabase(path: string, key?: string): TillDatabase {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
-  const require = createRequire(import.meta.url);
-  const sqlite: DatabaseSync = new (require("node:sqlite").DatabaseSync)(path);
-  sqlite.exec("PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;");
-  migrate(sqlite);
-  const db = drizzle(async (query, params: SQLInputValue[], method) => {
+  // Loaded on first open, so the box server (which never opens a till file) needs no native addon.
+  const SQLite3MC = createRequire(import.meta.url)(
+    "better-sqlite3-multiple-ciphers",
+  ) as typeof Database;
+  const sqlite = new SQLite3MC(path, { timeout: 0 }); // fail fast on a held lock, as node:sqlite did
+  try {
+    if (key) unlock(sqlite, key);
+    sqlite.prepare("SELECT count(*) FROM sqlite_master").get(); // proves the key (or its absence) opens the file
+    sqlite.exec("PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;");
+    migrate(sqlite);
+  } catch (error) {
+    sqlite.close();
+    throw (error as { code?: string }).code === "SQLITE_NOTADB"
+      ? new TillDatabaseKeyError()
+      : error;
+  }
+  // better-sqlite3 returns plain numbers: integer columns must stay below 2^53 (money and thousandths do).
+  const db = drizzle(async (query, params: unknown[], method) => {
     const statement = sqlite.prepare(query);
-    if (method === "run") {
+    if (method === "run" || !statement.reader) {
       statement.run(...params);
       return { rows: [] };
     }
     // Proxy selections need numeric access; raw SQL queries retain named result columns.
-    statement.setReturnArrays(true);
     const columns = statement.columns();
-    const valuesRows: unknown[][] = statement.all(...params).map((row) => {
-      if (!Array.isArray(row)) throw new Error("SQLite array result mode was not applied");
-      return row;
-    });
+    const valuesRows = statement.raw(true).all(...params) as unknown[][];
     if (method === "values") return { rows: valuesRows };
     const rows = valuesRows.map((values) => {
       const row = Object.fromEntries(values.map((value, index) => [columns[index].name, value]));
@@ -46,15 +67,24 @@ export function openTillDatabase(path: string): TillDatabase {
     close() {
       if (closed) return tail.then(() => undefined);
       closed = true;
-      const result = tail.then(() => sqlite.close());
+      const result = tail.then(() => void sqlite.close());
       tail = result;
       return result;
     },
   };
 }
 
+/** The key pragmas must run before any other statement. */
+function unlock(sqlite: SQLite, key: string) {
+  if (!/^[a-f0-9]{64}$/.test(key))
+    throw new Error("Till database key must be 64 lowercase hex characters");
+  sqlite.pragma("cipher='sqlcipher'");
+  sqlite.pragma("legacy=4");
+  sqlite.pragma(`key="x'${key}'"`);
+}
+
 /** Runs each pending step and its user_version bump in one transaction, reading the version under the lock. */
-function migrate(sqlite: DatabaseSync) {
+function migrate(sqlite: SQLite) {
   for (let step = 0; step < tillMigrations.length; step++) {
     sqlite.exec("BEGIN IMMEDIATE");
     try {

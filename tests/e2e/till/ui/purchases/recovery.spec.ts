@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { startSaleScenario } from "../../../../support/till/sale/scenario";
+import { openCheckout, openFromMenu } from "../sale/harness";
 
 let scenario: Awaited<ReturnType<typeof startSaleScenario>> | undefined;
 let clock = 1_000_000;
@@ -126,7 +127,7 @@ test("a stale purchase list reply cannot replace newer filtered results", async 
 });
 
 async function openPurchases(page: Page, waitForRows = true) {
-  await page.getByRole("button", { name: "Purchases" }).click();
+  await openFromMenu(page, "Previous purchases");
   await expect(page.getByRole("heading", { name: "Purchases", exact: true })).toBeVisible();
   if (waitForRows)
     await expect(page.getByRole("button", { name: /^Receipt / }).first()).toBeVisible();
@@ -137,9 +138,10 @@ async function makeSale(page: Page, barcode: string, navigate = true) {
     await page.goto(currentScenario().url);
     await expect(page.getByRole("region", { name: "Host connection" })).toContainText("Connected");
     await page.getByRole("button", { name: /Start selling/ }).click();
-    await expect(page.getByRole("heading", { name: "Sale", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Checkout", exact: true })).toBeVisible();
   }
   await scan(page, barcode);
+  await openCheckout(page);
   await page.getByRole("button", { name: /^Charge / }).click();
   await expect(
     page.getByRole("region", { name: "Sale receipt" }).getByText("Sale complete"),

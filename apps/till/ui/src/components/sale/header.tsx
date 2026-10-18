@@ -9,7 +9,7 @@ function syncSummary(sync: SaleSync) {
   return `${sync.offline ? "Server offline" : "Server online"} · ${waiting}`;
 }
 
-/** Figma "Title": the page heading, with sync state and Sync now where Download sat. */
+/** Figma "Checkout" heading, with sync state and Sync now beside it. */
 export function SaleHeader({
   host,
   sync,
@@ -29,7 +29,7 @@ export function SaleHeader({
         : "Reconnect to the register host to sync.";
   return (
     <header className="flex h-11 shrink-0 items-center justify-between gap-2">
-      <h1 className="text-3xl font-bold tracking-tight">Sale</h1>
+      <h1 className="text-3xl font-bold tracking-tight">Checkout</h1>
       <div aria-live="polite" className="flex min-w-0 items-center gap-2 sm:gap-3">
         <p
           className="hidden truncate text-sm font-medium text-muted-foreground sm:block"

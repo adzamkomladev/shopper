@@ -4,12 +4,14 @@
 // `insertOpenShift` writes a shift row directly (no audit row) so suites that only need a register that may sell do
 // not change their audit counts.
 import { eq } from "drizzle-orm";
-import { shift, type TillDatabase } from "@shopper/db-sqlite";
+import { shift, shiftMovement, type TillDatabase } from "@shopper/db-sqlite";
 import { config, ids, session } from "./sales";
 
 export const shiftId = "019a0000-0000-7000-8000-0000000000f1";
 export const earlierShiftId = "019a0000-0000-7000-8000-0000000000f0";
 export const shifter = { ...session, permissions: [...session.permissions, "shift.write"] };
+/** `shifter` that may also read the X report. Sells with `clerk` (refunds.ts) instead: one session id, one content. */
+export const reader = { ...shifter, permissions: [...shifter.permissions, "report.read"] };
 
 /** Face values in money minor units (1 GHS = 10 000), largest first: GHS 200 down to the one-pesewa coin. */
 export const faces = [
@@ -38,6 +40,8 @@ export function insertOpenShift(db: TillDatabase, over: Partial<ShiftRow> = {}) 
   );
 }
 
+export const shiftMovements = (db: TillDatabase) =>
+  db.read((tx) => tx.select().from(shiftMovement));
 export const shiftRows = (db: TillDatabase) => db.read((tx) => tx.select().from(shift));
 
 /** Moves every shift to `status` without going through a command, as a close or a count would. */

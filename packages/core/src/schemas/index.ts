@@ -16,3 +16,4 @@ export * from "./till/approvers";
 export * from "./till/refund";
 export * from "./till/refunds";
 export * from "./till/shifts";
+export * from "./till/shift";

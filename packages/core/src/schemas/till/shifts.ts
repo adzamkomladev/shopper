@@ -28,3 +28,16 @@ export const openShiftInput = v.union([
   v.strictObject({ at: v.date(), float: amount }),
   v.strictObject({ at: v.date(), counts: cashCounts }),
 ]);
+
+export const dropCashInput = v.strictObject({
+  at: v.date(),
+  amount: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
+  reason: v.optional(v.pipe(v.string(), v.trim(), v.maxLength(200))),
+});
+
+export const noSaleInput = v.strictObject({
+  at: v.date(),
+  reason: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(200)),
+});
+
+export const shiftReportInput = v.strictObject({ at: v.date() });

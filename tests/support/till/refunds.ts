@@ -16,13 +16,16 @@ import { add, ctx, products, scope, session } from "./drafts";
 
 export { fails } from "./drafts";
 
-/** Valid for every day the suites trade on, and allowed to sell and to ask for refunds. */
+/**
+ * Valid for every day the suites trade on, and allowed to sell, ask for refunds, move cash and read reports. One
+ * session id must keep one content per database, so the shift suites sell, move cash and read reports as this one.
+ */
 export const clerk = {
   ...session,
   roleName: "Cashier",
   issuedAt: "2025-10-01T00:00:00.000Z",
   expiresAt: "2026-01-02T00:00:00.000Z",
-  permissions: ["sale.create", "refund.request", "register.settings"],
+  permissions: ["sale.create", "refund.request", "register.settings", "shift.write", "report.read"],
 };
 export const trade = (day: string) => ({ from: day, to: day });
 export const refundNow = "2025-12-31T23:30:00.000Z";

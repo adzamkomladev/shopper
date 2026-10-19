@@ -56,5 +56,6 @@ export { recordRefund, planRefund, readRefundEligibility } from "./refunds/recor
 export { findSaleByReceipt, serverPurchase } from "./refunds/queries";
 export { markRefundAccepted, markRefundFailed, markRefundRejected } from "./refunds/uploads";
 export { currentShift } from "./shifts/queries";
-export { openShift } from "./shifts/commands";
+export { dropCash, openShift, recordNoSale } from "./shifts/commands";
+export { printShiftReport, readShiftReport } from "./shifts/report";
 export type { EligibilityView } from "./refunds/types";

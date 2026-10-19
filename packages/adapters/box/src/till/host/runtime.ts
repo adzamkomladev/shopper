@@ -7,6 +7,7 @@ import {
   defaultRegisterSettings,
   provisionTillReference,
   readRegisterSettings,
+  shiftSummary,
 } from "@shopper/core/till";
 import { createHostSync } from "./sync";
 import { bridgeRequest, type BridgeMessage, type HostStatus } from "@shopper/sync/bridge";
@@ -109,6 +110,7 @@ export async function startTillHost(
       registerCode,
       appVersion: buildInfo.version,
       protocol: buildInfo.syncProtocol,
+      shift: await shiftSummary(database, identity),
     };
     return lastKnownStatus;
   }
@@ -159,7 +161,7 @@ export async function startTillHost(
     config,
     payments,
     receipts,
-    devices: createDevices({ database, config, receipts, peripherals, status }),
+    devices: createDevices({ database, config, receipts, peripherals, status, publishStatus }),
     peripherals,
     session,
     approvals: createApprovals({ database, config }),
@@ -168,6 +170,7 @@ export async function startTillHost(
     sync: () => worker.trigger(),
     uploadStock: () => worker.uploadStock(),
     uploadRefunds: () => worker.uploadRefunds(),
+    uploadShifts: () => worker.uploadShifts(),
     close: () => void close(),
   };
   const dispatch = createDispatch(host);

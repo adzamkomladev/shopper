@@ -1,4 +1,11 @@
-import { hostTime, saveRegisterSettings, TillError, validateSession } from "@shopper/core/till";
+import { buildInfo } from "@shopper/config";
+import {
+  hostTime,
+  recordNoSale,
+  saveRegisterSettings,
+  TillError,
+  validateSession,
+} from "@shopper/core/till";
 import type { BridgeMessage, BridgeRequest, HostStatus } from "@shopper/sync/bridge";
 import type { TillDatabase } from "@shopper/db-sqlite";
 import type { HostConfiguration } from "./config";
@@ -19,6 +26,7 @@ export function createDevices(host: {
   receipts: ReturnType<typeof createHostReceipts>;
   peripherals: ReturnType<typeof createPeripherals>;
   status: () => Promise<HostStatus>;
+  publishStatus: () => Promise<void>;
 }) {
   const { database, config, receipts } = host;
   const identity = config.identity;
@@ -46,6 +54,14 @@ export function createDevices(host: {
         await receipts.testPrint();
         break;
       case "drawer.test":
+        // Opening the drawer is a no-sale like any other: audited, inside the shift, before the kick.
+        await recordNoSale(
+          database,
+          { ...identity, appVersion: buildInfo.version },
+          config.session,
+          { at: deviceTime, reason: "Drawer test" },
+        );
+        await host.publishStatus();
         await receipts.openDrawer();
         break;
       case "receipt.print":

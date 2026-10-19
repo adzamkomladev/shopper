@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { and, asc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
 import {
   localSale,
   refund,
@@ -33,6 +33,46 @@ export async function findShift(tx: TillSqlite, register: Register) {
       ),
     );
   return row ?? null;
+}
+
+/** What the register shows of its shifts: the current one (never its expected cash) and the last Z's upload. */
+export function shiftSummary(db: TillDatabase, register: Register) {
+  return db.read(async (tx) => {
+    const current = await findShift(tx, register);
+    const [last] = await tx
+      .select()
+      .from(shift)
+      .where(
+        and(
+          eq(shift.orgId, register.orgId.toLowerCase()),
+          eq(shift.deviceId, register.deviceId.toLowerCase()),
+          eq(shift.status, "closed"),
+        ),
+      )
+      .orderBy(desc(shift.closedAt))
+      .limit(1);
+    return {
+      current: current && {
+        id: current.id,
+        status: current.status as "open" | "declared",
+        openedAt: current.openedAt,
+        openedBy: current.openedBy,
+        float: current.float,
+      },
+      last: last
+        ? {
+            id: last.id,
+            closedAt: last.closedAt!,
+            upload: last.acceptedAt
+              ? ("accepted" as const)
+              : last.blockedCode
+                ? ("rejected" as const)
+                : ("pending" as const),
+            blockedReason: last.blockedReason,
+          }
+        : null,
+    };
+  });
 }
 
 /** The open shift money may move in; a closed register is SHIFT_REQUIRED and a counted one SHIFT_COUNTED. */

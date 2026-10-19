@@ -168,7 +168,7 @@ CREATE TABLE shift (
  status TEXT NOT NULL CHECK(status IN ('open','declared','closed')),
  opened_at TEXT NOT NULL, opened_by TEXT NOT NULL, opened_session_id TEXT NOT NULL,
  float INTEGER NOT NULL CHECK(float >= 0), float_counts TEXT, declaration TEXT,
- closed_at TEXT, closed_by TEXT, approver_id TEXT, report TEXT, anchor_seq INTEGER, anchor_hash TEXT,
+ closed_at TEXT, closed_by TEXT, closed_session_id TEXT, approver_id TEXT, report TEXT, anchor_seq INTEGER, anchor_hash TEXT,
  attempts INTEGER NOT NULL DEFAULT 0, next_attempt_at INTEGER,
  blocked_code TEXT, blocked_reason TEXT, accepted_at TEXT, result TEXT,
  UNIQUE(org_id,id)

@@ -15,6 +15,7 @@ import type { createDeviceService } from "@shopper/auth/devices";
 import { createApproverRoutes } from "./approvers";
 import { createReceiptRoutes } from "./receipts";
 import { createRefundRoutes } from "./refunds";
+import { createShiftRoutes } from "./shifts";
 import { createStockRoutes } from "./stock";
 import { createLiveRoutes, type LiveUpgrade } from "./live";
 import { createPullRoutes } from "./pull";
@@ -52,6 +53,7 @@ export function createSyncRoutes(options: {
   app.route("/", createReceiptRoutes(options));
   app.route("/", createStockRoutes(options));
   app.route("/", createRefundRoutes(options));
+  app.route("/", createShiftRoutes(options));
   app.route("/", createApproverRoutes(options));
   app.post("/sync/handshake", async (c) => {
     const principal = await options.devices.resolveUploadPrincipal(c.req.raw);

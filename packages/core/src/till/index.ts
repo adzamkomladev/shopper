@@ -59,4 +59,5 @@ export { currentShift } from "./shifts/queries";
 export { dropCash, openShift, recordNoSale } from "./shifts/commands";
 export { printShiftReport, readShiftReport } from "./shifts/report";
 export { closeShift, declareShift } from "./shifts/close";
+export { markShiftAccepted, markShiftFailed, markShiftRejected } from "./shifts/uploads";
 export type { EligibilityView } from "./refunds/types";

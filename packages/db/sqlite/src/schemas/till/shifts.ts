@@ -21,6 +21,7 @@ export const shift = sqliteTable(
     declaration: text("declaration", { mode: "json" }).$type<unknown>(),
     closedAt: text("closed_at"),
     closedBy: text("closed_by"),
+    closedSessionId: text("closed_session_id"),
     approverId: text("approver_id"),
     report: text("report", { mode: "json" }).$type<unknown>(),
     anchorSeq: integer("anchor_seq"),

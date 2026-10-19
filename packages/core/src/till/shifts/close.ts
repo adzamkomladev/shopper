@@ -4,6 +4,7 @@ import { GENESIS_HASH } from "@shopper/audit";
 import { defineCommand } from "@shopper/audit/sqlite";
 import { money, sub } from "@shopper/money";
 import {
+  hostSession,
   saleDraft,
   saleDraftTender,
   shift,
@@ -95,11 +96,14 @@ const close = defineCommand({
       authorize(session, config, "shift.write", time, input.approverId, judged.approvalRequired) ??
       null;
     context.approverId = approverId ?? undefined;
+    // The upload proves the close with this session, so the till keeps it like a sale's.
+    await tx.insert(hostSession).values(session).onConflictDoNothing();
     const anchor = await chainHead(tx, config.orgId);
     const closedAt = time.toISOString();
     const report = v.parse(zReport, {
       ...x,
       kind: "z",
+      appVersion: config.appVersion,
       declared,
       variances: judged.variances,
       threshold: limit,
@@ -114,6 +118,7 @@ const close = defineCommand({
         status: "closed",
         closedAt,
         closedBy: session.userId,
+        closedSessionId: session.id,
         approverId,
         report,
         anchorSeq: anchor.seq,

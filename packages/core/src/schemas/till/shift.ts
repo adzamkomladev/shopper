@@ -46,10 +46,8 @@ export const xReport = v.strictObject({
 /** The blind count of the drawer and the terminal totals typed in at close. */
 const declared = { counts: cashCounts, cash: amount, card: amount, momo: amount };
 const counted = (d: { counts: CashCounts; cash: number }) => d.cash === countedCash(d.counts);
-export const declaration = v.pipe(
-  v.strictObject(declared),
-  v.check((d) => counted(d), "Declared cash must equal its counts"),
-);
+/** The count as it appears on the Z; the till checks its sum when declaring, the server when accepting. */
+export const declaration = v.strictObject(declared);
 
 /** What `shift.declare` keeps on the shift: the count and the threshold it was judged against. */
 export const storedDeclaration = v.pipe(
@@ -61,6 +59,8 @@ export const storedDeclaration = v.pipe(
 export const zReport = v.strictObject({
   ...xReport.entries,
   kind: v.literal("z"),
+  /** The till version that closed the shift. */
+  appVersion: v.pipe(v.string(), v.minLength(1)),
   declared: declaration,
   variances: v.array(variance),
   threshold: count,
@@ -72,5 +72,12 @@ export const zReport = v.strictObject({
 
 export const shiftReport = v.variant("kind", [xReport, zReport]);
 export type ShiftReport = v.InferOutput<typeof shiftReport>;
+/** The one upload of a shift: its Z, and the session that closed it (which proves the close). */
+export const shiftClosedEvent = v.strictObject({
+  v: v.literal(1),
+  type: v.literal("shift.closed"),
+  shift: v.strictObject({ orgId: tillId, sessionId: tillId, report: zReport }),
+});
+export type ShiftClosedEvent = v.InferOutput<typeof shiftClosedEvent>;
 export type XReport = v.InferOutput<typeof xReport>;
 export type ZReport = v.InferOutput<typeof zReport>;

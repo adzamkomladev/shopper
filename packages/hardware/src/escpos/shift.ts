@@ -32,6 +32,12 @@ export function encodeShiftReport(report: XReport | ZReport, options: Options): 
   const width = Math.floor((cols - 5) / 3);
   const table = (label: string, cells: string[]) =>
     fit(label.padEnd(cols - width * 3) + cells.map((cell) => cell.padStart(width)).join(""));
+  /** A tender's figures in the columns, or one per line when one is too wide, so no digit is ever cut. */
+  const tenderRow = (label: string, cells: string[], headings: string[]) => {
+    if (cells.every((cell) => cell.length <= width)) return printer.text(table(label, cells));
+    printer.text(fit(label));
+    cells.forEach((cell, index) => printer.text(row(`  ${headings[index]}`, cell)));
+  };
   const rule = () => printer.text("-".repeat(cols));
   const name = (userId: string) =>
     options.names?.[userId] ??
@@ -55,17 +61,14 @@ export function encodeShiftReport(report: XReport | ZReport, options: Options): 
   printer.text(row(`Refunds (${report.refunds.count})`, ghs(money(report.refunds.total))));
   rule();
 
-  printer.bold(true);
-  printer.text(
-    table("", z ? ["Expected", "Declared", "Variance"] : ["Sales", "Refunds", "Expected"]),
-  );
-  printer.bold(false);
+  const headings = z ? ["Expected", "Declared", "Variance"] : ["Sales", "Refunds", "Expected"];
+  printer.bold(true).text(table("", headings)).bold(false);
   for (const tender of report.tenders) {
     const counted = z?.variances.find((v) => v.tender === tender.tender);
     const cells = counted
       ? [counted.expected, counted.declared].map(decimal).concat(signed(counted.variance))
       : [tender.sales, tender.refunds, tender.expected].map(decimal);
-    printer.text(table(tenderLabel[tender.tender], cells));
+    tenderRow(tenderLabel[tender.tender], cells, headings);
   }
   rule();
 

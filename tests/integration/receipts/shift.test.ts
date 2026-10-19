@@ -50,6 +50,7 @@ const x = {
 const z: ZReport = {
   ...x,
   kind: "z",
+  appVersion: "0.1.0-test",
   declared: {
     counts: { "1000000": 1, "20000": 1, "10000": 1, "5000": 1, "1000": 3 },
     cash: 1_038_000,
@@ -111,6 +112,18 @@ test("every line fits the paper, including 58 mm", () => {
     for (const line of lines(encodeShiftReport(z, { ...options, paperMm })))
       expect(line.length).toBeLessThanOrEqual(cols);
   }
+});
+
+test("a figure too wide for its 58 mm column moves to its own line instead of losing digits", () => {
+  const big: ZReport = {
+    ...z,
+    variances: z.variances.map((row) =>
+      row.tender === "card" ? { ...row, declared: 12_345_678_900, variance: 12_345_666_900 } : row,
+    ),
+  };
+  const text = lines(encodeShiftReport(big, { ...options, paperMm: 58 }));
+  expect(text).toContainEqual(expect.stringMatching(/^ {2}Declared\s+1234567\.89$/));
+  expect(text).toContainEqual(expect.stringMatching(/^ {2}Variance\s+\+1234566\.69$/));
 });
 
 test("the printer test page names the model, the paper and the connection", () => {

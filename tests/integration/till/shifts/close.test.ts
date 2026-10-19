@@ -73,6 +73,7 @@ test("Shift with sales, refunds, drops and a no-sale → Z-report reconciles to 
     expect(anchor.command).toBe("shift.declare");
     expect(z).toEqual({
       kind: "z",
+      appVersion: config.appVersion,
       shiftId: opened.id,
       storeId: config.storeId,
       branchId: ids.branch,

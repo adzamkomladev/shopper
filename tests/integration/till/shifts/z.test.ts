@@ -28,7 +28,7 @@ test("the X on a counted shift matches the Z in every shared figure, and reading
     const x = await readShiftReport(db, config, clerk, { at: new Date(hour("17:45")) });
     expect(await state(db)).toEqual(kept);
     const z = await closeNow(db);
-    const zOnly = ["kind", "at", "declared", "variances", "threshold", "approverId"];
+    const zOnly = ["kind", "appVersion", "at", "declared", "variances", "threshold", "approverId"];
     const zOnlyMore = ["closedAt", "closedBy", "anchor"];
     const shared = (report: Record<string, unknown>) =>
       Object.fromEntries(

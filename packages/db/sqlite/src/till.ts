@@ -125,9 +125,49 @@ CREATE TABLE till_staff (
  PRIMARY KEY(org_id,user_id), UNIQUE(org_id,email)
 );`;
 
+const approvers = `
+CREATE TABLE till_approver (
+ org_id TEXT NOT NULL, user_id TEXT NOT NULL, name TEXT NOT NULL, pin_hash TEXT NOT NULL, permissions TEXT NOT NULL,
+ attempts INTEGER NOT NULL DEFAULT 0, locked_until INTEGER, refreshed_at TEXT NOT NULL,
+ PRIMARY KEY(org_id,user_id)
+);`;
+
+const priceOverrides = `
+ALTER TABLE sale_draft_line ADD COLUMN override_price INTEGER;
+ALTER TABLE sale_draft_line ADD COLUMN override_approver_id TEXT;
+ALTER TABLE sale_draft_line ADD COLUMN override_reason TEXT;`;
+
+const refunds = `
+CREATE TABLE refund (
+ id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, device_id TEXT NOT NULL, original_sale_id TEXT NOT NULL,
+ origin TEXT NOT NULL CHECK(origin IN ('local','server')), original TEXT, payload TEXT NOT NULL, receipt TEXT NOT NULL,
+ session_id TEXT NOT NULL, created_at TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, next_attempt_at INTEGER,
+ blocked_code TEXT, blocked_reason TEXT, accepted_at TEXT, result TEXT,
+ CHECK((origin = 'server') = (original IS NOT NULL)),
+ UNIQUE(org_id,id)
+);
+CREATE INDEX refund_sale ON refund(org_id,original_sale_id);
+CREATE TABLE stock_movement_next (
+ id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, device_id TEXT NOT NULL, branch_id TEXT NOT NULL,
+ product_id TEXT NOT NULL, sale_id TEXT, sale_line_id TEXT, refund_id TEXT, refund_line_id TEXT,
+ quantity_thousandths INTEGER NOT NULL, reason TEXT NOT NULL CHECK(reason IN ('sale','return')), occurred_at TEXT NOT NULL,
+ CHECK((reason = 'sale' AND quantity_thousandths < 0 AND sale_id IS NOT NULL AND sale_line_id IS NOT NULL AND refund_id IS NULL)
+  OR (reason = 'return' AND quantity_thousandths > 0 AND refund_id IS NOT NULL AND refund_line_id IS NOT NULL)),
+ FOREIGN KEY(org_id,sale_id) REFERENCES local_sale(org_id,id)
+);
+INSERT INTO stock_movement_next (id, org_id, device_id, branch_id, product_id, sale_id, sale_line_id, quantity_thousandths, reason, occurred_at)
+ SELECT id, org_id, device_id, branch_id, product_id, sale_id, sale_line_id, quantity_thousandths, reason, occurred_at FROM stock_movement;
+DROP TABLE stock_movement;
+ALTER TABLE stock_movement_next RENAME TO stock_movement;
+CREATE UNIQUE INDEX stock_movement_sale_line ON stock_movement(org_id,sale_line_id) WHERE reason = 'sale';
+CREATE UNIQUE INDEX stock_movement_refund_line ON stock_movement(org_id,refund_line_id) WHERE reason = 'return';`;
+
 export const tillMigrations: string[] = [
   `${initial}${lookup}${drafts}${payments}`,
   registers,
   stockDocuments,
   staff,
+  approvers,
+  priceOverrides,
+  refunds,
 ];

@@ -33,7 +33,7 @@ test("the browser completes an audited cash sale and can start the next basket",
   const completed = await host.request({ type: "sale.complete", expectedRevision: 2 });
   expect(completed).toMatchObject({
     kind: "sale",
-    event: { v: 3, sale: { paid: 20_000, change: 8_000 } },
+    event: { v: 4, sale: { paid: 20_000, change: 8_000 } },
   });
   expect(v.safeParse(bridgeMessage, completed).success).toBe(true);
   expect(completed).toMatchObject({

@@ -18,7 +18,12 @@ for (const [from, key] of [
   test(`Alt+S from ${from} puts the cursor back in the scan field`, async ({ page }) => {
     await openSale(page, "results");
     await page.keyboard.press(key);
-    await expect(page.getByRole("heading", { name: from, exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        name: from === "Purchases" ? "Previous purchases" : from,
+        exact: true,
+      }),
+    ).toBeVisible();
     await page.keyboard.press("Alt+S");
     await expect(page.getByRole("heading", { name: "Checkout", exact: true })).toBeVisible();
     await expectScanWorks(page);
@@ -29,7 +34,12 @@ for (const [from, key] of [
   }) => {
     await openSale(page, "results");
     await openFromMenu(page, from === "Purchases" ? "Previous purchases" : from);
-    await expect(page.getByRole("heading", { name: from, exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        name: from === "Purchases" ? "Previous purchases" : from,
+        exact: true,
+      }),
+    ).toBeVisible();
     await page.getByRole("tab", { name: /^Checkout/ }).click();
     await expectScanWorks(page);
   });

@@ -8,8 +8,8 @@ import { expectTouchTargets } from "../targets";
 async function openDetail(page: Page, scenario = "lines") {
   await openSale(page, scenario);
   await openFromMenu(page, "Previous purchases");
-  await page.getByRole("button", { name: /Receipt 10482/ }).click();
-  await expect(page.getByRole("heading", { name: "Purchase details" })).toBeVisible();
+  await page.getByRole("button", { name: /#10482/ }).click();
+  await expect(page.getByRole("heading", { name: /^Purchase #/ })).toBeVisible();
 }
 
 const card = (page: Page) => page.getByRole("region", { name: "Receipt metadata" });
@@ -139,7 +139,7 @@ test("Alt+R belongs to the screen on show: Settings keeps Test print and the lis
   expect(await calls(page, "testPrint")).toHaveLength(1);
   await page.keyboard.press("Alt+P");
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("button", { name: /Receipt 10482/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /#10482/ })).toBeVisible();
   await page.keyboard.press("Alt+R");
   expect(await reprints(page)).toHaveLength(0);
 });

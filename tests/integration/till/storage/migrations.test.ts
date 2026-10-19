@@ -85,3 +85,46 @@ test("FTS5 is available and the catalogue search index is an fts5 table", async 
   );
   expect(virtual.length).toBeGreaterThan(0);
 });
+
+test("the refund steps keep existing sale movements and allow returns beside them", async () => {
+  const { Database } = await import("../../../support/till/sqlcipher");
+  const { tillMigrations } = await import("@shopper/db-sqlite");
+  directory = await mkdtemp(join(tmpdir(), "shopper-till-migrations-"));
+  const path = join(directory, "till.sqlite");
+  const old = new Database(path);
+  const saleId = v7();
+  const lineId = v7();
+  old.exec("PRAGMA foreign_keys=ON");
+  for (const step of tillMigrations.slice(0, 6)) old.exec(step);
+  old.exec(
+    `PRAGMA user_version=6;
+     INSERT INTO local_sale (id, org_id, device_id, local_id, payload, content_hash) VALUES ('${saleId}', '${org}', '${device}', '${saleId}', '{}', 'h');
+     INSERT INTO stock_movement (id, org_id, device_id, branch_id, product_id, sale_id, sale_line_id, quantity_thousandths, reason, occurred_at)
+       VALUES ('${v7()}', '${org}', '${device}', '${v7()}', '${v7()}', '${saleId}', '${lineId}', -3000, 'sale', '2026-01-01T00:00:00.000Z')`,
+  );
+  old.close();
+
+  db = openTillDatabase(path);
+  expect(await version(db)).toBe(tillMigrations.length);
+  const movements = () =>
+    db!.read((tx) =>
+      tx.all<{ reason: string; quantity_thousandths: number }>(
+        sql`SELECT reason, quantity_thousandths FROM stock_movement`,
+      ),
+    );
+  expect(await movements()).toEqual([{ reason: "sale", quantity_thousandths: -3000 }]);
+
+  const insert = (reason: string, quantity: number, line: string | null, refund: string | null) =>
+    db!.transaction((tx) =>
+      tx.run(sql`INSERT INTO stock_movement (id, org_id, device_id, branch_id, product_id, sale_id, sale_line_id, refund_id, refund_line_id, quantity_thousandths, reason, occurred_at)
+        VALUES (${v7()}, ${org}, ${device}, ${v7()}, ${v7()}, ${line ? saleId : null}, ${line}, ${refund}, ${refund ? v7() : null}, ${quantity}, ${reason}, '2026-01-02T00:00:00.000Z')`),
+    );
+  await insert("return", 1000, lineId, v7());
+  await insert("return", 1000, lineId, v7());
+  await insert("return", 500, null, v7());
+  expect(await movements()).toHaveLength(4);
+  await expect(insert("sale", -1000, lineId, null)).rejects.toThrow();
+  await expect(insert("sale", 1000, v7(), null)).rejects.toThrow();
+  await expect(insert("return", -1000, null, v7())).rejects.toThrow();
+  await expect(insert("return", 1000, null, null)).rejects.toThrow();
+});

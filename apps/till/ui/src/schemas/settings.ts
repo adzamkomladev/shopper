@@ -11,6 +11,7 @@ const hostname =
   /^(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/i;
 const portMessage = "Enter a port from 1 to 65535";
 
+const daysMessage = "Enter a whole number of days from 0 to 365";
 const hostMessage = "Enter an IP address like 192.168.1.50 or a host name";
 const serial = registerSettings.entries.scanner.wrapped.wrapped.entries;
 /** The baud rates the host accepts, as the text a select holds. */
@@ -53,6 +54,13 @@ export const settingsForm = v.object({
   paperMm: registerSettings.entries.paperMm,
   clearCartAfterSale: v.boolean(),
   requirePinForReturns: v.boolean(),
+  // A blank field is NaN until the cashier types a number.
+  returnWindowDays: v.pipe(
+    v.number(daysMessage),
+    v.safeInteger(daysMessage),
+    v.minValue(0, daysMessage),
+    v.maxValue(365, daysMessage),
+  ),
   scanner: serialDevice,
   display: serialDevice,
   printer: v.nullable(

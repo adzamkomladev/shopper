@@ -13,4 +13,5 @@ export const fresh: Omit<SaleSnapshot, "host" | "sync" | "permissions" | "regist
   feedback: null,
   operationError: null,
   receiptPrint: null,
+  approvers: { permission: null, status: "idle", approvers: [], stale: false },
 };

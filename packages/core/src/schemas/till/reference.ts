@@ -19,6 +19,8 @@ const productFields = {
   name: v.string(),
   baseUnit: v.picklist(["each", "kg", "g", "l", "ml"]),
   taxClass: taxClassSchema,
+  /** Final-sale products cannot be returned; rows from before v3 omit it. */
+  finalSale: v.optional(v.boolean(), false),
   archivedAt: v.nullable(timestamp),
 };
 export const tillProductBase = v.object(productFields);
@@ -62,7 +64,7 @@ export const tillReference = v.strictObject({
   barcodeMappings: v.optional(v.array(tillMapping), []),
   cashRounding,
 });
-const tillReferenceV2 = v.strictObject({
+const tillReferenceV3 = v.strictObject({
   products: v.array(tillProduct),
   prices: v.array(tillPrice),
   taxRules: v.array(tillTaxRule),
@@ -78,13 +80,13 @@ const payloads = {
   "barcode-mapping": tillMapping,
 };
 const remove = v.object({ id: tillId });
-const changeV2 = v.pipe(
+const changeV3 = v.pipe(
   v.looseObject({
     seq: sequenceSchema,
     entityId: v.string(),
     entity: v.picklist(Object.keys(payloads) as (keyof typeof payloads)[]),
     op: v.picklist(["upsert", "delete"]),
-    v: v.literal(2),
+    v: v.literal(3),
   }),
   v.rawTransform(({ dataset, addIssue, NEVER }) => {
     const change = dataset.value;
@@ -95,20 +97,20 @@ const changeV2 = v.pipe(
     return NEVER;
   }),
 );
-const snapshotV2 = v.object({
-  v: v.literal(2),
+const snapshotV3 = v.object({
+  v: v.literal(3),
   orgId: tillId,
   storeId: tillId,
   cursor: sequenceSchema,
-  reference: tillReferenceV2,
+  reference: tillReferenceV3,
 });
-export type ReferenceChange = v.InferOutput<typeof changeV2>;
-export type ReferenceSnapshot = v.InferOutput<typeof snapshotV2>;
+export type ReferenceChange = v.InferOutput<typeof changeV3>;
+export type ReferenceSnapshot = v.InferOutput<typeof snapshotV3>;
 
 type Raw = Record<string, unknown>;
 export const decodeReferenceChange = createEventDecoder<ReferenceChange>(
-  2,
-  (raw) => v.parse(changeV2, raw),
+  3,
+  (raw) => v.parse(changeV3, raw),
   {
     1: (raw) => {
       const change = raw as Raw & { entity: unknown; op: unknown; payload: Raw };
@@ -119,11 +121,12 @@ export const decodeReferenceChange = createEventDecoder<ReferenceChange>(
         payload: product ? { ...change.payload, barcodes: [] } : change.payload,
       };
     },
+    2: (raw) => ({ ...(raw as Raw), v: 3 }),
   },
 );
 export const decodeSnapshot = createEventDecoder<ReferenceSnapshot>(
-  2,
-  (raw) => v.parse(snapshotV2, raw),
+  3,
+  (raw) => v.parse(snapshotV3, raw),
   {
     1: (raw) => {
       const snapshot = raw as Raw & { reference: { products: Raw[] } };
@@ -138,5 +141,6 @@ export const decodeSnapshot = createEventDecoder<ReferenceSnapshot>(
         },
       };
     },
+    2: (raw) => ({ ...(raw as Raw), v: 3 }),
   },
 );

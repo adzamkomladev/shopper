@@ -3,6 +3,7 @@ import { buildInfo } from "@shopper/config";
 import { recordLocalSale, searchCatalogue, TillError } from "@shopper/core/till";
 import type { BridgeMessage, BridgeRequest } from "@shopper/sync/bridge";
 import { createBasket } from "./basket";
+import { createRefunds } from "./refunds";
 import type { Host } from "./types";
 import { error } from "./transport";
 
@@ -29,6 +30,7 @@ export function createDispatch(host: Host) {
     },
   };
   const { basket, receiptFor } = createBasket(host, localConfig);
+  const refunds = createRefunds(host, localConfig);
   return async function dispatch(request: BridgeRequest, trusted: boolean): Promise<BridgeMessage> {
     try {
       switch (request.type) {
@@ -72,6 +74,7 @@ export function createDispatch(host: Host) {
         case "tender.add":
         case "tender.remove":
         case "discount.set":
+        case "line.price":
         case "sale.complete":
         case "sale.hold":
         case "sale.resume":
@@ -86,6 +89,17 @@ export function createDispatch(host: Host) {
         case "receipt.print":
         case "printers.list":
           return await host.devices(request);
+        case "sales.lookup":
+        case "refund.preview":
+        case "refund.record":
+          return await refunds(request);
+        case "approvers.list":
+          return {
+            id: request.id,
+            type: "result",
+            kind: "approvers",
+            ...(await host.approvals.list(request.permission)),
+          };
         case "session.signIn":
           await host.session.signIn(request.email, request.password);
           await host.publishStatus();

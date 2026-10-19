@@ -46,6 +46,14 @@ const saleSnapshotBase = v.strictObject({
         baseUnit: v.picklist(["each", "kg", "g", "l", "ml"]),
         tax: saleTaxSnapshot,
         discount: nonnegative,
+        /** A changed unit price: the list price it replaced, why, and the manager who approved it (null when the cashier held the grant). */
+        override: v.nullable(
+          v.strictObject({
+            listPrice: nonnegative,
+            reason: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(500)),
+            approverId: v.nullable(tillId),
+          }),
+        ),
         label: v.nullable(
           v.variant("kind", [
             v.strictObject({ kind: v.literal("weight"), code: v.string() }),
@@ -88,7 +96,7 @@ export const saleSnapshot = v.strictObject({
   ),
 });
 export const saleEvent = v.strictObject({
-  v: v.literal(3),
+  v: v.literal(4),
   type: v.literal("sale.recorded"),
   sale: saleSnapshot,
 });

@@ -2,7 +2,6 @@ import type { DevicePrincipal } from "./types";
 export type { DevicePrincipal } from "./types";
 import * as v from "valibot";
 import { and, eq, isNull, gt } from "drizzle-orm";
-import { hashPassword } from "better-auth/crypto";
 import { defineCommand, type CommandContext } from "@shopper/audit";
 import {
   device,
@@ -16,6 +15,7 @@ import {
 import type { Cache } from "@shopper/ports";
 
 import { loginCommand } from "./login";
+import { hashPin } from "./pin";
 import { resolveUploadPrincipal } from "./upload";
 import { DeviceError, assign, consume, digest, issue } from "./commands";
 import {
@@ -116,7 +116,7 @@ export function createDeviceService(
     },
     async assignPin(p: DevicePrincipal, input: unknown) {
       const data = v.parse(pinInput, input);
-      return assign(db, ctx(p), { userId: data.userId, pinHash: await hashPassword(data.pin) });
+      return assign(db, ctx(p), { userId: data.userId, pinHash: await hashPin(data.pin) });
     },
     async login(input: unknown) {
       const data = v.parse(cashierLoginInput, input);

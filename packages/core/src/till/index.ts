@@ -22,6 +22,7 @@ export { addDraftTender, removeDraftTender } from "./tenders/commands";
 export { completeDraftSale } from "./complete";
 export { holdDraftSale, resumeDraftSale, voidDraftSale, listHeldDraftSales } from "./drafts/status";
 export { setDraftDiscount } from "./drafts/discount";
+export { setDraftPrice } from "./drafts/price";
 export { listPurchases, readPurchase } from "./purchases";
 export { applyDraftPayment } from "./tenders/payment";
 export { storePaymentUpdate } from "./tenders/status";
@@ -49,3 +50,9 @@ export {
   queueStockDocument,
 } from "./stock";
 export { failStaffSignIn, readStaff, readStoredSession, signInStaff, signOutStaff } from "./staff";
+export { approve, authorize, LOCK_MS, MAX_FAILURES } from "./approvals";
+export { readApprovers, refreshApprovers } from "./approvers";
+export { recordRefund, planRefund, readRefundEligibility } from "./refunds/record";
+export { findSaleByReceipt, serverPurchase } from "./refunds/queries";
+export { markRefundAccepted, markRefundFailed, markRefundRejected } from "./refunds/uploads";
+export type { EligibilityView } from "./refunds/types";

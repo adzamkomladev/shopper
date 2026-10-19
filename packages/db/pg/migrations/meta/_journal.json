@@ -148,6 +148,20 @@
       "when": 1792231200004,
       "tag": "0020_staff_password_attempts",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792231200005,
+      "tag": "0021_final_sale",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792231200006,
+      "tag": "0022_refunds",
+      "breakpoints": true
     }
   ]
 }

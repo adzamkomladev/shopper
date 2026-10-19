@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import { eq } from "drizzle-orm";
 import { buildInfo } from "@shopper/config";
-import { localSale, receiptOutput } from "@shopper/db-sqlite";
+import { localSale, receiptOutput, refund } from "@shopper/db-sqlite";
 import { receiptDocument, type ReceiptDocument } from "@shopper/core/receipts";
 import {
   readRegisterSettings,
@@ -21,7 +21,7 @@ import { describeConnection, printerFor } from "./peripherals/printers";
 type Job = {
   kind: NonNullable<PrinterStatus["lastJob"]>["kind"];
   saleId: string | null;
-  record?: "first" | "reprint";
+  record?: "first" | "reprint" | undefined;
 };
 type Context = ReturnType<typeof auditContext>;
 type Settings = Awaited<ReturnType<typeof readRegisterSettings>>["value"];
@@ -66,12 +66,19 @@ export function createHostReceipts(options: {
     return current;
   };
 
-  async function receiptOf(saleId: string) {
+  /** The stored receipt of a sale, or of a refund (which has no receipt output of its own). */
+  async function receiptOf(id: string) {
     const [sale] = await database.read((tx) =>
-      tx.select({ receipt: localSale.receipt }).from(localSale).where(eq(localSale.id, saleId)),
+      tx.select({ receipt: localSale.receipt }).from(localSale).where(eq(localSale.id, id)),
     );
-    if (!sale?.receipt) throw new TillError("SALE_UNKNOWN", "Sale receipt is unavailable");
-    return v.parse(receiptDocument, sale.receipt);
+    const [refunded] = sale
+      ? []
+      : await database.read((tx) =>
+          tx.select({ receipt: refund.receipt }).from(refund).where(eq(refund.id, id)),
+        );
+    const stored = sale?.receipt ?? refunded?.receipt;
+    if (!stored) throw new TillError("SALE_UNKNOWN", "Receipt is unavailable");
+    return v.parse(receiptDocument, stored);
   }
 
   /** Sends one job, records the attempt when it belongs to a sale, and throws PRINTER_OFFLINE on failure. */
@@ -156,23 +163,25 @@ export function createHostReceipts(options: {
       offline = false;
     },
     /**
-     * Fire and forget after a committed sale: prints (kicking for cash), or only kicks when printing is off.
+     * Fire and forget after a committed sale or refund: prints (kicking for cash), or only kicks when printing
+     * is off. A sale also stores its PDF and records the print in `receipt_output`; a refund has neither.
      * The seller is captured now, so the print is attributed to them even if they sign out first.
      */
-    afterSale(saleId: string) {
+    afterDocument(id: string, { sale }: { sale: boolean }) {
       const seller = auditContext(config);
-      pdfTail = pdfTail.then(() => storePdf(saleId, seller));
+      if (sale) pdfTail = pdfTail.then(() => storePdf(id, seller));
       return queued(async () => {
         try {
           const current = await load();
           if (!current) return;
-          const receipt = await receiptOf(saleId);
+          const receipt = await receiptOf(id);
           const cash = receipt.tenders.some((tender) => tender.kind === "cash");
+          const record = sale ? ("first" as const) : undefined;
           if (current.printAutomatically)
-            await send(current, seller, { kind: "receipt", saleId, record: "first" }, (printer) =>
+            await send(current, seller, { kind: "receipt", saleId: id, record }, (printer) =>
               printer.print(printReceipt(receipt, current, false, cash)),
             );
-          else if (cash) await send(current, seller, { kind: "drawer", saleId }, kick);
+          else if (cash) await send(current, seller, { kind: "drawer", saleId: id }, kick);
         } catch (error) {
           // The sale is committed. A printer fault is already on the status and in print_error;
           // anything else (a database or encoding fault) must still be visible to the operator.
@@ -181,16 +190,14 @@ export function createHostReceipts(options: {
         }
       });
     },
-    print(saleId: string) {
+    print(id: string) {
       const context = auditContext(config);
       return queued(async () => {
-        const [current, receipt, reprint] = await Promise.all([
-          required(),
-          receiptOf(saleId),
-          printedBefore(saleId),
-        ]);
-        const record = reprint ? "reprint" : "first";
-        await send(current, context, { kind: "receipt", saleId, record }, (printer) =>
+        const [current, receipt] = await Promise.all([required(), receiptOf(id)]);
+        // A refund prints automatically when recorded, so any later copy is a reprint and is not recorded.
+        const reprint = receipt.kind === "refund" || (await printedBefore(id));
+        const record = receipt.kind === "refund" ? undefined : reprint ? "reprint" : "first";
+        await send(current, context, { kind: "receipt", saleId: id, record }, (printer) =>
           printer.print(printReceipt(receipt, current, reprint, false)),
         );
       });

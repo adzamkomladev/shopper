@@ -4,8 +4,7 @@ import { taxClassSchema } from "@shopper/tax";
 
 const amount = v.pipe(v.number(), v.safeInteger(), v.transform(money));
 const nonnegative = v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.transform(money));
-export const receiptDocument = v.strictObject({
-  v: v.literal(1),
+const body = {
   saleId: v.string(),
   header: v.strictObject({
     org: v.string(),
@@ -57,5 +56,23 @@ export const receiptDocument = v.strictObject({
     }),
   ),
   footer: v.string(),
+};
+const current = v.strictObject({
+  v: v.literal(2),
+  /** A refund receipt has no number of its own: `refundOf` is the receipt number of the sale it returns. */
+  kind: v.picklist(["sale", "refund"]),
+  refundOf: v.nullable(v.string()),
+  ...body,
 });
+/** v1 had no refunds: every stored v1 receipt is a sale. */
+const upcastV1 = v.pipe(
+  v.strictObject({ v: v.literal(1), ...body }),
+  v.transform(({ v: _version, ...rest }): v.InferOutput<typeof current> => ({
+    v: 2,
+    kind: "sale",
+    refundOf: null,
+    ...rest,
+  })),
+);
+export const receiptDocument = v.union([current, upcastV1]);
 export type ReceiptDocument = v.InferOutput<typeof receiptDocument>;

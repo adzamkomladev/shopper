@@ -9,6 +9,7 @@ type Product = {
   name: string;
   baseUnit: BaseUnit;
   taxClass: string;
+  finalSale: boolean;
   archivedAt: Date | string | null;
   barcodes: ProductBarcode[];
 };
@@ -27,6 +28,7 @@ export function productUpsert(orgId: string, row: Product): Change {
       name: row.name,
       baseUnit: row.baseUnit,
       taxClass: row.taxClass,
+      finalSale: row.finalSale,
       archivedAt: row.archivedAt ? iso(row.archivedAt) : null,
       barcodes: row.barcodes,
     },

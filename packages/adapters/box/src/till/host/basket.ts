@@ -10,6 +10,7 @@ import {
   addDraftTender,
   removeDraftTender,
   setDraftDiscount,
+  setDraftPrice,
   completeDraftSale,
   holdDraftSale,
   resumeDraftSale,
@@ -65,7 +66,9 @@ export function createBasket(host: Host, localConfig: LocalConfig) {
       appVersion: buildInfo.version,
     };
     const { id, type, ...input } = request;
-    const edit = { ...input, scope, at };
+    // Only price overrides and voids carry an approval; core's strict inputs must never see it.
+    const { approval, ...fields } = { approval: undefined, ...input };
+    const edit = { ...fields, scope, at };
     if (type === "sales.list")
       return { id, type: "result", kind: "purchases", ...(await listPurchases(database, edit)) };
     if (type === "sales.read")
@@ -77,7 +80,7 @@ export function createBasket(host: Host, localConfig: LocalConfig) {
       });
       await host.publishStatus();
       void host.sync();
-      void host.receipts.afterSale(event.sale.id);
+      void host.receipts.afterDocument(event.sale.id, { sale: true });
       const receipt = await receiptFor(event.sale.id);
       host.peripherals.sold(receipt);
       return { id, type: "result", kind: "sale", event, receipt };
@@ -112,6 +115,13 @@ export function createBasket(host: Host, localConfig: LocalConfig) {
       case "discount.set":
         view = await setDraftDiscount(database, context, { ...edit, session: config.session });
         break;
+      case "line.price":
+        view = await setDraftPrice(database, context, {
+          ...edit,
+          session: config.session,
+          approverId: await host.approvals.verify(approval, "sale.price_override"),
+        });
+        break;
       case "sale.hold":
         view = await holdDraftSale(database, context, edit);
         break;
@@ -119,7 +129,11 @@ export function createBasket(host: Host, localConfig: LocalConfig) {
         view = await resumeDraftSale(database, context, edit);
         break;
       case "sale.void":
-        view = await voidDraftSale(database, context, { ...edit, session: config.session });
+        view = await voidDraftSale(database, context, {
+          ...edit,
+          session: config.session,
+          approverId: await host.approvals.verify(approval, "sale.void"),
+        });
         break;
     }
     if (type !== "readDraft") host.peripherals.basket(view);

@@ -45,6 +45,7 @@ export async function buildSnapshot(
           sku: product.sku,
           name: product.name,
           baseUnit: product.baseUnit,
+          finalSale: product.finalSale,
           archivedAt: product.archivedAt,
           taxClass: taxClass.code,
         })

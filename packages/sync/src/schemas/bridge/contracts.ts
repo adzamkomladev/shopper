@@ -6,6 +6,8 @@ import { basketReplies, basketRequests, draftView } from "./basket";
 import { momoView } from "@shopper/core/payments";
 import { purchaseReplies, purchaseRequests } from "./purchases";
 import { deviceRequests, printerList, printerStatus, scanMessage, settingsStatus } from "./devices";
+import { approvalReplies, approvalRequests } from "./approvals";
+import { namesOneSale, refundReplies, refundRequests } from "./refunds";
 import { sessionRequests, sessionUser } from "./session";
 
 const id = uuidV7Schema;
@@ -65,7 +67,10 @@ export const bridgeRequest = v.pipe(
     ...purchaseRequests,
     ...deviceRequests,
     ...sessionRequests,
+    ...approvalRequests,
+    ...refundRequests,
   ]),
+  v.check((request) => namesOneSale(request), "Name the sale by id or by receipt number, not both"),
   v.check(
     (request) =>
       request.type !== "add" || (request.code === undefined) !== (request.productId === undefined),
@@ -83,6 +88,8 @@ export const bridgeMessage = v.union([
   }),
   ...basketReplies,
   ...purchaseReplies,
+  ...approvalReplies,
+  ...refundReplies,
   printerList,
   scanMessage,
   v.strictObject({

@@ -1,6 +1,5 @@
 import * as v from "valibot";
 import { and, eq, isNull } from "drizzle-orm";
-import { verifyPassword } from "better-auth/crypto";
 import { defineCommand } from "@shopper/audit";
 import {
   role,
@@ -16,6 +15,7 @@ import {
 import { cashierLoginInput } from "../schemas/devices";
 import { digest, minutes, randomToken } from "./commands";
 import { passwordIdentity } from "./password";
+import { verifyPin } from "./pin";
 import type { Identity, Rejected } from "./types";
 
 /** The 401 message for a revoked or unknown device token; the till tells it apart from bad credentials. */
@@ -118,7 +118,7 @@ async function pinIdentity(
       lockedUntil: record.lockedUntil.toISOString(),
     };
   const attempts = record.lockedUntil ? 0 : record.attempts;
-  if (!(await verifyPassword({ hash: record.pinHash, password: input.pin }))) {
+  if (!(await verifyPin(record.pinHash, input.pin))) {
     const lockedUntil = attempts + 1 >= 5 ? minutes(15) : null;
     await tx
       .update(cashierPin)

@@ -3,7 +3,11 @@ import { org, branch, device, user, payment, type ShopperTransaction } from "@sh
 import type { SaleSnapshot } from "../schemas/till/sale";
 import { buildReceipt } from "../receipts/build";
 
-export async function saleDocument(tx: ShopperTransaction, snapshot: SaleSnapshot) {
+/** The names a receipt prints for an org, branch, register and cashier. */
+export async function receiptNames(
+  tx: ShopperTransaction,
+  snapshot: Pick<SaleSnapshot, "orgId" | "branchId" | "deviceId" | "cashierId">,
+) {
   const [organisation] = await tx.select().from(org).where(eq(org.id, snapshot.orgId));
   const [location] = await tx
     .select()
@@ -17,6 +21,15 @@ export async function saleDocument(tx: ShopperTransaction, snapshot: SaleSnapsho
     .select()
     .from(user)
     .where(and(eq(user.orgId, snapshot.orgId), eq(user.id, snapshot.cashierId)));
+  return {
+    orgName: organisation?.name,
+    branchName: location?.name,
+    deviceName: register?.name,
+    cashierName: cashier?.name,
+  };
+}
+
+export async function saleDocument(tx: ShopperTransaction, snapshot: SaleSnapshot) {
   const tenderPhones: Record<string, string> = {};
   for (const tender of snapshot.tenders)
     if (tender.kind === "momo" && tender.reference) {
@@ -26,11 +39,5 @@ export async function saleDocument(tx: ShopperTransaction, snapshot: SaleSnapsho
         .where(and(eq(payment.orgId, snapshot.orgId), eq(payment.reference, tender.reference)));
       if (intent) tenderPhones[tender.id] = intent.phone;
     }
-  return buildReceipt(snapshot, {
-    orgName: organisation?.name,
-    branchName: location?.name,
-    deviceName: register?.name,
-    cashierName: cashier?.name,
-    tenderPhones,
-  });
+  return buildReceipt(snapshot, { ...(await receiptNames(tx, snapshot)), tenderPhones });
 }

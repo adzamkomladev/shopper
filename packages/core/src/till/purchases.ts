@@ -2,7 +2,6 @@ import * as v from "valibot";
 import { and, asc, eq, gte, lt } from "drizzle-orm";
 import {
   localSale,
-  receiptOutput,
   saleDraft,
   saleDraftLine,
   saleDraftTender,
@@ -17,18 +16,35 @@ import type { DraftScope } from "../schemas/till/drafts";
 import { toView } from "./drafts/queries";
 import { TillError } from "./error";
 import { paymentSale } from "./tenders/consumption";
+import { receiptDelivery } from "./register/receipts";
+import {
+  loadLocalOriginal,
+  readEligibility,
+  refundsOf,
+  refundView,
+  returnedRows,
+  returnedState,
+} from "./refunds/queries";
 
 export async function listPurchases(db: TillDatabase, raw: unknown) {
   const input = v.parse(purchasesInput, raw);
   return db.read(async (tx) => {
-    const rows = await purchases(tx, input.scope, input.at);
-    const filtered = rows.filter(
+    // A search looks through every day; the tabs show the day.
+    const rows = await purchases(tx, input.scope, input.at, undefined, input.query !== "");
+    const matching = rows.filter(
       (row) =>
-        (input.status === "all" || row.status === input.status) &&
         (input.kind === "all" || row.kinds.some((kind) => kind === input.kind)) &&
-        (row.receiptNumber ?? row.id).toLowerCase().includes(input.query.toLowerCase()),
+        (row.receiptNumber ?? row.refundOf ?? row.id)
+          .toLowerCase()
+          .includes(input.query.toLowerCase()),
     );
+    const filtered = matching.filter(
+      (row) => input.status === "all" || row.status === input.status,
+    );
+    const counts = { all: matching.length, completed: 0, returned: 0, voided: 0, pending: 0 };
+    for (const row of matching) counts[row.status] += 1;
     return {
+      counts,
       purchases: filtered
         .slice((input.page - 1) * input.pageSize, input.page * input.pageSize)
         .map((row) => ({
@@ -38,6 +54,8 @@ export async function listPurchases(db: TillDatabase, raw: unknown) {
           occurredAt: row.occurredAt,
           total: row.total,
           kinds: row.kinds,
+          refundOf: row.refundOf,
+          refunded: row.refunded,
         })),
       total: filtered.length,
       page: input.page,
@@ -52,26 +70,26 @@ export async function readPurchase(db: TillDatabase, raw: unknown) {
     const rows = await purchases(tx, input.scope, input.at, input.saleId);
     const row = rows.find((row) => row.id === input.saleId);
     if (!row) throw new TillError("SALE_UNKNOWN", "This purchase is unavailable on this register");
-    return { ...row, delivery: row.sale ? await deliveryOf(tx, row.id) : null };
+    const original = row.sale ? await loadLocalOriginal(tx, input.scope, row.id) : undefined;
+    return {
+      ...row,
+      origin: "local" as const,
+      delivery: row.sale ? await receiptDelivery(tx, row.id) : null,
+      refunds: original ? (await refundsOf(tx, input.scope.orgId, row.id)).map(refundView) : [],
+      eligibility: original ? await readEligibility(tx, input.scope, original, input.at) : null,
+    };
   });
 }
 
-/** What happened to a sale's receipt: printed or failed, reprinted, and whether its PDF reached the server. */
-async function deliveryOf(tx: TillSqlite, saleId: string) {
-  const [output] = await tx.select().from(receiptOutput).where(eq(receiptOutput.saleId, saleId));
-  return {
-    printedAt: output?.printedAt ?? null,
-    reprints: output?.reprints ?? 0,
-    printError: output?.printError ?? null,
-    pdf: !output?.pdfSha256
-      ? null
-      : output.uploadedAt
-        ? ("uploaded" as const)
-        : ("pending" as const),
-  };
-}
+const plain = { refundOf: null as string | null, refunded: "none" as "none" | "partial" | "full" };
 
-async function purchases(tx: TillSqlite, scope: DraftScope, at: Date, saleId?: string) {
+async function purchases(
+  tx: TillSqlite,
+  scope: DraftScope,
+  at: Date,
+  saleId?: string,
+  allDays = false,
+) {
   const day = at.toISOString().slice(0, 10);
   const nextDay = new Date(
     Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate() + 1),
@@ -86,12 +104,14 @@ async function purchases(tx: TillSqlite, scope: DraftScope, at: Date, saleId?: s
         ...(saleId ? [eq(localSale.id, saleId)] : []),
       ),
     );
+  const returns = saleId ? [] : await returnedRows(tx, scope);
   const completed = saved.flatMap((row) => {
     const sale = v.parse(saleSnapshot, row.payload);
     const occurredAt = new Date(
       new Date(sale.deviceTime).valueOf() - sale.clockOffsetMs,
     ).toISOString();
-    if (sale.branchId !== scope.branchId || (!saleId && !occurredAt.startsWith(day))) return [];
+    if (sale.branchId !== scope.branchId || (!saleId && !allDays && !occurredAt.startsWith(day)))
+      return [];
     return [
       {
         id: row.id,
@@ -103,9 +123,12 @@ async function purchases(tx: TillSqlite, scope: DraftScope, at: Date, saleId?: s
         sale,
         receipt: row.receipt ? v.parse(receiptDocument, row.receipt) : null,
         draft: null,
+        ...plain,
+        refunded: returnedState(sale, returns),
       },
     ];
   });
+  const returned = saleId ? [] : returns.filter((r) => allDays || r.occurredAt.startsWith(day));
   const drafts = await tx
     .select()
     .from(saleDraft)
@@ -142,6 +165,7 @@ async function purchases(tx: TillSqlite, scope: DraftScope, at: Date, saleId?: s
       sale: null,
       receipt: null,
       draft: view,
+      ...plain,
     });
   }
   const intents = await tx
@@ -202,9 +226,23 @@ async function purchases(tx: TillSqlite, scope: DraftScope, at: Date, saleId?: s
       receipt: null,
       draft: null,
       payment,
+      ...plain,
     });
   }
-  return [...completed, ...pending, ...orphans].sort((a, b) =>
+  const refunds = returned.map(({ row, snapshot, occurredAt, refundOf }) => ({
+    id: row.id,
+    status: "returned" as const,
+    receiptNumber: null,
+    occurredAt,
+    total: -Number(snapshot.total),
+    kinds: [snapshot.tender.kind],
+    sale: null,
+    receipt: null,
+    draft: null,
+    ...plain,
+    refundOf,
+  }));
+  return [...completed, ...pending, ...orphans, ...refunds].sort((a, b) =>
     b.occurredAt.localeCompare(a.occurredAt),
   );
 }

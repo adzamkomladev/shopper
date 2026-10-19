@@ -1,55 +1,20 @@
 import { add, money } from "@shopper/money";
+import type { RefundSnapshot } from "../schemas/till/refund";
 import type { SaleSnapshot } from "../schemas/till/sale";
 import type { ReceiptDocument } from "../schemas/receipts/document";
 import type { ReceiptReference } from "./types";
+
+type Lines = SaleSnapshot["lines"] | RefundSnapshot["lines"];
+type Totals = SaleSnapshot["totals"];
 
 export function buildReceipt(
   sale: SaleSnapshot,
   reference: ReceiptReference = {},
 ): ReceiptDocument {
-  const discountTotal = sale.lines.reduce((total, line) => add(total, line.tax.discount), money(0));
-  const baseFor = (taxClass: "zero-rated" | "exempt") =>
-    sale.lines
-      .filter((line) => line.tax.taxClass === taxClass)
-      .reduce((total, line) => add(total, line.tax.base), money(0));
-  const at = new Date(sale.deviceTime).valueOf() - sale.clockOffsetMs;
-  const utcTime = new Date(at).toISOString();
   return {
-    v: 1,
-    saleId: sale.id,
-    header: {
-      org: reference.orgName ?? sale.orgId,
-      tin: reference.tin ?? null,
-      branch: reference.branchName ?? sale.branchId,
-      address: reference.address ?? null,
-      device: reference.deviceName ?? sale.deviceId,
-      cashier: reference.cashierName ?? sale.cashierId,
-      receiptNumber: sale.receiptNumber,
-      utcTime,
-      accraTime: accra.format(new Date(at)).replace(",", ""),
-      timeZone: "Africa/Accra",
-    },
-    lines: sale.lines.map((line) => ({
-      name: line.name,
-      quantityThousandths: line.tax.quantityThousandths,
-      unit: line.baseUnit,
-      unitPrice: line.tax.unitPrice,
-      discount: line.tax.discount,
-      gross: line.tax.gross,
-      taxClass: line.tax.taxClass,
-    })),
-    taxSummary: {
-      net: sale.totals.base,
-      nhil: sale.totals.nhil,
-      getfund: sale.totals.getfund,
-      covid: sale.totals.covid,
-      vat: sale.totals.vat,
-      zeroRatedBase: baseFor("zero-rated"),
-      exemptBase: baseFor("exempt"),
-    },
-    subtotal: add(sale.totals.gross, discountTotal),
-    discountTotal,
-    gross: sale.totals.gross,
+    ...common(sale, sale.lines, sale.totals, sale.receiptNumber, reference),
+    kind: "sale",
+    refundOf: null,
     cashRounding: sale.cashRounding,
     total: sale.total,
     paid: sale.paid,
@@ -65,6 +30,97 @@ export function buildReceipt(
         phone: tender.kind === "momo" && phone ? `******${phone.slice(-4)}` : null,
       };
     }),
+  };
+}
+
+/** What was paid back for a refund: the returned lines with their share of the sold tax, and the payout as the one tender. */
+export function buildRefundReceipt(
+  refund: RefundSnapshot,
+  original: { receiptNumber: string | null },
+  reference: ReceiptReference = {},
+): ReceiptDocument {
+  const { tender } = refund;
+  return {
+    ...common(refund, refund.lines, refund.totals, null, reference),
+    kind: "refund",
+    refundOf: original.receiptNumber,
+    // The sale's id ties the receipt to the sale it returns.
+    saleId: refund.originalSaleId,
+    cashRounding: refund.cashRounding,
+    total: refund.total,
+    paid: money(0),
+    change: money(0),
+    tenders: [
+      {
+        kind: tender.kind,
+        amount: refund.total,
+        reference: "reference" in tender ? tender.reference : null,
+        approvalCode: null,
+        last4: null,
+        phone: null,
+      },
+    ],
+  };
+}
+
+/** The header, lines, tax summary and totals that a sale and a refund receipt share. */
+function common(
+  source: {
+    id: string;
+    orgId: string;
+    deviceId: string;
+    branchId: string;
+    cashierId: string;
+    deviceTime: string;
+    clockOffsetMs: number;
+  },
+  lines: Lines,
+  totals: Totals,
+  receiptNumber: string | null,
+  reference: ReceiptReference,
+) {
+  const discountTotal = lines.reduce((total, line) => add(total, line.tax.discount), money(0));
+  const baseFor = (taxClass: "zero-rated" | "exempt") =>
+    lines
+      .filter((line) => line.tax.taxClass === taxClass)
+      .reduce((total, line) => add(total, line.tax.base), money(0));
+  const at = new Date(source.deviceTime).valueOf() - source.clockOffsetMs;
+  return {
+    v: 2 as const,
+    saleId: source.id,
+    header: {
+      org: reference.orgName ?? source.orgId,
+      tin: reference.tin ?? null,
+      branch: reference.branchName ?? source.branchId,
+      address: reference.address ?? null,
+      device: reference.deviceName ?? source.deviceId,
+      cashier: reference.cashierName ?? source.cashierId,
+      receiptNumber,
+      utcTime: new Date(at).toISOString(),
+      accraTime: accra.format(new Date(at)).replace(",", ""),
+      timeZone: "Africa/Accra" as const,
+    },
+    lines: lines.map((line) => ({
+      name: line.name,
+      quantityThousandths: line.tax.quantityThousandths,
+      unit: line.baseUnit,
+      unitPrice: line.tax.unitPrice,
+      discount: line.tax.discount,
+      gross: line.tax.gross,
+      taxClass: line.tax.taxClass,
+    })),
+    taxSummary: {
+      net: totals.base,
+      nhil: totals.nhil,
+      getfund: totals.getfund,
+      covid: totals.covid,
+      vat: totals.vat,
+      zeroRatedBase: baseFor("zero-rated"),
+      exemptBase: baseFor("exempt"),
+    },
+    subtotal: add(totals.gross, discountTotal),
+    discountTotal,
+    gross: totals.gross,
     footer: reference.footer ?? "Thank you for shopping with us",
   };
 }

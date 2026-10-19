@@ -1,6 +1,6 @@
-import type { SaleRegister, SaleSnapshot } from "../src/sale/types";
+import type { DraftView, SaleRegister, SaleSnapshot } from "../src/sale/types";
 import { money } from "@shopper/money";
-import { emptyView, items, basket, id, matches } from "./fixtures";
+import { emptyView, items, basket, id, matches, priceLabelled, today } from "./fixtures";
 import { makeReceipt } from "./receipts";
 import { withCashTender, withTender } from "./sale/tenders";
 
@@ -17,6 +17,30 @@ const held = {
     ? { ...heldView.draft, id: id("7"), status: "held" as const, name: "Milo customer" }
     : null,
 };
+/** The held sale after its customer paid part of it: only a manager can void it now. */
+const heldPaid = (kind: "cash" | "card"): DraftView => ({
+  ...held,
+  draft: held.draft && {
+    ...held.draft,
+    tenders: [
+      {
+        id: id("11"),
+        orgId: id("2"),
+        draftId: held.draft.id,
+        position: 0,
+        kind,
+        amount: money(545_000),
+        reference: null,
+        approvalCode: kind === "card" ? "A1B2C3" : null,
+        last4: null,
+        phone: null,
+        network: null,
+        status: "applied",
+        createdAt: today,
+      },
+    ],
+  },
+});
 const base: SaleSnapshot = {
   host: "connected",
   loading: false,
@@ -33,7 +57,10 @@ const base: SaleSnapshot = {
   sync: { offline: false, pendingCount: 0, canSync: true, syncing: false },
   register: register(),
   receiptPrint: null,
+  approvers: { permission: null, status: "idle", approvers: [], stale: false },
 };
+// Cash was taken, so voiding needs a manager; the void-* scenarios differ in how the approvers answer.
+const voidCash: SaleSnapshot = { ...base, view: withCashTender(money(500_000)) };
 const roundedView = (gross: ReturnType<typeof money>) => {
   const view = basket([
     { id: "round", sku: "ROUND", name: "Rounding test item", unitPrice: gross },
@@ -133,6 +160,29 @@ export const scenarios: Record<string, SaleSnapshot> = {
   "round-down": { ...base, view: roundedView(money(12_400)) },
   insufficient: { ...base, view: withCashTender(money(500_000)) },
   "no-void-permission": { ...base, permissions: [] },
+  "held-void-cash": { ...base, held: [heldPaid("cash")] },
+  "held-void-card": { ...base, held: [heldPaid("card")] },
+  "void-cash": voidCash,
+  "void-locked": voidCash,
+  "void-forbidden": voidCash,
+  "void-no-approvers": voidCash,
+  "void-stale-approvers": voidCash,
+  "void-approvers-loading": voidCash,
+  "void-approvers-failed": voidCash,
+  "price-manager": { ...base, permissions: [...base.permissions, "sale.price_override"] },
+  "price-label": { ...base, view: basket([...items.slice(0, 2), priceLabelled]) },
+  override: {
+    ...base,
+    view: basket(
+      items
+        .slice(0, 4)
+        .map((spec) =>
+          spec.id === "l4"
+            ? { ...spec, unitPrice: money(50_000), listPrice: spec.unitPrice }
+            : spec,
+        ),
+    ),
+  },
   "no-momo-permission": { ...base, permissions: ["sale.void"] },
   complete: { ...base, view: null, receipt: makeReceipt() },
   // The printer scenarios start with a basket; completing the sale plays out the print.

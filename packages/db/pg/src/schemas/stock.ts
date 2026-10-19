@@ -16,6 +16,7 @@ import { user } from "./auth";
 import { device } from "./devices";
 import { product } from "./catalogue";
 import { sale, saleLine } from "./sales";
+import { refund, refundLine } from "./refunds";
 
 export const stockReasons = ["sale", "adjustment", "return", "count", "receipt"] as const;
 export const stockDocumentKinds = ["count", "receipt"] as const;
@@ -43,7 +44,7 @@ export const stockDocument = pgTable(
   ],
 );
 
-/** Signed stock ledger: a sale is negative. */
+/** Signed stock ledger: a sale is negative, a return positive. */
 export const stockMovement = pgTable(
   "stock_movement",
   {
@@ -53,6 +54,8 @@ export const stockMovement = pgTable(
     saleId: uuid("sale_id"),
     saleLineId: uuid("sale_line_id"),
     documentId: uuid("document_id"),
+    refundId: uuid("refund_id"),
+    refundLineId: uuid("refund_line_id"),
     quantityThousandths: bigint("quantity_thousandths", { mode: "number" }).notNull(),
     reason: text("reason", { enum: stockReasons }).notNull(),
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
@@ -69,6 +72,15 @@ export const stockMovement = pgTable(
       columns: [t.orgId, t.documentId],
       foreignColumns: [stockDocument.orgId, stockDocument.id],
     }),
+    foreignKey({ columns: [t.orgId, t.refundId], foreignColumns: [refund.orgId, refund.id] }),
+    foreignKey({
+      columns: [t.orgId, t.refundLineId],
+      foreignColumns: [refundLine.orgId, refundLine.id],
+    }),
+    check(
+      "stock_movement_return",
+      sql`${t.reason} <> 'return' OR (${t.refundId} IS NOT NULL AND ${t.quantityThousandths} > 0)`,
+    ),
     check(
       "stock_movement_reason",
       sql`${t.reason} IN ('sale', 'adjustment', 'return', 'count', 'receipt')`,

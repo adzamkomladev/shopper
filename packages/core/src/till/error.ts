@@ -11,6 +11,7 @@ export class TillError extends Error {
       | "DRAFT_UNKNOWN"
       | "DRAFT_BUSY"
       | "DISCOUNT_INVALID"
+      | "OVERRIDE_INVALID"
       | "scope"
       | "permission"
       | "session"
@@ -33,7 +34,22 @@ export class TillError extends Error {
       | "SIGN_IN_LOCKED"
       | "OFFLINE_UNAVAILABLE"
       | "DEVICE_REJECTED"
-      | "SIGN_IN_UNAVAILABLE",
+      | "SIGN_IN_UNAVAILABLE"
+      | "APPROVAL_REQUIRED"
+      | "APPROVAL_FORBIDDEN"
+      | "APPROVAL_OFFLINE"
+      | "APPROVAL_LOCKED"
+      | "APPROVAL_INVALID"
+      | "FINAL_SALE"
+      | "REFUND_EXCEEDS_SALE"
+      // What the server answers when it refuses a refund of another register's sale.
+      | "SCOPE"
+      | "INVALID_SESSION"
+      | "INVALID_REFERENCE"
+      | "REFUND_CONFLICT"
+      | "INVALID_TOTALS"
+      | "INVALID_EVENT"
+      | "CONFLICT",
     message: string,
   ) {
     super(message);

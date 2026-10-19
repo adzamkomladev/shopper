@@ -27,7 +27,7 @@ export const buildDefines = {
       ) as { entries: Array<{ idx: number }> }
     ).entries.at(-1)?.idx ?? 1,
   ),
-  SYNC_PROTOCOL: "3",
+  SYNC_PROTOCOL: "4",
   ARCHIVE_FORMAT: "1",
 };
 

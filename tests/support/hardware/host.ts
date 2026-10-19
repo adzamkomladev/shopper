@@ -67,9 +67,9 @@ export async function startRegister(
       expect(reply).toMatchObject({ type: "result" });
     },
     /** Fills the basket with the first product, applies the tenders and completes the sale. */
-    async sell(tenders: Tender[]): Promise<Sale> {
+    async sell(tenders: Tender[], quantityThousandths = 1000): Promise<Sale> {
       const productId = fixture.config.references.products[0].id;
-      await ask({ type: "add", expectedRevision: 0, productId });
+      await ask({ type: "add", expectedRevision: 0, productId, quantityThousandths });
       let revision = 1;
       for (const tender of tenders) {
         const card = tender.kind === "card" ? { approvalCode: "ABC123", last4: "1234" } : {};

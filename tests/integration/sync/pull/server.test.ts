@@ -75,7 +75,7 @@ test("1,200 changes arrive as pages of 500, 500 and 200 and the last cursor is t
     "seq",
     "v",
   ]);
-  expect(first.changes[0]).toMatchObject({ entity: "product", op: "upsert", v: 2 });
+  expect(first.changes[0]).toMatchObject({ entity: "product", op: "upsert", v: 3 });
 });
 
 test("a caught-up till gets no changes and the head as its cursor; exactly one full page has no more", async () => {
@@ -224,15 +224,15 @@ test("another store or another organisation's changes are never visible", async 
 test("a pre-tender or future protocol is rejected and the current protocol is accepted", async () => {
   const cursor = String(await head());
   expect((await pull(api, { cursor }, pullHeaders(0))).status).toBe(409);
-  expect((await pull(api, { cursor }, pullHeaders(4))).status).toBe(409);
-  const later = await createSyncApi(3);
+  expect((await pull(api, { cursor }, pullHeaders(5))).status).toBe(409);
+  const later = await createSyncApi(4);
   try {
     for (const [protocol, status] of [
       [1, 409],
-      [2, 409],
       [0, 409],
-      [3, 200],
-      [4, 409],
+      [3, 409],
+      [4, 200],
+      [5, 409],
     ] as const)
       expect((await pull(later, { cursor }, pullHeaders(protocol))).status).toBe(status);
   } finally {

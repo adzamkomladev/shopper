@@ -1,5 +1,14 @@
 import type { ReceiptDocument } from "@shopper/core/receipts";
-import { ghs, qrCaption, qrPayload, quantity, taxRows, tenderDetail, tenderLabel } from "../format";
+import {
+  ghs,
+  qrCaption,
+  qrPayload,
+  quantity,
+  refundedLabel,
+  taxRows,
+  tenderDetail,
+  tenderLabel,
+} from "../format";
 import { paper } from "../profiles";
 import type { EncodeOptions } from "../types";
 import { ascii, escpos } from "./encoder";
@@ -18,6 +27,7 @@ export function encodeReceipt(receipt: ReceiptDocument, options: EncodeOptions):
   };
   const center = (value: string) => printer.align("center").text(fit(value));
   const { header, taxSummary } = receipt;
+  const refund = receipt.kind === "refund";
 
   printer.init();
   if (options.openDrawer) printer.drawer();
@@ -28,6 +38,10 @@ export function encodeReceipt(receipt: ReceiptDocument, options: EncodeOptions):
   center(header.branch);
   if (header.address) center(header.address);
   if (options.reprint) printer.bold(true).text("*** REPRINT ***").bold(false);
+  if (refund) {
+    printer.bold(true).size(2, 2).text("REFUND").size(1, 1).bold(false);
+    center(`Refund of ${receipt.refundOf ?? "an earlier sale"}`);
+  }
   printer.align("left");
   if (header.receiptNumber) printer.text(row("Receipt", header.receiptNumber));
   printer.text(row("Date", header.accraTime));
@@ -50,16 +64,22 @@ export function encodeReceipt(receipt: ReceiptDocument, options: EncodeOptions):
     .text(row("TOTAL", ghs(receipt.total)))
     .bold(false);
   for (const tender of receipt.tenders) {
+    if (refund) {
+      printer.text(row(refundedLabel(tender), ghs(tender.amount)));
+      continue;
+    }
     printer.text(row(tenderLabel[tender.kind], ghs(tender.amount)));
     const detail = tenderDetail(tender);
     if (detail) printer.text(fit(`  ${detail}`));
   }
-  printer.text(row("Change", ghs(receipt.change)));
+  if (!refund) printer.text(row("Change", ghs(receipt.change)));
   printer.feed(1);
 
-  printer.align("center").qr(qrPayload(receipt));
-  center(qrCaption);
-  printer.feed(1);
+  if (!refund) {
+    printer.align("center").qr(qrPayload(receipt));
+    center(qrCaption);
+    printer.feed(1);
+  }
   center(receipt.footer);
   return printer.cut().bytes();
 }

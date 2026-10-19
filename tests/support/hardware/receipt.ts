@@ -1,13 +1,79 @@
-import { buildReceipt, receiptDocument } from "@shopper/core/receipts";
-import { snapshotLine } from "@shopper/tax";
+import { v7 } from "uuid";
+import { buildReceipt, buildRefundReceipt, receiptDocument } from "@shopper/core/receipts";
+import { refundSnapshot } from "@shopper/core/schemas";
+import { snapshotLine, refundShare } from "@shopper/tax";
 import { add, money } from "@shopper/money";
 import * as v from "valibot";
 import { ids, references } from "../../fixtures/sales/golden";
 
 export const saleLines = ["Fresh milk", "Brown bread"];
 
+const reference = {
+  orgName: "Market",
+  tin: "P0012345678",
+  branchName: "Accra Central",
+  address: "High Street",
+  deviceName: "Till 1",
+  cashierName: "Ama",
+  footer: "Thank you",
+};
+
 /** A cash + card split with change, priced under the prior (NHIL/GETFund) rule so every tax row is non-zero. */
 export function goldenReceipt(lineNames = saleLines) {
+  return v.parse(receiptDocument, buildReceipt(goldenSale(lineNames), reference));
+}
+
+/** The refund receipt of one unit of the golden sale's first line, paid back as `tender`. */
+export function goldenRefundReceipt(
+  tender: { kind: "cash" } | { kind: "card" | "momo"; reference: string } = { kind: "cash" },
+) {
+  const sale = goldenSale();
+  const original = sale.lines[0]!;
+  const tax = refundShare(original.tax, 0, 1000);
+  const refund = v.parse(refundSnapshot, {
+    id: v7(),
+    orgId: sale.orgId,
+    deviceId: sale.deviceId,
+    storeId: sale.storeId,
+    branchId: sale.branchId,
+    cashierId: sale.cashierId,
+    sessionId: sale.sessionId,
+    appVersion: "test",
+    deviceTime: "2025-06-16T09:00:00.000Z",
+    clockOffsetMs: 0,
+    originalSaleId: sale.id,
+    reason: "Customer returned goods",
+    approverId: null,
+    lines: [
+      {
+        id: v7(),
+        originalLineId: original.id,
+        productId: original.productId,
+        name: original.name,
+        baseUnit: "each",
+        tax,
+      },
+    ],
+    totals: {
+      base: tax.base,
+      vat: tax.vat,
+      nhil: tax.nhil,
+      getfund: tax.getfund,
+      covid: tax.covid,
+      gross: tax.gross,
+      roundingAdjustment: tax.roundingAdjustment,
+    },
+    cashRounding: 0,
+    total: tax.gross,
+    tender,
+  });
+  return v.parse(
+    receiptDocument,
+    buildRefundReceipt(refund, { receiptNumber: sale.receiptNumber }, reference),
+  );
+}
+
+function goldenSale(lineNames = saleLines) {
   const rule = references.taxRules[0];
   if (!rule) throw new Error("Prior tax rule fixture missing");
   const lines = lineNames.map((name) => ({
@@ -19,6 +85,7 @@ export function goldenReceipt(lineNames = saleLines) {
     baseUnit: "each" as const,
     discount: money(0),
     label: null,
+    override: null,
     tax: snapshotLine({
       rule,
       on: "2025-06-15",
@@ -72,14 +139,5 @@ export function goldenReceipt(lineNames = saleLines) {
       },
     ],
   };
-  const receipt = buildReceipt(sale, {
-    orgName: "Market",
-    tin: "P0012345678",
-    branchName: "Accra Central",
-    address: "High Street",
-    deviceName: "Till 1",
-    cashierName: "Ama",
-    footer: "Thank you",
-  });
-  return v.parse(receiptDocument, receipt);
+  return sale;
 }

@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { draftScope } from "./drafts";
 import { tillId } from "./fields";
 export const purchaseFilters = {
-  status: v.optional(v.picklist(["all", "completed", "voided", "pending"]), "all"),
+  status: v.optional(v.picklist(["all", "completed", "returned", "voided", "pending"]), "all"),
   query: v.optional(v.pipe(v.string(), v.maxLength(100)), ""),
   kind: v.optional(v.picklist(["all", "cash", "momo", "card"]), "all"),
   page: v.optional(v.pipe(v.number(), v.safeInteger(), v.minValue(1)), 1),

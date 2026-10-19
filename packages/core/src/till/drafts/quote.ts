@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { canonicalJson } from "@shopper/audit";
 import type { saleDraftLine } from "@shopper/db-sqlite";
 import { add, money, mulRatio, sub } from "@shopper/money";
-import { snapshotAmount } from "@shopper/tax";
+import { snapshotAmount, snapshotLine } from "@shopper/tax";
 import { saleTotals } from "../../schemas/till/sale";
 import { TillError } from "../error";
 import { quoteFrom, type readQuoteReference } from "../quotation";
@@ -47,17 +47,29 @@ export function quoteDraft(
   return { lines: quoted, totals, changed };
 }
 
-/** Price labels keep the encoded gross, scaled by integer ratio to the edited quantity; other lines price at the unit price. */
+/**
+ * Price labels keep the encoded gross, scaled by integer ratio to the edited quantity; other lines price at the unit
+ * price, or at the approved override with `listPrice` carrying the price it replaced.
+ */
 export function quoteDraftLine(refs: References, branchId: string, at: Date, line: Line) {
   const { productId, quantityThousandths, label } = line;
-  const quote = quoteFrom(refs, { branchId, at, productId, quantityThousandths });
+  const listed = quoteFrom(refs, { branchId, at, productId, quantityThousandths });
   if (label?.kind !== "price") {
+    const { overridePrice } = line;
+    const quote =
+      overridePrice === null
+        ? listed
+        : { ...listed, tax: snapshotLine({ ...listed.tax, unitPrice: money(overridePrice) }) };
     if (line.discount < 0 || line.discount > quote.tax.gross)
       throw new TillError("DISCOUNT_INVALID", "Discount exceeds line gross");
     const tax = snapshotAmount({ ...quote.tax, gross: sub(quote.tax.gross, money(line.discount)) });
-    return { ...quote, tax: { ...tax, discount: money(line.discount) } };
+    return {
+      ...quote,
+      tax: { ...tax, discount: money(line.discount) },
+      ...(overridePrice === null ? {} : { listPrice: listed.tax.unitPrice }),
+    };
   }
-  const { rule, on, taxClass, unitPrice } = quote.tax;
+  const { rule, on, taxClass, unitPrice } = listed.tax;
   const gross = mulRatio(
     money(label.gross),
     quantityThousandths,
@@ -74,5 +86,5 @@ export function quoteDraftLine(refs: References, branchId: string, at: Date, lin
     quantityThousandths,
     gross: sub(gross, money(line.discount)),
   });
-  return { ...quote, tax: { ...tax, discount: money(line.discount) } };
+  return { ...listed, tax: { ...tax, discount: money(line.discount) } };
 }

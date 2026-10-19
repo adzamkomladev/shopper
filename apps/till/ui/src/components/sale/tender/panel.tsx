@@ -226,6 +226,8 @@ export function TenderPanel({
         momoOpen={momoOpen}
         heldOpen={controls.heldOpen}
         voidOpen={controls.voidOpen}
+        voidApproval={controls.voidApproval}
+        approvers={snapshot.approvers}
         held={snapshot.held}
         onCardOpenChange={setCardOpen}
         onCardSubmit={addCard}
@@ -237,9 +239,12 @@ export function TenderPanel({
           controls.setHeldOpen(false);
         }}
         canVoid={snapshot.permissions.includes("sale.void")}
-        onHeldVoid={(id, revision, reason) => actions.voidSale(reason, id, revision)}
+        onHeldVoid={(id, revision, reason, approval) =>
+          actions.voidSale(reason, id, revision, approval)
+        }
         onVoidOpenChange={controls.setVoidOpen}
         onVoidSubmit={controls.confirmVoid}
+        onRetryApprovers={() => actions.loadApprovers("sale.void")}
       />
     </section>
   );

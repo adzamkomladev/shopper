@@ -26,6 +26,9 @@
       "path": "../../../packages/sync"
     },
     {
+      "path": "../../../packages/tax"
+    },
+    {
       "path": "../../../packages/ui"
     }
   ]

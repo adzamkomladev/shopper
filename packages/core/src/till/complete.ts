@@ -83,11 +83,19 @@ export async function finishDraftSale(
     if (line.error) throw new TillError(line.error, "Cannot complete an unquotable sale line");
     const source = found.lines.find((l) => l.id === line.lineId);
     if (!source) throw new TillError("LINE_UNKNOWN", "Quoted line no longer exists");
-    const { lineId, ...quoted } = line;
+    const { lineId, listPrice, ...quoted } = line;
     return {
       ...quoted,
       id: lineId,
       discount: money(source.discount),
+      override:
+        listPrice === undefined
+          ? null
+          : {
+              listPrice,
+              reason: source.overrideReason ?? "",
+              approverId: source.overrideApproverId,
+            },
       label:
         source.label?.kind === "price"
           ? {
@@ -117,7 +125,7 @@ export async function finishDraftSale(
   const receipt = await assignReceipt(tx, scope.orgId, scope.deviceId, config.receiptCodes);
   const id = v7();
   const event = v.parse(saleEvent, {
-    v: 3,
+    v: 4,
     type: "sale.recorded",
     sale: {
       id,

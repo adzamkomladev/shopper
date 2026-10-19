@@ -93,8 +93,9 @@ export const saleActions: SaleActions = {
   listHeld: () => void operations.listHeld(),
   resume: (draftId, expectedRevision) =>
     void operations.runDraft(() => ({ type: "sale.resume", draftId, expectedRevision })),
-  voidSale: (reason, draftId, expectedRevision) =>
-    void operations.voidSale(reason, draftId, expectedRevision),
+  voidSale: operations.voidSale,
+  priceLine: operations.priceLine,
+  loadApprovers: (permission) => void operations.loadApprovers(permission),
   newSale: () => void operations.newSale(),
   newSaleWith: (input) => void operations.newSale().then(() => enqueue({ type: "add", ...input })),
   print: async (saleId) => {

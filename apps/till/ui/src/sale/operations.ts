@@ -1,12 +1,23 @@
 import type { BridgeMessage, BridgeRequest } from "@shopper/sync/bridge";
 import { request } from "../connection/store";
-import type { SaleSnapshot, TenderInput } from "./types";
+import { loadingApprovers, readApprovers } from "./approvers";
+import type {
+  Approval,
+  ApprovalPermission,
+  PriceInput,
+  SaleOutcome,
+  SaleSnapshot,
+  TenderInput,
+} from "./types";
 
 type Body<T extends { id: string } = BridgeRequest> = T extends { id: string }
   ? Omit<T, "id">
   : never;
 type Change = Partial<
-  Pick<SaleSnapshot, "busy" | "loading" | "view" | "held" | "receipt" | "operationError">
+  Pick<
+    SaleSnapshot,
+    "busy" | "loading" | "view" | "held" | "receipt" | "operationError" | "approvers"
+  >
 >;
 type Dependencies = {
   canEdit: () => boolean;
@@ -14,6 +25,17 @@ type Dependencies = {
   revision: () => number;
   update: (change: Change) => void;
   report: (reply: BridgeMessage | undefined) => void;
+};
+
+/** Refusals the open dialog shows next to its fields, so the cashier can fix them there. */
+const inline = (code: string) =>
+  code.startsWith("APPROVAL_") ||
+  ["OVERRIDE_INVALID", "DISCOUNT_INVALID", "DRAFT_BUSY"].includes(code);
+
+const refused: SaleOutcome = {
+  ok: false,
+  code: "UNAVAILABLE",
+  message: "The register is busy. Try again in a moment.",
 };
 
 export function createSaleOperations({
@@ -24,10 +46,14 @@ export function createSaleOperations({
   report,
 }: Dependencies) {
   /** `closes` names the status that ends the basket; the sale stays busy until its successor loads. */
-  async function runDraft(body: (revision: number) => Body, closes?: "held" | "voided") {
-    if (!canEdit()) return;
+  async function runDraft(
+    body: (revision: number) => Body,
+    closes?: "held" | "voided",
+  ): Promise<SaleOutcome> {
+    if (!canEdit()) return refused;
     update({ busy: true, operationError: null });
     const reply = await request(body(revision()));
+    const outcome = outcomeOf(reply);
     if (reply?.type === "result" && reply.kind === "draft") {
       update({ view: reply.view, operationError: null });
       if (closes && reply.view.draft?.status === closes) {
@@ -35,8 +61,9 @@ export function createSaleOperations({
         if (fresh?.type === "result" && fresh.kind === "draft") update({ view: fresh.view });
         else report(fresh);
       }
-    } else report(reply);
+    } else if (!(reply?.type === "error" && inline(reply.code))) report(reply);
     update({ busy: false });
+    return outcome;
   }
 
   async function charge(input: TenderInput) {
@@ -79,15 +106,21 @@ export function createSaleOperations({
     );
   }
 
-  async function voidSale(reason: string, draftId?: string, expectedRevision?: number) {
+  async function voidSale(
+    reason: string,
+    draftId?: string,
+    expectedRevision?: number,
+    approval?: Approval,
+  ): Promise<SaleOutcome> {
     if (draftId) {
-      if (!canEdit()) return;
+      if (!canEdit()) return refused;
       update({ busy: true, operationError: null });
       const reply = await request({
         type: "sale.void",
         expectedRevision: expectedRevision ?? revision(),
         reason,
         draftId,
+        ...(approval ? { approval } : {}),
       });
       if (
         reply?.type === "result" &&
@@ -97,14 +130,35 @@ export function createSaleOperations({
         const held = await request({ type: "sale.listHeld", expectedRevision: revision() });
         if (held?.type === "result" && held.kind === "held") update({ held: held.views });
         else report(held);
-      } else report(reply);
+      } else if (!(reply?.type === "error" && inline(reply.code))) report(reply);
       update({ busy: false });
-      return;
+      return outcomeOf(reply);
     }
-    await runDraft(
-      (current) => ({ type: "sale.void", expectedRevision: expectedRevision ?? current, reason }),
+    return runDraft(
+      (current) => ({
+        type: "sale.void",
+        expectedRevision: expectedRevision ?? current,
+        reason,
+        ...(approval ? { approval } : {}),
+      }),
       "voided",
     );
+  }
+
+  function priceLine({ lineId, unitPrice, reason, approval }: PriceInput) {
+    return runDraft((expectedRevision) => ({
+      type: "line.price",
+      expectedRevision,
+      lineId,
+      unitPrice,
+      reason,
+      ...(approval ? { approval } : {}),
+    }));
+  }
+
+  async function loadApprovers(permission: ApprovalPermission) {
+    update({ approvers: loadingApprovers(permission) });
+    update({ approvers: await readApprovers(permission) });
   }
 
   async function newSale() {
@@ -119,11 +173,33 @@ export function createSaleOperations({
     }
   }
 
+  function outcomeOf(reply: BridgeMessage | undefined): SaleOutcome {
+    if (reply?.type === "result") return { ok: true };
+    return {
+      ok: false,
+      code: reply?.type === "error" ? reply.code : "CONNECTION_LOST",
+      message:
+        reply?.type === "error"
+          ? reply.message
+          : "The register connection ended. Reconnect and check Purchases before retrying.",
+    };
+  }
+
   function finish(reply: BridgeMessage | undefined) {
     if (reply?.type === "result" && reply.kind === "sale")
       return update({ receipt: reply.receipt, view: null, operationError: null });
     report(reply);
   }
 
-  return { runDraft, charge, complete, listHeld, holdSale, voidSale, newSale };
+  return {
+    runDraft,
+    charge,
+    complete,
+    listHeld,
+    holdSale,
+    voidSale,
+    priceLine,
+    loadApprovers,
+    newSale,
+  };
 }

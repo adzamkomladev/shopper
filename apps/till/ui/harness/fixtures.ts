@@ -21,6 +21,8 @@ type Spec = {
   baseUnit?: string;
   label?: DraftLine["label"];
   covidBps?: number;
+  /** Set when a manager changed the price: `unitPrice` is the override and this is what it replaced. */
+  listPrice?: Money;
 };
 
 function quote(spec: Spec): { line: DraftLine; quote: QuoteLine } {
@@ -46,11 +48,16 @@ function quote(spec: Spec): { line: DraftLine; quote: QuoteLine } {
       quantityThousandths: quantity,
       discount: money(0),
       label: spec.label,
+      override:
+        spec.listPrice === undefined
+          ? undefined
+          : { unitPrice: spec.unitPrice, reason: "Price match", approverId: id("21") },
     },
     quote: {
       lineId: spec.id,
       productId: `p-${spec.id}`,
       priceId: `price-${spec.id}`,
+      listPrice: spec.listPrice,
       sku: spec.sku,
       name: spec.name,
       baseUnit: spec.baseUnit ?? "each",
@@ -183,6 +190,21 @@ export const items: Spec[] = [
     quantityThousandths: 3000,
   },
 ];
+
+/** Printed with its price by the scale, so its price cannot be overridden at the till. */
+export const priceLabelled: Spec = {
+  id: "l8",
+  sku: "50001",
+  name: "Deli ham, price-labelled",
+  unitPrice: money(184_000),
+  label: {
+    kind: "price",
+    code: "2200001840008",
+    gross: money(184_000),
+    originalQuantityThousandths: 1000,
+    originalPriceId: id("55"),
+  },
+};
 
 export const matches: CatalogueMatch[] = [
   { productId: "p-l1", sku: "10482", name: "Milo 400g tin", match: "name" },

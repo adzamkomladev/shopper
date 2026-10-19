@@ -67,6 +67,10 @@ const save = defineCommand({
       before: output.before.requirePinForReturns,
       after: output.after.requirePinForReturns,
     },
+    returnWindowDays: {
+      before: output.before.returnWindowDays,
+      after: output.after.returnWindowDays,
+    },
   }),
   details: (input, output) => ({
     entity: "till_setting",
@@ -84,6 +88,7 @@ export function defaultRegisterSettings(names: Names): RegisterSettings {
     paperMm: 80,
     clearCartAfterSale: true,
     requirePinForReturns: false,
+    returnWindowDays: 30,
     printer: null,
     scanner: null,
     display: null,

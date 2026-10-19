@@ -407,6 +407,9 @@ importers:
       '@shopper/sync':
         specifier: workspace:*
         version: link:../../../packages/sync
+      '@shopper/tax':
+        specifier: workspace:*
+        version: link:../../../packages/tax
       '@shopper/ui':
         specifier: workspace:*
         version: link:../../../packages/ui

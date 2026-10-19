@@ -6,4 +6,8 @@ export type { PullOptions, PullStatus } from "./pull/worker";
 export { createLiveWorker, type LiveSocket, type LiveMode } from "./live";
 export { createReceiptUploadWorker } from "./uploads/receipts";
 export { createStockUploadWorker } from "./uploads/stock";
+export { createRefundUploadWorker } from "./uploads/refunds";
 export type { ReceiptUploadOptions, StockUploadOptions } from "./uploads/types";
+export { refreshApprovers } from "./pull/approvers";
+export { createPushTransport } from "./push/http";
+export { documentOutcome } from "./schemas/uploads/documents";

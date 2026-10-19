@@ -20,6 +20,7 @@ const value: RegisterSettings = {
   paperMm: 80,
   clearCartAfterSale: true,
   requirePinForReturns: false,
+  returnWindowDays: 30,
   printer,
   scanner: null,
   display: null,

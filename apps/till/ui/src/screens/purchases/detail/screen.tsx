@@ -1,14 +1,15 @@
 import { useState } from "react";
 import type { PurchaseDetails } from "@shopper/sync/bridge";
-import { Badge } from "@shopper/ui/components/badge";
 import { toast } from "@shopper/ui/components/sonner";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
-import { ReceiptText } from "lucide-react";
 import { reprintBlock } from "../../../purchases/delivery";
+import { returnBlock } from "../../../purchases/policy";
 import type { PurchaseActions, PurchaseOutput, ReprintFeedback } from "../../../sale/types";
+import { DetailEligibility } from "../../../components/purchases/detail/eligibility";
+import { DetailHeader } from "../../../components/purchases/detail/header";
 import { DetailItems } from "../../../components/purchases/detail/items";
 import { DetailPayment } from "../../../components/purchases/detail/payment";
-import { DetailReceipt, ReprintButton } from "../../../components/purchases/detail/receipt";
+import { DetailReceipt } from "../../../components/purchases/detail/receipt";
 import { DetailTotals } from "../../../components/purchases/detail/totals";
 
 export function PurchaseDetail({
@@ -25,8 +26,8 @@ export function PurchaseDetail({
   active: boolean;
 }) {
   const [previewing, setPreviewing] = useState(false);
-  const delivery = purchase.delivery;
-  const receipt = purchase.receipt;
+  const { delivery, receipt, eligibility } = purchase;
+  const returnBlocked = eligibility && returnBlock(output, eligibility);
   async function reprintReceipt() {
     const blocked = reprintBlock(output);
     if (blocked) return void toast.error(blocked);
@@ -35,12 +36,19 @@ export function PurchaseDetail({
     if (result.status === "done") toast.success("Receipt sent to the printer");
     else toast.error(result.message ?? "Receipt could not be printed");
   }
+  function startReturn() {
+    if (returnBlocked) return void toast.error(returnBlocked);
+    actions.startReturn(purchase);
+  }
   const togglePreview = () => receipt && setPreviewing((value) => !value);
   const register = useShortcuts(
-    active && delivery ? { "Alt+R": () => void reprintReceipt(), "Alt+V": togglePreview } : {},
+    active
+      ? {
+          ...(delivery && { "Alt+R": () => void reprintReceipt(), "Alt+V": togglePreview }),
+          ...(eligibility && { "Alt+E": startReturn }),
+        }
+      : {},
   );
-  const receiptNumber = purchase.receiptNumber ?? receipt?.header.receiptNumber;
-  const reference = receiptNumber ?? purchase.id.slice(0, 8);
   return (
     <section
       aria-label="Purchase details"
@@ -48,47 +56,14 @@ export function PurchaseDetail({
       ref={register}
       tabIndex={0}
     >
-      <header className="flex shrink-0 flex-wrap items-center gap-x-6 gap-y-4 rounded-lg border bg-card p-4 shadow-sm">
-        <div className="flex min-w-64 flex-1 items-center gap-3">
-          <span className="grid size-11 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-            <ReceiptText aria-hidden="true" className="size-5" />
-          </span>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-bold tracking-tight">Purchase details</h2>
-              <Badge
-                variant={
-                  purchase.status === "voided"
-                    ? "destructive"
-                    : purchase.status === "completed"
-                      ? "default"
-                      : "secondary"
-                }
-              >
-                {statusLabel(purchase.status)}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {receiptNumber ? "Receipt" : "Purchase"} {reference}
-            </p>
-          </div>
-        </div>
-        <Fact
-          label="Purchased"
-          value={receipt?.header.accraTime ?? accraTime(purchase.occurredAt)}
-        />
-        {receipt?.header.cashier && <Fact label="Cashier" value={receipt.header.cashier} />}
-        {receipt?.header.branch && <Fact label="Branch" value={receipt.header.branch} />}
-        {delivery && (
-          <ReprintButton
-            label="Reprint"
-            onClick={() => void reprintReceipt()}
-            output={output}
-            reprint={reprint}
-          />
-        )}
-      </header>
-
+      <DetailHeader
+        onReprint={() => void reprintReceipt()}
+        onStartReturn={startReturn}
+        output={output}
+        purchase={purchase}
+        reprint={reprint}
+        returnBlocked={returnBlocked ?? null}
+      />
       <div className="grid min-h-0 shrink-0 grid-cols-1 items-start gap-4 xl:grid-cols-12">
         <div className="grid min-w-0 grid-cols-1 content-start gap-4 xl:col-span-8">
           <DetailItems purchase={purchase} />
@@ -107,29 +82,16 @@ export function PurchaseDetail({
         <aside className="grid gap-4 xl:col-span-4">
           <DetailTotals purchase={purchase} />
           <DetailPayment purchase={purchase} />
+          {eligibility && (
+            <DetailEligibility
+              block={returnBlocked ?? null}
+              eligibility={eligibility}
+              kinds={purchase.kinds}
+              refunds={purchase.refunds}
+            />
+          )}
         </aside>
       </div>
     </section>
   );
-}
-
-function Fact({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-28">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm font-semibold">{value}</p>
-    </div>
-  );
-}
-
-function statusLabel(status: PurchaseDetails["status"]) {
-  return status === "pending" ? "Pending MoMo" : status === "voided" ? "Voided" : "Completed";
-}
-
-function accraTime(value: string) {
-  return new Intl.DateTimeFormat("en-GH", {
-    timeZone: "Africa/Accra",
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
 }

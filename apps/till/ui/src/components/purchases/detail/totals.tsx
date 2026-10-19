@@ -1,9 +1,13 @@
-import { formatGHS, money } from "@shopper/money";
+import { add, formatGHS, money, sub } from "@shopper/money";
 import type { PurchaseDetails } from "@shopper/sync/bridge";
 
 export function DetailTotals({ purchase }: { purchase: PurchaseDetails }) {
   const receipt = purchase.receipt;
   const quote = purchase.draft?.quote.totals;
+  const refunded = purchase.refunds.reduce(
+    (sum, refund) => add(sum, money(refund.total)),
+    money(0),
+  );
   return (
     <section aria-label="Order total" className="rounded-lg border bg-card shadow-sm">
       <div className="border-b px-4 py-3">
@@ -19,7 +23,7 @@ export function DetailTotals({ purchase }: { purchase: PurchaseDetails }) {
           Tax included in item prices
         </p>
       )}
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 p-4 text-sm">
+      <dl className="grid grid-cols-2 gap-y-2 p-4 text-sm">
         {receipt ? (
           <>
             <AmountRow label="Subtotal before discounts" value={receipt.subtotal} />
@@ -38,6 +42,12 @@ export function DetailTotals({ purchase }: { purchase: PurchaseDetails }) {
             <TotalRow label="Total" value={receipt.total} />
             <AmountRow label="Paid" value={receipt.paid} />
             {receipt.change > 0 && <AmountRow label="Change" value={receipt.change} />}
+            {purchase.eligibility && (
+              <AmountRow label="Refunds" prefix={refunded > 0 ? "−" : ""} value={refunded} />
+            )}
+            {refunded > 0 && (
+              <AmountRow label="After refunds" value={sub(money(receipt.total), refunded)} />
+            )}
           </>
         ) : (
           <>
@@ -82,11 +92,9 @@ function AmountRow({
 
 function TotalRow({ label, value }: { label: string; value: number }) {
   return (
-    <>
-      <dt className="border-t pt-3 text-base font-bold">{label}</dt>
-      <dd className="justify-self-end border-t pt-3 text-xl font-bold tabular-nums">
-        {formatGHS(money(value))}
-      </dd>
-    </>
+    <div className="col-span-2 mt-1 flex items-baseline justify-between border-t pt-3">
+      <dt className="text-base font-bold">{label}</dt>
+      <dd className="text-xl font-bold tabular-nums">{formatGHS(money(value))}</dd>
+    </div>
   );
 }

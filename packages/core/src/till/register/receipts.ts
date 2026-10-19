@@ -1,7 +1,7 @@
 import { eq, sql } from "drizzle-orm";
 import { sha256 } from "@shopper/utils";
 import { defineCommand, type CommandContext } from "@shopper/audit/sqlite";
-import { receiptOutput, type TillDatabase } from "@shopper/db-sqlite";
+import { receiptOutput, type TillDatabase, type TillSqlite } from "@shopper/db-sqlite";
 import type { PrintOutcome } from "../types";
 
 type Print = { saleId: string; error: string | null; at: Date };
@@ -112,3 +112,18 @@ export const markReceiptUploadFailed = defineCommand({
   audit: (input) => ({ saleId: input.saleId, reason: input.reason }),
   details: (input) => ({ entity: "sale", entityId: input.saleId }),
 });
+
+/** What happened to a sale's receipt: printed or failed, reprinted, and whether its PDF reached the server. */
+export async function receiptDelivery(tx: TillSqlite, saleId: string) {
+  const [output] = await tx.select().from(receiptOutput).where(eq(receiptOutput.saleId, saleId));
+  return {
+    printedAt: output?.printedAt ?? null,
+    reprints: output?.reprints ?? 0,
+    printError: output?.printError ?? null,
+    pdf: !output?.pdfSha256
+      ? null
+      : output.uploadedAt
+        ? ("uploaded" as const)
+        : ("pending" as const),
+  };
+}

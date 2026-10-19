@@ -4,8 +4,10 @@ import {
   createLiveWorker,
   createPullWorker,
   createPushWorker,
+  createRefundUploadWorker,
   createReceiptUploadWorker,
   createStockUploadWorker,
+  refreshApprovers,
 } from "@shopper/sync";
 import type { TillDatabase } from "@shopper/db-sqlite";
 import { readReceiptStatus } from "@shopper/core/till";
@@ -33,11 +35,17 @@ export function createHostSync(
     },
   };
   const pull = createPullWorker({ ...options, retry: false, onStatus: notify });
+  // Best effort: a failed refresh keeps the previous list and its 7-day clock.
+  const approvers = () => refreshApprovers(options).catch(() => false);
+  const pullAndRefresh = async () => {
+    await pull.trigger();
+    await approvers();
+  };
   const live = createLiveWorker({
     config: options.config,
     cursor: () => pull.getStatus().cursor ?? "0",
     async trigger() {
-      await pull.trigger();
+      await pullAndRefresh();
       if (pull.getStatus().state === "offline") throw new Error("Pull unavailable");
     },
     connect: (url, headers) => new WebSocket(url, { headers }),
@@ -55,13 +63,19 @@ export function createHostSync(
     config: { ...options.config, protocol: buildInfo.syncProtocol },
     onChange: notify,
   });
+  const refunds = createRefundUploadWorker({
+    ...options,
+    config: { ...options.config, protocol: buildInfo.syncProtocol },
+    onChange: notify,
+  });
   const push = createPushWorker({
     ...options,
     onStatus: notify,
     onAcknowledgment: () => {
-      void pull.trigger();
+      void pullAndRefresh();
       void uploads.trigger();
       void stock.trigger();
+      void refunds.trigger();
     },
   });
   return {
@@ -108,21 +122,33 @@ export function createHostSync(
       push.start();
       pull.start();
       live.start();
+      void approvers();
       void uploads.trigger();
       void stock.trigger();
+      void refunds.trigger();
     },
     async trigger() {
       await push.trigger();
-      await pull.trigger();
+      await pullAndRefresh();
       await uploads.trigger(true);
       await stock.trigger(true);
+      await refunds.trigger(true);
     },
     /** Uploads any acknowledged receipt PDFs that are still pending. */
     uploadReceipts: () => uploads.trigger(),
     /** Uploads queued stock counts and receiving once the sale backlog has drained. */
     uploadStock: () => stock.trigger(),
+    /** Uploads refunds recorded here once the sale backlog has drained. */
+    uploadRefunds: () => refunds.trigger(),
     async stop() {
-      await Promise.all([live.stop(), push.stop(), pull.stop(), uploads.stop(), stock.stop()]);
+      await Promise.all([
+        live.stop(),
+        push.stop(),
+        pull.stop(),
+        uploads.stop(),
+        stock.stop(),
+        refunds.stop(),
+      ]);
     },
   };
 }

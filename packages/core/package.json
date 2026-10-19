@@ -40,6 +40,10 @@
       "types": "./src/stock/index.ts",
       "default": "./src/stock/index.ts"
     },
+    "./refunds": {
+      "types": "./src/refunds/index.ts",
+      "default": "./src/refunds/index.ts"
+    },
     "./sales": {
       "types": "./src/sales/index.ts",
       "default": "./src/sales/index.ts"

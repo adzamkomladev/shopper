@@ -60,7 +60,7 @@ new acceptance or assignment audit. Changed content returns a per-event `CONFLIC
 Responses contain `{requestId, accepted: [{localId, sequence}], rejected: [{localId, code, message}]}`;
 sequences are positive decimal strings. Sequencing failure returns 503 without acknowledgements;
 the accepted pending sale survives for retry. Malformed envelopes return 400, oversized bodies
-413, invalid device credentials 401, and incompatible protocols 409. Day 11 accepts only protocol 3; older registers must update and re-bootstrap.
+413, invalid device credentials 401, and incompatible protocols 409. Day 14 accepts only protocol 4; older registers must update and re-bootstrap.
 Event version dispatch is independent: unsupported
 versions with recoverable local IDs produce per-event `UNSUPPORTED_EVENT_VERSION`.
 

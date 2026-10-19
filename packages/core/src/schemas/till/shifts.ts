@@ -1,5 +1,6 @@
 import * as v from "valibot";
 import { add, money, mulRatio } from "@shopper/money";
+import { tillId } from "./fields";
 
 /** Ghana cash faces in minor units (1 GHS = 10 000), GHS 200 down to the one-pesewa coin; GHS 2 and 1 are note or coin. */
 export const DENOMINATIONS = [
@@ -40,4 +41,18 @@ export const noSaleInput = v.strictObject({
   reason: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(200)),
 });
 
-export const shiftReportInput = v.strictObject({ at: v.date() });
+/** Without `shiftId`, the X of the open shift; with it, a reprint of that closed shift's stored Z. */
+export const shiftReportInput = v.strictObject({ at: v.date(), shiftId: v.optional(tillId) });
+
+export const declareShiftInput = v.strictObject({
+  at: v.date(),
+  counts: cashCounts,
+  card: amount,
+  momo: amount,
+});
+
+export const closeShiftInput = v.strictObject({
+  at: v.date(),
+  /** A manager the host already verified by PIN for `shift.approve`; never taken from the UI. */
+  approverId: v.optional(tillId),
+});

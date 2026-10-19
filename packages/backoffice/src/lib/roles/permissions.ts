@@ -12,6 +12,7 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   "refund.approve": "Approve refunds",
   "shift.read": "View shifts",
   "shift.write": "Open and close shifts",
+  "shift.approve": "Approve cash variances",
   "stock.read": "View stock",
   "stock.write": "Change stock",
   "product.read": "View products",
@@ -50,7 +51,7 @@ export const PERMISSION_GROUPS: readonly { name: string; codes: readonly Permiss
       "refund.approve",
     ],
   },
-  { name: "Shifts", codes: ["shift.read", "shift.write"] },
+  { name: "Shifts", codes: ["shift.read", "shift.write", "shift.approve"] },
   {
     name: "Products and stock",
     codes: ["product.read", "product.write", "product.propose", "stock.read", "stock.write"],

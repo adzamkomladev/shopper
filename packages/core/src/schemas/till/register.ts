@@ -11,6 +11,9 @@ const serialConnection = v.strictObject({
   baudRate: v.picklist([9600, 19200, 38400, 57600, 115200]),
 });
 
+/** GHS 5: a shift whose every tender is within this of its count closes without a manager. */
+export const DEFAULT_VARIANCE_THRESHOLD = 50_000;
+
 /** Per-register settings, edited with `register.settings` and kept in till SQLite. */
 export const registerSettings = v.strictObject({
   storeName: name,
@@ -23,6 +26,11 @@ export const registerSettings = v.strictObject({
   returnWindowDays: v.optional(
     v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(365)),
     30,
+  ),
+  /** The largest cash, card or MoMo variance a shift closes with alone; over it a manager approves. */
+  varianceThreshold: v.optional(
+    v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(10_000_000)),
+    DEFAULT_VARIANCE_THRESHOLD,
   ),
   printer: v.nullable(
     v.strictObject({

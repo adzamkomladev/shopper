@@ -45,6 +45,7 @@ export class TillError extends Error {
       | "SHIFT_REQUIRED"
       | "SHIFT_OPEN"
       | "SHIFT_COUNTED"
+      | "SHIFT_BUSY"
       // What the server answers when it refuses a refund of another register's sale.
       | "SCOPE"
       | "INVALID_SESSION"

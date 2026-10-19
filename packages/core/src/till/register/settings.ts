@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { defineCommand, type CommandContext } from "@shopper/audit/sqlite";
 import { tillSetting, type TillDatabase, type TillSqlite } from "@shopper/db-sqlite";
 import {
+  DEFAULT_VARIANCE_THRESHOLD,
   registerSettings,
   saveRegisterInput,
   type RegisterSettings,
@@ -89,6 +90,7 @@ export function defaultRegisterSettings(names: Names): RegisterSettings {
     clearCartAfterSale: true,
     requirePinForReturns: false,
     returnWindowDays: 30,
+    varianceThreshold: DEFAULT_VARIANCE_THRESHOLD,
     printer: null,
     scanner: null,
     display: null,

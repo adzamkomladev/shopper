@@ -58,4 +58,5 @@ export { markRefundAccepted, markRefundFailed, markRefundRejected } from "./refu
 export { currentShift } from "./shifts/queries";
 export { dropCash, openShift, recordNoSale } from "./shifts/commands";
 export { printShiftReport, readShiftReport } from "./shifts/report";
+export { closeShift, declareShift } from "./shifts/close";
 export type { EligibilityView } from "./refunds/types";

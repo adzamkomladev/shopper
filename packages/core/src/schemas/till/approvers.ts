@@ -2,7 +2,12 @@ import * as v from "valibot";
 import { tillId } from "./fields";
 
 /** Grants that let a member approve an action on a till with their PIN. */
-export const approvalPermissions = ["refund.approve", "sale.void", "sale.price_override"] as const;
+export const approvalPermissions = [
+  "refund.approve",
+  "sale.void",
+  "sale.price_override",
+  "shift.approve",
+] as const;
 
 /** `GET /sync/approvers`: who can approve with a PIN, and for which actions. */
 export const approverList = v.strictObject({

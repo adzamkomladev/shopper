@@ -21,6 +21,7 @@ const value: RegisterSettings = {
   clearCartAfterSale: true,
   requirePinForReturns: false,
   returnWindowDays: 30,
+  varianceThreshold: 50_000,
   printer,
   scanner: null,
   display: null,

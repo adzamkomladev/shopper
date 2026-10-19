@@ -39,7 +39,17 @@ export class TillError extends Error {
       | "APPROVAL_FORBIDDEN"
       | "APPROVAL_OFFLINE"
       | "APPROVAL_LOCKED"
-      | "APPROVAL_INVALID",
+      | "APPROVAL_INVALID"
+      | "FINAL_SALE"
+      | "REFUND_EXCEEDS_SALE"
+      // What the server answers when it refuses a refund of another register's sale.
+      | "SCOPE"
+      | "INVALID_SESSION"
+      | "INVALID_REFERENCE"
+      | "REFUND_CONFLICT"
+      | "INVALID_TOTALS"
+      | "INVALID_EVENT"
+      | "CONFLICT",
     message: string,
   ) {
     super(message);

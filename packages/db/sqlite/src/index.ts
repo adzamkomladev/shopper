@@ -9,6 +9,7 @@ export * from "./schemas/till/staff";
 export * from "./schemas/till/approvers";
 export * from "./schemas/till/drafts";
 export * from "./schemas/till/stock";
+export * from "./schemas/till/refunds";
 export * from "./schemas/till/payments";
 export * from "./schemas/till/settings";
 export * from "./schemas/till/receipts";

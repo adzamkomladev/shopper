@@ -4,6 +4,7 @@ import {
   createLiveWorker,
   createPullWorker,
   createPushWorker,
+  createRefundUploadWorker,
   createReceiptUploadWorker,
   createStockUploadWorker,
   refreshApprovers,
@@ -62,6 +63,11 @@ export function createHostSync(
     config: { ...options.config, protocol: buildInfo.syncProtocol },
     onChange: notify,
   });
+  const refunds = createRefundUploadWorker({
+    ...options,
+    config: { ...options.config, protocol: buildInfo.syncProtocol },
+    onChange: notify,
+  });
   const push = createPushWorker({
     ...options,
     onStatus: notify,
@@ -69,6 +75,7 @@ export function createHostSync(
       void pullAndRefresh();
       void uploads.trigger();
       void stock.trigger();
+      void refunds.trigger();
     },
   });
   return {
@@ -118,19 +125,30 @@ export function createHostSync(
       void approvers();
       void uploads.trigger();
       void stock.trigger();
+      void refunds.trigger();
     },
     async trigger() {
       await push.trigger();
       await pullAndRefresh();
       await uploads.trigger(true);
       await stock.trigger(true);
+      await refunds.trigger(true);
     },
     /** Uploads any acknowledged receipt PDFs that are still pending. */
     uploadReceipts: () => uploads.trigger(),
     /** Uploads queued stock counts and receiving once the sale backlog has drained. */
     uploadStock: () => stock.trigger(),
+    /** Uploads refunds recorded here once the sale backlog has drained. */
+    uploadRefunds: () => refunds.trigger(),
     async stop() {
-      await Promise.all([live.stop(), push.stop(), pull.stop(), uploads.stop(), stock.stop()]);
+      await Promise.all([
+        live.stop(),
+        push.stop(),
+        pull.stop(),
+        uploads.stop(),
+        stock.stop(),
+        refunds.stop(),
+      ]);
     },
   };
 }

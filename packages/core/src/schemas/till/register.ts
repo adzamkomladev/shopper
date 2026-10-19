@@ -18,8 +18,12 @@ export const registerSettings = v.strictObject({
   printAutomatically: v.boolean(),
   paperMm: v.picklist([80, 58]),
   clearCartAfterSale: v.boolean(),
-  // Stored now, enforced when returns land.
   requirePinForReturns: v.boolean(),
+  /** Days after a sale that a cashier may refund it without a manager. */
+  returnWindowDays: v.optional(
+    v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(365)),
+    30,
+  ),
   printer: v.nullable(
     v.strictObject({
       model: v.picklist(["epson", "xprinter", "bixolon"]),

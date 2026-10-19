@@ -80,7 +80,7 @@ export function createBasket(host: Host, localConfig: LocalConfig) {
       });
       await host.publishStatus();
       void host.sync();
-      void host.receipts.afterSale(event.sale.id);
+      void host.receipts.afterDocument(event.sale.id, { sale: true });
       const receipt = await receiptFor(event.sale.id);
       host.peripherals.sold(receipt);
       return { id, type: "result", kind: "sale", event, receipt };

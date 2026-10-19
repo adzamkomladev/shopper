@@ -1,4 +1,5 @@
-import { foreignKey, integer, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
+import { foreignKey, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
 import { localSale } from "./sales";
 
 export const stockMovement = sqliteTable(
@@ -9,14 +10,23 @@ export const stockMovement = sqliteTable(
     deviceId: text("device_id").notNull(),
     branchId: text("branch_id").notNull(),
     productId: text("product_id").notNull(),
-    saleId: text("sale_id").notNull(),
-    saleLineId: text("sale_line_id").notNull(),
+    /** Set on sales, and on returns of a sale made on this till. */
+    saleId: text("sale_id"),
+    saleLineId: text("sale_line_id"),
+    refundId: text("refund_id"),
+    refundLineId: text("refund_line_id"),
+    /** Negative for a sale, positive for a return. */
     quantityThousandths: integer("quantity_thousandths").notNull(),
-    reason: text("reason", { enum: ["sale"] }).notNull(),
+    reason: text("reason", { enum: ["sale", "return"] }).notNull(),
     occurredAt: text("occurred_at").notNull(),
   },
   (t) => [
-    unique().on(t.orgId, t.saleLineId),
+    uniqueIndex("stock_movement_sale_line")
+      .on(t.orgId, t.saleLineId)
+      .where(sql`reason = 'sale'`),
+    uniqueIndex("stock_movement_refund_line")
+      .on(t.orgId, t.refundLineId)
+      .where(sql`reason = 'return'`),
     foreignKey({ columns: [t.orgId, t.saleId], foreignColumns: [localSale.orgId, localSale.id] }),
   ],
 );

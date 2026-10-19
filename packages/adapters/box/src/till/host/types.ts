@@ -36,6 +36,7 @@ export type Host = {
   publishStatus: () => Promise<void>;
   sync: () => Promise<void>;
   uploadStock: () => Promise<void>;
+  uploadRefunds: () => Promise<void>;
   close: () => void;
   payments: ReturnType<typeof createHostPayments>;
   devices: ReturnType<typeof createDevices>;

@@ -3,6 +3,7 @@ import { uuidV7Schema } from "@shopper/ports";
 import { receiptDocument, saleSnapshot, purchaseFilters } from "@shopper/core/schemas";
 import { momoView } from "@shopper/core/payments";
 import { draftView } from "./basket";
+import { eligibilityView, refundSummary } from "./refunds";
 const id = uuidV7Schema;
 const revision = v.pipe(v.number(), v.safeInteger(), v.minValue(0));
 export const purchaseRequests = [
@@ -16,11 +17,15 @@ export const purchaseRequests = [
 ] as const;
 export const purchaseSummary = v.strictObject({
   id,
-  status: v.picklist(["completed", "voided", "pending"]),
+  status: v.picklist(["completed", "returned", "voided", "pending"]),
   receiptNumber: v.nullable(v.string()),
   occurredAt: v.pipe(v.string(), v.isoTimestamp()),
   total: v.number(),
   kinds: v.array(v.picklist(["cash", "momo", "card"])),
+  /** A Returns row: the receipt number of the sale it returned. Its total is negative. */
+  refundOf: v.nullable(v.string()),
+  /** How much of a completed sale has gone back. */
+  refunded: v.picklist(["none", "partial", "full"]),
 });
 export const receiptDelivery = v.strictObject({
   printedAt: v.nullable(v.string()),
@@ -37,6 +42,17 @@ export const purchaseDetails = v.strictObject({
   draft: v.nullable(draftView),
   /** Null unless the purchase is a completed sale. */
   delivery: v.nullable(receiptDelivery),
+  origin: v.picklist(["local", "server"]),
+  refunds: v.array(refundSummary),
+  /** Null unless the purchase is a completed sale. */
+  eligibility: v.nullable(eligibilityView),
+});
+export const purchaseCounts = v.strictObject({
+  all: revision,
+  completed: revision,
+  returned: revision,
+  voided: revision,
+  pending: revision,
 });
 export const purchaseReplies = [
   v.strictObject({
@@ -44,6 +60,8 @@ export const purchaseReplies = [
     type: v.literal("result"),
     kind: v.literal("purchases"),
     purchases: v.array(purchaseSummary),
+    /** Per tab, for the rows matching the search and tender kind. */
+    counts: purchaseCounts,
     total: revision,
     page: revision,
     pageSize: revision,
@@ -53,6 +71,14 @@ export const purchaseReplies = [
     type: v.literal("result"),
     kind: v.literal("purchase"),
     purchase: purchaseDetails,
+  }),
+  v.strictObject({
+    id,
+    type: v.literal("result"),
+    kind: v.literal("saleLookup"),
+    /** `offline`: another register's sale cannot be searched without the server. */
+    status: v.picklist(["found", "missing", "offline"]),
+    purchase: v.nullable(purchaseDetails),
   }),
 ] as const;
 export type PurchaseSummary = v.InferOutput<typeof purchaseSummary>;

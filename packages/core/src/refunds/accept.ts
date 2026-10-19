@@ -6,6 +6,7 @@ import { decodeRefundEvent, type RefundEvent } from "../schemas/till/refund";
 import { SaleError } from "../sales/error";
 import type { UploadPrincipal } from "../sales/types";
 import { validateRefundAuthority } from "./authority";
+import { refundDocument } from "./document";
 import { validateRefund } from "./validate";
 
 type Input = {
@@ -86,6 +87,7 @@ const accept = defineCommand({
     if (!original || original.storeId !== input.principal.storeId)
       throw new SaleError("INVALID_REFERENCE", "Original sale not found in this store");
     await validateRefund(tx, ctx.orgId, original.payload, snapshot);
+    const receipt = await refundDocument(tx, snapshot, original.receiptNumber);
     const [saved] = await tx
       .insert(refund)
       .values({
@@ -108,8 +110,7 @@ const accept = defineCommand({
         eventVersion: input.event.v,
         deviceTime: new Date(snapshot.deviceTime),
         occurredAt: input.occurredAt,
-        // Receipt v2 (slice 6) renders the refund receipt here.
-        receipt: null,
+        receipt,
         payload: snapshot,
         contentHash: input.contentHash,
       })

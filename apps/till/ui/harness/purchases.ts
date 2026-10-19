@@ -16,6 +16,8 @@ export const purchaseSummary: PurchaseSummary = {
   occurredAt: today,
   total: 1_265_000,
   kinds: ["cash"],
+  refundOf: null,
+  refunded: "none",
 };
 
 const delivery: NonNullable<PurchaseDetails["delivery"]> = {
@@ -42,6 +44,9 @@ export const purchaseDetailsFor = (scenario: string): PurchaseDetails => ({
   receipt: makeReceipt(),
   draft: null,
   delivery: deliveries[scenario] ?? delivery,
+  origin: "local",
+  refunds: [],
+  eligibility: null,
 });
 
 const emptyPurchases = (

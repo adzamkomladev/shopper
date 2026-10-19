@@ -35,3 +35,9 @@ export const qrPayload = (receipt: ReceiptDocument) =>
   `${receipt.header.receiptNumber ?? ""}|${receipt.saleId}`;
 
 export const qrCaption = "E-VAT QR pending";
+
+/** The refund payout line: "Refunded (Cash)", "Refunded (Card REF-1)". */
+export function refundedLabel(tender: Tender) {
+  const reference = tender.reference ? ` ${tender.reference}` : "";
+  return `Refunded (${tenderLabel[tender.kind]}${reference})`;
+}

@@ -53,6 +53,8 @@ export const settingsForm = v.object({
   paperMm: registerSettings.entries.paperMm,
   clearCartAfterSale: v.boolean(),
   requirePinForReturns: v.boolean(),
+  // Edited by the returns settings field; the form carries it so saving never resets it.
+  returnWindowDays: registerSettings.entries.returnWindowDays,
   scanner: serialDevice,
   display: serialDevice,
   printer: v.nullable(

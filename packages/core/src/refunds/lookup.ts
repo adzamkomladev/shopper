@@ -3,7 +3,7 @@ import * as v from "valibot";
 import { product, sale, type ShopperDatabase } from "@shopper/db-pg";
 import { saleSnapshot } from "../schemas/till/sale";
 import type { UploadPrincipal } from "../sales/types";
-import { refundedQuantities } from "./validate";
+import { cashRefunded, refundedQuantities } from "./validate";
 
 /** A sale of this store by receipt number, from any register, with what has been refunded and which products are final sale. */
 export async function lookupSale(db: ShopperDatabase, principal: UploadPrincipal, receipt: string) {
@@ -41,6 +41,7 @@ export async function lookupSale(db: ShopperDatabase, principal: UploadPrincipal
     occurredAt: found.occurredAt.toISOString(),
     receipt: found.receipt,
     refunded: Object.fromEntries(refunded),
+    cashRefunded: await cashRefunded(db, principal.orgId, found.id),
     finalSale: Object.fromEntries(flags.map((row) => [row.id, row.finalSale])),
   };
 }

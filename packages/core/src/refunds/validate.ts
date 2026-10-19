@@ -85,21 +85,30 @@ export async function validateRefund(
   await validatePayout(tx, orgId, snapshot);
 }
 
-async function validatePayout(tx: ShopperTransaction, orgId: string, snapshot: RefundSnapshot) {
-  const [organisation] = await tx.select().from(org).where(eq(org.id, orgId));
+/** Gross already paid back in cash for a sale; the next cash payout is rounded on top of it. */
+export async function cashRefunded(
+  tx: Pick<ShopperDatabase, "select">,
+  orgId: string,
+  saleId: string,
+) {
   const [prior] = await tx
     .select({ gross: sql<string>`COALESCE(SUM(${refund.gross}), 0)` })
     .from(refund)
     .where(
       and(
         eq(refund.orgId, orgId),
-        eq(refund.originalSaleId, snapshot.originalSaleId),
+        eq(refund.originalSaleId, saleId),
         eq(refund.tenderKind, "cash"),
       ),
     );
+  return money(Number(prior?.gross ?? 0));
+}
+
+async function validatePayout(tx: ShopperTransaction, orgId: string, snapshot: RefundSnapshot) {
+  const [organisation] = await tx.select().from(org).where(eq(org.id, orgId));
   const payout = refundPayout({
     kind: snapshot.tender.kind,
-    priorCash: money(Number(prior?.gross ?? 0)),
+    priorCash: await cashRefunded(tx, orgId, snapshot.originalSaleId),
     gross: snapshot.totals.gross,
     rounding: organisation?.cashRounding ?? "10p",
   });

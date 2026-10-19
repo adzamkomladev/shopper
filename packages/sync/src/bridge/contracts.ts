@@ -27,3 +27,4 @@ export {
 } from "../schemas/bridge/devices";
 export { sessionRequestTypes } from "../schemas/bridge/session";
 export { approval, approvalRequestTypes, type Approval } from "../schemas/bridge/approvals";
+export { refundRequestTypes, type EligibilityView } from "../schemas/bridge/refunds";

@@ -1,5 +1,14 @@
 import type { ReceiptDocument } from "@shopper/core/receipts";
-import { ghs, qrCaption, qrPayload, quantity, taxRows, tenderDetail, tenderLabel } from "../format";
+import {
+  ghs,
+  qrCaption,
+  qrPayload,
+  quantity,
+  refundedLabel,
+  taxRows,
+  tenderDetail,
+  tenderLabel,
+} from "../format";
 import { paper } from "../profiles";
 import type { PaperMm } from "../types";
 import { Center, Row, Rule, Stack, qrImage } from "./parts";
@@ -19,6 +28,7 @@ export function ReceiptView({
 }) {
   const { header, taxSummary } = receipt;
   const bold = { fontWeight: 700 } as const;
+  const refund = receipt.kind === "refund";
   return (
     <Stack
       style={{
@@ -36,7 +46,13 @@ export function ReceiptView({
       <Center>{header.branch}</Center>
       {header.address ? <Center>{header.address}</Center> : null}
       {reprint ? <Center style={{ ...bold, margin: "8px 0" }}>*** REPRINT ***</Center> : null}
+      {refund ? (
+        <Center style={{ ...bold, fontSize: 30, lineHeight: "40px", margin: "8px 0" }}>
+          REFUND
+        </Center>
+      ) : null}
       <Rule />
+      {refund ? <Center>{`Refund of ${receipt.refundOf ?? "an earlier sale"}`}</Center> : null}
       {header.receiptNumber ? <Row left="Receipt" right={header.receiptNumber} /> : null}
       <Row left="Date" right={header.accraTime} />
       <Row left="Cashier" right={header.cashier} />
@@ -61,6 +77,8 @@ export function ReceiptView({
         style={{ ...bold, fontSize: 28, lineHeight: "38px" }}
       />
       {receipt.tenders.map((tender, index) => {
+        if (refund)
+          return <Row key={index} left={refundedLabel(tender)} right={ghs(tender.amount)} />;
         const detail = tenderDetail(tender);
         return (
           <Stack key={`${tender.kind}-${index}`}>
@@ -71,9 +89,11 @@ export function ReceiptView({
           </Stack>
         );
       })}
-      <Row left="Change" right={ghs(receipt.change)} />
-      <Center style={{ margin: "16px 0 4px" }}>{qrImage(qrPayload(receipt), 200)}</Center>
-      <Center style={{ fontSize: 18, lineHeight: "24px" }}>{qrCaption}</Center>
+      {refund ? null : <Row left="Change" right={ghs(receipt.change)} />}
+      {refund ? null : (
+        <Center style={{ margin: "16px 0 4px" }}>{qrImage(qrPayload(receipt), 200)}</Center>
+      )}
+      {refund ? null : <Center style={{ fontSize: 18, lineHeight: "24px" }}>{qrCaption}</Center>}
       <Center style={{ marginTop: 12 }}>{receipt.footer}</Center>
     </Stack>
   );

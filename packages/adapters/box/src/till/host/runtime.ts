@@ -167,6 +167,7 @@ export async function startTillHost(
     publishStatus,
     sync: () => worker.trigger(),
     uploadStock: () => worker.uploadStock(),
+    uploadRefunds: () => worker.uploadRefunds(),
     close: () => void close(),
   };
   const dispatch = createDispatch(host);

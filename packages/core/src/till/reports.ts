@@ -1,7 +1,8 @@
 import * as v from "valibot";
 import { count, eq } from "drizzle-orm";
-import { localSale, productLookup, type TillDatabase } from "@shopper/db-sqlite";
+import { localSale, productLookup, refund, type TillDatabase } from "@shopper/db-sqlite";
 import { add, money, sub, toDecimal, type Money } from "@shopper/money";
+import { refundEvent } from "../schemas/till/refund";
 import { saleSnapshot } from "../schemas/till/sale";
 import {
   registerReportInput,
@@ -16,12 +17,13 @@ export async function registerReport(db: TillDatabase, raw: unknown): Promise<Re
   const input = v.parse(registerReportInput, raw);
   const start = Date.parse(`${input.from}T00:00:00.000Z`);
   const end = Date.parse(`${input.to}T00:00:00.000Z`) + DAY;
-  const { rows, products } = await db.read(async (tx) => ({
+  const { rows, refunds, products } = await db.read(async (tx) => ({
     // ponytail: parses every stored sale; add an indexed day column if a till holds years of sales
     rows: await tx
       .select({ payload: localSale.payload })
       .from(localSale)
       .where(eq(localSale.status, "completed")),
+    refunds: await tx.select({ payload: refund.payload }).from(refund),
     products: (await tx.select({ n: count() }).from(productLookup))[0]?.n ?? 0,
   }));
   const tenders = new Map<string, Money>();
@@ -72,6 +74,13 @@ export async function registerReport(db: TillDatabase, raw: unknown): Promise<Re
       });
     }
   }
+  let returns = { count: 0, amount: money(0) };
+  for (const row of refunds) {
+    const made = v.parse(refundEvent, row.payload).refund;
+    const at = Date.parse(made.deviceTime) - made.clockOffsetMs;
+    if (at >= start && at < end)
+      returns = { count: returns.count + 1, amount: add(returns.amount, made.total) };
+  }
   return v.parse(registerReportSchema, {
     from: input.from,
     to: input.to,
@@ -81,7 +90,7 @@ export async function registerReport(db: TillDatabase, raw: unknown): Promise<Re
       .sort((a, b) => b.amount - a.amount),
     byHour: hours,
     topProducts: [...top.values()].sort((a, b) => b.amount - a.amount).slice(0, 10),
-    returns: { count: 0, amount: 0 }, // no refunds exist in the till schema yet
+    returns,
     products,
     discountedSales,
   });

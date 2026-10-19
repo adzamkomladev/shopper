@@ -24,7 +24,9 @@ test("voiding a held sale with cash taken asks for a manager inside the same dia
   const manager = page.getByRole("combobox", { name: "Manager" });
   await manager.focus();
   await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("option", { name: "Kofi Mensah" })).toBeFocused();
   await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("option", { name: "Abena Owusu" })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(manager).toContainText("Abena Owusu");
   await page.keyboard.press("Tab");

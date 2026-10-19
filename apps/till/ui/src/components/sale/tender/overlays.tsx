@@ -1,5 +1,11 @@
 import type { Money } from "@shopper/money";
-import type { SaleSnapshot } from "../../../sale/types";
+import type {
+  Approval,
+  ApproverState,
+  SaleControls,
+  SaleOutcome,
+  SaleSnapshot,
+} from "../../../sale/types";
 import { CardDialog } from "./dialogs/card";
 import { HeldDialog } from "./dialogs/held";
 import { MomoDialog } from "./dialogs/momo";
@@ -12,6 +18,8 @@ export function TenderOverlays({
   momoOpen,
   heldOpen,
   voidOpen,
+  voidApproval,
+  approvers,
   held,
   onReturnFocus,
   onCardOpenChange,
@@ -24,6 +32,7 @@ export function TenderOverlays({
   onHeldVoid,
   onVoidOpenChange,
   onVoidSubmit,
+  onRetryApprovers,
 }: {
   amount: Money;
   offline: boolean;
@@ -31,6 +40,8 @@ export function TenderOverlays({
   momoOpen: boolean;
   heldOpen: boolean;
   voidOpen: boolean;
+  voidApproval: SaleControls["voidApproval"];
+  approvers: ApproverState;
   held: SaleSnapshot["held"];
   onReturnFocus: () => void;
   onCardOpenChange: (open: boolean) => void;
@@ -42,7 +53,8 @@ export function TenderOverlays({
   canVoid: boolean;
   onHeldVoid: (id: string, revision: number, reason: string) => void;
   onVoidOpenChange: (open: boolean) => void;
-  onVoidSubmit: (reason: string) => void;
+  onVoidSubmit: (reason: string, approval?: Approval) => Promise<SaleOutcome>;
+  onRetryApprovers: () => void;
 }) {
   return (
     <>
@@ -71,8 +83,11 @@ export function TenderOverlays({
         onVoid={onHeldVoid}
       />
       <VoidDialog
+        approval={voidApproval}
+        approvers={approvers}
         open={voidOpen}
         onOpenChange={onVoidOpenChange}
+        onRetryApprovers={onRetryApprovers}
         onReturnFocus={onReturnFocus}
         onSubmit={onVoidSubmit}
       />

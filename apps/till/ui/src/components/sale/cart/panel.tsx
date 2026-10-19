@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
 import { Button } from "@shopper/ui/components/button";
 import { Kbd } from "@shopper/ui/components/kbd";
-import type { Row, SaleTotals } from "../../../sale/types";
+import type { usePriceOverride } from "../../../hooks/sale/price";
+import type { ApproverState, Row, SaleTotals } from "../../../sale/types";
+import { PriceDialog } from "../dialogs/price";
 import { CartTotals } from "../totals";
 import { CartControls } from "./controls";
 
@@ -16,6 +18,9 @@ type Props = {
   count: number;
   totals: SaleTotals | undefined;
   hidden: boolean;
+  price: ReturnType<typeof usePriceOverride>;
+  approvers: ApproverState;
+  onReturnFocus: () => void;
   onQuantity: (thousandths: number) => void;
   onEditDone: () => void;
   onRemove: () => void;
@@ -36,6 +41,9 @@ export function CartPanel({
   count,
   totals,
   hidden,
+  price,
+  approvers,
+  onReturnFocus,
   onQuantity,
   onEditDone,
   onRemove,
@@ -55,6 +63,9 @@ export function CartPanel({
         editing={editing}
         onClear={onClear}
         onEditDone={onEditDone}
+        onPrice={price.ask}
+        priceBlocked={price.blocked}
+        priceDisabled={price.disabled}
         onQuantity={onQuantity}
         onRemove={onRemove}
         row={selected}
@@ -69,6 +80,7 @@ export function CartPanel({
       >
         Checkout <Kbd className="pointer-coarse:inline-flex">Ctrl+Enter</Kbd>
       </Button>
+      <PriceDialog approvers={approvers} onReturnFocus={onReturnFocus} price={price} />
     </section>
   );
 }

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useSaleControls } from "../../hooks/sale/controls";
+import { usePriceOverride } from "../../hooks/sale/price";
 import { useScanField } from "../../hooks/scanner";
 import { CartPanel } from "../../components/sale/cart/panel";
 import { Lines } from "../../components/sale/lines";
@@ -108,6 +109,8 @@ export function SaleScreen({
     scanRef.current?.select();
   }
 
+  const price = usePriceOverride(snapshot, actions, selected, busyOrLocked || tendering);
+
   function startEdit() {
     if (busyOrLocked || !selected || !isPriced(selected)) return;
     setEditingId(selected.lineId);
@@ -166,6 +169,7 @@ export function SaleScreen({
           F2: focusScan,
           F3: () => listRef.current?.focus(),
           F4: startEdit,
+          "Alt+O": price.ask,
           F6: controls.hold,
           F7: controls.showHeld,
           F11: controls.askVoid,
@@ -241,6 +245,9 @@ export function SaleScreen({
             hidden={tendering || snapshot.receipt !== null}
             onCheckout={checkout}
             onClear={controls.askVoid}
+            approvers={snapshot.approvers}
+            onReturnFocus={focusScan}
+            price={price}
             onEditDone={() => {
               finishEdit();
               focusScan();

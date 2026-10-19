@@ -40,6 +40,25 @@ export type SaleSync = {
   canSync: boolean;
   syncing: boolean;
 };
+/** What the sale screen shows when a change is refused: the host's own words, ready to display. */
+export type SaleOutcome = { ok: true } | { ok: false; code: string; message: string };
+export type ApprovalPermission = "sale.void" | "sale.price_override";
+/** A manager's id and PIN. The host checks the PIN; the screen never keeps it. */
+export type Approval = { approverId: string; pin: string };
+export type Approver = { userId: string; name: string };
+/** Who can approve `permission` on this register, as the host last answered. `stale` lists are empty. */
+export type ApproverState = {
+  permission: ApprovalPermission | null;
+  status: "idle" | "loading" | "ready" | "failed";
+  approvers: Approver[];
+  stale: boolean;
+};
+export type PriceInput = {
+  lineId: string;
+  unitPrice: Money;
+  reason: string;
+  approval?: Approval;
+};
 export type TenderKind = "cash" | "momo" | "card";
 export type TenderInput =
   | { kind: "cash"; amount: Money }
@@ -114,6 +133,7 @@ export type SaleSnapshot = {
   register: SaleRegister | null;
   /** The completed sale's print, null when no sale is showing. */
   receiptPrint: ReceiptPrint | null;
+  approvers: ApproverState;
 };
 
 export type AddInput = { code: string } | { productId: string };
@@ -131,7 +151,15 @@ export type SaleActions = {
   hold: (name?: string) => void;
   listHeld: () => void;
   resume: (draftId: string, expectedRevision: number) => void;
-  voidSale: (reason: string, draftId?: string, expectedRevision?: number) => void;
+  /** Resolves with the outcome so a dialog can stay open on a wrong PIN. */
+  voidSale: (
+    reason: string,
+    draftId?: string,
+    expectedRevision?: number,
+    approval?: Approval,
+  ) => Promise<SaleOutcome>;
+  priceLine: (input: PriceInput) => Promise<SaleOutcome>;
+  loadApprovers: (permission: ApprovalPermission) => void;
   newSale: () => void;
   /** Starts a new sale from the completion view with the scanned item already in it. */
   newSaleWith: (input: AddInput) => void;
@@ -161,8 +189,10 @@ export type SaleControls = {
   notice: string;
   hold: () => void;
   showHeld: () => void;
+  /** Why a void needs a manager: cash or card was taken, or the cashier cannot void. Null when they may void alone. */
+  voidApproval: "cash" | "card" | "permission" | null;
   askVoid: () => void;
-  confirmVoid: (reason: string) => void;
+  confirmVoid: (reason: string, approval?: Approval) => Promise<SaleOutcome>;
   setHeldOpen: (open: boolean) => void;
   setVoidOpen: (open: boolean) => void;
   setNotice: (notice: string) => void;

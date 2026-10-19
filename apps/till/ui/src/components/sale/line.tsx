@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { X } from "lucide-react";
-import { formatGHS } from "@shopper/money";
+import { formatGHS, money } from "@shopper/money";
 import { cn } from "cn";
 import { Input } from "@shopper/ui/components/input";
 import { Money } from "@shopper/ui/components/money";
@@ -25,12 +25,15 @@ type LineProps = {
 export function Line({ row, position, selected, revealSelected, onSelect }: LineProps) {
   const { quantityThousandths: quantity, label } = row.line;
   const priced = isPriced(row);
+  // A manager changed this line's price; the list price stays visible, struck through.
+  const listed = priced && row.listPrice !== undefined ? money(row.listPrice) : null;
   const name = priced ? row.name : "Unavailable product";
   const detail = priced
     ? [
         row.sku,
         row.baseUnit !== "each" ? `per ${row.baseUnit}` : null,
         label ? `${label.kind} label` : null,
+        listed ? "Price override" : null,
       ]
         .filter(Boolean)
         .join(" · ")
@@ -59,7 +62,12 @@ export function Line({ row, position, selected, revealSelected, onSelect }: Line
         <p className="truncate text-sm leading-5 font-bold">{name}</p>
         <p className={cn("truncate text-xs", priced && "text-kbd-foreground")}>
           {detail}
-          {priced && <span className="@md:hidden"> · {unitText}</span>}
+          {priced && (
+            <span className="@md:hidden">
+              {" · "}
+              {listed && <s>{formatGHS(listed)}</s>} {unitText}
+            </span>
+          )}
         </p>
       </div>
       {priced ? (
@@ -67,6 +75,7 @@ export function Line({ row, position, selected, revealSelected, onSelect }: Line
           <span className="hidden shrink-0 items-center gap-0.5 text-xs font-medium text-kbd-foreground tabular-nums @md:flex">
             {quantity !== QUANTITY_STEP && <span>{formatQuantity(quantity)}</span>}
             {quantity !== QUANTITY_STEP && <X aria-hidden="true" className="size-3" />}
+            {listed && <s className="mr-1">{formatGHS(listed)}</s>}
             <Money amount={row.tax.unitPrice} />
           </span>
           <Money

@@ -27,6 +27,7 @@ import type {
 import { scenarios } from "./scenarios";
 import { printFailure, purchaseOutput } from "../src/purchases/delivery";
 import { initialPurchases, purchaseDetailsFor } from "./purchases";
+import { approvalActions } from "./approvals";
 import { addTender } from "./sale/tenders";
 import { useSettingsHarness } from "./settings";
 
@@ -93,14 +94,7 @@ function Harness() {
     hold: record("holdSale"),
     listHeld: record("listHeld"),
     resume: record("resumeSale"),
-    voidSale: (reason, draftId, revision) => {
-      record("voidSale")(reason, draftId, revision);
-      if (draftId)
-        setSaleSnapshot((current) => ({
-          ...current,
-          held: current.held.filter((view) => view.draft?.id !== draftId),
-        }));
-    },
+    ...approvalActions(name, record, setSaleSnapshot),
     newSale: () => {
       record("newSale")();
       const initial = scenarios.lines!;

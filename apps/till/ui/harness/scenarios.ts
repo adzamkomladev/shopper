@@ -1,6 +1,6 @@
 import type { SaleRegister, SaleSnapshot } from "../src/sale/types";
 import { money } from "@shopper/money";
-import { emptyView, items, basket, id, matches } from "./fixtures";
+import { emptyView, items, basket, id, matches, priceLabelled } from "./fixtures";
 import { makeReceipt } from "./receipts";
 import { withCashTender, withTender } from "./sale/tenders";
 
@@ -33,7 +33,10 @@ const base: SaleSnapshot = {
   sync: { offline: false, pendingCount: 0, canSync: true, syncing: false },
   register: register(),
   receiptPrint: null,
+  approvers: { permission: null, status: "idle", approvers: [], stale: false },
 };
+// Cash was taken, so voiding needs a manager; the void-* scenarios differ in how the approvers answer.
+const voidCash: SaleSnapshot = { ...base, view: withCashTender(money(500_000)) };
 const roundedView = (gross: ReturnType<typeof money>) => {
   const view = basket([
     { id: "round", sku: "ROUND", name: "Rounding test item", unitPrice: gross },
@@ -133,6 +136,27 @@ export const scenarios: Record<string, SaleSnapshot> = {
   "round-down": { ...base, view: roundedView(money(12_400)) },
   insufficient: { ...base, view: withCashTender(money(500_000)) },
   "no-void-permission": { ...base, permissions: [] },
+  "void-cash": voidCash,
+  "void-locked": voidCash,
+  "void-forbidden": voidCash,
+  "void-no-approvers": voidCash,
+  "void-stale-approvers": voidCash,
+  "void-approvers-loading": voidCash,
+  "void-approvers-failed": voidCash,
+  "price-manager": { ...base, permissions: [...base.permissions, "sale.price_override"] },
+  "price-label": { ...base, view: basket([...items.slice(0, 2), priceLabelled]) },
+  override: {
+    ...base,
+    view: basket(
+      items
+        .slice(0, 4)
+        .map((spec) =>
+          spec.id === "l4"
+            ? { ...spec, unitPrice: money(50_000), listPrice: spec.unitPrice }
+            : spec,
+        ),
+    ),
+  },
   "no-momo-permission": { ...base, permissions: ["sale.void"] },
   complete: { ...base, view: null, receipt: makeReceipt() },
   // The printer scenarios start with a basket; completing the sale plays out the print.

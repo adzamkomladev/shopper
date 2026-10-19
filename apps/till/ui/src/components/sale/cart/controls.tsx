@@ -1,4 +1,4 @@
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Minus, Plus, Tag, Trash2 } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { Kbd } from "@shopper/ui/components/kbd";
 import { formatQuantity } from "@shopper/utils";
@@ -12,6 +12,10 @@ type Props = {
   editing: boolean;
   disabled: boolean;
   canClear: boolean;
+  /** Why the price cannot be overridden on this line, when it is the line and not the sale that blocks it. */
+  priceBlocked: string | null;
+  priceDisabled: boolean;
+  onPrice: () => void;
   onQuantity: (thousandths: number) => void;
   onEditDone: () => void;
   onRemove: () => void;
@@ -24,6 +28,9 @@ export function CartControls({
   editing,
   disabled,
   canClear,
+  priceBlocked,
+  priceDisabled,
+  onPrice,
   onQuantity,
   onEditDone,
   onRemove,
@@ -78,6 +85,19 @@ export function CartControls({
           <Plus aria-hidden="true" />
         </Button>
         <Button
+          aria-describedby={priceBlocked ? "price-blocked" : undefined}
+          aria-keyshortcuts="Alt+O"
+          aria-label="Override price"
+          disabled={priceDisabled}
+          onClick={onPrice}
+          size="touch"
+          title="Override price"
+          variant="outline"
+        >
+          <Tag aria-hidden="true" /> <span className="hidden @xl:inline">Price</span>{" "}
+          <Kbd className="pointer-coarse:inline-flex">Alt+O</Kbd>
+        </Button>
+        <Button
           aria-label={`Remove ${name}`}
           className="text-destructive hover:text-destructive"
           disabled={disabled || row === undefined}
@@ -88,6 +108,11 @@ export function CartControls({
           <Trash2 aria-hidden="true" />
         </Button>
       </div>
+      {priceBlocked && (
+        <p className="w-full text-xs text-muted-foreground" id="price-blocked" role="status">
+          {priceBlocked}
+        </p>
+      )}
     </div>
   );
 }

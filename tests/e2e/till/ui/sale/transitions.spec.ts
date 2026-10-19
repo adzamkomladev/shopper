@@ -29,7 +29,8 @@ test("hold and void keep the sale locked until the open basket refresh completes
     await dialog.getByRole("textbox", { name: "Reason" }).fill("Customer changed their mind");
     await dialog.getByRole("button", { name: "Void sale" }).click();
     await reads.voided;
-    await expect(page.getByRole("button", { name: "Clear cart" })).toBeDisabled();
+    // The dialog stays open, and cannot be sent twice, until the host has answered and the basket is read again.
+    await expect(dialog.getByRole("button", { name: "Void sale" })).toBeDisabled();
     reads.releaseVoided();
     await expect(page.getByText("Basket is empty")).toBeVisible();
   } finally {
@@ -58,7 +59,8 @@ test("active void stays locked until the open basket refresh completes", async (
     await dialog.getByRole("textbox", { name: "Reason" }).fill("Customer changed their mind");
     await dialog.getByRole("button", { name: "Void sale" }).click();
     await reads.voided;
-    await expect(page.getByRole("button", { name: "Clear cart" })).toBeDisabled();
+    // The dialog stays open, and cannot be sent twice, until the host has answered and the basket is read again.
+    await expect(dialog.getByRole("button", { name: "Void sale" })).toBeDisabled();
     reads.releaseVoided();
     await expect(page.getByText("Basket is empty")).toBeVisible();
   } finally {

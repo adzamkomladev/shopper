@@ -13,6 +13,7 @@ const hints = [
   ["Alt+1/2/3", "Tender method"],
   ["F3", "Basket"],
   ["F4", "Quantity"],
+  ["Alt+O", "Price"],
   ["Delete", "Remove line"],
   ["F8", "Sync now"],
   ["F10", "Register"],

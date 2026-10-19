@@ -144,6 +144,17 @@ fractional ones up, which drifted the two engines apart by 5 px.
 
 See [windows-handoff.md](../plans/day13/windows-handoff.md) for what is verified on the till PC.
 
+### Refunds and approvals (Day 14)
+
+- Refund tests build on the golden sale: accept it through `/sync/push`, then refund through
+  `/sync/refunds` or the till host (`tests/support/sales/refunds.ts`, `tests/support/till/refunds.ts`).
+- Managers come from `memberWithPin(name, role, pin)` (`tests/support/sync/members.ts`), and are synced
+  to the till with the helpers in `tests/support/till/approvers.ts`.
+- Tests that depend on the return window freeze only `Date` (`vi.useFakeTimers({ toFake: ["Date"] })`),
+  so the fixed golden sale date never ages out.
+- `tests/support/till/host/upstream.ts` `dropNextRefundResponse()` simulates a reply lost after the
+  server accepted.
+
 ## Commands
 
 ```sh

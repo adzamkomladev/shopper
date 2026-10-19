@@ -141,6 +141,33 @@ PostgreSQL remains the source for all downloaded data. A missed nudge is recover
 or the capped transport fallback. The host owns push, pull, realtime and receipt state; the UI
 subscribes to their combined status without receiving device credentials.
 
+### Refunds and manager approvals (Day 14)
+
+Refunds are their own records (`refund`, `refund_line`), never negative sales, so sale rules and
+reports stay unchanged. Each refund line's tax is a share of the original line's snapshot from
+`refundShare` in `@shopper/tax`: a cumulative difference of `mulRatio`, so partial refunds never go
+negative and always sum to the sold line. Today's `tax_rule` is never read. The server recomputes
+every share and rejects any mismatch, any final-sale line and anything over the quantity sold, under
+`FOR UPDATE` on the original sale. A cash payout may carry at most 5 pesewas of signed rounding.
+
+A till refunds its own sales offline. The refund is uploaded to `POST /sync/refunds` through the
+shared document upload lane (`@shopper/sync/uploads/documents`), and only after the sale backlog
+drains. Sales from other registers are found with `GET /sync/sales/lookup` and refunded online: the
+host waits for the server to accept before it records the refund, prints and opens the drawer. A
+stable refund id makes a retry after a lost reply replay instead of refunding twice.
+
+Manager approvals are one mechanism for refunds, price overrides and voids after tender.
+`GET /sync/approvers` sends members holding `refund.approve`, `sale.void` or `sale.price_override`,
+with their Better Auth PIN hash, to the till (`till_approver`). The host checks the PIN offline: five
+failures lock the manager for 15 minutes, a list older than 7 days approves nothing, and guesses for
+one manager run one at a time. Only a verified approver id reaches a core command, and `till_audit`
+and `audit_log` record both actor and approver. The server re-checks the approver's current grant in
+`role_permission`, but it cannot prove a PIN was typed. The return window and `requirePinForReturns`
+live in register settings and are enforced on the till only.
+
+Price overrides travel on sale event v4 lines as `override {listPrice, reason, approverId}`. Receipt
+documents are v2 (`kind`, `refundOf`), and stored v1 receipts are upcast on read.
+
 ## Assets and organization management
 
 `@shopper/assets` owns publicity/access policy, purpose and bucket selection, audited asset tracking and authorized presigned grants. Provider operations use Blobs; credentials stay in adapters. The API receives metadata and asset references, never client file bytes. Before processing, resolve the tenant-owned asset and verify bounded actual bytes against its registered digest and size. A presigned URL remains a bearer capability until expiry, so repeat verification before every use.

@@ -7,28 +7,28 @@
 
 ## Status
 
-| Slice                                                   | Commit    | State |
-| ------------------------------------------------------- | --------- | ----- |
-| Plan                                                    | `6225d90` | done  |
-| 1 Manager approvals and approver sync                   | `a0b888c` | done  |
-| 2 Approved price overrides, sale event v4, protocol 4   | `2c973d8` | done  |
-| 3 Manager approval for voids after tender               | `e6bdd89` | done  |
-| Review fixes: PIN lockout race, cross-org isolation     | `f6435e9` | done  |
-| Review fixes: override audit map, host tests, scope check | `8fad995` | done  |
-| 4 Final-sale products (migration 0021, feed v3)         | `3f6ed7a` | done  |
-| 5 Server refunds with snapshot tax reversal (0022)      | `6f5656a` | done  |
-| 7 Approval, void and price override screens             | `ac9db3d` | done  |
-| 6 Till refunds, refund receipts, shared upload lane     | `370cb03` | done  |
-| 8 Returns screens and held-sale void approval           | `9dbce2a` | done  |
-| Review fixes: final sale on server, retry id, receipt upcast, rounding | `0e40778` | done |
+| Slice                                                                  | Commit    | State |
+| ---------------------------------------------------------------------- | --------- | ----- |
+| Plan                                                                   | `6225d90` | done  |
+| 1 Manager approvals and approver sync                                  | `a0b888c` | done  |
+| 2 Approved price overrides, sale event v4, protocol 4                  | `2c973d8` | done  |
+| 3 Manager approval for voids after tender                              | `e6bdd89` | done  |
+| Review fixes: PIN lockout race, cross-org isolation                    | `f6435e9` | done  |
+| Review fixes: override audit map, host tests, scope check              | `8fad995` | done  |
+| 4 Final-sale products (migration 0021, feed v3)                        | `3f6ed7a` | done  |
+| 5 Server refunds with snapshot tax reversal (0022)                     | `6f5656a` | done  |
+| 7 Approval, void and price override screens                            | `ac9db3d` | done  |
+| 6 Till refunds, refund receipts, shared upload lane                    | `370cb03` | done  |
+| 8 Returns screens and held-sale void approval                          | `9dbce2a` | done  |
+| Review fixes: final sale on server, retry id, receipt upcast, rounding | `0e40778` | done  |
 
 Slice 7 ran before slice 6 because it only needed the approval backend.
 
 ## The Notion tests
 
-| Test | Where |
-| --- | --- |
-| Partial refund reverses exactly the refunded lines' tax | `tests/integration/sales/refunds/tax.test.ts` |
+| Test                                                                                   | Where                                                   |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Partial refund reverses exactly the refunded lines' tax                                | `tests/integration/sales/refunds/tax.test.ts`           |
 | Override without manager PIN is refused; with PIN, audit shows both actor and approver | `tests/integration/till/basket/drafts/override.test.ts` |
 
 ## Bugs found by review and fixed
@@ -54,6 +54,7 @@ Slice 7 ran before slice 6 because it only needed the approval backend.
   - portal catalogue.
 
   The complete e2e run is left to CI.
+
 - **UI checks** (`/ui-verify` with `playwright-cli`): desktop 1920×1080, laptop 1440×900, tablet 768×1024, mobile 390×844 and till 1366×768, with no horizontal overflow anywhere.
   - Screenshots: [screenshots/approvals](screenshots/approvals) and [screenshots/returns](screenshots/returns).
   - The only console error is the harness's existing `/session/permissions` shape warning.

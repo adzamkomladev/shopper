@@ -3,7 +3,7 @@ import { approve, hostTime, readApprovers, TillError } from "@shopper/core/till"
 import type { TillDatabase } from "@shopper/db-sqlite";
 import type { Approval } from "@shopper/sync/bridge";
 import type { HostConfiguration } from "./config";
-import { auditContext } from "./receipts";
+import { auditContext } from "./context";
 
 /** Manager approvals on this register: the host checks the PIN, so only a verified approver id reaches core. */
 export function createApprovals(host: { database: TillDatabase; config: HostConfiguration }) {

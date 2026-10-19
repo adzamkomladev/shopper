@@ -4,7 +4,8 @@ import type { TillDatabase } from "@shopper/db-sqlite";
 import type { HostConfiguration } from "./config";
 import { listPrinters } from "./peripherals/printers";
 import type { createPeripherals } from "./peripherals";
-import { auditContext, type createHostReceipts } from "./receipts";
+import { auditContext } from "./context";
+import type { createHostReceipts } from "./receipts";
 
 type DeviceRequest = Extract<
   BridgeRequest,

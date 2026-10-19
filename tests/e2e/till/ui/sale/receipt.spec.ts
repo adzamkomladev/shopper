@@ -84,11 +84,11 @@ test("Enter on a purchase receipt opens details without starting a new sale", as
   await expect(page.getByRole("region", { name: "Sale receipt" })).toBeVisible();
 
   await page.keyboard.press("Alt+P");
-  const receipt = page.getByRole("button", { name: /Receipt/ }).first();
+  const receipt = page.getByRole("button", { name: /[AP]M #/ }).first();
   await receipt.focus();
   await page.keyboard.press("Enter");
 
-  await expect(page.getByRole("heading", { name: "Purchase details" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Purchase #/ })).toBeVisible();
   expect(await calls(page, "newSale")).toEqual([]);
 });
 

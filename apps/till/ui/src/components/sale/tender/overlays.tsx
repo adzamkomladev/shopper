@@ -51,7 +51,12 @@ export function TenderOverlays({
   onHeldOpenChange: (open: boolean) => void;
   onResume: (id: string, revision: number) => void;
   canVoid: boolean;
-  onHeldVoid: (id: string, revision: number, reason: string) => void;
+  onHeldVoid: (
+    id: string,
+    revision: number,
+    reason: string,
+    approval?: Approval,
+  ) => Promise<SaleOutcome>;
   onVoidOpenChange: (open: boolean) => void;
   onVoidSubmit: (reason: string, approval?: Approval) => Promise<SaleOutcome>;
   onRetryApprovers: () => void;
@@ -77,10 +82,12 @@ export function TenderOverlays({
         views={held}
         open={heldOpen}
         canVoid={canVoid}
+        approvers={approvers}
         onReturnFocus={onReturnFocus}
         onOpenChange={onHeldOpenChange}
         onResume={onResume}
         onVoid={onHeldVoid}
+        onLoadApprovers={onRetryApprovers}
       />
       <VoidDialog
         approval={voidApproval}

@@ -130,3 +130,20 @@ test("Escape closes an open list without discarding the edits behind it", async 
   await expect(page.getByRole("option", { name: /58 mm/ })).toHaveCount(0);
   await expect(store).toHaveValue("Kept");
 });
+
+test("the return window is a number of days saved with the form and checked before saving", async ({
+  page,
+}) => {
+  await openSettings(page);
+  const days = page.getByRole("textbox", { name: "Return window (days)" });
+  await expect(days).toHaveValue("30");
+  await days.fill("400");
+  await page.keyboard.press("ControlOrMeta+S");
+  await expect(page.getByText("Enter a whole number of days from 0 to 365")).toBeVisible();
+  await expect(days).toBeFocused();
+  expect(await calls(page, "saveSettings")).toEqual([]);
+  await days.fill("14");
+  await page.keyboard.press("ControlOrMeta+S");
+  await expect(page.getByText("Register settings saved")).toBeVisible();
+  expect((await savedCall(page))?.args[0]).toMatchObject({ returnWindowDays: 14 });
+});

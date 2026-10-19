@@ -28,6 +28,7 @@ const order = [
   "printer.path",
   "scanner.path",
   "display.path",
+  "returnWindowDays",
 ] as const;
 const fieldKeys: Record<(typeof order)[number], string> = {
   storeName: "settings-store-name",
@@ -38,6 +39,7 @@ const fieldKeys: Record<(typeof order)[number], string> = {
   "printer.path": "settings-printer-path",
   "scanner.path": "settings-scanner-path",
   "display.path": "settings-display-path",
+  returnWindowDays: "settings-return-window",
 };
 
 /**
@@ -221,7 +223,7 @@ export function SettingsForm({
               status={current.printer}
               unsaved={printerDirty}
             />
-            <CashierCard disabled={!canEdit} draft={draft} onChange={change} />
+            <CashierCard disabled={!canEdit} draft={draft} errors={errors} onChange={change} />
           </div>
         </div>
         <SettingsFooter

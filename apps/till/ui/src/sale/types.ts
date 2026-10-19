@@ -1,14 +1,18 @@
+import type { Ref } from "react";
 import type { Money } from "@shopper/money";
 import type {
   BridgeMessage,
   DraftView as BridgeDraftView,
+  EligibilityView,
   HostStatus,
   PurchaseDetails,
   PurchaseSummary,
 } from "@shopper/sync/bridge";
 import type { HostConnection } from "../connection/types";
 
-export type { PurchaseDetails, PurchaseSummary };
+export type { EligibilityView, PurchaseDetails, PurchaseSummary };
+export type PurchaseCounts = PurchaseList["counts"];
+export type RefundSummary = PurchaseDetails["refunds"][number];
 export type DraftView = BridgeDraftView & { settlementError?: string };
 export type SaleTotals = DraftView["quote"]["totals"];
 type BridgeQuoteLine = DraftView["quote"]["lines"][number];
@@ -42,7 +46,7 @@ export type SaleSync = {
 };
 /** What the sale screen shows when a change is refused: the host's own words, ready to display. */
 export type SaleOutcome = { ok: true } | { ok: false; code: string; message: string };
-export type ApprovalPermission = "sale.void" | "sale.price_override";
+export type ApprovalPermission = "sale.void" | "sale.price_override" | "refund.approve";
 /** A manager's id and PIN. The host checks the PIN; the screen never keeps it. */
 export type Approval = { approverId: string; pin: string };
 export type Approver = { userId: string; name: string };
@@ -69,7 +73,7 @@ export type MomoInput = {
   amount: Money;
 };
 export type PurchaseFilters = {
-  status: "all" | "completed" | "voided" | "pending";
+  status: "all" | "completed" | "returned" | "voided" | "pending";
   query: string;
   kind: "all" | TenderKind;
   page: number;
@@ -82,7 +86,34 @@ export type PurchaseOutput = {
   printer: HostStatus["printer"]["state"];
   paperMm: 58 | 80;
   canReprint: boolean;
+  /** The cashier holds `refund.request`. */
+  canRefund: boolean;
 };
+/** Looking a receipt up on the server, from the "Find on server" row. */
+export type PurchaseLookup = {
+  status: "idle" | "loading" | "missing" | "offline" | "failed";
+  receipt: string;
+  message: string | null;
+};
+/** The return screen's fresh check of what may still go back; null while the detail is showing. */
+export type ReturnState =
+  | { status: "loading" }
+  | { status: "ready"; eligibility: EligibilityView }
+  | { status: "failed"; code: string; message: string };
+export type RefundTender = { kind: "cash" } | { kind: "card" | "momo"; reference: string };
+export type RefundKind = RefundTender["kind"];
+/** What refunding some quantities takes back: the lines before tax, the tax, and the gross. */
+export type RefundPreview = { base: Money; tax: Money; gross: Money };
+/** A held sale being voided from the held-sales dialog: that dialog stays the only one open. */
+export type HeldVoidTarget = { name: string; onBack: () => void; formRef: Ref<HTMLFormElement> };
+export type RefundInput = {
+  lines: { lineId: string; quantityThousandths: number }[];
+  reason: string;
+  tender: RefundTender;
+  approval?: Approval;
+};
+/** `total` is what the register paid out, after cash rounding. */
+export type RefundOutcome = { ok: true; total: number } | Extract<SaleOutcome, { ok: false }>;
 export type PurchasesSnapshot = {
   status: "idle" | "loading" | "ready" | "empty" | "error" | "offline";
   filters: PurchaseFilters;
@@ -90,9 +121,14 @@ export type PurchasesSnapshot = {
   total: number;
   page: number;
   pageSize: number;
+  /** Per tab, for the rows matching the search and tender kind. */
+  counts: PurchaseCounts;
   selected: PurchaseDetails | null;
   error: string | null;
   reprint: ReprintFeedback | null;
+  lookup: PurchaseLookup;
+  returning: ReturnState | null;
+  approvers: ApproverState;
 };
 
 /** The register settings and printer status the completion view needs. */
@@ -176,6 +212,14 @@ export type PurchaseActions = {
   clear: () => void;
   /** Resolves with the outcome, so the screen can toast it as well as show it inline. */
   reprint: (saleId: string) => Promise<ReprintFeedback>;
+  /** Opens a sale of this store by its receipt number, from this register or another one. */
+  lookup: (receipt: string) => void;
+  /** Opens the return screen and asks the host what may still go back. */
+  startReturn: (purchase: PurchaseDetails) => void;
+  endReturn: () => void;
+  /** Resolves with the outcome so the return screen can stay open on a refusal; success shows the refreshed sale. */
+  refund: (purchase: PurchaseDetails, input: RefundInput) => Promise<RefundOutcome>;
+  loadApprovers: (permission: ApprovalPermission) => void;
 };
 
 export type { HostStatus };

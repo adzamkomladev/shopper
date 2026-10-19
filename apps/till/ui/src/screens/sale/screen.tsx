@@ -163,8 +163,9 @@ export function SaleScreen({
     field.props.onKeyDown(event);
   }
 
+  // The held-sales dialog keeps its own F11 (void) and Escape, so the screen's keys wait behind it.
   const registerShortcuts = useShortcuts(
-    screenActive && !snapshot.receipt
+    screenActive && !snapshot.receipt && !controls.heldOpen
       ? {
           F2: focusScan,
           F3: () => listRef.current?.focus(),

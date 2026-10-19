@@ -239,7 +239,9 @@ export function TenderPanel({
           controls.setHeldOpen(false);
         }}
         canVoid={snapshot.permissions.includes("sale.void")}
-        onHeldVoid={(id, revision, reason) => void actions.voidSale(reason, id, revision)}
+        onHeldVoid={(id, revision, reason, approval) =>
+          actions.voidSale(reason, id, revision, approval)
+        }
         onVoidOpenChange={controls.setVoidOpen}
         onVoidSubmit={controls.confirmVoid}
         onRetryApprovers={() => actions.loadApprovers("sale.void")}

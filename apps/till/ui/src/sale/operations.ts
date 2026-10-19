@@ -1,5 +1,6 @@
 import type { BridgeMessage, BridgeRequest } from "@shopper/sync/bridge";
 import { request } from "../connection/store";
+import { loadingApprovers, readApprovers } from "./approvers";
 import type {
   Approval,
   ApprovalPermission,
@@ -119,6 +120,7 @@ export function createSaleOperations({
         expectedRevision: expectedRevision ?? revision(),
         reason,
         draftId,
+        ...(approval ? { approval } : {}),
       });
       if (
         reply?.type === "result" &&
@@ -128,7 +130,7 @@ export function createSaleOperations({
         const held = await request({ type: "sale.listHeld", expectedRevision: revision() });
         if (held?.type === "result" && held.kind === "held") update({ held: held.views });
         else report(held);
-      } else report(reply);
+      } else if (!(reply?.type === "error" && inline(reply.code))) report(reply);
       update({ busy: false });
       return outcomeOf(reply);
     }
@@ -155,17 +157,8 @@ export function createSaleOperations({
   }
 
   async function loadApprovers(permission: ApprovalPermission) {
-    update({ approvers: { permission, status: "loading", approvers: [], stale: false } });
-    const reply = await request({ type: "approvers.list", permission });
-    const ready = reply?.type === "result" && reply.kind === "approvers";
-    update({
-      approvers: {
-        permission,
-        status: ready ? "ready" : "failed",
-        approvers: ready ? reply.approvers : [],
-        stale: ready && reply.stale,
-      },
-    });
+    update({ approvers: loadingApprovers(permission) });
+    update({ approvers: await readApprovers(permission) });
   }
 
   async function newSale() {

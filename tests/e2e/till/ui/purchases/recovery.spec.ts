@@ -42,7 +42,7 @@ test("a rejected receipt read shows recovery and can be retried", async ({ page 
   await makeSale(page, currentScenario().products[0]!.barcode);
   await openPurchases(page);
   await page
-    .getByRole("button", { name: /^Receipt / })
+    .getByRole("button", { name: /[AP]M #/ })
     .first()
     .click();
   await expect(page.getByRole("alert")).toContainText(
@@ -50,24 +50,24 @@ test("a rejected receipt read shows recovery and can be retried", async ({ page 
   );
   await expect(page.getByText("Select the receipt again to retry.")).toBeVisible();
   await page
-    .getByRole("button", { name: /^Receipt / })
+    .getByRole("button", { name: /[AP]M #/ })
     .first()
     .click();
-  await expect(page.getByRole("heading", { name: "Purchase details" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Purchase #/ })).toBeVisible();
 });
 
 test("Escape prevents a delayed receipt reply from reopening details", async ({ page }) => {
   const delayed = await holdFirstReply(page, "sales.read");
   await makeSale(page, currentScenario().products[0]!.barcode);
   await openPurchases(page);
-  const receipt = page.getByRole("button", { name: /^Receipt / });
+  const receipt = page.getByRole("button", { name: /[AP]M #/ });
   await receipt.click();
   await delayed.started;
   await page.keyboard.press("Escape");
   await expect(receipt).toBeVisible();
   delayed.release();
   await delayed.released;
-  await expect(page.getByRole("heading", { name: "Purchase details" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /^Purchase #/ })).toHaveCount(0);
   await expect(receipt).toBeVisible();
 });
 
@@ -80,7 +80,7 @@ test("a newer receipt selection wins over a delayed older reply", async ({ page 
   await expect(page.getByRole("combobox", { name: "Scan barcode or search items" })).toBeFocused();
   await makeSale(page, currentScenario().products[1]!.barcode, false);
   await openPurchases(page);
-  const receipts = page.getByRole("button", { name: /^Receipt / });
+  const receipts = page.getByRole("button", { name: /[AP]M #/ });
   await expect.poll(() => receipts.count()).toBeGreaterThan(1);
   await receipts.nth(0).click();
   await delayed.started;
@@ -101,16 +101,16 @@ test("a filter refresh prevents a delayed receipt reply from replacing the list"
   await makeSale(page, currentScenario().products[0]!.barcode);
   await openPurchases(page);
   await page
-    .getByRole("button", { name: /^Receipt / })
+    .getByRole("button", { name: /[AP]M #/ })
     .first()
     .click();
   await delayed.started;
   await page.getByRole("searchbox", { name: "Search receipts" }).fill("no-such-receipt");
-  await expect(page.getByText("No purchases today")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Find on server" })).toBeVisible();
   delayed.release();
   await delayed.released;
-  await expect(page.getByText("No purchases today")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Purchase details" })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Find on server" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Purchase #/ })).toHaveCount(0);
 });
 
 test("a stale purchase list reply cannot replace newer filtered results", async ({ page }) => {
@@ -119,18 +119,20 @@ test("a stale purchase list reply cannot replace newer filtered results", async 
   await openPurchases(page, false);
   await delayed.started;
   await page.getByRole("searchbox", { name: "Search receipts" }).fill("no-such-receipt");
-  await expect(page.getByText("No purchases today")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Find on server" })).toBeVisible();
   delayed.release();
   await delayed.released;
-  await expect(page.getByText("No purchases today")).toBeVisible();
-  await expect(page.getByRole("button", { name: /^Receipt / })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Find on server" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /[AP]M #/ })).toHaveCount(0);
 });
 
 async function openPurchases(page: Page, waitForRows = true) {
   await openFromMenu(page, "Previous purchases");
-  await expect(page.getByRole("heading", { name: "Purchases", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Previous purchases", exact: true }),
+  ).toBeVisible();
   if (waitForRows)
-    await expect(page.getByRole("button", { name: /^Receipt / }).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /[AP]M #/ }).first()).toBeVisible();
 }
 
 async function makeSale(page: Page, barcode: string, navigate = true) {

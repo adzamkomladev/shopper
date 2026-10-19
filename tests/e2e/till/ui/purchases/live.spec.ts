@@ -50,7 +50,7 @@ test("Reprint on a purchase prints a REPRINT copy and the card counts it", async
 
   await page.keyboard.press("Alt+P");
   await page
-    .getByRole("button", { name: /^Receipt / })
+    .getByRole("button", { name: /[AP]M #/ })
     .first()
     .click();
   const card = page.getByRole("region", { name: "Receipt metadata" });

@@ -25,6 +25,7 @@ export function purchaseOutput(
       printer: current.printer.state,
       paperMm: current.value.paperMm,
       canReprint: permissions.includes("sale.create"),
+      canRefund: permissions.includes("refund.request"),
     }
   );
 }

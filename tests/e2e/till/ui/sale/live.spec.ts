@@ -149,12 +149,14 @@ test("a real till splits cash, completes the balance and finds its receipt in Pu
   await expect(lines(page).filter({ hasText: scenario!.products[2]!.name })).toHaveCount(1);
   await expect(lines(page).filter({ hasText: scenario!.products[1]!.name })).toHaveCount(0);
   await openFromMenu(page, "Previous purchases");
-  await expect(page.getByRole("heading", { name: "Purchases", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Previous purchases", exact: true }),
+  ).toBeVisible();
   await page
-    .getByRole("button", { name: /Receipt/ })
+    .getByRole("button", { name: /[AP]M #/ })
     .first()
     .click();
-  await expect(page.getByRole("heading", { name: "Purchase details" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Purchase #/ })).toBeVisible();
   await expect(page.getByRole("table", { name: "Items purchased" })).toContainText("Milo 400g tin");
   await expectNoSeriousAxe(page);
 });

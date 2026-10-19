@@ -122,6 +122,7 @@ function Workspace({ onRegister }: { onRegister: () => void }) {
           <PurchasesScreen
             active={tab === "purchases"}
             actions={purchaseActions}
+            online={link.online}
             output={purchaseOutput(settings.current, sale.permissions)}
             snapshot={purchases}
           />

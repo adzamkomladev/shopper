@@ -9,9 +9,16 @@ import {
   DialogTitle,
 } from "@shopper/ui/components/dialog";
 import { FieldError } from "@shopper/ui/components/field";
+import { Kbd } from "@shopper/ui/components/kbd";
 import { Textarea } from "@shopper/ui/components/textarea";
 import { useApprovalForm } from "../../../../hooks/approval/form";
-import type { Approval, ApproverState, SaleControls, SaleOutcome } from "../../../../sale/types";
+import type {
+  Approval,
+  ApproverState,
+  HeldVoidTarget,
+  SaleControls,
+  SaleOutcome,
+} from "../../../../sale/types";
 import { ApprovalFields } from "../../../approval/fields";
 
 const needsManager: Record<NonNullable<SaleControls["voidApproval"]>, string> = {
@@ -49,12 +56,13 @@ export function VoidDialog({ open, onOpenChange, onReturnFocus, ...form }: Props
 }
 
 /** Mounted with the dialog content, so closing the dialog drops the reason and the PIN. */
-function VoidForm({
+export function VoidForm({
   approval,
   approvers,
   onRetryApprovers,
   onSubmit,
-}: Omit<Props, "open" | "onOpenChange" | "onReturnFocus">) {
+  held,
+}: Omit<Props, "open" | "onOpenChange" | "onReturnFocus"> & { held?: HeldVoidTarget }) {
   const [reason, setReason] = useState("");
   const manager = useApprovalForm(approvers, approval !== null);
   const text = reason.trim();
@@ -65,11 +73,13 @@ function VoidForm({
   }
 
   return (
-    <form className="grid gap-4" onSubmit={submit}>
+    <form className="grid gap-4" onSubmit={submit} ref={held?.formRef}>
       <DialogHeader>
         <DialogTitle>Void sale</DialogTitle>
         <DialogDescription id="void-sale-help">
-          {approval ? needsManager[approval] : "Record why this sale is being voided."}
+          {approval
+            ? needsManager[approval]
+            : `Record why ${held?.name ?? "this sale"} is being voided.`}
         </DialogDescription>
       </DialogHeader>
       <label className="grid gap-2 text-sm font-medium">
@@ -92,13 +102,25 @@ function VoidForm({
       )}
       {manager.problem && <FieldError>{manager.problem}</FieldError>}
       <DialogFooter>
+        {held && (
+          <Button
+            aria-keyshortcuts="Escape"
+            onClick={held.onBack}
+            size="touch"
+            type="button"
+            variant="outline"
+          >
+            Back to held sales <Kbd>Escape</Kbd>
+          </Button>
+        )}
         <Button
+          aria-keyshortcuts={held ? "F11" : undefined}
           disabled={!text || !manager.ready || manager.pending}
           size="touch"
           type="submit"
           variant="destructive"
         >
-          Void sale
+          Void sale {held && <Kbd>F11</Kbd>}
         </Button>
       </DialogFooter>
     </form>

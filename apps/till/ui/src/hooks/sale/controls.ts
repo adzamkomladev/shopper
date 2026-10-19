@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { takenTender } from "../../sale/void";
 import type { Approval, SaleActions, SaleControls, SaleSnapshot } from "../../sale/types";
 
 /** Hold, held sales and void: one set of sale-level controls for the tiles, Clear cart and F6, F7 and F11. */
@@ -9,16 +10,9 @@ export function useSaleControls(snapshot: SaleSnapshot, actions: SaleActions): S
   const hasDraft = snapshot.view?.draft != null;
   const locked = snapshot.host !== "connected" || snapshot.failure !== null || snapshot.busy;
   // Cash or card already taken means only a manager can undo the sale, whatever the cashier may do.
-  const taken = snapshot.view?.draft?.tenders.filter(
-    (tender) => tender.kind !== "momo" && tender.status === "applied",
-  );
-  const voidApproval = taken?.length
-    ? taken.some((tender) => tender.kind === "cash")
-      ? "cash"
-      : "card"
-    : snapshot.permissions.includes("sale.void")
-      ? null
-      : "permission";
+  const voidApproval =
+    takenTender(snapshot.view?.draft ?? null) ??
+    (snapshot.permissions.includes("sale.void") ? null : "permission");
 
   function hold() {
     if (locked || !hasDraft) return;

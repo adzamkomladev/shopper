@@ -1,6 +1,6 @@
-import type { SaleRegister, SaleSnapshot } from "../src/sale/types";
+import type { DraftView, SaleRegister, SaleSnapshot } from "../src/sale/types";
 import { money } from "@shopper/money";
-import { emptyView, items, basket, id, matches, priceLabelled } from "./fixtures";
+import { emptyView, items, basket, id, matches, priceLabelled, today } from "./fixtures";
 import { makeReceipt } from "./receipts";
 import { withCashTender, withTender } from "./sale/tenders";
 
@@ -17,6 +17,30 @@ const held = {
     ? { ...heldView.draft, id: id("7"), status: "held" as const, name: "Milo customer" }
     : null,
 };
+/** The held sale after its customer paid part of it: only a manager can void it now. */
+const heldPaid = (kind: "cash" | "card"): DraftView => ({
+  ...held,
+  draft: held.draft && {
+    ...held.draft,
+    tenders: [
+      {
+        id: id("11"),
+        orgId: id("2"),
+        draftId: held.draft.id,
+        position: 0,
+        kind,
+        amount: money(545_000),
+        reference: null,
+        approvalCode: kind === "card" ? "A1B2C3" : null,
+        last4: null,
+        phone: null,
+        network: null,
+        status: "applied",
+        createdAt: today,
+      },
+    ],
+  },
+});
 const base: SaleSnapshot = {
   host: "connected",
   loading: false,
@@ -136,6 +160,8 @@ export const scenarios: Record<string, SaleSnapshot> = {
   "round-down": { ...base, view: roundedView(money(12_400)) },
   insufficient: { ...base, view: withCashTender(money(500_000)) },
   "no-void-permission": { ...base, permissions: [] },
+  "held-void-cash": { ...base, held: [heldPaid("cash")] },
+  "held-void-card": { ...base, held: [heldPaid("card")] },
   "void-cash": voidCash,
   "void-locked": voidCash,
   "void-forbidden": voidCash,

@@ -15,10 +15,14 @@ import { ConnectionScreen } from "./screens/connection/screen";
 import { SaleScreen } from "./screens/sale/screen";
 import { PurchasesScreen } from "./screens/purchases/screen";
 import { SettingsScreen } from "./screens/settings/screen";
+import { ShiftScreen } from "./screens/shift/screen";
 import { SignInScreen } from "./screens/signin/screen";
 import { ShellFrame } from "./components/shell/frame";
 import { shellLink } from "./components/shell/link";
 import { RegisterSlot } from "./components/shell/slot";
+import { CheckoutGate } from "./components/shift/gate";
+import { ShiftDialogs } from "./components/shift/dialogs/host";
+import { useShiftDialogs } from "./hooks/shift/dialog/state";
 import type { ShellView } from "./components/shell/types";
 import { landingView } from "./components/shell/views";
 import { connectRegister, initializeConnection, useConnectionSnapshot } from "./connection/store";
@@ -28,6 +32,7 @@ import { purchaseOutput } from "./purchases/delivery";
 import { purchaseActions, usePurchasesSnapshot } from "./purchases/store";
 import { initializeSession, signIn, signOut, useSignInSnapshot } from "./session/store";
 import { settingsActions, useSettingsSnapshot } from "./settings/store";
+import { shiftActions, useShiftSnapshot } from "./shift/store";
 
 const display = new URLSearchParams(window.location.search).has("display");
 initializeConnection();
@@ -73,17 +78,24 @@ function Workspace({ onRegister }: { onRegister: () => void }) {
   const sale = useSaleSnapshot();
   const purchases = usePurchasesSnapshot();
   const settings = useSettingsSnapshot();
+  const shift = useShiftSnapshot();
+  const dialogs = useShiftDialogs(shift.phase);
+  // A dialog owns the keys, so the screen under it stops listening until it closes.
+  const modal = dialogs.dialog !== null;
   const can = (permission: string) => permissions.includes(permission);
   function navigate(next: ShellView) {
     setTab(next);
     if (next === "sale") setSaleFocus((value) => value + 1);
     if (next === "purchases") purchaseActions.list({ ...purchases.filters, page: 1 });
+    if (next === "shift") shiftActions.loadReport(true);
   }
   const link = shellLink(connection.host, status);
   return (
     <RegisterProvider>
       <ShellFrame
         link={link}
+        modal={modal}
+        onAction={dialogs.start}
         onSignOut={() => void signOut()}
         onView={navigate}
         permissions={permissions}
@@ -108,13 +120,31 @@ function Workspace({ onRegister }: { onRegister: () => void }) {
         )}
         {can("sale.create") && (
           <div hidden={tab !== "sale"} className="h-full min-h-0">
-            <SaleScreen
-              active={tab === "sale"}
-              actions={saleActions}
-              focusKey={saleFocus}
-              onPurchases={() => navigate("purchases")}
-              onRegister={onRegister}
-              snapshot={sale}
+            <CheckoutGate
+              active={tab === "sale" && !modal}
+              canWrite={can("shift.write")}
+              onClose={() => navigate("shift")}
+              onOpen={() => dialogs.start("open")}
+              phase={shift.phase}
+            >
+              <SaleScreen
+                active={tab === "sale" && !modal}
+                actions={saleActions}
+                focusKey={saleFocus}
+                onPurchases={() => navigate("purchases")}
+                onRegister={onRegister}
+                snapshot={sale}
+              />
+            </CheckoutGate>
+          </div>
+        )}
+        {can("shift.write") && (
+          <div hidden={tab !== "shift"} className="h-full min-h-0">
+            <ShiftScreen
+              active={tab === "shift" && !modal}
+              actions={shiftActions}
+              onOpen={() => dialogs.start("open")}
+              snapshot={shift}
             />
           </div>
         )}
@@ -135,6 +165,12 @@ function Workspace({ onRegister }: { onRegister: () => void }) {
           />
         </div>
       </ShellFrame>
+      <ShiftDialogs
+        actions={shiftActions}
+        dialog={dialogs.dialog}
+        onClose={dialogs.close}
+        onClosed={(event) => dialogs.restore(event, () => setSaleFocus((value) => value + 1))}
+      />
     </RegisterProvider>
   );
 }

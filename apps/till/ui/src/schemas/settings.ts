@@ -12,7 +12,7 @@ const hostname =
 const portMessage = "Enter a port from 1 to 65535";
 
 const daysMessage = "Enter a whole number of days from 0 to 365";
-const varianceMessage = "Enter an amount from GHS 0 to GHS 1,000 in pesewas";
+const varianceMessage = "Enter an amount from GH₵ 0 to GH₵ 1,000";
 const hostMessage = "Enter an IP address like 192.168.1.50 or a host name";
 const serial = registerSettings.entries.scanner.wrapped.wrapped.entries;
 /** The baud rates the host accepts, as the text a select holds. */

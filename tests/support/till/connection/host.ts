@@ -12,6 +12,8 @@ export async function createConnectionHost(
   upstream: string,
   origin: string,
   references: unknown = server.references,
+  /** `shift: false` leaves the register closed, so a test can open the shift itself. */
+  options: { shift?: boolean } = {},
 ) {
   const [{ openTillDatabase }, { provisionTillReference }] = await Promise.all([
     import("@shopper/adapters-box/till"),
@@ -44,14 +46,15 @@ export async function createConnectionHost(
       },
       references,
     );
-    await insertOpenShift(database, {
-      orgId: server.identity.orgId,
-      deviceId: server.identity.deviceId,
-      branchId: server.identity.branchId,
-      storeId: server.identity.storeId,
-      openedBy: server.session.userId,
-      openedSessionId: server.session.id,
-    });
+    if (options.shift !== false)
+      await insertOpenShift(database, {
+        orgId: server.identity.orgId,
+        deviceId: server.identity.deviceId,
+        branchId: server.identity.branchId,
+        storeId: server.identity.storeId,
+        openedBy: server.session.userId,
+        openedSessionId: server.session.id,
+      });
   } catch (error) {
     await database.close();
     await rm(directory, { recursive: true, force: true });

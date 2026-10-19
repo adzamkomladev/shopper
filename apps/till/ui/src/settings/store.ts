@@ -72,12 +72,18 @@ async function device(action: DeviceAction, body: { type: "printer.test" | "draw
   const feedback: DeviceFeedback = {
     action,
     status: done ? "done" : "failed",
-    message: done ? null : reply?.type === "error" ? reply.message : ended,
+    message: done ? null : reply?.type === "error" ? refusal(reply) : ended,
     at: Date.now(),
   };
   update({ device: feedback });
   return feedback;
 }
+
+/** The drawer test is a recorded no-sale, so a closed register says what to do before it can run. */
+const refusal = (reply: Extract<BridgeMessage, { type: "error" }>) =>
+  reply.code === "SHIFT_REQUIRED" || reply.code === "SHIFT_COUNTED"
+    ? `${reply.message} first: the drawer test is recorded as a no-sale.`
+    : reply.message;
 
 function saveErrorOf(reply: BridgeMessage | undefined): SaveError {
   if (reply?.type !== "error") return { kind: "storage", message: ended };

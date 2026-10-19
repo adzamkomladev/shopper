@@ -26,7 +26,7 @@ export function TextField({
   value: string;
   error?: string;
   readOnly: boolean;
-  inputMode?: "numeric";
+  inputMode?: "numeric" | "decimal";
   className?: string;
   onChange: (value: string) => void;
 }) {

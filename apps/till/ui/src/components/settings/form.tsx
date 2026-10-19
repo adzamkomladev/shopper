@@ -29,6 +29,7 @@ const order = [
   "scanner.path",
   "display.path",
   "returnWindowDays",
+  "varianceThreshold",
 ] as const;
 const fieldKeys: Record<(typeof order)[number], string> = {
   storeName: "settings-store-name",
@@ -40,6 +41,7 @@ const fieldKeys: Record<(typeof order)[number], string> = {
   "scanner.path": "settings-scanner-path",
   "display.path": "settings-display-path",
   returnWindowDays: "settings-return-window",
+  varianceThreshold: "settings-variance",
 };
 
 /**

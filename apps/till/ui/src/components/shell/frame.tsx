@@ -5,7 +5,7 @@ import { MenuDrawer } from "./menu";
 import { ShellTabs } from "./tabs";
 import { StatusBar } from "./status";
 import { TitleBar } from "./titlebar";
-import type { ShellLink, ShellView } from "./types";
+import type { ShellAction, ShellLink, ShellView } from "./types";
 import { menuShortcut, signOutShortcut, visibleTabs } from "./views";
 
 /**
@@ -19,7 +19,9 @@ export function ShellFrame({
   link,
   view,
   onView,
+  onAction,
   onSignOut,
+  modal,
   children,
 }: {
   user: string;
@@ -28,27 +30,40 @@ export function ShellFrame({
   link: ShellLink;
   view: ShellView;
   onView: (view: ShellView) => void;
+  onAction: (action: ShellAction) => void;
   onSignOut: () => void;
+  /** A dialog is open: it owns the keyboard, so none of the shell's keys fire behind it. */
+  modal: boolean;
   children: ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   // A screen chosen in the drawer opens once the drawer has closed, so focus is free for that screen to take.
-  const chosen = useRef<ShellView | null>(null);
+  const chosen = useRef<ShellView | ShellAction | null>(null);
   const can = (permission: string) => permissions.includes(permission);
-  const go = (next: ShellView) => {
+  const shifts = can("shift.write");
+  const go = (next: ShellView | ShellAction) => {
     chosen.current = next;
     setMenuOpen(false);
   };
-  const register = useShortcuts({
-    "Alt+S": () => can("sale.create") && onView("sale"),
-    "Alt+P": () => onView("purchases"),
-    "Alt+T": () => onView("settings"),
-    [menuShortcut]: () => setMenuOpen((open) => !open),
-    [signOutShortcut]: onSignOut,
-    ...Object.fromEntries(
-      visibleTabs(permissions).map((tab) => [tab.shortcut, () => onView(tab.view)]),
-    ),
-  });
+  const register = useShortcuts(
+    modal
+      ? {}
+      : {
+          "Alt+S": () => can("sale.create") && onView("sale"),
+          "Alt+P": () => onView("purchases"),
+          "Alt+T": () => onView("settings"),
+          ...(shifts && {
+            "Alt+H": () => onView("shift"),
+            "Alt+K": () => onAction("drop"),
+            "Alt+J": () => onAction("nosale"),
+          }),
+          [menuShortcut]: () => setMenuOpen((open) => !open),
+          [signOutShortcut]: onSignOut,
+          ...Object.fromEntries(
+            visibleTabs(permissions).map((tab) => [tab.shortcut, () => onView(tab.view)]),
+          ),
+        },
+  );
   return (
     <Sheet onOpenChange={setMenuOpen} open={menuOpen}>
       <div className="flex h-svh min-h-0 flex-col bg-muted/50" ref={register}>
@@ -65,11 +80,13 @@ export function ShellFrame({
           chosen.current = null;
           if (!next) return;
           event.preventDefault();
-          onView(next);
+          if (next === "drop" || next === "nosale") onAction(next);
+          else onView(next);
         }}
         onSignOut={onSignOut}
         onView={go}
         online={link.online}
+        shifts={shifts}
         registerName={registerName}
         user={user}
       />

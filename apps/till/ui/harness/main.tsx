@@ -17,6 +17,10 @@ import { landingView } from "../src/components/shell/views";
 import { SaleScreen } from "../src/screens/sale/screen";
 import { PurchasesScreen } from "../src/screens/purchases/screen";
 import { SettingsScreen } from "../src/screens/settings/screen";
+import { ShiftScreen } from "../src/screens/shift/screen";
+import { CheckoutGate } from "../src/components/shift/gate";
+import { ShiftDialogs } from "../src/components/shift/dialogs/host";
+import { useShiftDialogs } from "../src/hooks/shift/dialog/state";
 import { scenarios } from "./scenarios";
 import { purchaseOutput } from "../src/purchases/delivery";
 import { purchaseActions } from "./purchases/actions";
@@ -24,6 +28,7 @@ import { initialPurchases } from "./purchases/data";
 import { purchasePermissions } from "./purchases/scenarios";
 import { saleActions } from "./sale/actions";
 import { useSettingsHarness } from "./settings";
+import { useShiftHarness } from "./shift/actions";
 
 declare global {
   interface Window {
@@ -43,6 +48,8 @@ const permissions = params.get("permissions")?.split(",") ?? [
   "sale.create",
   "report.read",
   "stock.read",
+  "shift.read",
+  "shift.write",
 ];
 const link =
   params.has("offline") || name === "find-offline"
@@ -58,17 +65,24 @@ function Harness() {
   const [saleSnapshot, setSaleSnapshot] = useState(initialSale);
   const [purchases, setPurchases] = useState(() => initialPurchases(name));
   const [settings, settingsActions] = useSettingsHarness(name, record);
+  const [shift, shiftActions] = useShiftHarness(name, permissions, record);
+  const dialogs = useShiftDialogs(shift.phase);
+  // A dialog owns the keys, so the screen under it stops listening until it closes.
+  const modal = dialogs.dialog !== null;
   const sale = saleActions(name, record, setSaleSnapshot, printerFails);
   const purchaseActionsFor = purchaseActions(name, record, setPurchases, printerFails);
   function navigate(next: ShellView) {
     setTab(next);
     if (next === "sale") setSaleFocus((value) => value + 1);
     if (next === "purchases") purchaseActionsFor.list({ ...purchases.filters, page: 1 });
+    if (next === "shift") shiftActions.loadReport(true);
   }
   return (
     <RegisterProvider>
       <ShellFrame
         link={link}
+        modal={modal}
+        onAction={dialogs.start}
         onSignOut={record("signOut")}
         onView={navigate}
         permissions={permissions}
@@ -94,13 +108,31 @@ function Harness() {
           )}
           {can("sale.create") && (
             <div className="h-full min-h-0" hidden={tab !== "sale"}>
-              <SaleScreen
-                active={tab === "sale"}
-                actions={sale}
-                focusKey={saleFocus}
-                onPurchases={() => navigate("purchases")}
-                onRegister={record("register")}
-                snapshot={saleSnapshot}
+              <CheckoutGate
+                active={tab === "sale" && !modal}
+                canWrite={can("shift.write")}
+                onClose={() => navigate("shift")}
+                onOpen={() => dialogs.start("open")}
+                phase={shift.phase}
+              >
+                <SaleScreen
+                  active={tab === "sale" && !modal}
+                  actions={sale}
+                  focusKey={saleFocus}
+                  onPurchases={() => navigate("purchases")}
+                  onRegister={record("register")}
+                  snapshot={saleSnapshot}
+                />
+              </CheckoutGate>
+            </div>
+          )}
+          {can("shift.write") && (
+            <div className="h-full min-h-0" hidden={tab !== "shift"}>
+              <ShiftScreen
+                active={tab === "shift" && !modal}
+                actions={shiftActions}
+                onOpen={() => dialogs.start("open")}
+                snapshot={shift}
               />
             </div>
           )}
@@ -122,6 +154,12 @@ function Harness() {
           </div>
         </>
       </ShellFrame>
+      <ShiftDialogs
+        actions={shiftActions}
+        dialog={dialogs.dialog}
+        onClose={dialogs.close}
+        onClosed={(event) => dialogs.restore(event, () => setSaleFocus((value) => value + 1))}
+      />
     </RegisterProvider>
   );
 }

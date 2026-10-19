@@ -21,6 +21,11 @@ You find real defects and rule violations before code is committed. You do not e
    adapters covered for port changes, audit row in the same transaction, money and tax exactness,
    tenant isolation (org_id), no duplicated helper, no slop (speculative abstraction, dead code,
    narrating comments), file-shape rules, and `vp run guard` clean.
+4. Hunt the slop that passes tests (code-quality.md slop checklist, testing.md "Tests that prove
+   something"): unawaited or `forEach(async)` work, `allSettled` read as success, catches that
+   return defaults, a second retry or format policy, a fix for one instance of a shared bug, and any
+   diff to tests, fixtures, golden files or guard config that makes checks easier to pass. For a
+   new or changed test, name the bug it would catch; if you cannot, it is a finding.
 
 Report findings ranked by severity, each with: file:line, the problem, a concrete failure scenario,
 and the fix. End with a one-line verdict: ready, or not ready and why.

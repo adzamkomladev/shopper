@@ -69,7 +69,11 @@ function snapshot(): DisplaySnapshot {
   if (composed?.host === host && composed.status === status && composed.state === state)
     return composed.value;
   const value = {
-    closed: host === "disconnected" || !state.session,
+    // No open shift means nothing can be sold here, so the customer is told to use another register.
+    closed:
+      host === "disconnected" ||
+      !state.session ||
+      (status?.shift !== undefined && status.shift.current?.status !== "open"),
     storeName: status?.settings.value.storeName ?? null,
     view: state.view,
     sold: state.sold,

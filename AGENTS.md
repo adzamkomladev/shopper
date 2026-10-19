@@ -79,6 +79,9 @@ Read the doc for the area you are touching **before** you change it:
 
 - Understand first: read the code the change touches and trace the real flow. Then make the smallest
   change that solves it.
+- Know what your checks prove. A green test that would also pass on the broken code proves
+  nothing; break the change once on purpose and watch a test fail. Fix the class of bug where it
+  starts, not the one instance reported. Never weaken a test, fixture or guard to get green.
 - Search before you write. Reuse existing helpers, schemas and components (code-quality.md lists
   where they live).
 - Main export first, helpers below it. No helper sprawl, no speculative abstractions, no dead code.

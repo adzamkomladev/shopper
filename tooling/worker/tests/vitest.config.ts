@@ -77,6 +77,8 @@ export default defineConfig({
       "launcher.test.ts",
       "payments/momo.test.ts",
       "renderer.test.ts",
+      "approvers.test.ts",
+      "refunds.test.ts",
     ],
   },
 });

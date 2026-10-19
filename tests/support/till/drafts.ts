@@ -15,6 +15,7 @@ import { localSale, outbox, saleLine, tillAudit, tillState, hostSession } from "
 import type { TillDatabase } from "@shopper/db-sqlite";
 import { addToDraft, readDraft } from "@shopper/core/till";
 import { at, context, ids, label, layout, refPrice, refProduct, seed } from "./basket";
+import { insertOpenShift } from "./shifts";
 
 export { at, context, fails, ids, withTill } from "./basket";
 export { label, session } from "./basket";
@@ -68,8 +69,11 @@ export const products = {
   }),
 };
 
-/** Seeds golden tax rules, the two products, both label layouts and a till_state row with receipt allocation. */
-export async function world(db: TillDatabase) {
+/**
+ * Seeds golden tax rules, the two products, both label layouts and a till_state row with receipt allocation, and
+ * opens a shift directly (no audit row) so the register may sell. `{ shift: false }` leaves the register closed.
+ */
+export async function world(db: TillDatabase, options: { shift?: boolean } = {}) {
   await seed(db, {
     products: Object.values(products),
     prices: [refPrice(products.ordinary.id, 12_000), refPrice(products.weighed.id, 30_000)],
@@ -88,6 +92,7 @@ export async function world(db: TillDatabase) {
       receiptBlocks: [{ start: 1, end: 100 }],
     }),
   );
+  if (options.shift !== false) await insertOpenShift(db);
 }
 
 export const ctx = ctxFor(scope);

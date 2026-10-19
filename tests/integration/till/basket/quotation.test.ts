@@ -18,6 +18,7 @@ import {
   tableCounts,
   withTill,
 } from "../../../support/till/basket";
+import { insertOpenShift } from "../../../support/till/shifts";
 
 const quote = (db: Parameters<typeof quoteLine>[0], over: Record<string, unknown> = {}) =>
   quoteLine(db, {
@@ -29,8 +30,10 @@ const quote = (db: Parameters<typeof quoteLine>[0], over: Record<string, unknown
     ...over,
   });
 const v7Unknown = "019a0000-0000-7000-8000-0000000000aa";
-const golden = (db: Parameters<typeof quoteLine>[0]) =>
-  provisionTillReference(db, context, references);
+const golden = async (db: Parameters<typeof quoteLine>[0]) => {
+  await provisionTillReference(db, context, references);
+  await insertOpenShift(db);
+};
 const failure = (code: string, message?: RegExp) => ({
   name: "TillError",
   code,

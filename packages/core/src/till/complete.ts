@@ -32,6 +32,7 @@ import { assignReceipt } from "./receipts/assign";
 import { findRegisterSettings } from "./register/settings";
 import { settle } from "./tenders/settle";
 import { TillError } from "./error";
+import { requireOpenShift } from "./shifts/queries";
 import type { TillConfig } from "./types";
 
 export async function completeDraftSale(
@@ -75,6 +76,7 @@ export async function finishDraftSale(
   },
 ) {
   const { scope, config, session, at, deviceTime } = input;
+  const open = await requireOpenShift(tx, scope);
   const found = await claimDraft(tx, scope, input.expectedRevision, at);
   if (!found.lines.length) throw new TillError("DRAFT_UNKNOWN", "Cannot complete an empty sale");
   const refs = await readQuoteReference(tx, scope.orgId);
@@ -187,6 +189,7 @@ export async function finishDraftSale(
     orgId: scope.orgId,
     deviceId: scope.deviceId,
     localId: id,
+    shiftId: open.id,
     payload: event.sale,
     contentHash: await sha256(canonicalJson(event.sale)),
     receipt: buildReceipt(event.sale, {

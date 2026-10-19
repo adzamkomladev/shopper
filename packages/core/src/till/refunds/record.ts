@@ -18,6 +18,7 @@ import { TillError } from "../error";
 import { findRegisterSettings } from "../register/settings";
 import { readCashRounding } from "../settings";
 import { checkSession, hostTime } from "../session";
+import { requireOpenShift } from "../shifts/queries";
 import { buildRefund, eligibility } from "./eligibility";
 import type { Original } from "./types";
 import { loadLocalOriginal, readEligibility, refundPolicy } from "./queries";
@@ -88,7 +89,7 @@ async function prepare<S extends v.GenericSchema>(
 const record = defineCommand({
   name: "refund.record",
   async run(tx, context, prepared: Prepared) {
-    const { event, receipt, original, approverId } = await plan(tx, prepared);
+    const { event, receipt, original, approverId, shiftId } = await plan(tx, prepared);
     context.approverId = approverId ?? undefined;
     const { config, session, data, time } = prepared;
     const { refund: snapshot } = event;
@@ -103,6 +104,7 @@ const record = defineCommand({
       payload: event,
       receipt,
       sessionId: session.id,
+      shiftId,
       createdAt: time.toISOString(),
       acceptedAt: data.acceptedAt?.toISOString() ?? null,
     });
@@ -142,6 +144,7 @@ const record = defineCommand({
 /** Session, policy, quantities and pricing in one read, so planning and recording cannot disagree. */
 async function plan(tx: TillSqlite, { config, session, data, time }: Prepared) {
   checkSession(session, config, "refund.request", time);
+  const { id: shiftId } = await requireOpenShift(tx, config);
   const original = data.original
     ? fromServer(data.original)
     : await loadLocalOriginal(tx, config, data.saleId);
@@ -182,7 +185,7 @@ async function plan(tx: TillSqlite, { config, session, data, time }: Prepared) {
       ...(names && { branchName: names.value.storeName, deviceName: names.value.registerName }),
     },
   );
-  return { event, receipt, original, approverId };
+  return { event, receipt, original, approverId, shiftId };
 }
 
 const fromServer = (found: NonNullable<Input["original"]>): Original => ({

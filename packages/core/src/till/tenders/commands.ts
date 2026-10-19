@@ -10,6 +10,7 @@ import { TillError } from "../error";
 import { readQuoteReference } from "../quotation";
 import { quoteDraft } from "../drafts/quote";
 import { settle } from "./settle";
+import { requireOpenShift } from "../shifts/queries";
 
 export function addDraftTender(db: TillDatabase, context: CommandContext, raw: unknown) {
   const input = v.parse(addDraftTenderInput, raw);
@@ -24,6 +25,7 @@ export function removeDraftTender(db: TillDatabase, context: CommandContext, raw
 const addTender = defineCommand({
   name: "till.draft.tender.add",
   async run(tx, _context, input: v.InferOutput<typeof addDraftTenderInput>) {
+    await requireOpenShift(tx, input.scope);
     const found = await claimDraft(tx, input.scope, input.expectedRevision, input.at);
     if (!found.lines.length) throw new TillError("DRAFT_UNKNOWN", "Cannot tender an empty draft");
     const tenders = await tx

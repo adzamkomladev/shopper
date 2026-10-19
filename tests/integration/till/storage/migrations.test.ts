@@ -128,3 +128,107 @@ test("the refund steps keep existing sale movements and allow returns beside the
   await expect(insert("return", -1000, null, v7())).rejects.toThrow();
   await expect(insert("return", 1000, null, null)).rejects.toThrow();
 });
+
+const columns = (database: TillDatabase, table: string) =>
+  database
+    .read((tx) =>
+      tx.all<{ name: string }>(sql.raw(`SELECT name FROM pragma_table_info('${table}')`)),
+    )
+    .then((rows) => rows.map((row) => row.name));
+
+test("step 8 adds the shift tables, the shift_id columns and the one-open-shift index", async () => {
+  const { tillMigrations } = await import("@shopper/db-sqlite");
+  expect(tillMigrations).toHaveLength(8);
+  directory = await mkdtemp(join(tmpdir(), "shopper-till-migrations-"));
+  db = openTillDatabase(join(directory, "till.sqlite"));
+  expect(await version(db)).toBe(8);
+  expect(await columns(db, "shift")).toEqual(
+    expect.arrayContaining([
+      "id",
+      "org_id",
+      "device_id",
+      "branch_id",
+      "store_id",
+      "status",
+      "opened_at",
+      "opened_by",
+      "opened_session_id",
+      "float",
+      "float_counts",
+      "declaration",
+      "closed_at",
+      "closed_by",
+      "approver_id",
+      "report",
+      "anchor_seq",
+      "anchor_hash",
+      "attempts",
+      "next_attempt_at",
+      "blocked_code",
+      "blocked_reason",
+      "accepted_at",
+      "result",
+    ]),
+  );
+  expect(await columns(db, "shift_movement")).toEqual(
+    expect.arrayContaining(["id", "org_id", "shift_id", "kind", "amount", "reason", "actor_id"]),
+  );
+  expect(await columns(db, "shift_movement")).toEqual(expect.arrayContaining(["session_id", "at"]));
+  expect(await columns(db, "local_sale")).toContain("shift_id");
+  expect(await columns(db, "refund")).toContain("shift_id");
+  const indexes = await db.read((tx) =>
+    tx.all<{ name: string; sql: string | null }>(
+      sql`SELECT name, sql FROM sqlite_master WHERE type = 'index' AND name = 'shift_current'`,
+    ),
+  );
+  expect(indexes).toHaveLength(1);
+  expect(indexes[0]!.sql).toMatch(/UNIQUE/i);
+  expect(indexes[0]!.sql).toMatch(/WHERE/i);
+});
+
+test("step 8 keeps existing sales and refunds, now without a shift", async () => {
+  const { Database } = await import("../../../support/till/sqlcipher");
+  const { tillMigrations } = await import("@shopper/db-sqlite");
+  directory = await mkdtemp(join(tmpdir(), "shopper-till-migrations-"));
+  const path = join(directory, "till.sqlite");
+  const old = new Database(path);
+  const saleId = v7();
+  for (const step of tillMigrations.slice(0, 7)) old.exec(step);
+  old.exec(
+    `PRAGMA user_version=7;
+     INSERT INTO local_sale (id, org_id, device_id, local_id, payload, content_hash) VALUES ('${saleId}', '${org}', '${device}', '${saleId}', '{}', 'h');
+     INSERT INTO refund (id, org_id, device_id, original_sale_id, origin, payload, receipt, session_id, created_at)
+       VALUES ('${v7()}', '${org}', '${device}', '${saleId}', 'local', '{}', '{}', '${v7()}', '2026-01-01T00:00:00.000Z')`,
+  );
+  old.close();
+  db = openTillDatabase(path);
+  expect(await version(db)).toBe(8);
+  const kept = (table: string) =>
+    db!.read((tx) => tx.all<{ shift_id: string | null }>(sql.raw(`SELECT shift_id FROM ${table}`)));
+  expect(await kept("local_sale")).toEqual([{ shift_id: null }]);
+  expect(await kept("refund")).toEqual([{ shift_id: null }]);
+});
+
+test("a drop needs a positive amount and a no-sale a zero amount with a reason", async () => {
+  directory = await mkdtemp(join(tmpdir(), "shopper-till-migrations-"));
+  db = openTillDatabase(join(directory, "till.sqlite"));
+  const shiftId = v7();
+  await db.transaction((tx) =>
+    tx.run(sql`INSERT INTO shift (id, org_id, device_id, branch_id, store_id, status, opened_at, opened_by, opened_session_id, float)
+      VALUES (${shiftId}, ${org}, ${device}, ${v7()}, ${v7()}, 'open', '2026-01-01T00:00:00.000Z', ${v7()}, ${v7()}, 2000000)`),
+  );
+  const movement = (kind: string, amount: number, reason: string | null) =>
+    db!.transaction((tx) =>
+      tx.run(sql`INSERT INTO shift_movement (id, org_id, shift_id, kind, amount, reason, actor_id, session_id, at)
+        VALUES (${v7()}, ${org}, ${shiftId}, ${kind}, ${amount}, ${reason}, ${v7()}, ${v7()}, '2026-01-01T01:00:00.000Z')`),
+    );
+  await movement("drop", 1_000_000, "Mid-shift drop");
+  await movement("drop", 5_000, "Safe");
+  await movement("no_sale", 0, "Change for a customer");
+  await expect(movement("drop", 0, "Safe")).rejects.toThrow();
+  await expect(movement("drop", -5_000, "Safe")).rejects.toThrow();
+  await expect(movement("no_sale", 5_000, "Odd")).rejects.toThrow();
+  await expect(movement("no_sale", 0, null)).rejects.toThrow();
+  await expect(movement("no_sale", 0, "")).rejects.toThrow();
+  await expect(movement("refund", 100, "Safe")).rejects.toThrow();
+});

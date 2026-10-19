@@ -18,10 +18,11 @@ import { provisionTillReference } from "@shopper/core/till";
 import { money } from "@shopper/money";
 import { goldenReferences } from "../../../fixtures/sales/golden/references";
 import { databases, hostConfiguration } from "../../till/server";
+import { insertOpenShift } from "../../till/shifts";
 
 export const at = new Date("2026-10-15T12:00:00.000Z");
 
-export async function goldenWorld() {
+export async function goldenWorld(options: { shift?: boolean } = {}) {
   const { db, context } = databases();
   const host = await hostConfiguration(":memory:", ["http://localhost"]);
   if (!host.session) throw new Error("Golden till requires a cashier session");
@@ -61,6 +62,16 @@ export async function goldenWorld() {
   };
   const local = openTillDatabase(":memory:");
   await provisionTillReference(local, command, goldenReferences);
+  // An open shift inserted directly (no audit row); `{ shift: false }` leaves the register closed.
+  if (options.shift !== false)
+    await insertOpenShift(local, {
+      orgId: scope.orgId,
+      deviceId: scope.deviceId,
+      branchId: scope.branchId,
+      storeId: config.storeId,
+      openedBy: session.userId,
+      openedSessionId: session.id,
+    });
   return { db, local, config, session, scope, command };
 }
 

@@ -23,6 +23,7 @@ export const refund = sqliteTable(
     blockedReason: text("blocked_reason"),
     acceptedAt: text("accepted_at"),
     result: text("result", { mode: "json" }).$type<Record<string, unknown>>(),
+    shiftId: text("shift_id"),
   },
   (t) => [unique().on(t.orgId, t.id)],
 );

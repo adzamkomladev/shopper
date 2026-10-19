@@ -16,12 +16,14 @@ import {
   session,
   withDatabase,
 } from "../../../support/till/sales";
+import { insertOpenShift } from "../../../support/till/shifts";
 
 const uuid7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const lines = [{ productId: ids.product, quantityThousandths: goldenSale.quantityThousandths }];
 
 async function seed(db: ReturnType<typeof openTillDatabase>) {
   await provisionTillReference(db, context, references);
+  await insertOpenShift(db);
 }
 
 test("records a golden immutable sale and reopens it from SQLite", async () => {

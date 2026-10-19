@@ -12,6 +12,7 @@ import {
   session,
   withDatabase,
 } from "../../../support/till/sales";
+import { insertOpenShift } from "../../../support/till/shifts";
 
 const lines = [{ productId: ids.product, quantityThousandths: 1_000 }];
 
@@ -28,6 +29,7 @@ async function snapshot(db: ReturnType<typeof openTillDatabase>) {
 
 async function seed(db: ReturnType<typeof openTillDatabase>) {
   await provisionTillReference(db, context, references);
+  await insertOpenShift(db);
 }
 
 test("rolls back sale, line, proof, counter, outbox and audit when the outbox write fails", async () => {

@@ -162,6 +162,31 @@ ALTER TABLE stock_movement_next RENAME TO stock_movement;
 CREATE UNIQUE INDEX stock_movement_sale_line ON stock_movement(org_id,sale_line_id) WHERE reason = 'sale';
 CREATE UNIQUE INDEX stock_movement_refund_line ON stock_movement(org_id,refund_line_id) WHERE reason = 'return';`;
 
+const shifts = `
+CREATE TABLE shift (
+ id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, device_id TEXT NOT NULL, branch_id TEXT NOT NULL, store_id TEXT NOT NULL,
+ status TEXT NOT NULL CHECK(status IN ('open','declared','closed')),
+ opened_at TEXT NOT NULL, opened_by TEXT NOT NULL, opened_session_id TEXT NOT NULL,
+ float INTEGER NOT NULL CHECK(float >= 0), float_counts TEXT, declaration TEXT,
+ closed_at TEXT, closed_by TEXT, approver_id TEXT, report TEXT, anchor_seq INTEGER, anchor_hash TEXT,
+ attempts INTEGER NOT NULL DEFAULT 0, next_attempt_at INTEGER,
+ blocked_code TEXT, blocked_reason TEXT, accepted_at TEXT, result TEXT,
+ UNIQUE(org_id,id)
+);
+CREATE UNIQUE INDEX shift_current ON shift(org_id,device_id) WHERE status <> 'closed';
+CREATE TABLE shift_movement (
+ id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, shift_id TEXT NOT NULL,
+ kind TEXT NOT NULL CHECK(kind IN ('drop','no_sale')), amount INTEGER NOT NULL, reason TEXT,
+ actor_id TEXT NOT NULL, session_id TEXT NOT NULL, at TEXT NOT NULL,
+ CHECK((kind = 'drop' AND amount > 0) OR (kind = 'no_sale' AND amount = 0 AND coalesce(length(trim(reason)), 0) > 0)),
+ FOREIGN KEY(org_id,shift_id) REFERENCES shift(org_id,id)
+);
+CREATE INDEX shift_movement_shift ON shift_movement(org_id,shift_id);
+ALTER TABLE local_sale ADD COLUMN shift_id TEXT;
+ALTER TABLE refund ADD COLUMN shift_id TEXT;
+CREATE INDEX local_sale_shift ON local_sale(org_id,shift_id);
+CREATE INDEX refund_shift ON refund(org_id,shift_id);`;
+
 export const tillMigrations: string[] = [
   `${initial}${lookup}${drafts}${payments}`,
   registers,
@@ -170,4 +195,5 @@ export const tillMigrations: string[] = [
   approvers,
   priceOverrides,
   refunds,
+  shifts,
 ];

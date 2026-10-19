@@ -7,6 +7,7 @@ import { buildInfo } from "@shopper/config";
 import { catalogueRoutes } from "./routes/catalogue";
 import { administrationRoutes } from "./routes/administration";
 import { deviceRoutes } from "./routes/devices";
+import { shiftRoutes } from "./routes/shifts";
 import { managementRoutes } from "./routes/management";
 import { systemRoutes } from "./routes/system";
 import { taxRuleRoutes } from "./routes/tax/rules";
@@ -50,5 +51,6 @@ export function createApi(options: ApiOptions = {}) {
   app.route("/", managementRoutes(options));
   app.route("/", administrationRoutes(options));
   if (options.devices) app.route("/", deviceRoutes(options.devices, options.authentication));
+  if (options.database) app.route("/", shiftRoutes(options.database, options.authentication));
   return app;
 }

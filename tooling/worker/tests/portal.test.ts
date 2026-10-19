@@ -118,4 +118,15 @@ test("native portal preserves HttpOnly cookies while hiding auth token and sessi
   expect(await session.json()).toEqual(created);
   const anonymous = await cloudflarePortal(request("/api/auth/get-session"), bindings);
   expect(await anonymous.json()).toBeNull();
+
+  const denied = await cloudflarePortal(request("/api/shifts"), bindings);
+  expect(denied.status).toBe(401);
+  const shifts = await cloudflarePortal(request("/api/shifts", undefined, cookie), bindings);
+  expect(shifts.status).toBe(200);
+  expect(await shifts.json()).toEqual({ shifts: [] });
+  const unknown = await cloudflarePortal(
+    request(`/api/shifts/${v7()}`, undefined, cookie),
+    bindings,
+  );
+  expect(unknown.status).toBe(404);
 });

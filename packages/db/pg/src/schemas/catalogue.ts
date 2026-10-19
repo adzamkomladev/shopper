@@ -98,6 +98,8 @@ export const product = pgTable(
     taxClassId: uuid("tax_class_id").notNull(),
     baseUnit: text("base_unit").$type<BaseUnit>().notNull(),
     onlineVisible: boolean("online_visible").notNull().default(false),
+    /** A final-sale product cannot be returned or refunded. */
+    finalSale: boolean("final_sale").notNull().default(false),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
   (t) => [

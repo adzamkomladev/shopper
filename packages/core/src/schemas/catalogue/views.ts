@@ -28,6 +28,7 @@ const productFields = {
   categoryId: v.nullable(id),
   supplierId: v.nullable(id),
   onlineVisible: v.boolean(),
+  finalSale: v.boolean(),
   archivedAt: v.nullable(iso),
 };
 export const productSummary = v.object({ ...productFields, price: v.nullable(money) });

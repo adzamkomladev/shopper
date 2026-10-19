@@ -14,12 +14,14 @@ const productFields = {
   categoryId: v.nullable(uuidV7Schema),
   supplierId: v.nullable(uuidV7Schema),
   onlineVisible: v.boolean(),
+  finalSale: v.boolean(),
 };
 export const productInput = v.strictObject({
   ...productFields,
   categoryId: v.optional(productFields.categoryId),
   supplierId: v.optional(productFields.supplierId),
   onlineVisible: v.optional(productFields.onlineVisible, false),
+  finalSale: v.optional(productFields.finalSale, false),
   barcodes: v.optional(v.array(barcodeInput), []),
 });
 export const productPatch = v.partial(v.strictObject(productFields));

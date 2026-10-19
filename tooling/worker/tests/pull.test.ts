@@ -119,14 +119,14 @@ test("GET /sync/changes in workerd serves a device's store feed in the shared JS
     baseUrl: "https://shopper.test",
     secret: new Uint8Array(32).fill(7),
   });
-  const key = `snapshots/${orgId}/${storeId}/v2/2.json.gz`;
+  const key = `snapshots/${orgId}/${storeId}/v3/2.json.gz`;
   const bytes = await storage.blobs.get(orgId, key);
   if (!bytes) throw new Error("Snapshot was not stored in R2");
   expect(Array.from(bytes.slice(0, 2))).toEqual([31, 139]);
   const decoded = await new Response(
     new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip")),
   ).json();
-  expect(decoded).toMatchObject({ orgId, storeId, cursor: "2", v: 2 });
+  expect(decoded).toMatchObject({ orgId, storeId, cursor: "2", v: 3 });
   expect(decoded.reference.products.map((row: { id: string }) => row.id).sort()).toEqual(
     [...products].sort(),
   );
@@ -143,7 +143,7 @@ test("GET /sync/changes in workerd serves a device's store feed in the shared JS
         entity: "product",
         entityId: products[1],
         op: "upsert",
-        v: 2,
+        v: 3,
         payload: expect.objectContaining({ id: products[1], orgId, name: "Second" }),
       },
     ],

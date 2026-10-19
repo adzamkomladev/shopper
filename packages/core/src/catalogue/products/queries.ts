@@ -17,6 +17,7 @@ const columns = {
   categoryId: product.categoryId,
   supplierId: product.supplierId,
   onlineVisible: product.onlineVisible,
+  finalSale: product.finalSale,
   archivedAt: product.archivedAt,
 };
 const selectProducts = <T extends SelectedFields = typeof columns>(db: Queryable, shape?: T) =>

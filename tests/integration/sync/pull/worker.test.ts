@@ -142,7 +142,7 @@ test("an unknown payload version halts the pull with upgrade needed and applies 
   };
   await appendRows([
     known("Same page, before"),
-    { v: 3, payload: { shape: "future" } },
+    { v: 4, payload: { shape: "future" } },
     known("Same page, after"),
   ]);
   await worker!.trigger();

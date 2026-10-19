@@ -43,6 +43,7 @@ export function DetailsForm({ product, formRef }: Props) {
       taxClass: product.taxClass,
       categoryId: product.categoryId,
       onlineVisible: product.onlineVisible,
+      finalSale: product.finalSale,
     } satisfies DetailsValues,
     validators: { onSubmit: detailsSchema },
     onSubmit: ({ value }) => {
@@ -126,6 +127,23 @@ export function DetailsForm({ product, formRef }: Props) {
                     <FieldLabel htmlFor={field.name}>Visible online</FieldLabel>
                     <FieldDescription>
                       Customers can find this product in the online shop.
+                    </FieldDescription>
+                  </FieldContent>
+                </Field>
+              )}
+            </form.Field>
+            <form.Field name="finalSale">
+              {(field) => (
+                <Field orientation="horizontal">
+                  <Switch
+                    id={field.name}
+                    checked={field.state.value}
+                    onCheckedChange={field.handleChange}
+                  />
+                  <FieldContent>
+                    <FieldLabel htmlFor={field.name}>Final sale (cannot be returned)</FieldLabel>
+                    <FieldDescription>
+                      Customers cannot return or get a refund for this product.
                     </FieldDescription>
                   </FieldContent>
                 </Field>

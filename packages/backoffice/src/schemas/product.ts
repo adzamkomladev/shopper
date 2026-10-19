@@ -17,6 +17,7 @@ export const detailsSchema = v.object({
   taxClass,
   categoryId,
   onlineVisible: v.boolean(),
+  finalSale: v.boolean(),
 });
 export type DetailsValues = v.InferInput<typeof detailsSchema>;
 export const DETAILS_FIELDS = ["name", "sku"];

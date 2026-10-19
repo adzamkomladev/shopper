@@ -19,6 +19,15 @@ type Request = Extract<
   BridgeRequest,
   { type: "sales.lookup" | "refund.preview" | "refund.record" }
 >;
+type Recording = Extract<Request, { type: "refund.record" }>;
+type ReplayAttempt = Pick<Recording, "lines" | "reason" | "tender"> & {
+  at: Date;
+  saleId: string;
+  original: ServerSale | undefined;
+  approverId: string | undefined;
+  id?: string;
+  lineIds?: string[];
+};
 type LocalConfig = Parameters<typeof recordRefund>[1];
 
 /** Refunds on this register: its own sales offline, other registers' sales through the server. */
@@ -36,6 +45,7 @@ export function createRefunds(host: Host, localConfig: LocalConfig) {
     },
     timeoutMs: 15_000,
   });
+  const attempts = new Map<string, ReplayAttempt>();
   const offline = () =>
     new TillError(
       "OFFLINE_UNAVAILABLE",
@@ -118,7 +128,9 @@ export function createRefunds(host: Host, localConfig: LocalConfig) {
         throw error;
       }
     }
-    const { saleId, original } = await resolve(request);
+    const retry =
+      request.type === "refund.record" ? attempts.get(request.refundId ?? "") : undefined;
+    const { saleId, original } = retry ?? (await resolve(request));
     if (request.type === "refund.preview")
       return {
         id: request.id,
@@ -126,7 +138,7 @@ export function createRefunds(host: Host, localConfig: LocalConfig) {
         kind: "refundPreview",
         eligibility: await readRefundEligibility(database, localConfig, { at, saleId, original }),
       };
-    const input = {
+    const input = retry ?? {
       at,
       saleId,
       original,
@@ -134,16 +146,27 @@ export function createRefunds(host: Host, localConfig: LocalConfig) {
       reason: request.reason,
       tender: request.tender,
       approverId: await host.approvals.verify(request.approval, "refund.approve"),
+      id: request.refundId,
     };
     let recorded;
     if (original) {
       // The drawer opens only for a refund the server has accepted.
       const { event } = await planRefund(database, localConfig, session, input);
-      await post(event, session.proof);
+      const fixed = { ...input, id: event.refund.id, lineIds: event.refund.lines.map((l) => l.id) };
+      try {
+        await post(event, session.proof);
+      } catch (error) {
+        // The reply may be lost after the server accepted: a retry must send the identical event, and the
+        // server's count already includes it, so it is replanned from this attempt's own sale view and time.
+        // ponytail: in memory, so a host restart forgets it and the retry is refused as over-refunding.
+        if (request.refundId && error instanceof TillError && error.code === "OFFLINE_UNAVAILABLE")
+          attempts.set(request.refundId, fixed);
+        else attempts.delete(request.refundId ?? "");
+        throw error;
+      }
+      attempts.delete(request.refundId ?? "");
       recorded = await recordRefund(database, localConfig, session, {
-        ...input,
-        id: event.refund.id,
-        lineIds: event.refund.lines.map((line) => line.id),
+        ...fixed,
         acceptedAt: new Date(),
       });
     } else recorded = await recordRefund(database, localConfig, session, input);

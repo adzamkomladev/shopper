@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, expect, test } from "vite-plus/test";
+import { afterAll, afterEach, beforeAll, expect, test, vi } from "vite-plus/test";
 import { eq } from "drizzle-orm";
 import { v7 } from "uuid";
 import { hashPin } from "@shopper/auth/devices";
@@ -35,6 +35,7 @@ let register: Register | undefined;
 let printer: Printer | undefined;
 let upstream: Awaited<ReturnType<typeof startHostUpstream>> | undefined;
 afterEach(async () => {
+  vi.useRealTimers();
   await register?.close();
   await printer?.stop();
   await upstream?.close();
@@ -42,13 +43,17 @@ afterEach(async () => {
 });
 
 async function start() {
+  // The sale is dated 2026-10-15; a fixed clock keeps it inside the default 30-day window.
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-16T12:00:00Z"));
   upstream = await startHostUpstream(api);
   register = await startRegister({ upstream: upstream.url });
   printer = await startPrinter();
-  // A year, so the fixed sale date never falls outside the window as the calendar moves on.
-  await register.configure(registerSettings(printer.port, { returnWindowDays: 365 }));
+  await register.configure(registerSettings(printer.port));
 }
 const localRefunds = () => register!.fixture.database.read((tx) => tx.select().from(tillRefund));
+const saved = () =>
+  databases().db.select().from(serverRefund).where(eq(serverRefund.originalSaleId, sale.id));
 const request = (lineIndex: number, extra: Record<string, unknown> = {}) => ({
   type: "refund.record",
   receipt: sale.receiptNumber,
@@ -130,4 +135,26 @@ test("a server rejection records nothing and the drawer stays shut", async () =>
   expect(await localRefunds()).toEqual([]);
   expect(await printer!.jobs()).toEqual([]);
   expect(upstream!.requests.filter((r) => r.path === "/sync/refunds")).toHaveLength(1);
+});
+
+test("a retry after a lost server reply records one refund, kicks once and the server has one", async () => {
+  await start();
+  const refundId = v7();
+  const before = (await saved()).length;
+  upstream!.dropNextRefundResponse();
+  expect(await register!.ask(request(0, { refundId }))).toMatchObject({
+    type: "error",
+    code: "OFFLINE_UNAVAILABLE",
+  });
+  expect(await localRefunds()).toEqual([]);
+  expect(await printer!.jobs()).toEqual([]);
+  const reply = await register!.ask(request(0, { refundId }));
+  expect(reply).toMatchObject({ kind: "refund", origin: "server", refund: { id: refundId } });
+  const local = await localRefunds();
+  expect(local).toHaveLength(1);
+  expect(local[0]).toMatchObject({ id: refundId, acceptedAt: expect.any(String) });
+  expect(await saved()).toHaveLength(before + 1);
+  const jobs = await printer!.waitForJobs(1);
+  expect(jobs).toHaveLength(1);
+  expect(jobs[0]!.kicks).toBe(1);
 });

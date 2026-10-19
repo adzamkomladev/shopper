@@ -15,6 +15,7 @@ export async function startHostUpstream(target: Target) {
   let available = true;
   let pullAvailable = true;
   let liveAvailable = true;
+  const faults = { dropRefundResponse: false };
   const releaseGates = new Set<() => void>();
   const pushWaiters = new Map<number, (request: RequestRecord) => void>();
   const pullWaiters = new Map<number, (request: RequestRecord) => void>();
@@ -33,6 +34,7 @@ export async function startHostUpstream(target: Target) {
         (request) => pullWaiters.get(countPulls(requests))?.(request),
         () => takeGate("push"),
         () => takeGate("pull"),
+        faults,
       );
     } catch {
       if (!outgoing.destroyed) outgoing.writeHead(500).end();
@@ -60,6 +62,10 @@ export async function startHostUpstream(target: Target) {
     },
     setPullAvailable(value: boolean) {
       pullAvailable = value;
+    },
+    /** The server handles the next refund upload, then the connection dies before the reply arrives. */
+    dropNextRefundResponse() {
+      faults.dropRefundResponse = true;
     },
     setLiveAvailable(value: boolean) {
       liveAvailable = value;
@@ -117,6 +123,7 @@ async function proxy(
   onPull: (request: RequestRecord) => void,
   pushGate: () => GateState | undefined,
   pullGate: () => GateState | undefined,
+  faults: { dropRefundResponse: boolean },
 ) {
   const chunks: Buffer[] = [];
   for await (const chunk of incoming) chunks.push(Buffer.from(chunk));
@@ -155,6 +162,11 @@ async function proxy(
     record.response = JSON.parse(text);
   } catch {
     record.response = text;
+  }
+  if (pathname === "/sync/refunds" && faults.dropRefundResponse) {
+    faults.dropRefundResponse = false;
+    outgoing.destroy();
+    return;
   }
   if (pathname === "/sync/push") onPush(record);
   if (isPullPath(pathname)) onPull(record);

@@ -2,6 +2,7 @@
 // amounts of the SOLD line's snapshot, so partial refunds always sum to the original line exactly.
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { asc, eq } from "drizzle-orm";
+import { v7 } from "uuid";
 import { refund, refundLine, taxRule } from "@shopper/db-pg";
 import { mulRatio } from "@shopper/money";
 import type { GoldenSale } from "../../../fixtures/sales/golden/types";
@@ -110,4 +111,27 @@ test("refund tax uses the sale's snapshot after a new tax rule takes effect", as
   expect(saved!.tax.on).toBe(original.on);
   for (const part of parts)
     expect(saved!.tax[part]).toBe(cumulative(original[part], 1_000, original.quantityThousandths));
+});
+
+test("a cash refund's rounding is accepted when within 5p of the gross, whatever was paid before", async () => {
+  const sale = await sold();
+  const event = refundEvent(world, sale, [{ line: 0, before: 0, after: 1_000 }], {
+    tender: { kind: "cash" },
+  });
+  const pay = (rounding: number) => {
+    const changed = structuredClone(event);
+    changed.refund.id = v7();
+    changed.refund.cashRounding = rounding as never;
+    changed.refund.total = (changed.refund.totals.gross + rounding) as never;
+    return postRefund(changed, world.session.proof);
+  };
+  expect((await pay(-300)).body.rejected).toBeUndefined();
+  expect((await pay(600)).body.rejected).toMatchObject({ code: "INVALID_TOTALS" });
+  const card = structuredClone(event);
+  card.refund.tender = { kind: "card", reference: "CARD-1" } as never;
+  card.refund.cashRounding = 100 as never;
+  card.refund.total = (card.refund.totals.gross + 100) as never;
+  expect((await postRefund(card, world.session.proof)).body.rejected).toMatchObject({
+    code: "INVALID_TOTALS",
+  });
 });

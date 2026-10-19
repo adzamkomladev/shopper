@@ -1,3 +1,4 @@
+import { v7 } from "uuid";
 import type {
   PurchaseDetails,
   PurchaseLookup,
@@ -23,6 +24,8 @@ type Dependencies = {
 /** Finding a sale by receipt number, and the return flow from the detail: preview, record, refresh. */
 export function createReturns({ update, select, isCurrent, markStale }: Dependencies) {
   let returning = 0;
+  /** One id per return attempt: a retry after a lost reply reuses it, and the next return screen gets a new one. */
+  let refundId = v7();
 
   /** The same sale read again after a refund changed it. */
   async function reread(purchase: PurchaseDetails) {
@@ -56,6 +59,7 @@ export function createReturns({ update, select, isCurrent, markStale }: Dependen
     },
     startReturn: async (purchase: PurchaseDetails) => {
       const attempt = (returning += 1);
+      refundId = v7();
       update({ returning: { status: "loading" } });
       const reply = await request({ type: "refund.preview", ...refundTarget(purchase) });
       if (attempt !== returning) return;
@@ -71,7 +75,12 @@ export function createReturns({ update, select, isCurrent, markStale }: Dependen
       update({ returning: null });
     },
     refund: async (purchase: PurchaseDetails, input: RefundInput): Promise<RefundOutcome> => {
-      const reply = await request({ type: "refund.record", ...refundTarget(purchase), ...input });
+      const reply = await request({
+        type: "refund.record",
+        ...refundTarget(purchase),
+        ...input,
+        refundId,
+      });
       if (reply?.type !== "result" || reply.kind !== "refund")
         return { ok: false, ...refundFailure(reply) };
       markStale();

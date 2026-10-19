@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { and, eq } from "drizzle-orm";
-import { auditLog, refund, refundLine, stockMovement } from "@shopper/db-pg";
+import { auditLog, product, refund, refundLine, stockMovement } from "@shopper/db-pg";
 import type { GoldenSale } from "../../../fixtures/sales/golden/types";
 import { goldenWorld } from "../../../support/sales/golden/setup";
 import { runGolden } from "../../../support/sales/golden/run";
@@ -113,9 +113,27 @@ test("a cash refund pays the difference of rounded cumulative gross and wrong to
   expect(full.refund.cashRounding).toBe(500);
   const wrong = structuredClone(full);
   wrong.refund.total = 12_500 as never;
-  wrong.refund.cashRounding = 0 as never;
+  wrong.refund.cashRounding = 500 as never;
   expect((await postRefund(wrong, world.session.proof)).body.rejected).toMatchObject({
     code: "INVALID_TOTALS",
   });
   expect((await postRefund(full, world.session.proof)).body.accepted).toBeDefined();
+});
+
+test("a final-sale product is rejected by the server even with an approver", async () => {
+  const sale = (await runGolden(world, scenario))!;
+  const approverId = await memberWithPin("Final Manager", "admin", "2468");
+  const productId = sale.lines[1]!.productId;
+  const flag = (finalSale: boolean) =>
+    world.db.update(product).set({ finalSale }).where(eq(product.id, productId));
+  const event = refundEvent(world, sale, [{ line: 1, before: 0, after: 1_000 }], { approverId });
+  await flag(true);
+  try {
+    expect((await postRefund(event, world.session.proof)).body.rejected).toMatchObject({
+      code: "FINAL_SALE",
+    });
+  } finally {
+    await flag(false);
+  }
+  expect(await world.db.select().from(refund).where(eq(refund.id, event.refund.id))).toEqual([]);
 });

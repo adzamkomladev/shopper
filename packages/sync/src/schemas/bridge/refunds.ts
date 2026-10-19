@@ -16,6 +16,8 @@ export const refundRequests = [
     id,
     type: v.literal("refund.record"),
     ...sale,
+    /** One id per return attempt; a retry of the same attempt reuses it so the server can recognise it. */
+    refundId: v.optional(id),
     lines: v.pipe(
       v.array(v.strictObject({ lineId: id, quantityThousandths: v.number() })),
       v.minLength(1),

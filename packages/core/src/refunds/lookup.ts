@@ -1,9 +1,10 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import * as v from "valibot";
-import { product, sale, type ShopperDatabase } from "@shopper/db-pg";
+import { product, refund, sale, type ShopperDatabase } from "@shopper/db-pg";
+import { money } from "@shopper/money";
 import { saleSnapshot } from "../schemas/till/sale";
 import type { UploadPrincipal } from "../sales/types";
-import { cashRefunded, refundedQuantities } from "./validate";
+import { refundedQuantities } from "./validate";
 
 /** A sale of this store by receipt number, from any register, with what has been refunded and which products are final sale. */
 export async function lookupSale(db: ShopperDatabase, principal: UploadPrincipal, receipt: string) {
@@ -44,4 +45,19 @@ export async function lookupSale(db: ShopperDatabase, principal: UploadPrincipal
     cashRefunded: await cashRefunded(db, principal.orgId, found.id),
     finalSale: Object.fromEntries(flags.map((row) => [row.id, row.finalSale])),
   };
+}
+
+/** Gross already paid back in cash for a sale; the till rounds the next cash payout on top of it. */
+async function cashRefunded(db: ShopperDatabase, orgId: string, saleId: string) {
+  const [prior] = await db
+    .select({ gross: sql<string>`COALESCE(SUM(${refund.gross}), 0)` })
+    .from(refund)
+    .where(
+      and(
+        eq(refund.orgId, orgId),
+        eq(refund.originalSaleId, saleId),
+        eq(refund.tenderKind, "cash"),
+      ),
+    );
+  return money(Number(prior?.gross ?? 0));
 }

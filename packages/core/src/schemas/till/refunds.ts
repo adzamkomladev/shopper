@@ -33,13 +33,13 @@ const request = {
   approverId: v.optional(tillId),
   /** Present when the sale was made on another register. */
   original: v.optional(serverSale),
+  /** Fixed ids, when the refund was already sent to the server under them. */
+  id: v.optional(tillId),
+  lineIds: v.optional(v.array(tillId)),
 };
 export const planRefundInput = v.strictObject(request);
 export const recordRefundInput = v.strictObject({
   ...request,
-  /** The id the server already accepted the refund under. */
-  id: v.optional(tillId),
-  lineIds: v.optional(v.array(tillId)),
   acceptedAt: v.optional(v.date()),
 });
 

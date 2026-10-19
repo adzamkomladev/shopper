@@ -285,6 +285,8 @@ UI slices also run `/ui-screen`, `/ui-verify` and `ui-reviewer`. Adapter and rou
 - **Approver grants at upload:**
   - the server checks an override, void or refund approver's grant against their current role when the sale uploads. A manager demoted before an offline sale syncs gets that sale rejected, and it stays blocked in the upload lane, visible in the sync status;
   - the server cannot prove the PIN was typed. A compromised till can name any manager who holds the grant. This is the accepted risk of offline approval.
+- **Till-only policy:** the return window and `requirePinForReturns` live only in till settings, so the till enforces them and the server cannot. The server does enforce final sale (`FINAL_SALE`), the sold quantity, the tax share and the payout bounds (cash on a 10p org within 5p of the gross, every other tender exactly the gross).
+- **Lost replies:** a refund sent to the server keeps its id across a retry of the same return attempt (the till UI makes one `refundId` per return screen, the host remembers the planned event in memory), so the server replays the saved result and the till records one refund. A host restart in between forgets it.
 - **Versions:** sale v4, protocol 4 and feed v3 have no upcaster. AGENTS.md says to add one; this is skipped under your reset decision, and Day 11 did the same. The plan and `architecture.md` record why.
 - **Boundaries:**
   - core never imports auth; the host passes in the PIN check;

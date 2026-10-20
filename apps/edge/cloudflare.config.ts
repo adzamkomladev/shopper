@@ -1,4 +1,5 @@
-import { bindings, defineConfig, exports } from "cf/config";
+import { notificationPolicy } from "./src/notifications.ts";
+import { bindings, defineConfig, exports, triggers } from "cf/config";
 
 const accountId = "bd9ef997b398c9aeeee8ac3d3618efdc";
 // Hyperdrive and D1 ids are account infrastructure identifiers, not secrets.
@@ -41,6 +42,16 @@ export default defineConfig(({ mode }) => {
       ...(stage === "staging"
         ? { workersDev: true, domains: ["shopper-api-staging.temtem.dev"] }
         : {}),
+      // Failed notifications retry five times, then land in the dead-letter queue.
+      triggers: [
+        triggers.queue({
+          name: `shopper-notifications-${stage}`,
+          deadLetterQueue: `shopper-notifications-dlq-${stage}`,
+          maxRetries: notificationPolicy.maxAttempts - 1,
+          retryDelay: notificationPolicy.delayMs / 1000,
+          maxBatchSize: 10,
+        }),
+      ],
       env: {
         CACHE_DB: bindings.d1({ name: `shopper-cache-${stage}`, id: ids[stage].d1 }),
         HYPERDRIVE: bindings.hyperdrive({

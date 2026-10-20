@@ -2,7 +2,7 @@ export * from "./schemas/primitives";
 export * from "./messages";
 export type * from "./types";
 export { scopedKey, requestCache, storedBlobs, blobUrlAccess } from "./storage";
-export { memoryWorkflow, WorkflowTimeoutError } from "./workflow";
+export { memoryWorkflow, retryDelay, WorkflowTimeoutError } from "./workflow";
 
 export { objectStorage, readBlobBody, type ObjectStorageOptions } from "./storage/object";
 

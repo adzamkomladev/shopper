@@ -1,6 +1,6 @@
 import { envelopeSchema } from "./schemas/messages";
 import type { Envelope } from "./types";
-export type { Envelope, Delivery, Queue } from "./types";
+export type { Envelope, Delivery, Queue, QueueHandler } from "./types";
 import * as v from "valibot";
 import { MAX_MESSAGE_BYTES } from "./schemas/primitives";
 

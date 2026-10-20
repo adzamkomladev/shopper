@@ -16,7 +16,8 @@
   },
   "dependencies": {
     "@shopper/adapters-cf": "workspace:*",
-    "@shopper/api": "workspace:*"
+    "@shopper/api": "workspace:*",
+    "@shopper/ports": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "2.0.0-beta.v.1",

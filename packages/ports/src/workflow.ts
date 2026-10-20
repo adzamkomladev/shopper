@@ -67,7 +67,7 @@ async function pause(delayMs: number): Promise<void> {
 }
 const MAX_TIMER_MS = 2 ** 31 - 1;
 
-function retryDelay(policy: RetryPolicy, attempt: number): number {
+export function retryDelay(policy: RetryPolicy, attempt: number): number {
   if (policy.backoff === "constant") return policy.delayMs;
   if (policy.backoff === "linear") return policy.delayMs * attempt;
   return policy.delayMs * 2 ** (attempt - 1);

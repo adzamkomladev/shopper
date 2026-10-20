@@ -17,6 +17,8 @@ import {
 
 const ROW_HEIGHT = 66;
 const OVERSCAN_ROWS = 8;
+// Up to this many rows are all rendered: a short list needs no windowing, and every row stays findable.
+const VIRTUALIZE_ABOVE_ROWS = 100;
 const END_REACHED_ROWS = 10;
 export const features = tableFeatures({
   columnMeta: metaHelper<{ align?: "right"; className?: string }>(),
@@ -52,7 +54,7 @@ export function DataTable<TData extends RowData>({
     count: rows.length,
     getScrollElement: () => scroller.current,
     estimateSize: () => ROW_HEIGHT,
-    overscan: OVERSCAN_ROWS,
+    overscan: rows.length > VIRTUALIZE_ABOVE_ROWS ? OVERSCAN_ROWS : rows.length,
   });
   const headerRows = table.getHeaderGroups().length;
   const items = virtualizer.getVirtualItems();

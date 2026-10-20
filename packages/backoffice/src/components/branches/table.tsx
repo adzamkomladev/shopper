@@ -1,7 +1,7 @@
 import { DataTable, type DataTableColumn } from "@shopper/ui/components/data-table";
 import { RowActions } from "../admin/row/actions";
 
-type Branch = { id: string; name: string; storeId: string };
+type Branch = { id: string; name: string; storeId: string; alertPhones: string[] };
 type Props = {
   branches: Branch[];
   storeNames: Map<string, string>;

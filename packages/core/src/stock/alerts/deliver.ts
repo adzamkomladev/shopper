@@ -45,7 +45,7 @@ export async function deliverStockAlert(
     await sms.send(
       row.phones,
       `Low stock: ${row.productName} at ${row.branchName}, ` +
-        `${formatQuantity(row.alert.onHandThousandths)}${unit} left, ` +
+        `${formatQuantity(row.alert.onHandThousandths, "-")}${unit} left, ` +
         `reorder at ${formatQuantity(row.alert.levelThousandths)}${unit}.`,
     );
     await markSent(db, { orgId, appVersion }, { alertId: payload.alertId });

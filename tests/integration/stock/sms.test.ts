@@ -33,8 +33,8 @@ const alertOf = async (productId: string) => {
   return alert!;
 };
 /** A low product at the golden branch, and the message raising its alert raised. */
-async function raise() {
-  const productId = await stockProduct(1_000);
+async function raise(onHand = 1_000) {
+  const productId = await stockProduct(onHand);
   const set = await send(owner.api, clerk, "PUT", "/stock/reorder", {
     branchId: ids.branch,
     productId,
@@ -92,6 +92,15 @@ test("One SMS is sent per alert, with its audit row, and a redelivery sends noth
 
   expect(await deliver(message, 2)).toEqual(["ack"]);
   expect(arkesel.requests).toHaveLength(before + 1);
+});
+
+test("A negative on hand is written with a plain ASCII minus, which an SMS keeps intact", async () => {
+  expect((await patchPhones(["0241234567"])).status).toBe(200);
+  const { message } = await raise(-1_500);
+  expect(await deliver(message)).toEqual(["ack"]);
+  const text = arkesel.requests.at(-1)!.message;
+  expect(text).toBe("Low stock: Stock product at Main, -1.5 left, reorder at 3.");
+  expect(text).toMatch(/^[\x20-\x7e]+$/);
 });
 
 test("Two deliveries racing mark the alert sent once", async () => {

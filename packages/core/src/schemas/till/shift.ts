@@ -70,6 +70,9 @@ export const zReport = v.strictObject({
   anchor: v.strictObject({ seq: count, hash: v.pipe(v.string(), v.regex(/^[0-9a-f]{64}$/)) }),
 });
 
+/** How many closed shifts the back-office list returns, newest first. */
+export const SHIFT_LIST_LIMIT = 100;
+
 export const shiftReport = v.variant("kind", [xReport, zReport]);
 export type ShiftReport = v.InferOutput<typeof shiftReport>;
 /** The one upload of a shift: its Z, and the session that closed it (which proves the close). */

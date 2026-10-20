@@ -19,7 +19,7 @@ import {
 } from "../../support/api/portal";
 
 // Three closed shifts on the golden till, uploaded as the till would, 20:00 / 21:00 / 19:00:
-//   balanced; cash GHS 6 short with a manager's approval; cash -3 000 and card +10 000 (net +7 000)
+//   balanced; cash GHS 6 short with a manager's approval; cash -3 000 and card +10 000 (short -3 000, over 10 000)
 let world: Awaited<ReturnType<typeof goldenWorld>>;
 let owner: Portal;
 let manager: string;
@@ -72,7 +72,8 @@ const row = (name: keyof typeof events, over: object) => ({
   approverName: null,
   expectedCash: 1_036_000,
   declaredCash: 1_036_000,
-  variance: 0,
+  short: 0,
+  over: 0,
   ...over,
 });
 const rowsOf = () => ({
@@ -80,14 +81,14 @@ const rowsOf = () => ({
     approverId: manager,
     approverName: "Shift Manager",
     declaredCash: 976_000,
-    variance: -60_000,
+    short: -60_000,
   }),
   balanced: row("balanced", {}),
-  mixed: row("mixed", { declaredCash: 1_033_000, variance: 7_000 }),
+  mixed: row("mixed", { declaredCash: 1_033_000, short: -3_000, over: 10_000 }),
   ghost: row("ghost", {}),
 });
 
-test("the owner lists uploaded shifts newest closed first with names, amounts and the net variance", async () => {
+test("the owner lists uploaded shifts newest closed first with names, amounts, and shortage and overage kept apart", async () => {
   const rows = rowsOf();
   const { status, body } = await get(owner.api, owner.cookie, "/shifts");
   expect(status).toBe(200);

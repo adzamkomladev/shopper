@@ -1,11 +1,20 @@
 import { formatGHS, money } from "@shopper/money";
 import type { XReport } from "@shopper/core/schemas";
-import { shiftClock } from "../../../lib/shifts/format";
+import { shiftClock, shiftTime } from "../../../lib/shifts/format";
 
-type Names = Map<string, string | null>;
+type Names = Map<string, string>;
 
 /** Cash drops and no-sales in the order they happened, each with who did it and why. */
-export function Movements({ movements, names }: { movements: XReport["movements"]; names: Names }) {
+export function Movements({
+  movements,
+  names,
+  dated,
+}: {
+  movements: XReport["movements"];
+  names: Names;
+  /** True when the shift ran past midnight, so a time alone would be ambiguous. */
+  dated: boolean;
+}) {
   return (
     <ul className="divide-y">
       {movements.map((movement) => (
@@ -16,7 +25,11 @@ export function Movements({ movements, names }: { movements: XReport["movements"
           <div className="min-w-0">
             <p className="font-medium">{movement.kind === "drop" ? "Cash drop" : "No sale"}</p>
             <p className="text-xs wrap-anywhere text-muted-foreground">
-              {[shiftClock(movement.at), names.get(movement.actorId), movement.reason]
+              {[
+                (dated ? shiftTime : shiftClock)(movement.at),
+                names.get(movement.actorId),
+                movement.reason,
+              ]
                 .filter(Boolean)
                 .join(" · ")}
             </p>
@@ -33,16 +46,18 @@ export function Movements({ movements, names }: { movements: XReport["movements"
 /** Who sold on this shift, and the manager who approved a variance at close. */
 export function Cashiers({
   cashiers,
+  names,
   approver,
 }: {
   cashiers: XReport["cashiers"];
+  names: Names;
   approver: string | null;
 }) {
   return (
     <ul className="divide-y">
       {cashiers.map((cashier) => (
         <li className="px-4 py-3 text-sm" key={cashier.userId}>
-          {cashier.name ?? "Unknown cashier"}
+          {names.get(cashier.userId) ?? "Unknown cashier"}
         </li>
       ))}
       {approver && (

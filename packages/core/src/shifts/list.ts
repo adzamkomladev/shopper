@@ -2,13 +2,14 @@ import * as v from "valibot";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { branch, device, shift, shiftTender, user, type ShopperDatabase } from "@shopper/db-pg";
-import { add, money } from "@shopper/money";
-import { zReport } from "../schemas/till/shift";
+import { add, money, type Money } from "@shopper/money";
+import { SHIFT_LIST_LIMIT, zReport } from "../schemas/till/shift";
 
-// ponytail: the newest 100 closed shifts; add a cursor when a store keeps more on screen.
-const LIMIT = 100;
-
-/** Closed shifts of the organisation, newest first, with who closed and approved them and the net variance. */
+/**
+ * Closed shifts of the organisation, newest first, with who closed and approved them. `short` sums the
+ * tenders that came up short (≤ 0) and `over` those that came up over (≥ 0), so offsetting tenders never net to zero.
+ */
+// ponytail: the newest SHIFT_LIST_LIMIT shifts only; add a cursor when a store keeps more on screen.
 export async function listShifts(db: ShopperDatabase, orgId: string) {
   const rows = await summaries(db, orgId);
   return { shifts: rows };
@@ -63,7 +64,7 @@ async function summaries(db: ShopperDatabase, orgId: string, id?: string) {
     .leftJoin(approver, and(eq(approver.orgId, shift.orgId), eq(approver.id, shift.approverId)))
     .where(and(eq(shift.orgId, orgId), id ? eq(shift.id, id) : undefined))
     .orderBy(desc(shift.closedAt), desc(shift.id))
-    .limit(LIMIT);
+    .limit(SHIFT_LIST_LIMIT);
   const tenders = rows.length
     ? await db
         .select({ shiftId: shiftTender.shiftId, variance: shiftTender.variance })
@@ -83,8 +84,17 @@ async function summaries(db: ShopperDatabase, orgId: string, id?: string) {
     openedAt: row.openedAt.toISOString(),
     closedAt: row.closedAt.toISOString(),
     approverName: row.approverName ?? null,
-    variance: tenders
-      .filter((t) => t.shiftId === row.id)
-      .reduce((sum, t) => add(sum, t.variance), money(0)),
+    short: sumOf(tenders, row.id, (variance) => variance < 0),
+    over: sumOf(tenders, row.id, (variance) => variance > 0),
   }));
+}
+
+function sumOf(
+  tenders: { shiftId: string; variance: Money }[],
+  shiftId: string,
+  keep: (variance: number) => boolean,
+) {
+  return tenders
+    .filter((t) => t.shiftId === shiftId && keep(t.variance))
+    .reduce((sum, t) => add(sum, t.variance), money(0));
 }

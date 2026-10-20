@@ -6,7 +6,12 @@ const when = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
   timeStyle: "short",
 });
+const day = new Intl.DateTimeFormat("en-US", { timeZone: SHOP_TIME_ZONE, dateStyle: "short" });
 const clock = new Intl.DateTimeFormat("en-US", { timeZone: SHOP_TIME_ZONE, timeStyle: "short" });
+
+/** Whether two moments fall on the same shop day. */
+export const sameShopDay = (a: string, b: string) =>
+  day.format(new Date(a)) === day.format(new Date(b));
 
 /** Shop time (Ghana is GMT all year), like "Oct 15, 2026, 8:00 AM". */
 export const shiftTime = (iso: string) => when.format(new Date(iso));

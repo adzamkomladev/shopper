@@ -12,8 +12,9 @@ import {
 import { deduction, tenderName, varianceLabel } from "../../../lib/shifts/format";
 
 const right = "text-right";
-/** Four columns of money do not fit a phone at full size, so they tighten there instead of scrolling. */
-const compact = "max-sm:text-xs max-sm:[&_td]:px-1 max-sm:[&_th]:px-1";
+/** Four columns of money do not fit a phone at full size, so they tighten there and only the tender name wraps. */
+const compact =
+  "max-sm:text-xs max-sm:[&_td]:px-1 max-sm:[&_th]:px-1 max-sm:[&_td:first-child]:whitespace-normal";
 
 /** The X: what each tender took, gave back and should hold. The Z: expected against declared. */
 export function TendersTable({ report }: { report: XReport | ZReport }) {

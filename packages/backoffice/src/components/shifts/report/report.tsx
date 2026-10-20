@@ -1,5 +1,5 @@
 import type { XReport, ZReport } from "@shopper/core/schemas";
-import { anchorGroups, shiftTime } from "../../../lib/shifts/format";
+import { anchorGroups, sameShopDay, shiftTime } from "../../../lib/shifts/format";
 import { ReportSection } from "../../register/report/section";
 import { CashBox, CountedCash } from "./cash";
 import { Cashiers, Movements } from "./movements";
@@ -8,31 +8,41 @@ import { TendersTable } from "./tenders";
 
 /**
  * A shift's X or Z report, data in and nothing fetched: the till shows it at the register and the portal
- * shows a closed shift's stored Z. `approverName` names the manager on a Z that needed one.
+ * shows a closed shift's stored Z. `approverName` names the manager on a Z that needed one, and
+ * `names` (id to name, from the server) names anyone else the report mentions, such as who made a drop.
  */
 export function ShiftReport({
   report,
   approverName = null,
+  names: known = {},
+  context = true,
 }: {
   report: XReport | ZReport;
   approverName?: string | null;
+  names?: Record<string, string>;
+  /** The line under the heading with the register and when it ran; a screen that shows those itself turns it off. */
+  context?: boolean;
 }) {
   const z = report.kind === "z";
-  const names = new Map<string, string | null>(report.cashiers.map((c) => [c.userId, c.name]));
+  // A name the till recorded wins; a cashier it has no name for takes the server's.
+  const names = new Map(Object.entries(known));
+  for (const { userId, name } of report.cashiers) if (name) names.set(userId, name);
   return (
     <section aria-label={z ? "Z report" : "X report"} className="flex min-w-0 flex-col gap-6">
       <header className="grid gap-1">
         <h2 className="text-xl font-bold tracking-tight">{z ? "Z report" : "X report"}</h2>
-        <p className="text-sm text-muted-foreground">
-          {[
-            report.registerName,
-            z
-              ? `Opened ${shiftTime(report.openedAt)}, closed ${shiftTime(report.closedAt)}`
-              : `Read ${shiftTime(report.at)}. Not a close: nothing was changed.`,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
+        {context && (
+          <p className="text-sm text-muted-foreground">
+            {[
+              report.registerName,
+              z
+                ? `Opened ${shiftTime(report.openedAt)}, closed ${shiftTime(report.closedAt)}`
+                : `Read ${shiftTime(report.at)}. Not a close: nothing was changed.`,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        )}
       </header>
       <ShiftTiles report={report} />
       <div className="grid items-start gap-6 xl:grid-cols-2">
@@ -51,10 +61,15 @@ export function ShiftReport({
           empty={report.movements.length === 0 ? "No drops or no-sales" : null}
           title="Drops and no-sales"
         >
-          <Movements movements={report.movements} names={names} />
+          <Movements
+            dated={!sameShopDay(report.openedAt, z ? report.closedAt : report.at)}
+            movements={report.movements}
+            names={names}
+          />
         </ReportSection>
         <ReportSection empty={null} title="Cashiers">
           <Cashiers
+            names={names}
             approver={z && report.approverId ? (approverName ?? "a manager") : null}
             cashiers={report.cashiers}
           />

@@ -5,3 +5,6 @@ export { onHand } from "./onhand";
 export { listDocuments, listStock, readDocument, readStockProduct, stockBranches } from "./queries";
 export { adjustStock, receiveStock } from "./record";
 export { lastCosts, stockValuation } from "./valuation";
+export { cancelTake, countTake, startTake } from "./takes/commands";
+export { postTake } from "./takes/post";
+export { listTakes, readTake } from "./takes/queries";

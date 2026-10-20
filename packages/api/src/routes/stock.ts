@@ -1,5 +1,4 @@
 import { Hono, type Context } from "hono";
-import { buildInfo } from "@shopper/config";
 import {
   adjustStock,
   receiveStock,
@@ -11,6 +10,8 @@ import {
   stockBranches,
 } from "@shopper/core/stock";
 import type { ShopperDatabase } from "@shopper/db-pg";
+import { commandContext } from "./stock/context";
+import { takeRoutes } from "./stock/takes";
 import { problem } from "../middleware/problem";
 import { requirePermission } from "../middleware/require/permission";
 import type { ApiAuthentication, ApiEnvironment } from "../types";
@@ -65,20 +66,14 @@ export function stockRoutes(
           : raw;
       const { id, replayed } = await (command as typeof receiveStock)(
         database,
-        {
-          orgId: principal.orgId,
-          actorId: principal.userId,
-          role: principal.roleName,
-          deviceId: principal.deviceId,
-          branchId: principal.branchId,
-          appVersion: buildInfo.version,
-        },
+        commandContext(principal),
         { [key]: body, now: new Date() } as never,
       );
       return c.json(await readDocument(database, principal.orgId, id), replayed ? 200 : 201);
     };
   app.post("/stock/receipts", record("receipt", receiveStock));
   app.post("/stock/adjustments", record("adjustment", adjustStock));
+  app.route("/stock/takes", takeRoutes(database));
   app.onError(problem);
   return app;
 }

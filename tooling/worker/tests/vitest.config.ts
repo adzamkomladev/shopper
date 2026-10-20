@@ -1,5 +1,6 @@
 import { startBrowserFake } from "../../browser/server";
 import { startPaystackFake } from "../../paystack/server";
+import { startArkeselFake } from "../../arkesel/server";
 import { fileURLToPath } from "node:url";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -26,6 +27,7 @@ await build({
 });
 const paystack = await startPaystackFake();
 const browser = await startBrowserFake();
+const arkesel = await startArkeselFake();
 paystack.behave("0551234987", "success");
 paystack.behave("0551234986", "send_otp");
 paystack.behave("0241234567", "pending");
@@ -37,6 +39,7 @@ export default defineConfig({
   plugins: [
     { name: "paystack-fake", closeBundle: () => paystack.stop() },
     { name: "browser-fake", closeBundle: () => browser.stop() },
+    { name: "arkesel-fake", closeBundle: () => arkesel.stop() },
     cloudflareTest({
       remoteBindings: false,
       experimental: { newConfig: { configPath: "../../../apps/edge/cloudflare.config.ts" } },
@@ -50,6 +53,8 @@ export default defineConfig({
           // Signing credentials never exist in tests; without an endpoint the grants stay off.
           SHOPPER_S3_ENDPOINT: "",
           BROWSER_FAKE_URL: browser.baseUrl,
+          ARKESEL_API_KEY: arkesel.apiKey,
+          ARKESEL_BASE_URL: arkesel.baseUrl,
           PAYSTACK_SECRET_KEY: paystack.secretKey,
           PAYSTACK_BASE_URL: paystack.baseUrl,
           SHOPPER_AUTH_SECRET: "integration-secret-with-at-least-32-characters",
@@ -78,6 +83,7 @@ export default defineConfig({
       "payments/momo.test.ts",
       "renderer.test.ts",
       "queue.test.ts",
+      "stock/alerts.test.ts",
       "approvers.test.ts",
       "refunds.test.ts",
       "shifts.test.ts",

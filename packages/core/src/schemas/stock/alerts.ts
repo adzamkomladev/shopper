@@ -17,3 +17,11 @@ export type ReorderInput = v.InferOutput<typeof reorderInput>;
 
 /** The notification payload: the consumer reads everything else from the alert row. */
 export const stockLowPayload = v.strictObject({ alertId: uuidV7Schema });
+
+/** What the queue carries for a raised alert; the consumer reads everything else from the row. */
+export const stockAlertMessage = v.looseObject({
+  type: v.literal("stock.low"),
+  v: v.literal(1),
+  orgId: uuidV7Schema,
+  payload: stockLowPayload,
+});

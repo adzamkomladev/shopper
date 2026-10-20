@@ -20,6 +20,9 @@ export interface AuthEnvironment {
   SHOPPER_ENVIRONMENT?: string;
   PAYSTACK_SECRET_KEY?: string;
   PAYSTACK_BASE_URL?: string;
+  ARKESEL_API_KEY?: string;
+  ARKESEL_SENDER?: string;
+  ARKESEL_BASE_URL?: string;
 }
 
 export interface CloudflareRuntimeEnvironment extends AuthEnvironment {

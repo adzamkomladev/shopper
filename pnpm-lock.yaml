@@ -1032,6 +1032,9 @@ importers:
       '@shopper/db-sqlite':
         specifier: workspace:*
         version: link:../../../packages/db/sqlite
+      '@shopper/edge':
+        specifier: workspace:*
+        version: link:../../../apps/edge
       '@shopper/ports':
         specifier: workspace:*
         version: link:../../../packages/ports

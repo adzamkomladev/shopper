@@ -9,3 +9,4 @@ export { cancelTake, countTake, startTake } from "./takes/commands";
 export { postTake } from "./takes/post";
 export { listTakes, readTake } from "./takes/queries";
 export { checkReorder, setReorder } from "./reorder";
+export { deliverStockAlert } from "./alerts/deliver";

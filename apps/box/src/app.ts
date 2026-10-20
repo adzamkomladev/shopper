@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { buildInfo } from "@shopper/config";
 import { createPaystack } from "@shopper/core/payments/paystack";
+import { createArkesel } from "@shopper/core/sms/arkesel";
+import { deliverStockAlert } from "@shopper/core/stock";
 import { createMaileroo } from "@shopper/auth";
 import type { BoxBindings } from "./types";
 import {
@@ -80,9 +82,16 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
           baseUrl: environment.PAYSTACK_BASE_URL,
         }),
       });
-    // Until the Arkesel consumer lands, a delivered notification is simply acknowledged.
-    if (environment.ARKESEL_API_KEY)
-      notifications ??= boxQueue(NOTIFICATION_RETRY, (delivery) => delivery.ack());
+    if (environment.ARKESEL_API_KEY) {
+      const sms = createArkesel({
+        apiKey: environment.ARKESEL_API_KEY,
+        sender: environment.ARKESEL_SENDER ?? "Shopper",
+        baseUrl: environment.ARKESEL_BASE_URL || undefined,
+      });
+      notifications ??= boxQueue(NOTIFICATION_RETRY, (delivery) =>
+        deliverStockAlert(workflowDatabase, sms, delivery, buildInfo.version),
+      );
+    }
     try {
       return await serveRuntime(request, {
         database: connection.db,

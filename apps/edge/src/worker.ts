@@ -1,3 +1,3 @@
-import { cloudflareRuntime } from "@shopper/adapters-cf";
+import { cloudflareNotifications, cloudflareRuntime } from "@shopper/adapters-cf";
 
-export default { fetch: cloudflareRuntime };
+export default { fetch: cloudflareRuntime, queue: cloudflareNotifications };

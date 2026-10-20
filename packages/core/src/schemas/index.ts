@@ -18,3 +18,4 @@ export * from "./till/refunds";
 export * from "./till/shifts";
 export * from "./till/shift";
 export * from "./stock/views";
+export * from "./stock/portal";

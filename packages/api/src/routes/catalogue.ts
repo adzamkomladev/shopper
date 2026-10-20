@@ -54,7 +54,11 @@ export function catalogueRoutes(options: {
   const db = options.database;
   const app = new Hono<ApiEnvironment>();
   const guard = requirePermission(options.authentication, (request) =>
-    request.method === "GET" ? "product.read" : "product.write",
+    request.method === "GET"
+      ? "product.read"
+      : new URL(request.url).pathname.startsWith("/suppliers")
+        ? "stock.write"
+        : "product.write",
   );
   for (const root of ["products", "barcodes", "prices", "categories", "suppliers", "catalogue"])
     app.use(`/${root}`, guard).use(`/${root}/*`, guard);

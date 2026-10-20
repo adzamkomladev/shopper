@@ -79,3 +79,18 @@ export const documentDetail = v.object({
     }),
   ),
 });
+
+export const stockValuationView = v.object({
+  lines: v.array(
+    v.object({
+      productId: id,
+      sku: v.string(),
+      name: v.string(),
+      onHandThousandths: int,
+      unitCost: v.nullable(int),
+      value: int,
+      flag: v.nullable(v.picklist(["no_cost", "negative"])),
+    }),
+  ),
+  total: int,
+});

@@ -1,5 +1,8 @@
 import { Hono, type Context } from "hono";
+import { buildInfo } from "@shopper/config";
 import {
+  receiveStock,
+  stockValuation,
   listDocuments,
   listStock,
   readDocument,
@@ -17,7 +20,9 @@ export function stockRoutes(
   authentication: ApiAuthentication | undefined,
 ) {
   const app = new Hono<ApiEnvironment>();
-  const guard = requirePermission(authentication, "stock.read");
+  const guard = requirePermission(authentication, (request) =>
+    request.method === "GET" ? "stock.read" : "stock.write",
+  );
   app.use("/stock", guard).use("/stock/*", guard);
   const org = (c: Context<ApiEnvironment>) => c.get("principal").orgId;
   // A till reads its own branch, whatever the query says.
@@ -44,6 +49,31 @@ export function stockRoutes(
       ),
     ),
   );
+  app.get("/stock/valuation", async (c) =>
+    c.json(await stockValuation(database, org(c), query(c))),
+  );
+  app.post("/stock/receipts", async (c) => {
+    const principal = c.get("principal");
+    const raw = await c.req.json().catch(() => undefined);
+    // A till writes to its own branch, whatever the body says.
+    const receipt =
+      principal.deviceId && raw && typeof raw === "object"
+        ? { ...raw, branchId: principal.branchId }
+        : raw;
+    const { id, replayed } = await receiveStock(
+      database,
+      {
+        orgId: principal.orgId,
+        actorId: principal.userId,
+        role: principal.roleName,
+        deviceId: principal.deviceId,
+        branchId: principal.branchId,
+        appVersion: buildInfo.version,
+      },
+      { receipt: receipt as never, now: new Date() },
+    );
+    return c.json(await readDocument(database, principal.orgId, id), replayed ? 200 : 201);
+  });
   app.onError(problem);
   return app;
 }

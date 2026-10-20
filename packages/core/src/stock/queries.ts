@@ -24,7 +24,7 @@ const iso = <T extends { occurredAt: Date }>(row: T) => ({
   occurredAt: row.occurredAt.toISOString(),
 });
 
-async function requireBranch(db: Queryable, orgId: string, branchId: string) {
+export async function requireBranch(db: Queryable, orgId: string, branchId: string) {
   const [found] = await db
     .select({ id: branch.id })
     .from(branch)

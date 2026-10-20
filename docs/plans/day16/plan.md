@@ -219,8 +219,8 @@ Every table has `org_id`, UUIDv7 ids and composite `(org, x)` foreign keys.
 - `GET /stock?branchId&q&categoryId&low&cursor&limit`
 - `GET /stock/products/:productId?branchId`
 - `PUT /stock/reorder`
-- `GET /stock/documents?branchId&kind`
-- `GET /stock/documents/:id`
+- `GET /stock/documents?branchId&kind`: each record carries its `reference` and, for a receipt, `totalCost` (the sum of its costed lines, in `@shopper/money`); the page also carries `counts` of every kind at the branch, for the Records segments.
+- `GET /stock/documents/:id`: lines carry the product's `baseUnit`.
 - `POST /stock/receipts` (201; a replay returns 200)
 - `POST /stock/adjustments`
 - `GET /stock/valuation?branchId`

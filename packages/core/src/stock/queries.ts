@@ -1,28 +1,18 @@
 import * as v from "valibot";
 import { and, asc, desc, eq, ilike, isNull, lt, or, sql, type SQL } from "drizzle-orm";
-import {
-  branch,
-  product,
-  productBarcode,
-  reorderPoint,
-  stockDocument,
-  stockMovement,
-  supplier,
-  user,
-} from "@shopper/db-pg";
-import { uuidV7Schema } from "@shopper/ports";
-import { documentsQuery, productStockQuery, stockQuery } from "../schemas/stock/views";
+import { branch, product, productBarcode, reorderPoint, stockMovement } from "@shopper/db-pg";
+import { productStockQuery, stockQuery } from "../schemas/stock/views";
 import type { Queryable } from "../types";
 import { StockError } from "./error";
 import { onHandOf } from "./onhand";
 
 const MOVEMENT_LIMIT = 200;
 const notFound = (what: string) => new StockError("NOT_FOUND", `${what} not found`);
-const like = (q: string) => `%${q.replace(/[\\%_]/g, "\\$&")}%`;
-const iso = <T extends { occurredAt: Date }>(row: T) => ({
+export const iso = <T extends { occurredAt: Date }>(row: T) => ({
   ...row,
   occurredAt: row.occurredAt.toISOString(),
 });
+const like = (q: string) => `%${q.replace(/[\\%_]/g, "\\$&")}%`;
 
 export async function requireBranch(db: Queryable, orgId: string, branchId: string) {
   const [found] = await db
@@ -143,78 +133,4 @@ export async function readStockProduct(
     .orderBy(desc(ledger.occurredAt), desc(ledger.id))
     .limit(MOVEMENT_LIMIT);
   return { ...withLow(item), movements: movements.map(iso) };
-}
-
-const documentColumns = {
-  id: stockDocument.id,
-  kind: stockDocument.kind,
-  branchId: stockDocument.branchId,
-  branchName: branch.name,
-  supplierId: stockDocument.supplierId,
-  supplierName: supplier.name,
-  cause: stockDocument.cause,
-  actorName: user.name,
-  lineCount: sql<number>`jsonb_array_length(${stockDocument.payload} -> 'lines')`.mapWith(Number),
-  occurredAt: stockDocument.occurredAt,
-};
-const selectDocuments = (db: Queryable) =>
-  db
-    .select(documentColumns)
-    .from(stockDocument)
-    .innerJoin(
-      branch,
-      and(eq(branch.orgId, stockDocument.orgId), eq(branch.id, stockDocument.branchId)),
-    )
-    .innerJoin(user, and(eq(user.orgId, stockDocument.orgId), eq(user.id, stockDocument.actorId)))
-    .leftJoin(
-      supplier,
-      and(eq(supplier.orgId, stockDocument.orgId), eq(supplier.id, stockDocument.supplierId)),
-    );
-
-/** Stock records (counts, receipts, adjustments), newest first, keyset-paged by id (UUIDv7 is time-ordered). */
-export async function listDocuments(db: Queryable, orgId: string, rawQuery: unknown) {
-  const { branchId, kind, cursor, limit } = v.parse(documentsQuery, rawQuery);
-  if (branchId) await requireBranch(db, orgId, branchId);
-  const rows = await selectDocuments(db)
-    .where(
-      and(
-        eq(stockDocument.orgId, orgId),
-        branchId ? eq(stockDocument.branchId, branchId) : undefined,
-        kind ? eq(stockDocument.kind, kind) : undefined,
-        cursor ? lt(stockDocument.id, cursor) : undefined,
-      ),
-    )
-    .orderBy(desc(stockDocument.id))
-    .limit(limit + 1);
-  const items = rows.slice(0, limit).map(iso);
-  return { items, nextCursor: rows.length > limit ? items[limit - 1]!.id : null };
-}
-
-/** One record with the movements it posted, by product name. A count line equal to on hand posted none. */
-export async function readDocument(db: Queryable, orgId: string, id: string, onlyBranch?: string) {
-  if (!v.is(uuidV7Schema, id)) throw new StockError("INVALID_REFERENCE", "Invalid stock record id");
-  const [head] = await selectDocuments(db).where(
-    and(
-      eq(stockDocument.orgId, orgId),
-      eq(stockDocument.id, id),
-      onlyBranch ? eq(stockDocument.branchId, onlyBranch) : undefined,
-    ),
-  );
-  if (!head) throw notFound("Stock record");
-  const lines = await db
-    .select({
-      productId: product.id,
-      sku: product.sku,
-      name: product.name,
-      quantityThousandths: stockMovement.quantityThousandths,
-      unitCost: stockMovement.unitCost,
-    })
-    .from(stockMovement)
-    .innerJoin(
-      product,
-      and(eq(product.orgId, stockMovement.orgId), eq(product.id, stockMovement.productId)),
-    )
-    .where(and(eq(stockMovement.orgId, orgId), eq(stockMovement.documentId, id)))
-    .orderBy(asc(product.name), asc(product.id));
-  return { ...iso(head), lines };
 }

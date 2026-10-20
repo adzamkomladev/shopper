@@ -1,10 +1,10 @@
 import { money } from "@shopper/money";
 import { Button } from "@shopper/ui/components/button";
-import { Card } from "@shopper/ui/components/card";
 import { Kbd } from "@shopper/ui/components/kbd";
 import { Money } from "@shopper/ui/components/money";
 import { quantityLabel } from "../../../../lib/inventory/format";
 import type { StockProduct } from "../../../../queries/inventory/types";
+import { Stat } from "../../stat";
 import { LowBadge } from "../badge";
 
 type Props = {
@@ -56,19 +56,5 @@ export function StockSummary({ product, lastCost, onEdit, editRef }: Props) {
         )}
       </Stat>
     </div>
-  );
-}
-
-type StatProps = { label: string; action?: React.ReactNode; children: React.ReactNode };
-
-function Stat({ label, action, children }: StatProps) {
-  return (
-    <Card className="min-h-28 justify-between gap-2 px-4 py-4">
-      <div className="flex min-h-8 items-center justify-between gap-2">
-        <p className="text-sm whitespace-nowrap text-muted-foreground">{label}</p>
-        {action}
-      </div>
-      {children}
-    </Card>
   );
 }

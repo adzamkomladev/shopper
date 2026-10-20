@@ -1,15 +1,19 @@
 import type * as v from "valibot";
 import { createRoute, lazyRouteComponent, type AnyRoute } from "@tanstack/react-router";
+import { AdjustSkeleton, EntrySkeleton } from "../components/inventory/entry/states";
+import { RecordSkeleton } from "../components/inventory/records/skeleton";
+import { RecordsSkeleton } from "../components/inventory/records/states";
 import { StockSkeleton } from "../components/inventory/stock/list/states";
 import { StockProductSkeleton } from "../components/inventory/stock/product/states";
 import { routeStates } from "../components/route/states";
 import { SuppliersSkeleton } from "../components/suppliers/states";
 import { pickBranch } from "../lib/inventory/format";
 import type { PermissionCode } from "../lib/roles/permissions";
+import { recordQuery, recordsListQuery } from "../queries/inventory/records";
 import { stockBranchesQuery, stockListQuery, stockProductQuery } from "../queries/inventory/stock";
 import { permissionsQuery } from "../queries/session/permissions";
 import { suppliersQuery } from "../queries/suppliers";
-import { stockProductSearch, stockSearch } from "../schemas/routes";
+import { recordsSearch, stockProductSearch, stockSearch } from "../schemas/routes";
 import type { BackofficeContext } from "../types";
 
 type Context = { context: BackofficeContext };
@@ -23,7 +27,7 @@ async function whenHeld(
   if ((await queryClient.ensureQueryData(permissionsQuery())).includes(code)) await load();
 }
 
-/** Stock on hand, a product's movements and reorder level, and suppliers. */
+/** Stock on hand, a product's movements and reorder level, stock records, receiving, adjusting and suppliers. */
 export function inventoryRoutes(shopRoute: AnyRoute) {
   const stockRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -81,5 +85,85 @@ export function inventoryRoutes(shopRoute: AnyRoute) {
     ...routeStates,
     pendingComponent: SuppliersSkeleton,
   });
-  return [stockRoute, productRoute, suppliersRoute];
+  const recordsRoute = createRoute({
+    getParentRoute: () => shopRoute,
+    path: "/stock/records",
+    validateSearch: recordsSearch,
+    loaderDeps: ({ search }) => search,
+    loader: ({ context, deps }: Context & { deps: v.InferOutput<typeof recordsSearch> }) =>
+      whenHeld(context, "stock.read", async () => {
+        const { branches } = await context.queryClient.ensureQueryData(stockBranchesQuery());
+        const branch = pickBranch(branches, deps.branch);
+        // Only started: the screen shows its own skeleton, so the heading and toolbar are there at once.
+        if (branch)
+          void context.queryClient.prefetchInfiniteQuery(
+            recordsListQuery({ branchId: branch.id, kind: deps.kind }),
+          );
+      }),
+    component: lazyRouteComponent(
+      () => import("../screens/inventory/records/list/screen"),
+      "RecordsScreen",
+    ),
+    ...routeStates,
+    pendingComponent: RecordsSkeleton,
+  });
+  const recordRoute = createRoute({
+    getParentRoute: () => shopRoute,
+    path: "/stock/records/$documentId",
+    loader: ({ context, params }: Context & { params: { documentId: string } }) =>
+      whenHeld(context, "stock.read", () =>
+        context.queryClient.ensureQueryData(recordQuery(params.documentId)),
+      ),
+    component: lazyRouteComponent(
+      () => import("../screens/inventory/records/detail/screen"),
+      "RecordScreen",
+    ),
+    ...routeStates,
+    pendingComponent: RecordSkeleton,
+  });
+  const entryLoader =
+    (withSuppliers: boolean) =>
+    ({ context }: Context) =>
+      whenHeld(context, "stock.write", async () => {
+        await Promise.all([
+          context.queryClient.ensureQueryData(stockBranchesQuery()),
+          withSuppliers &&
+            whenHeld(context, "product.read", () =>
+              context.queryClient.ensureQueryData(suppliersQuery()),
+            ),
+        ]);
+      });
+  const receiveRoute = createRoute({
+    getParentRoute: () => shopRoute,
+    path: "/stock/receive",
+    validateSearch: stockProductSearch,
+    loader: entryLoader(true),
+    component: lazyRouteComponent(
+      () => import("../screens/inventory/receive/screen"),
+      "ReceiveScreen",
+    ),
+    ...routeStates,
+    pendingComponent: EntrySkeleton,
+  });
+  const adjustRoute = createRoute({
+    getParentRoute: () => shopRoute,
+    path: "/stock/adjust",
+    validateSearch: stockProductSearch,
+    loader: entryLoader(false),
+    component: lazyRouteComponent(
+      () => import("../screens/inventory/adjust/screen"),
+      "AdjustScreen",
+    ),
+    ...routeStates,
+    pendingComponent: AdjustSkeleton,
+  });
+  return [
+    stockRoute,
+    productRoute,
+    recordsRoute,
+    recordRoute,
+    receiveRoute,
+    adjustRoute,
+    suppliersRoute,
+  ];
 }

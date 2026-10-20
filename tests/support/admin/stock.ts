@@ -1,6 +1,6 @@
 // Stock for the portal specs, written through the real API as the E2E Mart owner on the saved session.
 //   seedStock() -> once per run, at Accra Central:
-//     Rice      kg    received 24 kg at GH₵ 9.50, 2.5 kg damaged (on hand 21.5 kg), reorder level 5 kg
+//     Rice      kg    received 24 kg at GH₵ 9.50 (delivery note "DN-<tag>"), 2.5 kg damaged (on hand 21.5 kg), reorder level 5 kg
 //     Tomatoes  kg    received 10.5 kg at GH₵ 28.00, reorder level 12 kg (low)
 //     Beans     each  nothing received, no level
 // Names carry a tag that is new on every run, so a reused server never collides.
@@ -16,14 +16,41 @@ type Branch = Row & { storeId: string };
 let seeded: ReturnType<typeof seed> | undefined;
 export const seedStock = () => (seeded ??= seed());
 
-async function seed() {
+/** Runs `use` with an API client signed in as the E2E Mart owner. */
+async function asOwner<T>(use: (request: APIRequestContext) => Promise<T>) {
   const request = await playwright.newContext({ storageState: "tests/e2e/.auth/owner.json" });
   try {
-    return await seedWith(request);
+    return await use(request);
   } finally {
     await request.dispose();
   }
 }
+
+const seed = () => asOwner(seedWith);
+
+/**
+ * Products of a spec's own, so it can change their stock without moving the shared seed's numbers.
+ * Each is received once at Accra Central: 10 units at GH₵ 5.00.
+ */
+export const ownProducts = (names: string[]) =>
+  asOwner(async (request) => {
+    const { branch, supplier } = await seedStock();
+    const tag = unique();
+    const made = await Promise.all(
+      names.map((name, index) => product(request, `OWN-${tag}-${index}`, `${name} ${tag}`, "kg")),
+    );
+    await post(request, "/stock/receipts", {
+      id: v7(),
+      branchId: branch.id,
+      supplierId: supplier.id,
+      lines: made.map(({ id }) => ({
+        productId: id,
+        quantityThousandths: 10_000,
+        unitCost: 50_000,
+      })),
+    });
+    return { tag, products: made };
+  });
 
 const product = (request: APIRequestContext, sku: string, name: string, baseUnit: string) =>
   post<Row>(request, "/products", { sku, name, baseUnit, taxClass: "standard" });
@@ -39,17 +66,20 @@ async function seedWith(request: APIRequestContext) {
   const rice = await product(request, `RICE-${tag}`, `Rice ${tag}`, "kg");
   const tomatoes = await product(request, `TOM-${tag}`, `Tomatoes ${tag}`, "kg");
   const beans = await product(request, `BEAN-${tag}`, `Beans ${tag}`, "each");
+  const receiptId = v7();
+  const adjustmentId = v7();
   await post(request, "/stock/receipts", {
-    id: v7(),
+    id: receiptId,
     branchId: branch.id,
     supplierId: supplier.id,
+    reference: `DN-${tag}`,
     lines: [
       { productId: rice.id, quantityThousandths: 24_000, unitCost: 95_000 },
       { productId: tomatoes.id, quantityThousandths: 10_500, unitCost: 280_000 },
     ],
   });
   await post(request, "/stock/adjustments", {
-    id: v7(),
+    id: adjustmentId,
     branchId: branch.id,
     cause: "damaged",
     lines: [{ productId: rice.id, quantityThousandths: 2_500 }],
@@ -59,7 +89,7 @@ async function seedWith(request: APIRequestContext) {
     [tomatoes, 12_000],
   ] as const)
     await reorder(request, branch.id, item.id, level);
-  return { tag, branch, supplier, rice, tomatoes, beans };
+  return { tag, branch, supplier, rice, tomatoes, beans, receiptId, adjustmentId };
 }
 
 export async function reorder(
@@ -79,7 +109,7 @@ export const heading = (page: Page, name: string, level = 1) =>
   page.getByRole("heading", { name, level });
 export const rowOf = (page: Page, text: string) => page.getByRole("row").filter({ hasText: text });
 /** The tab of the inventory area that is showing. */
-export const activeTab = (page: Page, name: "Stock" | "Suppliers") =>
+export const activeTab = (page: Page, name: "Stock" | "Records" | "Suppliers") =>
   page.getByRole("tab", { name, selected: true });
 export const nav = (page: Page) => page.getByRole("navigation", { name: "Main" });
 export const search = (page: Page) => page.getByRole("textbox", { name: "Search stock" });
@@ -96,19 +126,52 @@ export async function openStock(page: Page, query = "") {
 // Members are listed in a virtualized table that other specs read, so these are made once per run and shared.
 const members = new Map<string, Promise<Staff>>();
 
-/** A member who can read stock ("accountant"), manage it ("inventory"), or can see neither stock nor products ("nobody"). */
+/**
+ * A member who can read stock ("accountant"), manage it ("inventory"), write it without seeing
+ * products or suppliers ("receiver"), or can see neither stock nor products ("nobody").
+ */
 export function stockMember(
   request: APIRequestContext,
-  kind: "accountant" | "inventory" | "nobody",
+  kind: "accountant" | "inventory" | "receiver" | "nobody",
 ) {
   const found = members.get(kind);
   if (found) return found;
   const made =
-    kind === "nobody"
-      ? createCustomRole(request, `No access ${unique()}`, []).then((role) =>
-          createStaff(request, role.name, "Nobody"),
-        )
+    kind === "nobody" || kind === "receiver"
+      ? createCustomRole(
+          request,
+          `${kind === "nobody" ? "No access" : "Receiver"} ${unique()}`,
+          kind === "nobody" ? [] : ["stock.read", "stock.write"],
+        ).then((role) => createStaff(request, role.name, kind === "nobody" ? "Nobody" : "Receiver"))
       : createStaff(request, kind, kind === "inventory" ? "Kwame" : "Esi");
   members.set(kind, made);
   return made;
+}
+
+/** The stock records table, and one of its kind segments by name ("Received" or "Received 3" as a pattern). */
+export const recordsTable = (page: Page) => page.getByRole("region", { name: "Stock records" });
+export const recordsSegment = (page: Page, name: RegExp) => page.getByRole("tab", { name });
+
+/** The Records tab of Accra Central, signed in as the saved owner. */
+export async function openRecords(page: Page, query = "") {
+  const seeded = await seedStock();
+  await page.goto(`/stock/records?branch=${seeded.branch.id}${query}`);
+  await expect(activeTab(page, "Records")).toBeVisible();
+  return seeded;
+}
+
+/** The product search of the Receive and Adjust forms. */
+export const entrySearch = (page: Page) =>
+  page.getByRole("textbox", { name: "Scan barcode or search products" });
+
+/** Adds a product from the search and waits for its quantity to take focus, so typing lands in it. */
+export async function addEntryProduct(page: Page, name: string) {
+  await entrySearch(page).fill(name);
+  await entrySearch(page).press("Enter");
+  await expect(
+    page
+      .getByRole("row")
+      .filter({ hasText: name })
+      .getByLabel(/^Quantity/),
+  ).toBeFocused();
 }

@@ -62,11 +62,20 @@ export const documentSummary = v.object({
   supplierId: v.nullable(id),
   supplierName: v.nullable(v.string()),
   cause: v.nullable(v.string()),
+  reference: v.nullable(v.string()),
   actorName: v.string(),
   lineCount: int,
+  /** What a receipt cost: the sum of its costed lines, or null when it has no costs. */
+  totalCost: v.nullable(int),
+  /** An adjustment of a single product: its signed change, so the list can say "−2.5 kg". */
+  change: v.nullable(v.object({ quantityThousandths: int, baseUnit: v.string() })),
   occurredAt: v.string(),
 });
-export const documentList = page(documentSummary);
+/** `counts` is how many records of each kind the branch holds, whatever the page shows. */
+export const documentList = v.object({
+  ...page(documentSummary).entries,
+  counts: v.object({ count: int, receipt: int, adjustment: int }),
+});
 export const documentDetail = v.object({
   ...documentSummary.entries,
   lines: v.array(
@@ -74,6 +83,7 @@ export const documentDetail = v.object({
       productId: id,
       sku: v.string(),
       name: v.string(),
+      baseUnit: v.string(),
       quantityThousandths: int,
       unitCost: v.nullable(int),
     }),

@@ -13,3 +13,9 @@ export const stockSearch = v.object({
   low: v.optional(v.literal(true)),
 });
 export const stockProductSearch = v.object({ branch: v.optional(v.string()) });
+
+/** What the records page filters to; "received" is the API's receipt kind, and so on (see lib/inventory/records). */
+export const recordsSearch = v.object({
+  branch: v.optional(v.string()),
+  kind: v.optional(v.picklist(["received", "adjusted", "counted"])),
+});

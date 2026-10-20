@@ -4,16 +4,17 @@ import { focusIfIdle } from "../../lib/focus";
 import type { PermissionCode } from "../../lib/roles/permissions";
 import { usePermissions } from "../../queries/session/permissions";
 
-type InventoryTab = "stock" | "suppliers";
+type InventoryTab = "stock" | "records" | "suppliers";
 
-// Each tab is shown only to members who hold its permission. Slices 9 and 10 add Records, Stock takes and Valuation.
+// Each tab is shown only to members who hold its permission. Slice 10 adds Stock takes and Valuation.
 const TABS: {
   value: InventoryTab;
-  to: "/stock" | "/suppliers";
+  to: "/stock" | "/stock/records" | "/suppliers";
   label: string;
   need: PermissionCode;
 }[] = [
   { value: "stock", to: "/stock", label: "Stock", need: "stock.read" },
+  { value: "records", to: "/stock/records", label: "Records", need: "stock.read" },
   { value: "suppliers", to: "/suppliers", label: "Suppliers", need: "product.read" },
 ];
 

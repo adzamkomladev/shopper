@@ -137,12 +137,25 @@ test("Stock records list newest first, filter by kind and open with their lines"
     kind: "receipt",
     supplierName: "Accra Grains",
     cause: null,
+    reference: null,
     lineCount: 2,
+    totalCost: 1_035_000,
   });
+  // A single-line adjustment carries its signed change, so the list can say "−0.5 kg".
+  expect(all.items[0]).toMatchObject({
+    kind: "adjustment",
+    totalCost: null,
+    change: { quantityThousandths: -500, baseUnit: expect.any(String) },
+  });
+  expect(all.items[1]).toMatchObject({ change: null });
+  expect(all.counts).toEqual({ count: 0, receipt: 1, adjustment: 1 });
   const receipts = await listDocuments(db(), ids.org, { branchId, kind: "receipt" });
   expect(receipts.items.map((d) => d.id)).toEqual([receipt]);
+  // The segments show every kind's count, whichever kind is open.
+  expect(receipts.counts).toEqual(all.counts);
 
   const detail = v.parse(documentDetail, await readDocument(db(), ids.org, receipt));
+  expect(detail.totalCost).toBe(1_035_000);
   expect(detail.lines).toEqual([
     expect.objectContaining({ productId: rice, quantityThousandths: 5_000, unitCost: 95_000 }),
     expect.objectContaining({ productId: tomatoes, quantityThousandths: 2_000, unitCost: 280_000 }),
@@ -156,4 +169,21 @@ test("Stock records list newest first, filter by kind and open with their lines"
   await expect(readDocument(db(), ids.otherOrg, receipt)).rejects.toMatchObject({
     code: "NOT_FOUND",
   });
+});
+
+test("A receipt's total is its lines rounded to the pesewa and added, so printed lines sum to it", async () => {
+  // 125.5 × 12.3456 = 1549.3728 -> 1549.37 and 3.333 × 9.50 = 31.6635 -> 31.66; the total is 1581.03, not 1581.0363.
+  const receipt = await addDocument({
+    kind: "receipt",
+    at: "14:00",
+    supplierId: await addSupplier("Rounding Supplies"),
+    lines: [
+      { productId: rice, quantity: 125_500, unitCost: 123_456 },
+      { productId: tomatoes, quantity: 3_333, unitCost: 95_000 },
+    ],
+  });
+  const detail = await readDocument(db(), ids.org, receipt);
+  expect(detail.totalCost).toBe(15_810_300);
+  const listed = await listDocuments(db(), ids.org, { branchId, kind: "receipt" });
+  expect(listed.items.find((d) => d.id === receipt)?.totalCost).toBe(15_810_300);
 });

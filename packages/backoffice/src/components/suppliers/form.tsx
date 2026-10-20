@@ -10,7 +10,7 @@ import { focusFirstInvalid } from "../../lib/focus";
 import { useSaveSupplier, type SupplierView } from "../../queries/suppliers";
 import { emptySupplier, supplierFormSchema, supplierValues } from "../../schemas/suppliers";
 
-type Props = { supplier?: SupplierView; onSaved: () => void };
+type Props = { supplier?: SupplierView; onSaved: (saved: SupplierView) => void };
 
 export function SupplierForm({ supplier, onSaved }: Props) {
   const online = useOnline();

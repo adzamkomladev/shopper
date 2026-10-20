@@ -1,5 +1,15 @@
 export type { Money } from "./schemas/money";
-export { add, fromBigInt, money, mulQty, mulRate, mulRatio, roundCash, sub } from "./arithmetic";
+export {
+  add,
+  fromBigInt,
+  lineTotal,
+  money,
+  mulQty,
+  mulRate,
+  mulRatio,
+  roundCash,
+  sub,
+} from "./arithmetic";
 export {
   formatGHS,
   fromDecimal,

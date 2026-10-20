@@ -21,7 +21,10 @@ export function suppliersQuery(shop = currentShop()) {
 }
 
 /** Creates a supplier, or updates `editing` when given. The list is refetched so it shows the change. */
-export function useSaveSupplier(editing: SupplierView | undefined, onSaved: () => void) {
+export function useSaveSupplier(
+  editing: SupplierView | undefined,
+  onSaved: (saved: SupplierView) => void,
+) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (values: SupplierValues) =>
@@ -29,9 +32,9 @@ export function useSaveSupplier(editing: SupplierView | undefined, onSaved: () =
         method: editing ? "PATCH" : "POST",
         body: toSupplierBody(values),
       }),
-    onSuccess: async () => {
+    onSuccess: async (saved) => {
       toast.success(editing ? "Supplier saved" : "Supplier added");
-      onSaved();
+      onSaved(saved);
       await queryClient.invalidateQueries({ queryKey: ["suppliers"] });
     },
   });

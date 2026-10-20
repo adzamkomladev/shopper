@@ -39,8 +39,9 @@ async function seedWith(request: APIRequestContext) {
     await request.get(`${BOX_API}/branches`, { headers })
   ).json()) as Branch[];
   const branch = branches.find((row) => row.name === BRANCH_NAME)!;
-  const cashier = await createStaff(request, "cashier", "Efua");
-  const manager = await createStaff(request, "admin", "Kofi");
+  // Names that sort last (before only Zuberi), so the virtualised Users list keeps its early rows in view.
+  const cashier = await createStaff(request, "cashier", "Zakari");
+  const manager = await createStaff(request, "admin", "Zaid");
   const till = `Till ${unique()}`;
   const device = (await enrolDevice(request, branch.id, till)) as {
     deviceId: string;

@@ -17,7 +17,7 @@ import { BranchForm } from "../../components/branches/form";
 import { branchesQuery } from "../../queries/branches";
 import { BranchTable } from "../../components/branches/table";
 
-type Branch = { id: string; name: string; storeId: string };
+type Branch = { id: string; name: string; storeId: string; alertPhones: string[] };
 
 export function BranchesScreen() {
   const { data: held } = useSuspenseQuery(permissionsQuery());

@@ -1,18 +1,19 @@
 import { useForm } from "@tanstack/react-form";
 import { CircleAlertIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@shopper/ui/components/alert";
-import { FieldGroup } from "@shopper/ui/components/field";
+import { FieldDescription, FieldGroup, FieldLegend, FieldSet } from "@shopper/ui/components/field";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { FormFooter } from "../admin/form/sheet";
 import { SelectField } from "../fields/select";
 import { TextField } from "../fields/text";
 import { focusFirstInvalid } from "../../lib/focus";
-import { branchFormSchema, emptyBranch } from "../../schemas/management";
+import { PHONE_ERROR, PHONE_FIELDS, phoneFieldOfError } from "../../schemas/branches";
+import { branchFormSchema, branchValues, emptyBranch } from "../../schemas/management";
 import { useSaveBranch } from "../../queries/branches";
 
 type Props = {
-  branch?: { id: string; name: string; storeId: string };
+  branch?: { id: string; name: string; storeId: string; alertPhones: string[] };
   stores: { id: string; name: string }[];
   onSaved: () => void;
 };
@@ -22,7 +23,7 @@ export function BranchForm({ branch, stores, onSaved }: Props) {
   const save = useSaveBranch(branch, onSaved);
   const form = useForm({
     defaultValues: branch
-      ? { name: branch.name, storeId: branch.storeId }
+      ? branchValues(branch)
       : emptyBranch(stores.length === 1 ? stores[0]!.id : ""),
     validators: { onSubmit: branchFormSchema },
     onSubmit: ({ value }) => save.mutate(value),
@@ -68,7 +69,30 @@ export function BranchForm({ branch, stores, onSaved }: Props) {
             />
           )}
         </form.Field>
-        {save.error && (
+        <FieldSet>
+          <FieldLegend>Low stock alerts</FieldLegend>
+          <FieldDescription>
+            These numbers are texted when stock runs low. Add up to three.
+          </FieldDescription>
+          <FieldGroup>
+            {PHONE_FIELDS.map((name, index) => (
+              <form.Field key={name} name={name}>
+                {(field) => (
+                  <TextField
+                    field={field}
+                    label={`Alert phone ${index + 1}`}
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="off"
+                    serverError={phoneFieldOfError(save.error) === name ? PHONE_ERROR : undefined}
+                    onChange={clearError}
+                  />
+                )}
+              </form.Field>
+            ))}
+          </FieldGroup>
+        </FieldSet>
+        {save.error && !phoneFieldOfError(save.error) && (
           <Alert variant="destructive">
             <CircleAlertIcon aria-hidden />
             <AlertDescription>{save.error.message}</AlertDescription>

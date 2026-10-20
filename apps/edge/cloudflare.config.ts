@@ -1,4 +1,3 @@
-import { notificationPolicy } from "./src/notifications.ts";
 import { bindings, defineConfig, exports, triggers } from "cf/config";
 
 const accountId = "bd9ef997b398c9aeeee8ac3d3618efdc";
@@ -42,13 +41,14 @@ export default defineConfig(({ mode }) => {
       ...(stage === "staging"
         ? { workersDev: true, domains: ["shopper-api-staging.temtem.dev"] }
         : {}),
-      // Failed notifications retry five times, then land in the dead-letter queue.
+      // Failed notifications retry five times, then land in the dead-letter queue. The config
+      // loader cannot import workspace packages; edge.test.ts pins these to NOTIFICATION_RETRY.
       triggers: [
         triggers.queue({
           name: `shopper-notifications-${stage}`,
           deadLetterQueue: `shopper-notifications-dlq-${stage}`,
-          maxRetries: notificationPolicy.maxAttempts - 1,
-          retryDelay: notificationPolicy.delayMs / 1000,
+          maxRetries: 5,
+          retryDelay: 60,
           maxBatchSize: 10,
         }),
       ],

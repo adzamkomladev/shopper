@@ -2,6 +2,7 @@ import { Hono, type Context } from "hono";
 import {
   adjustStock,
   receiveStock,
+  setReorder,
   stockValuation,
   listDocuments,
   listStock,
@@ -9,6 +10,7 @@ import {
   readStockProduct,
   stockBranches,
 } from "@shopper/core/stock";
+import type { Queue } from "@shopper/ports";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import { commandContext } from "./stock/context";
 import { takeRoutes } from "./stock/takes";
@@ -20,6 +22,7 @@ import type { ApiAuthentication, ApiEnvironment } from "../types";
 export function stockRoutes(
   database: ShopperDatabase,
   authentication: ApiAuthentication | undefined,
+  notifications?: Queue,
 ) {
   const app = new Hono<ApiEnvironment>();
   const guard = requirePermission(authentication, (request) =>
@@ -66,14 +69,26 @@ export function stockRoutes(
           : raw;
       const { id, replayed } = await (command as typeof receiveStock)(
         database,
-        commandContext(principal),
+        commandContext(principal, notifications),
         { [key]: body, now: new Date() } as never,
       );
       return c.json(await readDocument(database, principal.orgId, id), replayed ? 200 : 201);
     };
   app.post("/stock/receipts", record("receipt", receiveStock));
   app.post("/stock/adjustments", record("adjustment", adjustStock));
-  app.route("/stock/takes", takeRoutes(database));
+  app.put("/stock/reorder", async (c) => {
+    const principal = c.get("principal");
+    const raw = await c.req.json().catch(() => undefined);
+    // A till sets levels for its own branch, whatever the body says.
+    const reorder =
+      principal.deviceId && raw && typeof raw === "object"
+        ? { ...raw, branchId: principal.branchId }
+        : raw;
+    return c.json(
+      await setReorder(database, commandContext(principal, notifications), { reorder }),
+    );
+  });
+  app.route("/stock/takes", takeRoutes(database, notifications));
   app.onError(problem);
   return app;
 }

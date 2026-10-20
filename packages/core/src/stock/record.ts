@@ -19,6 +19,7 @@ import {
 } from "../schemas/stock/portal";
 import { validateProducts } from "./authority";
 import { StockError } from "./error";
+import { checkReorder } from "./reorder";
 
 type Recorded = { id: string; replayed: boolean };
 type Draft = {
@@ -93,6 +94,12 @@ async function recordDocument(tx: ShopperTransaction, ctx: CommandContext, draft
       unitCost: line.unitCost === undefined ? undefined : money(line.unitCost),
       occurredAt: draft.occurredAt,
     })),
+  );
+  await checkReorder(
+    tx,
+    ctx,
+    draft.branchId,
+    draft.movements.map((line) => line.productId),
   );
   return { id: draft.id, replayed: false };
 }

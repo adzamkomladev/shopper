@@ -52,6 +52,7 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
       sequencer: options.sequencer,
       blobs: options.blobs,
       live: options.live,
+      notifications: options.notifications,
     }).fetch(request);
   }
   const linkOptions =
@@ -146,5 +147,6 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     realtime: options.realtime,
     invitations,
     blobs: options.blobs,
+    notifications: options.notifications,
   }).fetch(request);
 }

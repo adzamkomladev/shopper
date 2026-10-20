@@ -10,6 +10,8 @@ import { validateReceipt } from "./receipts";
 import { SaleError } from "./error";
 import { validateTenders } from "./tenders";
 import { saleDocument } from "./document";
+import { checkReorder } from "../stock/reorder";
+import type { Queue } from "@shopper/ports";
 
 export async function acceptSale(
   db: ShopperDatabase,
@@ -17,6 +19,7 @@ export async function acceptSale(
   raw: unknown,
   proof: string,
   now = Date.now,
+  queue?: Queue,
 ) {
   const event = decodeSaleEvent(raw);
   const occurredAt = new Date(
@@ -32,6 +35,7 @@ export async function acceptSale(
       actorId: event.sale.cashierId,
       appVersion: event.sale.appVersion,
       deviceTime: new Date(event.sale.deviceTime),
+      queue,
     },
     { principal, event, occurredAt, proofHash: await sha256(proof), contentHash },
   );
@@ -129,6 +133,12 @@ const accept = defineCommand({
         quantityThousandths: -line.tax.quantityThousandths,
         occurredAt: input.occurredAt,
       })),
+    );
+    await checkReorder(
+      tx,
+      ctx,
+      snapshot.branchId,
+      snapshot.lines.map((line) => line.productId),
     );
     return { localId: saved.localId, occurredAt: saved.occurredAt.toISOString() };
   },

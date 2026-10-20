@@ -30,6 +30,7 @@ export function createApi(options: ApiOptions = {}) {
         devices: options.devices,
         sequencer: options.sequencer,
         blobs: options.blobs,
+        notifications: options.notifications,
       }),
     );
   if (options.onboarding) app.route("/", onboardingRoutes(options.onboarding));
@@ -53,6 +54,7 @@ export function createApi(options: ApiOptions = {}) {
   app.route("/", administrationRoutes(options));
   if (options.devices) app.route("/", deviceRoutes(options.devices, options.authentication));
   if (options.database) app.route("/", shiftRoutes(options.database, options.authentication));
-  if (options.database) app.route("/", stockRoutes(options.database, options.authentication));
+  if (options.database)
+    app.route("/", stockRoutes(options.database, options.authentication, options.notifications));
   return app;
 }

@@ -1,5 +1,6 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import * as v from "valibot";
+import type { Envelope } from "@shopper/ports";
 import { v7 } from "uuid";
 import {
   auditLog,
@@ -13,7 +14,7 @@ import {
 } from "@shopper/db-pg";
 import { GENESIS_HASH, hashEntry, canonicalJson, redact, type AuditEntry } from "../chain";
 import { contextSchema, registrationContextSchema } from "../schemas/command/context";
-import { collectStoreChanges } from "../notifications";
+import { collectEnvelopes, collectStoreChanges } from "../notifications";
 import type { AuditDetails, CommandContext, WorkflowCheckpoint } from "../types";
 
 // Fixed internal table sets: a command's scope picks its chain, never the caller. The registration
@@ -48,8 +49,10 @@ export function defineCommand<Input, Output>(definition: {
     input: Input,
     checkpoint?: WorkflowCheckpoint,
   ): Promise<Output> => {
-    const onStoreChanged = context.onStoreChanged;
+    // The parse below strips keys the schema does not know, so take the callbacks first.
+    const { onStoreChanged, queue } = context;
     const heads = new Map<string, string>();
+    const queued: Envelope[] = [];
     context = v.parse(schema, context) as CommandContext;
     // PostgreSQL normalizes UUID text; hash and lock the same representation.
     context = {
@@ -69,6 +72,7 @@ export function defineCommand<Input, Output>(definition: {
     }
     const result = await db.transaction(async (tx) => {
       collectStoreChanges(tx, heads);
+      collectEnvelopes(tx, queued);
       // Serialize the whole command, before business locks, to prevent forks and lock inversions.
       await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${context.orgId}, 0))`);
       if (checkpoint) {
@@ -162,6 +166,13 @@ export function defineCommand<Input, Output>(definition: {
         await onStoreChanged?.(storeId, sequence);
       } catch (error) {
         console.error({ event: "realtime.publish_failed", orgId: context.orgId, storeId, error });
+      }
+    }
+    for (const envelope of queued) {
+      try {
+        await queue?.send(envelope);
+      } catch (error) {
+        console.error({ event: "queue.send_failed", orgId: context.orgId, id: envelope.id, error });
       }
     }
     return result;

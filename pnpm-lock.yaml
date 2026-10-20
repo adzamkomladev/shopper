@@ -256,6 +256,9 @@ importers:
       '@shopper/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@shopper/ports':
+        specifier: workspace:*
+        version: link:../../packages/ports
       hono:
         specifier: 4.13.13
         version: 4.13.13
@@ -268,9 +271,6 @@ importers:
       '@shopper/api':
         specifier: workspace:*
         version: link:../../packages/api
-      '@shopper/ports':
-        specifier: workspace:*
-        version: link:../../packages/ports
     devDependencies:
       '@cloudflare/vite-plugin':
         specifier: 2.0.0-beta.v.1
@@ -618,6 +618,9 @@ importers:
       '@shopper/db-sqlite':
         specifier: workspace:*
         version: link:../db/sqlite
+      '@shopper/ports':
+        specifier: workspace:*
+        version: link:../ports
       '@shopper/utils':
         specifier: workspace:*
         version: link:../utils

@@ -3,6 +3,8 @@ import { cloudflareBlobs, cloudflareCache } from "./storage";
 import { cloudflareResponse } from "./response";
 import { cloudflareLive } from "./live";
 import { cloudflareRealtime } from "./realtime";
+import { cloudflareQueue } from "./queue";
+import { NOTIFICATION_RETRY } from "@shopper/ports";
 import { cloudflareDatabase } from "./database";
 import { cloudflareLauncher } from "./launcher";
 import { cloudflareSequencer } from "./sequencer";
@@ -34,6 +36,9 @@ export async function cloudflareRuntime(
       cache: cloudflareCache(env.CACHE_DB),
       live: cloudflareLive(env.STORE_HUB),
       realtime: cloudflareRealtime(env.STORE_HUB),
+      notifications: env.NOTIFICATIONS
+        ? cloudflareQueue(env.NOTIFICATIONS, NOTIFICATION_RETRY)
+        : undefined,
       blobs: (
         await cloudflareBlobs(env.BLOBS, {
           imports: env.IMPORTS,

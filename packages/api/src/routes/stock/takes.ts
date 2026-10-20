@@ -7,6 +7,7 @@ import {
   readTake,
   startTake,
 } from "@shopper/core/stock";
+import type { Queue } from "@shopper/ports";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { ApiEnvironment } from "../../types";
 import { commandContext } from "./context";
@@ -14,7 +15,7 @@ import { commandContext } from "./context";
 type Ctx = Context<ApiEnvironment>;
 
 /** Stock takes under /stock/takes; the caller's guard has set the principal. */
-export function takeRoutes(database: ShopperDatabase) {
+export function takeRoutes(database: ShopperDatabase, notifications?: Queue) {
   const app = new Hono<ApiEnvironment>();
   const principal = (c: Ctx) => c.get("principal");
   // A till works on its own branch, whatever the request says.
@@ -37,14 +38,18 @@ export function takeRoutes(database: ShopperDatabase) {
     const raw = await body(c);
     const branch = onlyBranch(c);
     const take = branch && raw && typeof raw === "object" ? { ...raw, branchId: branch } : raw;
-    const { id, replayed } = await startTake(database, commandContext(principal(c)), {
-      take: take as never,
-    });
+    const { id, replayed } = await startTake(
+      database,
+      commandContext(principal(c), notifications),
+      {
+        take: take as never,
+      },
+    );
     return view(c, id, replayed ? 200 : 201);
   });
   app.get("/:id", async (c) => view(c, c.req.param("id")));
   app.put("/:id/counts", async (c) => {
-    const { id } = await countTake(database, commandContext(principal(c)), {
+    const { id } = await countTake(database, commandContext(principal(c), notifications), {
       takeId: c.req.param("id"),
       counts: (await body(c)) as never,
       now: new Date(),
@@ -52,14 +57,14 @@ export function takeRoutes(database: ShopperDatabase) {
     return view(c, id);
   });
   app.post("/:id/post", async (c) => {
-    const { id } = await postTake(database, commandContext(principal(c)), {
+    const { id } = await postTake(database, commandContext(principal(c), notifications), {
       takeId: c.req.param("id"),
       now: new Date(),
     });
     return view(c, id);
   });
   app.post("/:id/cancel", async (c) => {
-    const { id } = await cancelTake(database, commandContext(principal(c)), {
+    const { id } = await cancelTake(database, commandContext(principal(c), notifications), {
       takeId: c.req.param("id"),
       now: new Date(),
     });

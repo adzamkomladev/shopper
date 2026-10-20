@@ -13,6 +13,8 @@ import { stockDocumentSchema, type StockDocument } from "../schemas/stock/docume
 import { validateProducts, validateStockAuthority } from "./authority";
 import { countDeltas } from "./counts";
 import { StockError } from "./error";
+import { checkReorder } from "./reorder";
+import type { Queue } from "@shopper/ports";
 
 type Input = {
   principal: UploadPrincipal;
@@ -29,7 +31,7 @@ export async function acceptStockDocument(
   principal: UploadPrincipal,
   raw: unknown,
   proof: string,
-  options: { appVersion: string; now?: () => number },
+  options: { appVersion: string; now?: () => number; queue?: Queue },
 ): Promise<Output> {
   const document = v.parse(stockDocumentSchema, raw);
   const at = new Date(document.kind === "count" ? document.countedAt : document.receivedAt);
@@ -46,6 +48,7 @@ export async function acceptStockDocument(
     branchId: principal.branchId,
     actorId: document.actorId,
     appVersion: options.appVersion,
+    queue: options.queue,
   };
   return (document.kind === "count" ? acceptCount : acceptReceipt)(db, context, input);
 }
@@ -122,6 +125,7 @@ async function post(tx: ShopperTransaction, ctx: CommandContext, input: Input) {
         occurredAt: input.occurredAt,
       })),
     );
+  await checkReorder(tx, ctx, input.principal.branchId, [...deltas.keys()]);
   return describe(document, input.occurredAt, deltas);
 }
 

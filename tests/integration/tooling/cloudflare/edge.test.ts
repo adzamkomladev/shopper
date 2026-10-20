@@ -3,6 +3,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { NOTIFICATION_RETRY } from "@shopper/ports";
 import { beforeAll, expect, test } from "vite-plus/test";
 
 const edge = resolve("apps/edge");
@@ -63,6 +64,10 @@ test("Durable Objects, Workflows and every resource binding are the staging ones
   expect(bound.BROWSER.dev?.remote).toBeUndefined();
 });
 
+test("the notification retry policy is five retries, a minute apart", () => {
+  expect(NOTIFICATION_RETRY).toMatchObject({ maxAttempts: 6, delayMs: 60_000 });
+});
+
 test("the notifications queue has an edge consumer with five retries and a dead-letter queue", () => {
   const { triggers } = worker();
   expect(triggers).toContainEqual(
@@ -70,9 +75,8 @@ test("the notifications queue has an edge consumer with five retries and a dead-
       type: "queue",
       name: "shopper-notifications-staging",
       deadLetterQueue: "shopper-notifications-dlq-staging",
-      // maxAttempts 6 on the box policy is five retries here.
-      maxRetries: 5,
-      retryDelay: 60,
+      maxRetries: NOTIFICATION_RETRY.maxAttempts - 1,
+      retryDelay: NOTIFICATION_RETRY.delayMs / 1000,
       maxBatchSize: 10,
     }),
   );

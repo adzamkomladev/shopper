@@ -1,3 +1,4 @@
+import type { cloudflareQueue } from "../queue";
 import type { cloudflareLauncher } from "../launcher";
 import type { cloudflareLive } from "../live";
 import type { cloudflareSequencer } from "../sequencer";
@@ -30,6 +31,7 @@ export interface CloudflareRuntimeEnvironment extends AuthEnvironment {
   STORE_SEQUENCER: Parameters<typeof cloudflareSequencer>[0];
   STORE_HUB: Parameters<typeof cloudflareLive>[0];
   PRICE_CHANGE: Parameters<typeof cloudflareLauncher>[0];
+  NOTIFICATIONS?: Parameters<typeof cloudflareQueue>[0];
   MOMO_PAYMENT?: Parameters<typeof cloudflareLauncher>[0];
   AUTH_FLOWS?: Parameters<typeof cloudflareLauncher>[0];
 }

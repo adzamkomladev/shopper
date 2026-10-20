@@ -15,8 +15,8 @@ type Props = {
   onOpenChange: (open: boolean) => void;
 };
 
-/** The branch whose records are listed, with its key. */
-export function RecordsToolbar({ branches, branchId, onBranchChange, open, onOpenChange }: Props) {
+/** The branch whose records, takes or valuation are shown, with its key. */
+export function BranchPicker({ branches, branchId, onBranchChange, open, onOpenChange }: Props) {
   return (
     <Select value={branchId} onValueChange={onBranchChange} open={open} onOpenChange={onOpenChange}>
       <SelectTrigger aria-label="Branch" className="w-full sm:w-48">

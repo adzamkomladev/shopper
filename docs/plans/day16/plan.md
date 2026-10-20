@@ -223,7 +223,7 @@ Every table has `org_id`, UUIDv7 ids and composite `(org, x)` foreign keys.
 - `GET /stock/documents/:id`: lines carry the product's `baseUnit`.
 - `POST /stock/receipts` (201; a replay returns 200)
 - `POST /stock/adjustments`
-- `GET /stock/valuation?branchId`
+- `GET /stock/valuation?branchId`: lines carry the product's `baseUnit`, so the report can say "15 kg".
 
 **Stock takes**
 
@@ -237,7 +237,7 @@ Every table has `org_id`, UUIDv7 ids and composite `(org, x)` foreign keys.
 **Other API edits**
 
 - `routes/catalogue.ts`: the supplier write guard becomes `stock.write`.
-- `problem.ts` maps `StockError`: 409 for conflict, superseded, not counted, take open and take closed; 400 for an invalid reference or sign; 404 for not found.
+- `problem.ts` maps `StockError`: 409 for conflict, superseded, not counted, take open and take closed; 400 for an invalid reference or sign; 404 for not found. The body also carries `code` (the `StockError` code), so the portal tells TAKE_OPEN from NOT_COUNTED without reading the words.
 - `app.ts` mounts both route files.
 - **`runtime.ts`: add `stock` to the `isPublicRequest` regex.** Without it, `/stock` falls through to the public API.
 

@@ -22,9 +22,10 @@ export function problem(error: Error, c: Context) {
   }
   if (error instanceof AssetError) return c.json({ error: error.message }, error.status);
   if (error instanceof ManagementError) return c.json({ error: error.message }, error.status);
+  // The code lets a client tell the conflicts apart (TAKE_OPEN from NOT_COUNTED, say) without reading the words.
   if (error instanceof StockError)
     return c.json(
-      { error: error.message },
+      { error: error.message, code: error.code },
       stockStatus[error.code as keyof typeof stockStatus] ?? 409,
     );
   const pg = error as {

@@ -36,6 +36,10 @@
       "types": "./src/components/table/data.tsx",
       "default": "./src/components/table/data.tsx"
     },
+    "./components/radio-group": {
+      "types": "./src/components/radio/group.tsx",
+      "default": "./src/components/radio/group.tsx"
+    },
     "./components/app-backdrop": {
       "types": "./src/components/app/backdrop.tsx",
       "default": "./src/components/app/backdrop.tsx"

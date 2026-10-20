@@ -17,7 +17,7 @@ let seeded: ReturnType<typeof seed> | undefined;
 export const seedStock = () => (seeded ??= seed());
 
 /** Runs `use` with an API client signed in as the E2E Mart owner. */
-async function asOwner<T>(use: (request: APIRequestContext) => Promise<T>) {
+export async function asOwner<T>(use: (request: APIRequestContext) => Promise<T>) {
   const request = await playwright.newContext({ storageState: "tests/e2e/.auth/owner.json" });
   try {
     return await use(request);
@@ -109,8 +109,10 @@ export const heading = (page: Page, name: string, level = 1) =>
   page.getByRole("heading", { name, level });
 export const rowOf = (page: Page, text: string) => page.getByRole("row").filter({ hasText: text });
 /** The tab of the inventory area that is showing. */
-export const activeTab = (page: Page, name: "Stock" | "Records" | "Suppliers") =>
-  page.getByRole("tab", { name, selected: true });
+export const activeTab = (
+  page: Page,
+  name: "Stock" | "Records" | "Suppliers" | "Stock takes" | "Valuation",
+) => page.getByRole("tab", { name, exact: true, selected: true });
 export const nav = (page: Page) => page.getByRole("navigation", { name: "Main" });
 export const search = (page: Page) => page.getByRole("textbox", { name: "Search stock" });
 export const lowToggle = (page: Page) => page.getByRole("button", { name: /Low stock/ });

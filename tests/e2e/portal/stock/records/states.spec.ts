@@ -119,14 +119,14 @@ test.describe("members of E2E Mart without the owner role", () => {
     await expect(page.getByText("You don't have permission to view stock records")).toBeVisible();
   });
 
-  test("an inventory manager has the Stock, Records and Suppliers tabs", async ({
+  test("an inventory manager has the Stock, Records, Stock takes, Valuation and Suppliers tabs", async ({
     page,
     request,
   }) => {
     await page.context().clearCookies();
     await signInAs(page, await stockMember(request, "inventory"));
     await nav(page).getByRole("link", { name: "Inventory" }).click();
-    for (const name of ["Stock", "Records", "Suppliers"])
-      await expect(page.getByRole("tab", { name })).toBeVisible();
+    for (const name of ["Stock", "Records", "Stock takes", "Valuation", "Suppliers"])
+      await expect(page.getByRole("tab", { name, exact: true })).toBeVisible();
   });
 });

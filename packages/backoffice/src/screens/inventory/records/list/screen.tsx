@@ -2,6 +2,7 @@ import { Suspense, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { keepPreviousData, useInfiniteQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { useOnline } from "@shopper/ui/hooks/use-online";
+import { BranchPicker } from "../../../../components/inventory/picker";
 import { InventoryPage } from "../../../../components/inventory/tabs";
 import { RecordActions } from "../../../../components/inventory/records/actions";
 import { Segments } from "../../../../components/inventory/records/segments";
@@ -10,7 +11,6 @@ import {
   RecordsBodySkeleton,
   RecordsResultsSkeleton,
 } from "../../../../components/inventory/records/states";
-import { RecordsToolbar } from "../../../../components/inventory/records/toolbar";
 import { NoBranch } from "../../../../components/inventory/stock/list/states";
 import { Gate, OfflineNote } from "../../../../components/register/states";
 import { useRecordShortcuts } from "../../../../hooks/inventory/records/shortcuts";
@@ -49,7 +49,7 @@ function RecordsBody({ canWrite }: { canWrite: boolean }) {
           You're seeing the records loaded earlier. Recording new stock needs a connection.
         </OfflineNote>
       )}
-      <RecordsToolbar
+      <BranchPicker
         branches={data.branches}
         branchId={branch.id}
         onBranchChange={(id) =>

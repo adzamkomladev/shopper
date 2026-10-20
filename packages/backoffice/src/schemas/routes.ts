@@ -19,3 +19,9 @@ export const recordsSearch = v.object({
   branch: v.optional(v.string()),
   kind: v.optional(v.picklist(["received", "adjusted", "counted"])),
 });
+
+/** The count sheet's two views: only what is still uncounted, and the review that comes before posting. */
+export const takeSheetSearch = v.object({
+  uncounted: v.optional(v.literal(true)),
+  review: v.optional(v.literal(true)),
+});

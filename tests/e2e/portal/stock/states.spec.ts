@@ -143,7 +143,7 @@ test.describe("members of E2E Mart without the owner role", () => {
     await page.context().clearCookies();
     await signInAs(page, clerk);
     await nav(page).getByRole("link", { name: "Inventory" }).click();
-    await expect(page.getByRole("tab", { name: "Stock" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Stock", exact: true })).toBeVisible();
     await expect(page.getByRole("tab", { name: "Suppliers" })).toBeVisible();
     await page.goto("/users");
     await expect(page.getByRole("heading", { name: "You don't have permission" })).toBeVisible();

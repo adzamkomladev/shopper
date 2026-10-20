@@ -43,6 +43,7 @@ export async function stockValuation(db: Queryable, orgId: string, rawQuery: unk
       productId: product.id,
       sku: product.sku,
       name: product.name,
+      baseUnit: product.baseUnit,
       onHandThousandths: onHandOf(orgId, branchId, product.id),
     })
     .from(product)

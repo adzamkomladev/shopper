@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import { uuidV7Schema } from "@shopper/ports";
-import { stockDocumentKinds } from "@shopper/db-pg";
+import { stockDocumentKinds, stockTakeStatuses } from "@shopper/db-pg";
 import { listQuery } from "../catalogue/inputs";
 
 const id = uuidV7Schema;
@@ -96,6 +96,7 @@ export const stockValuationView = v.object({
       productId: id,
       sku: v.string(),
       name: v.string(),
+      baseUnit: v.string(),
       onHandThousandths: int,
       unitCost: v.nullable(int),
       value: int,
@@ -103,4 +104,40 @@ export const stockValuationView = v.object({
     }),
   ),
   total: int,
+});
+
+export const takeSummary = v.object({
+  id,
+  branchId: id,
+  branchName: v.string(),
+  scope: v.picklist(["full", "category"]),
+  categoryId: v.nullable(id),
+  categoryName: v.nullable(v.string()),
+  status: v.picklist(stockTakeStatuses),
+  startedBy: id,
+  startedByName: v.string(),
+  startedAt: v.string(),
+  closedAt: v.nullable(v.string()),
+  lines: int,
+  uncounted: int,
+});
+export const takeList = page(takeSummary);
+
+/** One product on the sheet. Expected is on hand at the count's time while the take is open, and what was posted after. */
+export const takeLine = v.object({
+  productId: id,
+  sku: v.string(),
+  name: v.string(),
+  baseUnit: v.string(),
+  countedThousandths: v.nullable(int),
+  countedAt: v.nullable(v.string()),
+  countedBy: v.nullable(id),
+  expectedThousandths: v.nullable(int),
+  varianceThousandths: v.nullable(int),
+  unitCost: v.nullable(int),
+  varianceValue: v.nullable(int),
+});
+export const takeDetail = v.object({
+  ...takeSummary.entries,
+  lines: v.array(takeLine),
 });

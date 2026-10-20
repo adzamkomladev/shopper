@@ -10,7 +10,7 @@ import { usePanel } from "../../hooks/admin/panel";
 import { ApiError } from "../../api/client";
 import { permissionsQuery } from "../../queries/session/permissions";
 import { sessionQuery } from "../../queries/session/session";
-import { roleLabel, rolesQuery, type RoleView } from "../../queries/roles";
+import { rolesQuery, type RoleView } from "../../queries/roles";
 import { CancelInvitationDialog } from "../../components/users/cancel/dialog";
 import { ChangeRoleForm } from "../../components/users/change/role/form";
 import { InvitationsTable, cancelButtonId } from "../../components/users/invitations/table";
@@ -57,7 +57,7 @@ export function UsersScreen() {
   const shortcuts = useShortcuts({ I: () => canInvite && noPanelOpen && invite.show() });
   // A replaced invitation is history that only repeats the one that replaced it.
   const invitations = allInvitations.filter((invitation) => invitation.status !== "replaced");
-  const roleNames = new Map(roles.map((role) => [role.id, roleLabel(role)]));
+  const roleNames = new Map(roles.map((role) => [role.id, role.name]));
   return (
     <div ref={shortcuts} className="flex min-h-0 flex-1 flex-col gap-6">
       <PageHeader

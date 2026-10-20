@@ -11,7 +11,6 @@ import { mappingsQuery } from "../queries/catalogue/mappings";
 import { permissionsQuery } from "../queries/session/permissions";
 import { administrationRoutes } from "./administration";
 import { publicAuthRoutes } from "./auth/public";
-import { inventoryRoutes } from "./inventory";
 import { shiftRoutes } from "./shifts";
 import { currentOrgQuery, requireSession } from "../queries/session/session";
 import type { BackofficeContext } from "../types";
@@ -128,7 +127,6 @@ export function createBackofficeRoutes(
       productRoute,
       mappingsRoute,
       importsRoute,
-      ...inventoryRoutes(shopRoute),
       ...administrationRoutes(shopRoute),
       ...shiftRoutes(shopRoute),
     ]),

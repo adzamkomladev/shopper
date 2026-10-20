@@ -8,6 +8,7 @@ import { SaleError } from "../sales/error";
  * and refunds are trusted until the store-day cross-check (Day 20).
  */
 export function validateShiftReport(z: ZReport) {
+  // The rules of `shiftTotals` (totals.ts), checked from the Z's figures rather than its sales.
   const mismatch = (what: string) => {
     throw new SaleError("SHIFT_MISMATCH", `Shift ${what} does not add up`);
   };

@@ -1,5 +1,5 @@
 import type { XReport, ZReport } from "@shopper/core/schemas";
-import { money, toDecimal } from "@shopper/money";
+import { money, mulRatio, sub, toDecimal } from "@shopper/money";
 import { ghs, tenderLabel } from "../format";
 import { paper } from "../profiles";
 import type { PaperMm, PrinterProfile } from "../types";
@@ -75,8 +75,8 @@ export function encodeShiftReport(report: XReport | ZReport, options: Options): 
   const { cash } = report;
   printer.text(row("Float", ghs(money(cash.float))));
   printer.text(row("Cash sales", ghs(money(cash.sales))));
-  printer.text(row("Cash refunds", ghs(money(-cash.refunds))));
-  printer.text(row("Drops", ghs(money(-cash.drops))));
+  printer.text(row("Cash refunds", ghs(sub(money(0), money(cash.refunds)))));
+  printer.text(row("Drops", ghs(sub(money(0), money(cash.drops)))));
   printer
     .bold(true)
     .text(row("Expected in drawer", ghs(money(cash.expected))))
@@ -85,7 +85,13 @@ export function encodeShiftReport(report: XReport | ZReport, options: Options): 
     rule();
     printer.text("Counted");
     for (const [face, count] of Object.entries(z.declared.counts).sort(([a], [b]) => +b - +a))
-      if (count) printer.text(row(`${ghs(money(+face))} x ${count}`, ghs(money(+face * count))));
+      if (count)
+        printer.text(
+          row(
+            `${ghs(money(Number(face)))} x ${count}`,
+            ghs(mulRatio(money(Number(face)), count, 1)),
+          ),
+        );
     printer
       .bold(true)
       .text(row("Counted cash", ghs(money(z.declared.cash))))

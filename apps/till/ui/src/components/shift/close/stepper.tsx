@@ -1,7 +1,7 @@
 import { Check } from "lucide-react";
 import { cn } from "cn";
 
-export const closeSteps = ["Count cash", "Card & MoMo", "Result"] as const;
+const closeSteps = ["Count cash", "Card & MoMo", "Result"] as const;
 
 /** Review refund's stepper: done steps carry a tick, the current one is marked for assistive technology. */
 export function Stepper({ current }: { current: 0 | 1 | 2 }) {

@@ -15,7 +15,8 @@ type Parts = {
 /**
  * What a shift's drawer and terminals should hold. Cash kept from a sale is its cash tenders less change (cash
  * rounding is already inside the change); a cash refund pays out its total (its rounding is inside the total).
- * Shared by the till's X and Z and the server's re-check of an uploaded Z.
+ * The till's X and Z come from here. The server re-derives the same rules from the Z's own figures in
+ * `validate.ts`; change both together, or every uploaded Z becomes SHIFT_MISMATCH.
  */
 export function shiftTotals({ float, sales, refunds, drops }: Parts) {
   const sum = (amounts: readonly Money[]) => amounts.reduce(add, money(0));

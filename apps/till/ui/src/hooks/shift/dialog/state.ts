@@ -3,7 +3,7 @@ import { toast } from "@shopper/ui/components/sonner";
 import type { ShiftDialog, ShiftPhase } from "../../../shift/types";
 
 /** Why a cash movement or an open cannot start now, or null when it can. */
-export function whyBlocked(dialog: ShiftDialog, phase: ShiftPhase) {
+function whyBlocked(dialog: ShiftDialog, phase: ShiftPhase) {
   if (dialog === "open")
     return phase === "open" || phase === "counting" ? "A shift is already open" : null;
   if (phase === "closed") return "Register closed. Open a shift";

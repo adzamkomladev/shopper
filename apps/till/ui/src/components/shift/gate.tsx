@@ -15,7 +15,7 @@ import { takeFocus } from "../../hooks/focus";
 import type { ShiftPhase } from "../../shift/types";
 
 /** Figma "Register closed": what the Checkout tab shows when no shift is open, or the drawer is counted. */
-export function ShiftGate({
+function ShiftGate({
   phase,
   canWrite,
   active,

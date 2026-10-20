@@ -1,4 +1,5 @@
 import * as v from "valibot";
+import { adjustmentCauses } from "@shopper/db-pg";
 import { uuidV7Schema } from "@shopper/ports";
 import { text } from "../fields";
 import { lines, quantity } from "./document";
@@ -17,3 +18,13 @@ export const receiptInput = v.strictObject({
   lines: lines({ quantityThousandths: quantity(1), unitCost: quantity(0) }),
 });
 export type ReceiptInput = v.InferOutput<typeof receiptInput>;
+
+/** Wastage and corrections: lines carry a positive quantity and the cause (with `direction` for "other") gives the sign. */
+export const adjustmentInput = v.strictObject({
+  id,
+  branchId: id,
+  cause: v.picklist(adjustmentCauses),
+  direction: v.optional(v.picklist(["add", "remove"])),
+  lines: lines({ quantityThousandths: quantity(1) }),
+});
+export type AdjustmentInput = v.InferOutput<typeof adjustmentInput>;

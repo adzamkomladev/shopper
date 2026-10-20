@@ -11,7 +11,12 @@ import {
 } from "@shopper/db-pg";
 import { money } from "@shopper/money";
 import { sha256 } from "@shopper/utils";
-import { receiptInput, type ReceiptInput } from "../schemas/stock/portal";
+import {
+  adjustmentInput,
+  receiptInput,
+  type AdjustmentInput,
+  type ReceiptInput,
+} from "../schemas/stock/portal";
 import { validateProducts } from "./authority";
 import { StockError } from "./error";
 
@@ -114,5 +119,51 @@ export const receiveStock = defineCommand({
     });
   },
   audit: (input, output) => ({ ...output, ...v.parse(receiptInput, input.receipt) }),
+  details: (_input, output) => ({ entity: "stock_document", entityId: output.id }),
+});
+
+const fixedSigns = { damaged: -1, expired: -1, theft: -1, found: 1 } as const;
+
+/** damaged, expired and theft remove stock and found adds it; "other" must say which way. */
+function adjustmentSign({ cause, direction }: AdjustmentInput) {
+  const sign = cause === "other" ? undefined : fixedSigns[cause];
+  const wanted = direction === undefined ? undefined : direction === "add" ? 1 : -1;
+  if (
+    (sign ?? wanted) === undefined ||
+    (sign !== undefined && wanted !== undefined && sign !== wanted)
+  )
+    throw new StockError(
+      "INVALID_SIGN",
+      `A ${cause} adjustment ${direction ? `cannot ${direction}` : "needs a direction"} stock`,
+    );
+  return (sign ?? wanted)!;
+}
+
+type AdjustInput = { adjustment: AdjustmentInput; now: Date };
+
+/** Wastage, theft, found stock or another correction, with its cause on the record. */
+export const adjustStock = defineCommand({
+  name: "stock.adjustment.record",
+  replay: (tx, ctx, input: AdjustInput) => {
+    const adjustment = v.parse(adjustmentInput, input.adjustment);
+    return findReplay(tx, ctx, adjustment.id, "adjustment", adjustment);
+  },
+  async run(tx, ctx, input: AdjustInput): Promise<Recorded> {
+    const adjustment = v.parse(adjustmentInput, input.adjustment);
+    const sign = adjustmentSign(adjustment);
+    return recordDocument(tx, ctx, {
+      id: adjustment.id,
+      kind: "adjustment",
+      branchId: adjustment.branchId,
+      cause: adjustment.cause,
+      occurredAt: input.now,
+      request: adjustment,
+      movements: adjustment.lines.map((line) => ({
+        productId: line.productId,
+        quantityThousandths: sign * line.quantityThousandths,
+      })),
+    });
+  },
+  audit: (input, output) => ({ ...output, ...v.parse(adjustmentInput, input.adjustment) }),
   details: (_input, output) => ({ entity: "stock_document", entityId: output.id }),
 });

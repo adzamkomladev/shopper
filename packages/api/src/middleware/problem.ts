@@ -4,7 +4,7 @@ import { AssetError } from "@shopper/assets";
 import { ManagementError } from "@shopper/core/management";
 import { StockError } from "@shopper/core/stock";
 
-const stockStatus = { NOT_FOUND: 404, INVALID_REFERENCE: 400 } as const;
+const stockStatus = { NOT_FOUND: 404, INVALID_REFERENCE: 400, INVALID_SIGN: 400 } as const;
 
 // Unique constraints the catalogue exposes, as the body field they belong to.
 const uniqueField = (constraint?: string) => {

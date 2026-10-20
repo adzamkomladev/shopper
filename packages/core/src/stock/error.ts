@@ -5,6 +5,7 @@ export class StockError extends Error {
       | "FORBIDDEN"
       | "INVALID_SESSION"
       | "INVALID_REFERENCE"
+      | "INVALID_SIGN"
       | "NOT_FOUND"
       | "SUPERSEDED",
     message: string,

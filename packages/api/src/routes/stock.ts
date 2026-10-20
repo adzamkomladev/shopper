@@ -1,6 +1,7 @@
 import { Hono, type Context } from "hono";
 import { buildInfo } from "@shopper/config";
 import {
+  adjustStock,
   receiveStock,
   stockValuation,
   listDocuments,
@@ -52,28 +53,32 @@ export function stockRoutes(
   app.get("/stock/valuation", async (c) =>
     c.json(await stockValuation(database, org(c), query(c))),
   );
-  app.post("/stock/receipts", async (c) => {
-    const principal = c.get("principal");
-    const raw = await c.req.json().catch(() => undefined);
-    // A till writes to its own branch, whatever the body says.
-    const receipt =
-      principal.deviceId && raw && typeof raw === "object"
-        ? { ...raw, branchId: principal.branchId }
-        : raw;
-    const { id, replayed } = await receiveStock(
-      database,
-      {
-        orgId: principal.orgId,
-        actorId: principal.userId,
-        role: principal.roleName,
-        deviceId: principal.deviceId,
-        branchId: principal.branchId,
-        appVersion: buildInfo.version,
-      },
-      { receipt: receipt as never, now: new Date() },
-    );
-    return c.json(await readDocument(database, principal.orgId, id), replayed ? 200 : 201);
-  });
+  // A till writes to its own branch, whatever the body says.
+  const record =
+    (key: "receipt" | "adjustment", command: typeof receiveStock | typeof adjustStock) =>
+    async (c: Context<ApiEnvironment>) => {
+      const principal = c.get("principal");
+      const raw = await c.req.json().catch(() => undefined);
+      const body =
+        principal.deviceId && raw && typeof raw === "object"
+          ? { ...raw, branchId: principal.branchId }
+          : raw;
+      const { id, replayed } = await (command as typeof receiveStock)(
+        database,
+        {
+          orgId: principal.orgId,
+          actorId: principal.userId,
+          role: principal.roleName,
+          deviceId: principal.deviceId,
+          branchId: principal.branchId,
+          appVersion: buildInfo.version,
+        },
+        { [key]: body, now: new Date() } as never,
+      );
+      return c.json(await readDocument(database, principal.orgId, id), replayed ? 200 : 201);
+    };
+  app.post("/stock/receipts", record("receipt", receiveStock));
+  app.post("/stock/adjustments", record("adjustment", adjustStock));
   app.onError(problem);
   return app;
 }

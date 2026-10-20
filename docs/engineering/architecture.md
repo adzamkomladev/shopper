@@ -168,6 +168,35 @@ live in register settings and are enforced on the till only.
 Price overrides travel on sale event v4 lines as `override {listPrice, reason, approverId}`. Receipt
 documents are v2 (`kind`, `refundOf`), and stored v1 receipts are upcast on read.
 
+### Shifts and cash control (Day 15)
+
+A shift belongs to one register (drawer): `shift_current` lets one shift per device be unfinished.
+Sales, tenders, MoMo starts, refunds, drops and no-sales need an open shift (`SHIFT_REQUIRED`), and a
+counted one refuses them (`SHIFT_COUNTED`). Sales and refunds join their shift by a till-only
+`shift_id` stamped in the `sale.complete` and `refund.record` transactions, so the sale and refund
+events are unchanged. A cashier change mid-shift needs no new record.
+
+The cash arithmetic is one pure function, `shiftTotals` in `packages/core/src/shifts/totals.ts`,
+shared by the X and the Z: cash kept from a sale is its cash tenders less change (rounding is inside
+the change); a cash refund pays out its total; expected cash is float + cash kept − cash refunds −
+drops; card and MoMo expect their tenders less their refunds. A no-sale moves nothing.
+
+The close is blind: `shift.declare` stores the count (by denomination) and the card and MoMo terminal
+totals, is final, and fixes the variance threshold (`varianceThreshold`, a register setting, default
+GHS 5). Any `|variance|` strictly over it needs a manager PIN for `shift.approve` (the Day 14
+mechanism; the permission syncs to tills). The X needs `report.read`, so a cashier never sees the
+expected cash before counting. A declared shift over the threshold waits for a manager; nothing else
+can move it. The Z is stored on the shift and reprinted, never recomputed.
+
+The Z carries the audit anchor: the `till_audit` chain head (`chain_seq`, `hash`, or `GENESIS_HASH`)
+read inside the close transaction before the close's own row. It is printed and uploaded; publishing
+anchors is Day 20. Each closed shift uploads once as a `shift.closed` v1 event to `POST /sync/shifts`
+on the document lane, after the sale backlog drains. The server (`shift.accept`) re-checks the Z's own
+arithmetic (`SHIFT_MISMATCH`), the closing session's `shift.write` and the approver's live
+`shift.approve`, then stores `shift`, `shift_tender` and `shift_movement`. It trusts the till's sale and
+refund totals until the Day 20 cross-check. The back office reads `GET /shifts` and `GET /shifts/:id`
+behind `shift.read`; open shifts stay on the till.
+
 ## Assets and organization management
 
 `@shopper/assets` owns publicity/access policy, purpose and bucket selection, audited asset tracking and authorized presigned grants. Provider operations use Blobs; credentials stay in adapters. The API receives metadata and asset references, never client file bytes. Before processing, resolve the tenant-owned asset and verify bounded actual bytes against its registered digest and size. A presigned URL remains a bearer capability until expiry, so repeat verification before every use.

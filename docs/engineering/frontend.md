@@ -107,8 +107,9 @@ If none of these fit, stop and ask. Do not work around the guard with a custom w
 
 ## UX rules
 
-- **Every screen has every state designed:** empty (with the next action), loading (a skeleton that
-  matches the final layout, no spinner under 300 ms), error (what happened and how to recover),
+- **Every screen has every state designed:** empty (with the next action), loading (a skeleton sized
+  from the loaded UI measured in a browser, so nothing moves when data arrives; see the
+  `skeleton-audit` skill; no spinner under 300 ms), error (what happened and how to recover),
   offline (what still works), and no permission.
 - **Till:** keyboard-first, and every action has a shortcut shown on its button. The scan input
   keeps focus. The common path (scan → tender → receipt) has no dialogs and responds in under 100 ms.

@@ -17,3 +17,4 @@ export * from "./till/refund";
 export * from "./till/refunds";
 export * from "./till/shifts";
 export * from "./till/shift";
+export * from "./stock/views";

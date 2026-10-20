@@ -8,6 +8,7 @@ import { catalogueRoutes } from "./routes/catalogue";
 import { administrationRoutes } from "./routes/administration";
 import { deviceRoutes } from "./routes/devices";
 import { shiftRoutes } from "./routes/shifts";
+import { stockRoutes } from "./routes/stock";
 import { managementRoutes } from "./routes/management";
 import { systemRoutes } from "./routes/system";
 import { taxRuleRoutes } from "./routes/tax/rules";
@@ -52,5 +53,6 @@ export function createApi(options: ApiOptions = {}) {
   app.route("/", administrationRoutes(options));
   if (options.devices) app.route("/", deviceRoutes(options.devices, options.authentication));
   if (options.database) app.route("/", shiftRoutes(options.database, options.authentication));
+  if (options.database) app.route("/", stockRoutes(options.database, options.authentication));
   return app;
 }

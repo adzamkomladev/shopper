@@ -2,6 +2,9 @@ import * as v from "valibot";
 import type { Context } from "hono";
 import { AssetError } from "@shopper/assets";
 import { ManagementError } from "@shopper/core/management";
+import { StockError } from "@shopper/core/stock";
+
+const stockStatus = { NOT_FOUND: 404, INVALID_REFERENCE: 400 } as const;
 
 // Unique constraints the catalogue exposes, as the body field they belong to.
 const uniqueField = (constraint?: string) => {
@@ -19,6 +22,11 @@ export function problem(error: Error, c: Context) {
   }
   if (error instanceof AssetError) return c.json({ error: error.message }, error.status);
   if (error instanceof ManagementError) return c.json({ error: error.message }, error.status);
+  if (error instanceof StockError)
+    return c.json(
+      { error: error.message },
+      stockStatus[error.code as keyof typeof stockStatus] ?? 409,
+    );
   const pg = error as {
     code?: string;
     constraint?: string;

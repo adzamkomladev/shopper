@@ -89,9 +89,15 @@ export const branch = pgTable(
     code: text("code").notNull().default(""),
     deviceCounter: integer("device_counter").notNull().default(0),
     name: text("name").notNull(),
+    /** Who is texted when stock runs low: at most three. */
+    alertPhones: text("alert_phones")
+      .array()
+      .notNull()
+      .default(sql`'{}'`),
   },
   (t) => [
     unique().on(t.orgId, t.id),
+    check("branch_alert_phones", sql`cardinality(${t.alertPhones}) <= 3`),
     uniqueIndex("branch_org_code_unique")
       .on(t.orgId, t.code)
       .where(sql`${t.code} <> ''`),

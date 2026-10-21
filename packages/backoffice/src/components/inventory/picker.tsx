@@ -19,7 +19,11 @@ type Props = {
 export function BranchPicker({ branches, branchId, onBranchChange, open, onOpenChange }: Props) {
   return (
     <Select value={branchId} onValueChange={onBranchChange} open={open} onOpenChange={onOpenChange}>
-      <SelectTrigger aria-label="Branch" className="w-full sm:w-48">
+      <SelectTrigger
+        aria-label="Branch"
+        // A long branch name ends in an ellipsis, not mid-letter: the trigger's own flex value cannot.
+        className="w-full sm:w-48 *:data-[slot=select-value]:block! *:data-[slot=select-value]:truncate"
+      >
         <SelectValue />
         <Kbd aria-hidden className="ml-auto">
           B

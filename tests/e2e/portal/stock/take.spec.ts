@@ -95,7 +95,9 @@ test.describe("an inventory manager of E2E Mart", () => {
     const review = page.getByRole("row").filter({ hasText: millet.name });
     await expect(review).toContainText("−1 kg");
     await expect(review).toContainText("GH₵ -5.00");
-    await expect(page.getByRole("row").filter({ hasText: sorghum.name })).not.toContainText("−");
+    // Only the lines that are out are listed; the rest are counted in a line under the table.
+    await expect(page.getByRole("row").filter({ hasText: sorghum.name })).toHaveCount(0);
+    await expect(page.getByText(/^\d+ products match the count$/)).toBeVisible();
     await expectNoSeriousAxe(page);
     await captureSizes(page, info, "take-review", async () => {
       await expect(review).toBeVisible();
@@ -106,6 +108,7 @@ test.describe("an inventory manager of E2E Mart", () => {
     await expect(page.getByRole("main")).toContainText("Posted");
     await expect(countInputs(page)).toHaveCount(0);
     await expect(page.getByRole("row").filter({ hasText: millet.name })).toContainText("−1 kg");
+    await expect(page.getByRole("row").filter({ hasText: sorghum.name })).toHaveCount(0);
 
     // The take stores what it posted, and stock on hand follows the count.
     const posted = await readTake(request, takeId);

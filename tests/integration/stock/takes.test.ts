@@ -74,7 +74,7 @@ test("A full take lists every active product and refuses to post until all are c
   expect((await start()).status).toBe(409);
   const refused = await post(id);
   expect(refused.status).toBe(409);
-  expect(refused.body.error).toMatch(/\d+ products not counted yet/);
+  expect(refused.body.error).toMatch(/^\d+ products? not counted yet$/);
   await count(id, [{ productId: milk, countedThousandths: 4_000 }]);
   expect((await post(id)).status).toBe(409);
   expect((await cancel(id)).body.status).toBe("cancelled");

@@ -77,15 +77,29 @@ const countsOnly = columns.filter(
 
 type Props = { lines: TakeLine[]; label: string; compare: boolean };
 
-/** Expected, counted, variance and what the variance is worth, line by line; or just the counts. */
+/**
+ * Expected, counted, variance and what the variance is worth, for the lines that are out (or not yet
+ * counted), with how many match the count in a line under them; or, with `compare` off, just the counts.
+ */
 export function ReviewTable({ lines, label, compare }: Props) {
+  const shown = compare ? lines.filter((line) => line.varianceThousandths !== 0) : lines;
+  const matched = lines.length - shown.length;
   return (
-    <DataTable
-      label={label}
-      columns={compare ? columns : countsOnly}
-      data={lines}
-      getRowId={(line) => line.productId}
-      className="min-h-72"
-    />
+    <>
+      {shown.length > 0 && (
+        <DataTable
+          label={label}
+          columns={compare ? columns : countsOnly}
+          data={shown}
+          getRowId={(line) => line.productId}
+          className="min-h-48"
+        />
+      )}
+      {matched > 0 && (
+        <p className="text-sm text-muted-foreground">
+          {matched === 1 ? "1 product matches the count" : `${matched} products match the count`}
+        </p>
+      )}
+    </>
   );
 }

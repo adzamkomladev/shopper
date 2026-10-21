@@ -43,7 +43,7 @@ export function EntryLines({ lines, errors, costed, effect, onEdit, onRemove }: 
                 <TableHead className="h-10 w-28 bg-muted/50 px-4 text-xs font-semibold text-muted-foreground sm:w-44">
                   Unit cost
                 </TableHead>
-                <TableHead className="hidden h-10 w-32 bg-muted/50 px-4 text-right text-xs font-semibold text-muted-foreground md:table-cell">
+                <TableHead className="hidden h-10 w-32 bg-muted/50 px-4 text-right text-xs font-semibold text-muted-foreground lg:table-cell">
                   Line total
                 </TableHead>
               </>
@@ -132,7 +132,7 @@ export function EntryLines({ lines, errors, costed, effect, onEdit, onRemove }: 
                         </FieldMessage>
                       )}
                     </TableCell>
-                    <TableCell className="hidden px-4 align-top md:table-cell">
+                    <TableCell className="hidden px-4 align-top lg:table-cell">
                       <div className="pt-1.5">
                         {total === null ? (
                           <span className="block text-right text-muted-foreground">—</span>

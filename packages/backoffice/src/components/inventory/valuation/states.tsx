@@ -14,10 +14,13 @@ export function ValuationResultsSkeleton() {
       aria-busy="true"
       role="status"
       aria-label="Loading stock valuation"
-      className="flex flex-col gap-6"
+      className="flex min-h-0 flex-1 flex-col gap-6"
     >
-      <Skeleton className="h-28 w-full sm:w-80" />
-      <div className="flex flex-col rounded-lg border">
+      <div className="grid gap-4 sm:grid-cols-2 lg:max-w-2xl">
+        <Skeleton className="h-28 sm:h-30.5" />
+        <Skeleton className="h-30 sm:h-30.5" />
+      </div>
+      <div className="flex min-h-52 flex-col overflow-hidden rounded-lg border">
         <Skeleton className="h-10 rounded-b-none" />
         {Array.from({ length: SKELETON_ROWS }, (_, index) => (
           <div key={index} className="flex h-16.5 items-center gap-6 border-t px-4">
@@ -32,7 +35,7 @@ export function ValuationResultsSkeleton() {
 
 export function ValuationBodySkeleton() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
       <Skeleton className="h-9 w-full sm:w-48" />
       <ValuationResultsSkeleton />
     </div>

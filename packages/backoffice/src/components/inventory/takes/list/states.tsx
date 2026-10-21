@@ -14,7 +14,7 @@ export function TakesResultsSkeleton() {
       aria-busy="true"
       role="status"
       aria-label="Loading stock takes"
-      className="flex flex-col rounded-lg border"
+      className="flex min-h-0 flex-col overflow-hidden rounded-lg border"
     >
       <Skeleton className="h-10 rounded-b-none" />
       {Array.from({ length: SKELETON_ROWS }, (_, index) => (
@@ -30,7 +30,7 @@ export function TakesResultsSkeleton() {
 
 export function TakesBodySkeleton() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
       <Skeleton className="h-9 w-full sm:w-48" />
       <TakesResultsSkeleton />
     </div>

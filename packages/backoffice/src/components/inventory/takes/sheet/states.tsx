@@ -18,7 +18,7 @@ export function SheetSkeleton() {
           <Skeleton className="h-5 w-72 max-w-full" />
         </div>
       </div>
-      <Skeleton className="h-9 w-full" />
+      <Skeleton className="h-37.5 w-full sm:h-21 lg:h-9" />
       <Skeleton className="h-64 w-full" />
     </div>
   );

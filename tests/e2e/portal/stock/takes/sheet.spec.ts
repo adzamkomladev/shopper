@@ -62,7 +62,7 @@ test.describe("as the owner of E2E Mart", () => {
     await page.keyboard.press("ControlOrMeta+Enter");
     await expect(heading(page, "Review the count", 2)).toBeVisible();
     await page.keyboard.press("ControlOrMeta+Enter");
-    await expect(problem(page)).toContainText("1 products not counted yet");
+    await expect(problem(page)).toContainText("1 product not counted yet");
     await expect(problem(page)).toContainText("Count every product before posting");
     await expectNoSeriousAxe(page);
     await captureSizes(page, info, "take-not-counted", async () => {

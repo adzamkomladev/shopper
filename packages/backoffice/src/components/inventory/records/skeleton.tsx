@@ -16,11 +16,11 @@ export function RecordSkeleton() {
           <Skeleton className="h-5 w-56" />
         </div>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Skeleton className="h-28" />
-        <Skeleton className="h-28" />
-        <Skeleton className="h-28" />
-        <Skeleton className="h-28" />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Skeleton className="h-28 lg:h-30.5" />
+        <Skeleton className="h-28 lg:h-30.5" />
+        <Skeleton className="h-30.5" />
+        <Skeleton className="h-30.5" />
       </div>
       <Skeleton className="h-64 w-full" />
     </div>

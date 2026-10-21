@@ -78,7 +78,7 @@ export function ValuationTable({ lines }: { lines: ValuationLine[] }) {
       columns={columns}
       data={lines}
       getRowId={(line) => line.productId}
-      className="min-h-0"
+      className="min-h-52"
     />
   );
 }

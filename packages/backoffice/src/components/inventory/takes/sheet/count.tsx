@@ -120,6 +120,8 @@ const columns: DataTableColumn<TakeLine>[] = [
 
 /** The sheet a person counts on: product, then a box for the count in the product's own unit. */
 export function CountTable(props: Props) {
+  // The cursor's line may be far down a windowed sheet: bring it into the window so it can take the cursor.
+  const cursorRow = props.lines.findIndex((line) => line.productId === props.focus.id);
   return (
     <SheetContext value={props}>
       <DataTable
@@ -127,6 +129,7 @@ export function CountTable(props: Props) {
         columns={columns}
         data={props.lines}
         getRowId={(line) => line.productId}
+        scrollToRow={cursorRow < 0 ? undefined : cursorRow}
         className="min-h-48"
       />
     </SheetContext>

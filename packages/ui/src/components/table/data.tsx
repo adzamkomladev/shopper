@@ -35,6 +35,8 @@ type DataTableProps<TData extends RowData> = {
    * changes.
    */
   onEndReached?: () => void;
+  /** A row to bring into the window when it is first set, so a row far down a windowed table can be mounted (and focused). */
+  scrollToRow?: number;
   className?: string;
 };
 
@@ -44,10 +46,12 @@ export function DataTable<TData extends RowData>({
   getRowId,
   label,
   onEndReached,
+  scrollToRow,
   className,
 }: DataTableProps<TData>) {
   const scroller = useRef<HTMLDivElement | null>(null);
   const reportedAt = useRef(-1);
+  const scrolledTo = useRef<number>(undefined);
   const table = useTable({ features, columns, data, getRowId });
   const rows = table.getRowModel().rows;
   const virtualizer = useVirtualizer({
@@ -55,6 +59,8 @@ export function DataTable<TData extends RowData>({
     getScrollElement: () => scroller.current,
     estimateSize: () => ROW_HEIGHT,
     overscan: rows.length > VIRTUALIZE_ABOVE_ROWS ? OVERSCAN_ROWS : rows.length,
+    // Opens near the row: the virtualizer puts the scroll back to its offset when it attaches.
+    initialOffset: (scrollToRow ?? 0) * ROW_HEIGHT,
   });
   const headerRows = table.getHeaderGroups().length;
   const items = virtualizer.getVirtualItems();
@@ -71,7 +77,13 @@ export function DataTable<TData extends RowData>({
   // A fresh ref callback each render re-runs the check after the row count changes (no effect).
   function attach(node: HTMLDivElement | null) {
     scroller.current = node;
-    if (node) checkEnd(node);
+    if (!node) return;
+    // Taller rows than estimated put the row below the window: scroll again, each render, until it is in it.
+    if (scrollToRow !== undefined && scrolledTo.current !== scrollToRow) {
+      if (items.some((item) => item.index === scrollToRow)) scrolledTo.current = scrollToRow;
+      else virtualizer.scrollToIndex(scrollToRow);
+    }
+    checkEnd(node);
   }
 
   return (

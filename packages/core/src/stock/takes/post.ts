@@ -30,11 +30,13 @@ export const postTake = defineCommand({
             },
           ],
     );
-    if (counted.length < lines.length)
+    if (counted.length < lines.length) {
+      const left = lines.length - counted.length;
       throw new StockError(
         "NOT_COUNTED",
-        `${lines.length - counted.length} products not counted yet`,
+        `${left} ${left === 1 ? "product" : "products"} not counted yet`,
       );
+    }
     const deltas = await countDeltas(tx, ctx.orgId, take.branchId, counted);
     const request = {
       takeId: take.id,

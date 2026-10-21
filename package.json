@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vp run -r --parallel dev",
-    "typecheck": "tsc -b",
+    "typecheck": "tsrs -b",
     "services:up": "docker compose -f tooling/docker/compose.dev.yml up -d",
     "services:down": "docker compose -f tooling/docker/compose.dev.yml down",
     "db:migrate": "tsx tooling/database/cli.ts migrate",
@@ -35,11 +35,12 @@
     "drizzle-kit": "0.31.11",
     "drizzle-orm": "0.45.3",
     "pg": "8.23.1",
+    "tsrs": "0.18.0-ts7.1.0-dev.20260929",
     "tsx": "4.20.6",
     "typescript": "7.0.2",
     "uuid": "14.0.2",
-    "vite-plus": "1.0.0",
-    "wrangler": "4.147.0",
+    "vite-plus": "1.3.0",
+    "wrangler": "4.151.3",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devEngines": {

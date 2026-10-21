@@ -39,7 +39,7 @@ All DB/DO/KV/blob/till SQLite data is disposable: reset freely, no backfills.
 
 1. **Generic change feed (v1.5 hook).**
    - **Table.** New PG `store_change(org_id, store_id, seq, id uuidv7, entity, entity_id, op upsert|delete, v,
-payload jsonb, created_at)`, PK `(org_id, store_id, seq)`.
+     payload jsonb, created_at)`, PK `(org_id, store_id, seq)`.
    - **Writer.** `recordChanges(tx, orgId, changes, storeIds)` in `core/src/changes/record.ts`:
      - It is called **last** in each command.
      - It locks stores in sorted id order and allocates one range per store (`last_seq += n`).

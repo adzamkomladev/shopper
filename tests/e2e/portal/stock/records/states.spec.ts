@@ -7,6 +7,7 @@ import {
   openRecords,
   recordsTable,
   rowOf,
+  freshStock,
   seedStock,
   stockMember,
 } from "../../../../support/admin/stock";
@@ -83,7 +84,7 @@ test.describe("members of E2E Mart without the owner role", () => {
     page,
     request,
   }, info) => {
-    const { supplier, receiptId, branch } = await seedStock();
+    const { supplier, receiptId, branch } = await freshStock();
     await page.context().clearCookies();
     await signInAs(page, await stockMember(request, "accountant"));
     await page.goto(`/stock/records?branch=${branch.id}`);

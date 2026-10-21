@@ -27,6 +27,8 @@ export async function asOwner<T>(use: (request: APIRequestContext) => Promise<T>
 }
 
 const seed = () => asOwner(seedWith);
+/** A fresh seed of its own: its records are the newest, so they sit on the first page of Records. */
+export const freshStock = () => asOwner(seedWith);
 
 /**
  * Products of a spec's own, so it can change their stock without moving the shared seed's numbers.
@@ -34,8 +36,10 @@ const seed = () => asOwner(seedWith);
  */
 export const ownProducts = (names: string[]) =>
   asOwner(async (request) => {
-    const { branch, supplier } = await seedStock();
+    const { branch } = await seedStock();
     const tag = unique();
+    // Its own supplier, so the seed supplier's records stay exactly the seeded ones.
+    const supplier = await post<Row>(request, "/suppliers", { name: `Own Supplies ${tag}` });
     const made = await Promise.all(
       names.map((name, index) => product(request, `OWN-${tag}-${index}`, `${name} ${tag}`, "kg")),
     );
@@ -156,7 +160,7 @@ export const recordsSegment = (page: Page, name: RegExp) => page.getByRole("tab"
 
 /** The Records tab of Accra Central, signed in as the saved owner. */
 export async function openRecords(page: Page, query = "") {
-  const seeded = await seedStock();
+  const seeded = await freshStock();
   await page.goto(`/stock/records?branch=${seeded.branch.id}${query}`);
   await expect(activeTab(page, "Records")).toBeVisible();
   return seeded;

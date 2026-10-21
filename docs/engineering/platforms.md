@@ -87,7 +87,7 @@ Portal = TanStack Start in SPA mode: a prerendered static shell served by Worker
 - Server functions (`apps/portal/src/functions/`) are host-only: build info and a binding health
   check. Business data always goes through `/api`.
 - `vite build` prerenders the shell by previewing the built Worker (`spa.prerender.outputPath:
-"/index"` emits `dist/client/index.html`). Workerd does not inherit the build process's
+  "/index"` emits `dist/client/index.html`). Workerd does not inherit the build process's
   environment, so a small plugin in `vite.config.ts` writes a preview-only `dist/server/.dev.vars`
   that tells Start it is prerendering; deployment tooling never ships that file, and the preview
   does not open the remote `IMPORTS` bucket.

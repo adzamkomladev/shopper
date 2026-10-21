@@ -118,7 +118,7 @@ Full checks and final review are still pending; these focused runs do not establ
 - **Remote configuration verified (15 October):** the separate `cf` OAuth login has Workers Builds
   read/write scopes. Both existing staging triggers are connected to the repository and now use
   the build/deploy commands and main-only watch paths in `deployment.md`; the old `cf deploy
---prebuilt` commands and exclude-all path filters were replaced. No build was launched.
+  --prebuilt` commands and exclude-all path filters were replaced. No build was launched.
 - **Build variables/secrets:** both triggers have `NODE_VERSION=24.21.0`, `PNPM_VERSION=12.9.1`,
   `CLOUDFLARE_ENV=staging`, the existing staging auth/link/S3 secrets and the existing Paystack
   **test** secret. Edge also has the validated direct, non-pooled staging `DATABASE_URL` and
@@ -133,7 +133,7 @@ Full checks and final review are still pending; these focused runs do not establ
 
 - **SPA shell:** Start runs in SPA mode with `prerender.outputPath: "/index"`, which emits the shell
   as `dist/client/index.html`. Static Assets serves it with `not_found_handling:
-single-page-application`, and the Worker runs only for `/api/*` and `/_serverFn/*`.
+  single-page-application`, and the Worker runs only for `/api/*` and `/_serverFn/*`.
 - **Prerender workarounds:**
   - Remote bindings are disabled during preview, so `IMPORTS` doesn't need an API token.
   - A small `prerenderFlag()` vite plugin writes `TSS_PRERENDERING=true` into

@@ -76,7 +76,7 @@ The v3 snapshot is the v2 snapshot plus the following:
   quantity from that version's amount, so later repricing preserves encoded gross and quantity edits.
 - `cashRounding: Money` (signed) and `total: Money`, where `total = totals.gross + cashRounding`.
 - `tenders` is an array with at least one entry, each `{ id, kind, amount, reference?,
-approvalCode?, last4?, network? }`. MoMo tenders carry `reference`. Card tenders carry
+  approvalCode?, last4?, network? }`. MoMo tenders carry `reference`. Card tenders carry
   `approvalCode`, which is 4–12 alphanumeric characters.
 - `change: Money` and `paid: Money`, where `paid` is the sum of the tender amounts and
   `paid - change === total`.
@@ -159,7 +159,7 @@ Bridge ops reach the browser through `browserRequests` and all take `expectedRev
    the timeout (3 min), the workflow calls `verify` once.
 5. The workflow marks the payment `confirmed`, `failed` or `expired`, writes an audit row and
    updates `workflow_run`. It then publishes realtime `{ type: "payment.updated", reference,
-status }` to the store's StoreHub.
+   status }` to the store's StoreHub.
 6. The till host updates the draft tender status and pushes a `draft` message to the UI.
 7. Server ingest rejects a MoMo tender unless its payment is `confirmed`, its amount is equal, it
    belongs to the same org and branch, and it has not been used before.

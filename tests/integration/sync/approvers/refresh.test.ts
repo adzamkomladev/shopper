@@ -50,8 +50,25 @@ test("a manager's PIN hash and approval grants reach the till; a cashier's do no
       "refund.approve",
       "sale.price_override",
       "sale.void",
+      "shift.approve",
     ]);
     expect(await verifyPin(manager.pinHash, "2468")).toBe(true);
+  });
+});
+
+test("shift.approve reaches the till for a manager who holds it and approves a shift close there", async () => {
+  const managerId = await memberWithPin("Kwame Manager", "admin", "8642");
+  await withTill(async (database) => {
+    await refresh(database);
+    const row = (await stored(database)).find((entry) => entry.userId === managerId);
+    expect(row?.permissions).toContain("shift.approve");
+    const approved = await approve(
+      database,
+      audit(),
+      { approverId: managerId, pin: "8642", permission: "shift.approve", at: new Date() },
+      verifyPin,
+    );
+    expect(approved).toBe(managerId);
   });
 });
 

@@ -1,5 +1,15 @@
 import type { ReactNode } from "react";
-import { Building2, LogOut, Receipt, Settings, X, type LucideIcon } from "lucide-react";
+import {
+  Building2,
+  HandCoins,
+  LogOut,
+  PanelBottomOpen,
+  Receipt,
+  Settings,
+  Timer,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { Kbd } from "@shopper/ui/components/kbd";
 import {
@@ -10,7 +20,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@shopper/ui/components/sheet";
-import type { ShellView } from "./types";
+import type { ShellAction, ShellView } from "./types";
 import { aria, hint, signOutShortcut } from "./views";
 
 const item = "h-14 w-full justify-start gap-3 px-4 text-base";
@@ -20,6 +30,7 @@ export function MenuDrawer({
   user,
   registerName,
   online,
+  shifts,
   onView,
   onSignOut,
   onCloseAutoFocus,
@@ -28,7 +39,9 @@ export function MenuDrawer({
   registerName: string;
   /** The back office needs the server; offline it is disabled with the reason. */
   online: boolean;
-  onView: (view: ShellView) => void;
+  /** The user holds shift.write, so the shift screens and the cash movements are theirs to open. */
+  shifts: boolean;
+  onView: (view: ShellView | ShellAction) => void;
   onSignOut: () => void;
   onCloseAutoFocus: (event: Event) => void;
 }) {
@@ -56,6 +69,19 @@ export function MenuDrawer({
         <MenuButton icon={Receipt} onClick={() => onView("purchases")} shortcut="Alt+P">
           Previous purchases
         </MenuButton>
+        {shifts && (
+          <>
+            <MenuButton icon={Timer} onClick={() => onView("shift")} shortcut="Alt+H">
+              Shift
+            </MenuButton>
+            <MenuButton icon={HandCoins} onClick={() => onView("drop")} shortcut="Alt+K">
+              Cash drop
+            </MenuButton>
+            <MenuButton icon={PanelBottomOpen} onClick={() => onView("nosale")} shortcut="Alt+J">
+              No sale
+            </MenuButton>
+          </>
+        )}
         <MenuButton icon={Settings} onClick={() => onView("settings")} shortcut="Alt+T">
           Settings
         </MenuButton>

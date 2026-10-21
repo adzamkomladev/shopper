@@ -8,6 +8,7 @@ import { uuidV7Schema } from "@shopper/ports";
 import {
   approvalRequestTypes,
   refundRequestTypes,
+  shiftRequestTypes,
   basketRequestTypes,
   bridgeRequest,
   deviceRequestTypes,
@@ -29,6 +30,7 @@ const browserRequests: readonly string[] = [
   ...sessionRequestTypes,
   ...approvalRequestTypes,
   ...refundRequestTypes,
+  ...shiftRequestTypes,
 ];
 export async function openHostTransport(options: {
   port: number;

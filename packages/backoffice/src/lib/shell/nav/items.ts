@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import type { PermissionCode } from "../../roles/permissions";
 import {
+  ClockIcon,
   GitBranchIcon,
   MonitorSmartphoneIcon,
   PackageIcon,
@@ -28,4 +29,5 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { to: "/users", label: "Users", icon: UsersIcon, permission: "user.read" },
   { to: "/roles", label: "Roles", icon: ShieldCheckIcon, permission: "role.read" },
   { to: "/devices", label: "Devices", icon: MonitorSmartphoneIcon, permission: "device.read" },
+  { to: "/shifts", label: "Shifts", icon: ClockIcon, permission: "shift.read" },
 ];

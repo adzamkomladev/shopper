@@ -1,6 +1,5 @@
 import * as v from "valibot";
 import { eq } from "drizzle-orm";
-import { buildInfo } from "@shopper/config";
 import { localSale, receiptOutput, refund } from "@shopper/db-sqlite";
 import { receiptDocument, type ReceiptDocument } from "@shopper/core/receipts";
 import {
@@ -9,13 +8,20 @@ import {
   storeReceiptPdf,
   TillError,
 } from "@shopper/core/till";
-import { encodeReceipt, escpos, paper, printerProfiles } from "@shopper/hardware";
+import type { XReport, ZReport } from "@shopper/core/schemas";
+import {
+  encodeReceipt,
+  encodeShiftReport,
+  encodeTestPage,
+  printerProfiles,
+} from "@shopper/hardware";
 import { printerDrawer } from "@shopper/hardware/network";
 import type { ReceiptPrinter } from "@shopper/hardware";
 import type { Renderer } from "@shopper/ports";
 import type { PrinterStatus } from "@shopper/sync/bridge";
 import type { TillDatabase } from "@shopper/db-sqlite";
 import type { HostConfiguration } from "./config";
+import { auditContext } from "./context";
 import { describeConnection, printerFor } from "./peripherals/printers";
 
 type Job = {
@@ -139,6 +145,10 @@ export function createHostReceipts(options: {
     return !!output?.printedAt;
   }
 
+  /** A job that is not a sale's: needs a printer and is attributed to whoever is signed in. */
+  const job = (kind: Job["kind"], write: Write) =>
+    queued(async () => send(await required(), auditContext(config), { kind, saleId: null }, write));
+
   /** Renders the digital receipt and stores it. Never throws: the sale is committed and the PDF can be reprinted later. */
   async function storePdf(saleId: string, seller: Context) {
     try {
@@ -203,45 +213,22 @@ export function createHostReceipts(options: {
       });
     },
     testPrint: () =>
-      queued(async () =>
-        send(
-          await required(),
-          auditContext(config),
-          { kind: "test", saleId: null },
-          (printer, current) => {
-            const { model, connection } = current.printer;
-            return printer.print(
-              escpos(printerProfiles[model], current.paperMm)
-                .init()
-                .align("center")
-                .bold(true)
-                .text("Printer test")
-                .bold(false)
-                .text(`Model: ${model}`)
-                .text(`Paper: ${current.paperMm} mm (${paper[current.paperMm].cols} columns)`)
-                .text(describeConnection(connection))
-                .cut()
-                .bytes(),
-            );
-          },
+      job("test", (printer, { printer: { model, connection }, paperMm }) =>
+        printer.print(
+          encodeTestPage(printerProfiles[model], paperMm, model, describeConnection(connection)),
         ),
       ),
-    openDrawer: () =>
-      queued(async () =>
-        send(await required(), auditContext(config), { kind: "drawer", saleId: null }, kick),
+    /** Prints an X or a Z; `names` names people the report knows only by id (the approver). */
+    printReport: (report: XReport | ZReport, names: Record<string, string> = {}) =>
+      job("report", (printer, current) =>
+        printer.print(
+          encodeShiftReport(report, {
+            profile: printerProfiles[current.printer.model],
+            paperMm: current.paperMm,
+            names,
+          }),
+        ),
       ),
-  };
-}
-
-/** The audit context of the signed-in cashier on this register. */
-export function auditContext(config: HostConfiguration) {
-  const { orgId, deviceId, branchId } = config.identity;
-  return {
-    orgId,
-    deviceId,
-    branchId,
-    actorId: config.session?.userId,
-    role: config.session?.roleName,
-    appVersion: buildInfo.version,
+    openDrawer: () => job("drawer", kick),
   };
 }

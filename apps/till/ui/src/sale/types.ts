@@ -46,7 +46,11 @@ export type SaleSync = {
 };
 /** What the sale screen shows when a change is refused: the host's own words, ready to display. */
 export type SaleOutcome = { ok: true } | { ok: false; code: string; message: string };
-export type ApprovalPermission = "sale.void" | "sale.price_override" | "refund.approve";
+export type ApprovalPermission =
+  | "sale.void"
+  | "sale.price_override"
+  | "refund.approve"
+  | "shift.approve";
 /** A manager's id and PIN. The host checks the PIN; the screen never keeps it. */
 export type Approval = { approverId: string; pin: string };
 export type Approver = { userId: string; name: string };

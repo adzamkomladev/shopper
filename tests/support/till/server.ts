@@ -17,6 +17,7 @@ import { config as saleConfig, ids, references } from "./sales";
 import { appVersion, context, seedServerDatabase } from "./server/data";
 import { serveHono, type HttpClient } from "./http";
 import { enrollFixtureTill } from "./enrollment";
+import { insertOpenShift } from "./shifts";
 export type SaleEvent = v.InferOutput<typeof saleEvent>;
 
 let fixture: Awaited<ReturnType<typeof postgresFixture>>;
@@ -185,6 +186,15 @@ async function provisionReferences(branchId: string) {
     },
     references,
   );
+  // The fixture register may sell: an open shift, inserted directly (no audit row).
+  await insertOpenShift(local, {
+    orgId: context.orgId,
+    deviceId,
+    branchId,
+    storeId: saleConfig.storeId,
+    openedBy: principal.userId,
+    openedSessionId: session.id,
+  });
 }
 
 export { appVersion, context, syncProtocol } from "./server/data";

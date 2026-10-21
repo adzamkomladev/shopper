@@ -4,10 +4,17 @@ import { join } from "node:path";
 import { openTillDatabase } from "@shopper/adapters-box/till";
 import { localSale, outbox } from "@shopper/db-sqlite";
 import { hostConfiguration, renewTillEnrollment } from "../server";
+import { insertOpenShift } from "../shifts";
 import { startTillHost } from "./process";
 
 export async function createHostFixture(
-  options: { upstream?: string; origins?: string[]; freshSession?: boolean; session?: null } = {},
+  options: {
+    upstream?: string;
+    origins?: string[];
+    freshSession?: boolean;
+    session?: null;
+    shift?: boolean;
+  } = {},
 ) {
   const directory = await mkdtemp(join(tmpdir(), "shopper-till-host-"));
   const sqlitePath = join(directory, "till.sqlite");
@@ -21,6 +28,16 @@ export async function createHostFixture(
       options.upstream,
       { freshSession: options.freshSession, session: options.session },
     );
+    // An open shift, inserted directly (no audit row); `{ shift: false }` leaves the register closed.
+    if (options.shift !== false)
+      await insertOpenShift(database, {
+        orgId: config.identity.orgId,
+        deviceId: config.identity.deviceId,
+        branchId: config.identity.branchId,
+        storeId: config.identity.storeId,
+        openedBy: config.session?.userId ?? config.identity.deviceId,
+        openedSessionId: config.session?.id ?? config.identity.deviceId,
+      });
   } catch (error) {
     await database.close();
     await rm(directory, { recursive: true, force: true });

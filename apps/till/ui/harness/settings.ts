@@ -21,6 +21,7 @@ const value: RegisterSettings = {
   clearCartAfterSale: true,
   requirePinForReturns: false,
   returnWindowDays: 30,
+  varianceThreshold: 50_000,
   printer,
   scanner: null,
   display: null,
@@ -180,11 +181,16 @@ export function useSettingsHarness(
     record(action === "test" ? "testPrint" : "openDrawer")();
     change({ device: { action, status: "running", message: null, at: null } });
     await sleep(name === "settings-slowdevice" ? 1200 : 150);
-    const failed = name === "settings-printfail" || name === "settings-offline";
+    const noShift = name === "settings-noshift" && action === "drawer";
+    const failed = name === "settings-printfail" || name === "settings-offline" || noShift;
     const feedback: DeviceFeedback = {
       action,
       status: failed ? "failed" : "done",
-      message: failed ? "Printer is offline. Check power and network." : null,
+      message: noShift
+        ? "Register closed. Open a shift first: the drawer test is recorded as a no-sale."
+        : failed
+          ? "Printer is offline. Check power and network."
+          : null,
       at: Date.now(),
     };
     change({ device: feedback });

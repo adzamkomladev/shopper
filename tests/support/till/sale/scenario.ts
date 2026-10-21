@@ -21,7 +21,11 @@ const names = [
  * A real register host with ten barcoded products under Ghana standard rates (VAT 15%, NHIL 2.5%,
  * GETFund 2.5%). The server is unreachable, so the till sells offline on its provisioned catalogue.
  */
-export async function startSaleScenario(appOrigin: string, grants: readonly string[] = []) {
+export async function startSaleScenario(
+  appOrigin: string,
+  grants: readonly string[] = [],
+  options: { shift?: boolean } = {},
+) {
   const server = await createConnectionServer("connected-empty", grants);
   const cleanups: (() => Promise<unknown> | void)[] = [() => server.close()];
   const stop = async () => {
@@ -75,7 +79,13 @@ export async function startSaleScenario(appOrigin: string, grants: readonly stri
         },
       ],
     };
-    const fixture = await createConnectionHost(server, upstream.url, appOrigin, references);
+    const fixture = await createConnectionHost(
+      server,
+      upstream.url,
+      appOrigin,
+      references,
+      options,
+    );
     cleanups.push(() => fixture.close());
     const host = await fixture.start();
     const bridge = await startBridgeProxy(host.ready.port, false);

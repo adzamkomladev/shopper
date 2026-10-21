@@ -6,7 +6,7 @@
   table in `docs/engineering/ai-workflow.md`. Use `planner` before any multi-file change, and
   `reviewer` (which drives `codex review` on `gpt-6.1-sol`) before every commit.
 - Skills in `.claude/skills/` (a symlink to `.agents/skills/`) are also slash commands:
-  `/feature-plan`, `/tdd-slice`, `/pre-merge-review`, `/ui-screen`, `/ui-verify`, `/playwright-cli`,
+  `/feature-plan`, `/tdd-slice`, `/pre-merge-review`, `/ui-screen`, `/ui-verify`, `/skeleton-audit`, `/playwright-cli`,
   `/cloud-box-parity`, `/release`.
 - Every frontend change runs the `/ui-verify` loop with `playwright-cli` (the Playwright MCP is the
   fallback) before it is reported done: real app, screenshots at desktop, laptop, tablet, mobile and

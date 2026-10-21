@@ -42,6 +42,10 @@ export class TillError extends Error {
       | "APPROVAL_INVALID"
       | "FINAL_SALE"
       | "REFUND_EXCEEDS_SALE"
+      | "SHIFT_REQUIRED"
+      | "SHIFT_OPEN"
+      | "SHIFT_COUNTED"
+      | "SHIFT_BUSY"
       // What the server answers when it refuses a refund of another register's sale.
       | "SCOPE"
       | "INVALID_SESSION"

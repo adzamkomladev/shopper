@@ -13,6 +13,7 @@ import { findDraft } from "./drafts/queries";
 import { readQuoteReference } from "./quotation";
 import { settle } from "./tenders/settle";
 import { finishDraftSale } from "./complete";
+import { requireOpenShift } from "./shifts/queries";
 import type { TillConfig } from "./types";
 
 /** Compatibility for direct-line callers; all persistence uses the draft completion transaction. */
@@ -60,6 +61,8 @@ const record = defineCommand({
       branchId: config.branchId,
       cashierId: session.userId,
     };
+    // Before the basket check, so a closed register says so rather than "complete the open basket".
+    await requireOpenShift(tx, scope);
     if (await findDraft(tx, scope))
       throw new TillError("conflict", "Complete the open basket before recording direct lines");
     const id = v7();

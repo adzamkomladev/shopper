@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { cedisText, cedisValue, parseCedis } from "../../shift/amount";
 import type { SettingsDraft } from "../../schemas/settings";
 import type { DraftErrors } from "../../settings/types";
 import { SettingsCard, SettingsSwitch } from "./card";
@@ -15,6 +17,8 @@ export function CashierCard({
   onChange: (change: Partial<SettingsDraft>) => void;
 }) {
   const days = draft.returnWindowDays;
+  // The draft holds minor units; the text is what was typed, so "5." and "5.0" survive a keystroke.
+  const [variance, setVariance] = useState(() => cedisValue(draft.varianceThreshold));
   return (
     <SettingsCard
       description="Keep checkout quick and sensitive actions secure."
@@ -47,6 +51,22 @@ export function CashierCard({
       />
       <p className="-mt-1 text-xs text-muted-foreground">
         A cashier may refund a sale this many days after it. Later returns need a manager.
+      </p>
+      <TextField
+        error={errors.varianceThreshold}
+        id="settings-variance"
+        inputMode="decimal"
+        label="Cash variance needing a manager (GH₵)"
+        onChange={(text) => {
+          const typed = cedisText(text);
+          setVariance(typed);
+          onChange({ varianceThreshold: parseCedis(typed) ?? Number.NaN });
+        }}
+        readOnly={disabled}
+        value={variance}
+      />
+      <p className="-mt-1 text-xs text-muted-foreground">
+        A cashier closing with a variance above this amount needs a manager's PIN.
       </p>
     </SettingsCard>
   );

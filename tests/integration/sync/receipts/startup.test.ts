@@ -11,6 +11,7 @@ import {
 } from "../../../support/till/server";
 import { config, ids, references } from "../../../support/till/sales";
 import { tillFile } from "../../../support/till/pull";
+import { insertOpenShift } from "../../../support/till/shifts";
 
 test("enrollment codes number offline sales before the first handshake and refill normal numbers", async () => {
   const fixture = await createPushFixture();
@@ -51,6 +52,12 @@ test("enrollment codes number offline sales before the first handshake and refil
       { ...context, deviceId: enrolled.deviceId },
       references,
     );
+    await insertOpenShift(till.database, {
+      orgId: context.orgId,
+      deviceId: enrolled.deviceId,
+      openedBy: session.userId,
+      openedSessionId: session.id,
+    });
     const record = () =>
       recordLocalSale(till.database, localConfig, session, {
         lines: [{ productId: ids.product, quantityThousandths: 1000 }],
@@ -99,6 +106,12 @@ test("a new till without enrollment codes refuses the sale and preserves an empt
       { ...context, deviceId: host.identity.deviceId },
       references,
     );
+    await insertOpenShift(till.database, {
+      orgId: context.orgId,
+      deviceId: host.identity.deviceId,
+      openedBy: host.session.userId,
+      openedSessionId: host.session.id,
+    });
     await expect(
       recordLocalSale(
         till.database,

@@ -30,7 +30,8 @@ only as the fallback when the CLI is unavailable.
    alignment, component use. Correct every difference.
 5. **Walk the task in the browser:** navigation, forms, hover and focus states, loading, empty,
    error, offline and no-permission states, and the whole path with the keyboard alone. On the till,
-   check the shortcut shown on every button and that the scan input keeps focus.
+   check the shortcut shown on every button and that the scan input keeps focus. If the change
+   touches a skeleton or what it stands in for, run the `skeleton-audit` skill too.
 6. **Check the console and the layout.**
 
    ```bash

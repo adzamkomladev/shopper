@@ -59,6 +59,10 @@
     "./till/settlement": {
       "types": "./src/till/tenders/settle.ts",
       "default": "./src/till/tenders/settle.ts"
+    },
+    "./shifts": {
+      "types": "./src/shifts/index.ts",
+      "default": "./src/shifts/index.ts"
     }
   },
   "scripts": {

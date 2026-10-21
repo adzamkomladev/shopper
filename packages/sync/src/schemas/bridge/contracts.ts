@@ -9,6 +9,7 @@ import { deviceRequests, printerList, printerStatus, scanMessage, settingsStatus
 import { approvalReplies, approvalRequests } from "./approvals";
 import { namesOneSale, refundReplies, refundRequests } from "./refunds";
 import { sessionRequests, sessionUser } from "./session";
+import { shiftReplies, shiftRequests, shiftStatus } from "./shifts";
 
 const id = uuidV7Schema;
 
@@ -46,6 +47,7 @@ export const hostStatus = v.strictObject({
   overflow: v.boolean(),
   syncing: v.boolean(),
   lastError: v.nullable(v.strictObject({ code: v.string(), message: v.string() })),
+  shift: v.optional(shiftStatus),
   lastSuccessfulPushAt: v.nullable(
     v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(8_640_000_000_000_000)),
   ),
@@ -69,8 +71,15 @@ export const bridgeRequest = v.pipe(
     ...sessionRequests,
     ...approvalRequests,
     ...refundRequests,
+    ...shiftRequests,
   ]),
   v.check((request) => namesOneSale(request), "Name the sale by id or by receipt number, not both"),
+  v.check(
+    (request) =>
+      request.type !== "shift.open" ||
+      (request.float === undefined) !== (request.counts === undefined),
+    "Give the float as an amount or as counts",
+  ),
   v.check(
     (request) =>
       request.type !== "add" || (request.code === undefined) !== (request.productId === undefined),
@@ -90,6 +99,7 @@ export const bridgeMessage = v.union([
   ...purchaseReplies,
   ...approvalReplies,
   ...refundReplies,
+  ...shiftReplies,
   printerList,
   scanMessage,
   v.strictObject({

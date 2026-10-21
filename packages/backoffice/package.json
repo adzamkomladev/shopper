@@ -12,6 +12,10 @@
       "types": "./src/register.ts",
       "default": "./src/register.ts"
     },
+    "./shifts": {
+      "types": "./src/shifts.ts",
+      "default": "./src/shifts.ts"
+    },
     "./styles.css": "./src/styles.css"
   },
   "scripts": {

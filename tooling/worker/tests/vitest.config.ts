@@ -79,6 +79,7 @@ export default defineConfig({
       "renderer.test.ts",
       "approvers.test.ts",
       "refunds.test.ts",
+      "shifts.test.ts",
     ],
   },
 });

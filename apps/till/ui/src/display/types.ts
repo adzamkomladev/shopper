@@ -2,7 +2,7 @@ import type { DraftView } from "../sale/types";
 
 /** What the customer display shows. It only listens: the one request it sends is the read-only `readDraft`. */
 export type DisplaySnapshot = {
-  /** No host connection or no signed-in cashier: the register is closed to the customer. */
+  /** No host connection, no signed-in cashier or no open shift: the register is closed to the customer. */
   closed: boolean;
   storeName: string | null;
   view: DraftView | null;

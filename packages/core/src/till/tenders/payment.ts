@@ -9,6 +9,7 @@ import { toView } from "../drafts/queries";
 import { paymentSale } from "./consumption";
 import { retainedPaymentState } from "./status";
 import { TillError } from "../error";
+import { requireOpenShift } from "../shifts/queries";
 
 export function applyDraftPayment(db: TillDatabase, context: CommandContext, raw: unknown) {
   const input = v.parse(draftPaymentInput, raw);
@@ -49,6 +50,8 @@ const applyPayment = defineCommand({
           eq(saleDraftTender.reference, input.reference),
         ),
       );
+    // A new payment needs an open shift; updates to one already taken must still land, or the money goes unrecorded.
+    if (!existing) await requireOpenShift(tx, input.scope);
     if (existing && existing.draftId !== found.draft.id)
       throw new TillError("DRAFT_BUSY", "Payment belongs to another basket");
     const state = retainedPaymentState(existing, retainedPaymentState(intent, input));

@@ -117,6 +117,16 @@ Use the standard library or the platform before writing a helper: `Intl`, `struc
 - Magic numbers. Use named constants, or `@shopper/money` for any amount.
 - Floats anywhere near money, quantity, or rate.
 - A diff that changes things the task did not ask for.
+- Async that looks done but is not: `forEach(async …)`, a promise neither awaited nor returned,
+  success returned before the work settles. `Promise.all` rejects on the first failure without
+  undoing the rest; `Promise.allSettled` never rejects, so read every result before reporting
+  success. Partial failure and concurrency limits are requirements; ask when the plan does not say.
+- A `catch` that returns `""`, `[]`, `null` or `{ ok: true }` so the caller cannot tell it failed.
+- A second retry, backoff, timeout or formatting policy beside the one the repo already has.
+- A fix for the one instance in the ticket. Find where the failure starts, `rg` for the same pattern
+  elsewhere, fix the shared code, and add a test for each case it covered.
+- A diff that takes longer to understand than to write. Split unrelated cleanup into its own commit;
+  every commit builds and passes on its own (`git bisect` works).
 
 ## Dependencies
 

@@ -31,9 +31,13 @@ export function registerSettings(port: number | null, overrides: Record<string, 
 
 /** A real till host reached through the browser WebSocket bridge. `permissions` are added to the cashier session; `upstream` is the server it syncs with (unreachable by default). */
 export async function startRegister(
-  options: { permissions?: readonly string[]; upstream?: string } = {},
+  options: { permissions?: readonly string[]; upstream?: string; shift?: boolean } = {},
 ) {
-  const fixture = await createHostFixture({ freshSession: true, upstream: options.upstream });
+  const fixture = await createHostFixture({
+    freshSession: true,
+    upstream: options.upstream,
+    shift: options.shift,
+  });
   const session = fixture.config.session;
   if (!session) throw new Error("Expected a signed-in fixture session");
   const permissions = options.permissions ?? ["register.settings"];

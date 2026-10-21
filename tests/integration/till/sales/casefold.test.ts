@@ -10,6 +10,7 @@ import {
   session,
   withDatabase,
 } from "../../../support/till/sales";
+import { insertOpenShift } from "../../../support/till/shifts";
 
 const branch = "019a0000-0000-7000-8000-0000000000af";
 const upper = (id: string) => id.toUpperCase();
@@ -26,6 +27,7 @@ test("matches uppercase branch configuration to its lowercase branch price", asy
         ),
       };
       await provisionTillReference(db, context, branchReferences);
+      await insertOpenShift(db);
       const event = await recordLocalSale(
         db,
         { ...config, branchId: upper(branch) },
@@ -48,6 +50,7 @@ test("resolves uppercase product selectors against lowercase local references", 
     const db = openTillDatabase(path);
     try {
       await provisionTillReference(db, context, references);
+      await insertOpenShift(db);
       const event = await recordLocalSale(db, config, session, {
         lines: [{ productId: upper(ids.product), quantityThousandths: 1_000 }],
       });
@@ -64,6 +67,7 @@ test("normalizes mixed-case scope and reuses one saved cashier session", async (
     const db = openTillDatabase(path);
     try {
       await provisionTillReference(db, context, references);
+      await insertOpenShift(db);
       const uppercaseConfig = {
         ...config,
         orgId: upper(ids.org),

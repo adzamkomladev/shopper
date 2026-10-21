@@ -4,6 +4,7 @@ import { buildInfo } from "@shopper/config";
 import type { BridgeMessage } from "@shopper/sync/bridge";
 import { addToDraft, provisionTillReference } from "@shopper/core/till";
 import { serveHono } from "../till/http";
+import { insertOpenShift } from "../till/shifts";
 import { momoFixture } from "./momo";
 
 export async function paymentHost(
@@ -72,6 +73,14 @@ export async function paymentHost(
     port: 0,
     origins: ["http://localhost"],
   };
+  await insertOpenShift(database, {
+    orgId: scope.orgId,
+    deviceId: scope.deviceId,
+    branchId: scope.branchId,
+    storeId: fixture.ids.store,
+    openedBy: scope.cashierId,
+    openedSessionId: session.id,
+  });
   await provisionTillReference(database, context, {
     products: [
       {

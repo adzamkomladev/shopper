@@ -17,6 +17,24 @@ For every feature or fix:
 A bug fix starts with a test that reproduces the bug. A day's work is done when its tests are green
 in CI.
 
+## Tests that prove something
+
+A green test is evidence only if it would go red on the wrong code.
+
+- **Assert the requirement, not the shape.** `total >= 0` or "`save` was called" accepts almost any
+  wrong answer. Assert the exact amount, the rows written and the audit chain.
+- **Test the failure and the timing.** Make a dependency reject and assert the error reaches the
+  caller. Hold a write pending and assert the operation has not resolved yet.
+- **Break it on purpose.** Before calling a test done, introduce the likely bug (return before the
+  writes finish, swallow the rejection, allow one extra retry, drop a tax line) and watch the test
+  fail. Revert. If it stays green, the test is too weak.
+- **Tests come from the behaviour, not the implementation.** The `test-author` writes them from the
+  plan and the public interface. The implementer does not edit them to get green; a test that is
+  wrong is reported, and the fix is reviewed as a test change.
+- **Changes that make checks easier to pass are suspect.** Reviewers read every diff to tests,
+  fixtures, golden files, test config, `tooling/guard.ts` and its baseline as closely as product
+  code: a loosened assertion, a widened tolerance, a new skip, a verifier that always passes.
+
 ## Layout
 
 ```text
@@ -154,6 +172,19 @@ See [windows-handoff.md](../plans/day13/windows-handoff.md) for what is verified
   so the fixed golden sale date never ages out.
 - `tests/support/till/host/upstream.ts` `dropNextRefundResponse()` simulates a reply lost after the
   server accepted.
+
+### Shifts and cash control (Day 15)
+
+- `world(db)`, the till host fixture (`createHostFixture`), `startRegister`, `goldenWorld` and the
+  connection host default to an open shift inserted directly (no audit row, so audit counts elsewhere do
+  not move). Pass `{ shift: false }` for a closed register.
+- Till shift helpers: `tests/support/till/{shifts,cash,close}.ts` (`insertOpenShift`, `sellTenders`,
+  `tradeDay`, `declareNow`, `closeNow`, `denominate`). The till host bridge: `startShifter` in
+  `tests/support/till/host/shifts.ts`.
+- Server side: `shiftEvent`, `edit`, `refigure` and `postShift` in `tests/support/sales/shifts.ts`, and
+  the upload fixture helpers in `tests/support/sync/shifts.ts`.
+- One session id must keep one content per till database (`host_session`); suites that sell, move cash
+  and read reports act as one session (`clerk`).
 
 ## Commands
 

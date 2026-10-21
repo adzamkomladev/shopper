@@ -11,7 +11,7 @@ import {
   validateSession,
 } from "@shopper/core/till";
 import type { Host } from "../types";
-import { auditContext } from "../receipts";
+import { auditContext } from "../context";
 
 /**
  * Routes the host answers itself under `/api`, from the signed-in session and the till SQLite, so the

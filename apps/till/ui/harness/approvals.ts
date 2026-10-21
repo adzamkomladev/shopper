@@ -12,7 +12,7 @@ import { priceView } from "./sale/price";
 
 /** The PIN every manager in the harness accepts; anything else is a wrong PIN. */
 export const managerPin = "4321";
-const managers = [
+export const managers = [
   { userId: id("20"), name: "Kofi Mensah" },
   { userId: id("21"), name: "Abena Owusu" },
 ];

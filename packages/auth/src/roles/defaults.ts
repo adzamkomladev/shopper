@@ -26,6 +26,7 @@ export const tillPermissions = new Set([
   "refund.request",
   "shift.read",
   "shift.write",
+  "shift.approve",
   "register.settings",
   "report.read",
   "stock.read",

@@ -21,6 +21,7 @@ import {
 import { serveHono, type HttpClient } from "../../../support/till/http";
 import { head, pullHeaders, tillCursor, tillFile } from "../../../support/till/pull";
 import { config, ids } from "../../../support/till/sales";
+import { insertOpenShift } from "../../../support/till/shifts";
 
 let till: Awaited<ReturnType<typeof tillFile>> | undefined;
 let server: HttpClient | undefined;
@@ -47,6 +48,12 @@ test("a till offline for one hour converges exactly after exhausting its receipt
   till = await tillFile();
   const host = await hostConfiguration("unused", [], server.url, { freshSession: true });
   if (!host.session) throw new Error("Gate requires a cashier session");
+  await insertOpenShift(till.database, {
+    orgId: context.orgId,
+    deviceId,
+    openedBy: host.session.userId,
+    openedSessionId: host.session.id,
+  });
   const workerOptions = {
     database: till.database,
     config: {

@@ -8,6 +8,7 @@ export const permissionNames = [
   "refund.request",
   "shift.read",
   "shift.write",
+  "shift.approve",
   "stock.read",
   "stock.write",
   "product.read",

@@ -66,7 +66,9 @@ If none of these fit, stop and ask. Do not work around the guard with a custom w
   and a `.tsx` suffix (`#components/button.tsx`). Strip the suffix after every `shadcn add`, or
   `tsc` fails. `cn` comes from the `cn` package, not a local util. Then restyle through tokens.
 - Back-office screens live in `@shopper/backoffice` and must run in the portal **and** Electron:
-  no Node APIs, no direct `window.electron`. Use the bridge contract.
+  no Node APIs, no direct `window.electron`. Use the bridge contract. The Inventory area's tabs
+  (Stock, Records, Stock takes, Valuation, Suppliers) live in `components/inventory/tabs.tsx`, each
+  shown only to members holding its permission.
 
 ## Design system
 

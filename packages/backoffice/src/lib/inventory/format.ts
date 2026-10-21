@@ -23,9 +23,6 @@ export function pickBranch<B extends { id: string }>(branches: readonly B[], req
   return branches.find((branch) => branch.id === requested) ?? branches[0];
 }
 
-/** The most movements a product's page shows; the API returns no more than this. */
-export const MOVEMENT_LIMIT = 200;
-
 const compact = new Intl.DateTimeFormat("en-GB", {
   timeZone: SHOP_TIME_ZONE,
   day: "numeric",

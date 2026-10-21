@@ -186,6 +186,19 @@ See [windows-handoff.md](../plans/day13/windows-handoff.md) for what is verified
 - One session id must keep one content per till database (`host_session`); suites that sell, move cash
   and read reports act as one session (`clerk`).
 
+### Inventory (Day 16)
+
+- Stock seeding: `addMovements`, `addDocument`, `addSupplier`, `setLevel`, `addBranch` and `day` in
+  `tests/support/stock/seed.ts`; `send` in `tests/support/stock/http.ts` calls the API as a member.
+- Queues: `tests/support/stock/queue.ts` is a recording `boxQueue` (`delivered`, `sentMessages`) that
+  the till server and `portalOwner` pass as `notifications`.
+- Arkesel is faked at the network edge by `tooling/arkesel/server.ts` (api-key check, recorded
+  requests, `failNext(n)`), started by `tests/support/stock/sms.ts` and the Workers vitest config.
+- Queue conformance (`packages/conformance/src/cases/queue.ts`) runs on the box in
+  `tests/integration/ports/queue.test.ts` and on Workers in `tooling/worker/tests/queue.test.ts`.
+- `runGolden` takes an optional `at` so one golden sale can be dated (the ledger test sells at 14:30).
+- Portal e2e use `ownProducts()` (`tests/support/admin/stock.ts`) so specs never shift the seed's stock.
+
 ## Commands
 
 ```sh

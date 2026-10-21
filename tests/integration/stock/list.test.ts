@@ -107,6 +107,7 @@ test("Product stock shows movements newest first with a running balance", async 
     [24_000, 24_000],
   ]);
   expect(detail.movements.every((m) => m.reason === "adjustment")).toBe(true);
+  expect(detail.truncated).toBe(false);
   await expect(
     readStockProduct(db(), ids.org, ids.otherProduct, { branchId }),
   ).rejects.toMatchObject({

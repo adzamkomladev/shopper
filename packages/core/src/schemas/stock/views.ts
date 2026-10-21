@@ -52,6 +52,8 @@ export const stockMovementView = v.object({
 export const stockProductView = v.object({
   ...stockItem.entries,
   movements: v.array(stockMovementView),
+  /** True when the product has more movements than `movements` holds. */
+  truncated: v.boolean(),
 });
 
 export const documentSummary = v.object({

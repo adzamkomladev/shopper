@@ -131,6 +131,10 @@ export async function readStockProduct(
     .select()
     .from(ledger)
     .orderBy(desc(ledger.occurredAt), desc(ledger.id))
-    .limit(MOVEMENT_LIMIT);
-  return { ...withLow(item), movements: movements.map(iso) };
+    .limit(MOVEMENT_LIMIT + 1);
+  return {
+    ...withLow(item),
+    movements: movements.slice(0, MOVEMENT_LIMIT).map(iso),
+    truncated: movements.length > MOVEMENT_LIMIT,
+  };
 }

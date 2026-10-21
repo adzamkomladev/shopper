@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
-import { and, eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { v7 } from "uuid";
-import { category, product, reorderPoint, stockAlert } from "@shopper/db-pg";
+import { stockAlert } from "@shopper/db-pg";
 import { defineCommand } from "@shopper/audit";
 import { checkReorder } from "@shopper/core/stock";
 import type { GoldenSale } from "../../fixtures/sales/golden/types";
@@ -11,13 +11,13 @@ import { runGolden } from "../../support/sales/golden/run";
 import { goldenWorld } from "../../support/sales/golden/setup";
 import { postRefund, refundEvent } from "../../support/sales/refunds";
 import { context, databases } from "../../support/till/server";
-import { api } from "../../support/till/server";
-import { syncHeaders } from "../../support/till/requests";
 import { inventorySession, stockProduct } from "../../support/till/stock";
 import { portalMember, portalOwner, type Portal } from "../../support/api/portal";
 import { notifications, sentMessages } from "../../support/stock/queue";
 import { addMovements, addSupplier, setLevel } from "../../support/stock/seed";
 import { send } from "../../support/stock/http";
+import { till } from "../../support/stock/till";
+import { startTake } from "../../support/stock/takes";
 
 let world: Awaited<ReturnType<typeof goldenWorld>>;
 let owner: Portal;
@@ -45,6 +45,14 @@ const receive = (productId: string, quantityThousandths: number) =>
 const alerts = (productId: string) =>
   databases().db.select().from(stockAlert).where(eq(stockAlert.productId, productId));
 const open = async (productId: string) => (await alerts(productId)).filter((row) => !row.clearedAt);
+const openAlert = (productId: string, onHandThousandths: number) =>
+  databases().db.insert(stockAlert).values({
+    orgId: ids.org,
+    branchId: ids.branch,
+    productId,
+    levelThousandths: 3_000,
+    onHandThousandths,
+  });
 const messagesFor = async (productId: string) => {
   const rows = new Set((await alerts(productId)).map((row) => row.id));
   return (await sentMessages()).filter((m) => rows.has((m.payload as { alertId: string }).alertId));
@@ -78,26 +86,6 @@ test("Low-stock alert enqueued once, not once per sale", async () => {
   expect(await alerts(rice)).toHaveLength(2);
   expect(await open(rice)).toHaveLength(1);
 });
-
-const till = (
-  document: Record<string, unknown>,
-  session: Awaited<ReturnType<typeof inventorySession>>,
-) =>
-  api.request("/sync/stock", {
-    method: "POST",
-    headers: syncHeaders(),
-    body: JSON.stringify({
-      requestId: v7(),
-      proof: session.proof,
-      document: {
-        v: 1,
-        id: v7(),
-        actorId: session.userId,
-        sessionId: session.sessionId,
-        ...document,
-      },
-    }),
-  });
 
 type Row = {
   name: string;
@@ -165,23 +153,7 @@ const rows: Row[] = [
     name: "take post",
     onHand: 4_000,
     raises: true,
-    act: async (productId) => {
-      const aisle = v7();
-      const { db } = databases();
-      await db.insert(category).values({ id: aisle, orgId: ids.org, name: `Alert aisle ${aisle}` });
-      await db.update(product).set({ categoryId: aisle }).where(eq(product.id, productId));
-      const take = v7();
-      await send(owner.api, clerk, "POST", "/stock/takes", {
-        id: take,
-        branchId: ids.branch,
-        scope: "category",
-        categoryId: aisle,
-      });
-      await send(owner.api, clerk, "PUT", `/stock/takes/${take}/counts`, {
-        lines: [{ productId, countedThousandths: 1_000 }],
-      });
-      return send(owner.api, clerk, "POST", `/stock/takes/${take}/post`);
-    },
+    act: async (productId) => (await startTake(owner, clerk, productId, 1_000))(),
   },
 ];
 
@@ -190,14 +162,7 @@ test("Every stock writer raises or clears the alert", async () => {
     const productId = await stockProduct(row.onHand);
     // "Setting a level" starts with none; every other row has one in place, silently.
     if (row.name !== "setting a level") await setLevel(productId, 3_000);
-    if (row.open)
-      await databases().db.insert(stockAlert).values({
-        orgId: ids.org,
-        branchId: ids.branch,
-        productId,
-        levelThousandths: 3_000,
-        onHandThousandths: row.onHand,
-      });
+    if (row.open) await openAlert(productId, row.onHand);
     const before = (await messagesFor(productId)).length;
     await row.act(productId);
     expect(await open(productId), row.name).toHaveLength(row.raises ? 1 : 0);
@@ -221,6 +186,30 @@ test("Every stock writer raises or clears the alert", async () => {
   expect(refunded.body.accepted).toBeDefined();
   expect(await open(zero), "refund").toHaveLength(0);
   expect((await messagesFor(zero)).length).toBe(1);
+});
+
+test("A take post that lifts stock clears the open alert and enqueues nothing", async () => {
+  const productId = await stockProduct(1_000);
+  await setLevel(productId, 3_000);
+  await openAlert(productId, 1_000);
+  const before = (await messagesFor(productId)).length;
+  const post = await startTake(owner, clerk, productId, 5_000);
+  expect((await post()).status).toBe(200);
+  expect(await open(productId)).toHaveLength(0);
+  expect((await messagesFor(productId)).length).toBe(before);
+});
+
+test("Posting a take twice raises nothing and enqueues nothing", async () => {
+  const productId = await stockProduct(4_000);
+  await setLevel(productId, 3_000);
+  const post = await startTake(owner, clerk, productId, 5_000);
+  expect((await post()).status).toBe(200);
+  const sent = (await sentMessages()).length;
+  const again = await post();
+  expect(again.status).toBe(409);
+  expect(again.body.code).toBe("TAKE_CLOSED");
+  expect(await alerts(productId)).toEqual([]);
+  expect((await sentMessages()).length).toBe(sent);
 });
 
 test("A rolled-back writer enqueues nothing", async () => {

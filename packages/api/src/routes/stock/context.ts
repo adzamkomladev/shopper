@@ -12,3 +12,13 @@ export const commandContext = (principal: ApiPrincipal, queue?: Queue) => ({
   appVersion: buildInfo.version,
   queue,
 });
+
+/** A till writes to its own branch, whatever the body says. The command validates the shape. */
+export const forceBranch = <T>(principal: ApiPrincipal, raw: unknown) =>
+  (principal.deviceId && raw && typeof raw === "object"
+    ? { ...raw, branchId: principal.branchId }
+    : raw) as T;
+
+/** A till's own branch, or undefined for a back-office member who may see every branch. */
+export const onlyBranch = (principal: ApiPrincipal) =>
+  principal.deviceId ? principal.branchId : undefined;

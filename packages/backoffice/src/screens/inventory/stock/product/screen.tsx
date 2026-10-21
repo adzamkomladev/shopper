@@ -13,7 +13,7 @@ import { StockProductSkeleton } from "../../../../components/inventory/stock/pro
 import { StockSummary } from "../../../../components/inventory/stock/product/summary";
 import { Gate, OfflineNote } from "../../../../components/register/states";
 import { usePanel } from "../../../../hooks/admin/panel";
-import { MOVEMENT_LIMIT, pickBranch } from "../../../../lib/inventory/format";
+import { pickBranch } from "../../../../lib/inventory/format";
 import { focusOnMount } from "../../../../lib/focus";
 import { stockBranchesQuery, stockProductQuery } from "../../../../queries/inventory/stock";
 import { usePermissions } from "../../../../queries/session/permissions";
@@ -99,9 +99,9 @@ function Product({
         editRef={editRef}
       />
       <MovementsTable movements={product.movements} unit={product.baseUnit} />
-      {product.movements.length >= MOVEMENT_LIMIT && (
+      {product.truncated && (
         <p className="text-sm text-muted-foreground">
-          Showing the newest {MOVEMENT_LIMIT} movements.
+          Showing the newest {product.movements.length} movements.
         </p>
       )}
       <ReorderDialog

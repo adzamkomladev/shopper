@@ -114,6 +114,13 @@ Before using a Cloudflare product that is not in this table, load the `cloudflar
 - **Workers runtime rules:** stream unbounded bodies, tie async work to `ctx.waitUntil`, no module-level
   request state, generated `Env` types (`cf workers types`), `this.env` inside DO classes, compatibility
   date kept current with tests run on change.
+- **Queues are push on Cloudflare and in-process on the box.** The port is `send` only; consumers are
+  a `QueueHandler`. `cloudflareDeliver` settles every message exactly once and retries any the
+  handler neither acked nor retried, so nothing is acked silently; the edge Worker's `queue()` export
+  is the only consumer (DLQ `shopper-notifications-dlq-<stage>`). `boxQueue` retries on unref'd
+  timers and logs `queue.dead_letter` after `maxAttempts`; its messages are lost on a box restart
+  until the Rivet queue (Day 36). Both follow `NOTIFICATION_RETRY` (`@shopper/ports`); the edge
+  trigger's `maxRetries` is `maxAttempts − 1`, pinned by `edge.test.ts`.
 - **Serialization differs per transport** (Queues, Workflow step outputs, DO storage, WebSockets).
   Step outputs must be `Json` (the port enforces this). Check limits per API before sending large data.
 

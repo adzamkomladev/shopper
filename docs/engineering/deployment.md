@@ -189,6 +189,17 @@ Local tests require `vp run services:up` then `vp run storage:setup`; the latter
 
 Portal = TanStack Start in SPA mode: a prerendered static shell served by Workers Static Assets; one Worker runs only for `/api/*` (the shared Hono API through native Hyperdrive, D1, R2, Durable Object and Workflow bindings) and `/_serverFn/*` (host-only server functions). Backoffice data stays on the shared API so the box SPA and Electron reuse it. The staging portal is hosted at `https://shopper-staging.temtem.dev` with its own Hyperdrive, D1, R2, queue, Durable Object and Workflow bindings (the Durable Objects and Workflows live in `shopper-edge-staging`); there is no `API` service binding. Workers Builds runs `deploy:staging` per Worker (see Cloud release); the build output (`.cloudflare/output/v0`) carries every binding, text value, domain and `runWorkerFirst` rule. Set staging `SHOPPER_AUTH_URL` to the portal origin, and permit that exact origin in imports-bucket PUT/Content-Type CORS. Local dev imports CORS permits `http://localhost:5173` and `http://127.0.0.1:5173`; no wildcard or public bucket access is needed.
 
+## Inventory and low-stock SMS (Day 16)
+
+Apply `0024_inventory` (portal stock records, unit cost, reorder points, alerts, stock takes and
+branch alert phones). Dev data is disposable: reset it rather than backfill. Create the queues
+`shopper-notifications-<stage>` and `shopper-notifications-dlq-<stage>` before deploying the edge
+Worker, whose `queue()` export is the consumer. Set `ARKESEL_API_KEY` as a secret on both Workers
+(`cf secret`); `ARKESEL_SENDER` is a text binding (`Shopper`) and must be an Arkesel-approved sender
+ID of at most 11 characters. Without the key the hosts enqueue nothing and no SMS is sent; the box
+reads the same names from its sealed config. Supplier writes now need `stock.write` instead of
+`product.write`.
+
 ## Browser Run (receipt rendering)
 
 `apps/edge` and `apps/portal` bind `BROWSER` (`bindings.browser({})`; compatibility date 2026-03-24 or later). Browser Run is available on every Workers account and needs nothing enabled in the dashboard. `quickAction` does not run in local dev; no local code path calls it yet, so the binding has no `dev: { remote: true }`. Add that (it requires a Cloudflare login) when a route starts rendering online-order PDFs. Tests use `tooling/browser/server.ts`, a Playwright Chromium stand-in (CI installs Chromium before `vp test --run`).

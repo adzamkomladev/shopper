@@ -13,7 +13,7 @@ import { expect } from "vite-plus/test";
 import type { GoldenSale } from "../../../fixtures/sales/golden/types";
 import { products } from "../../../fixtures/sales/golden/references";
 import type { goldenWorld } from "./setup";
-import { at } from "./setup";
+import { at as goldenAt } from "./setup";
 import { confirmedPayment } from "./payment";
 import { api } from "../../till/server";
 import { pushEvents } from "../../till/requests";
@@ -21,6 +21,8 @@ import { pushEvents } from "../../till/requests";
 export async function runGolden(
   world: Awaited<ReturnType<typeof goldenWorld>>,
   scenario: GoldenSale,
+  /** When the till rings it up; the golden day is 12:00. */
+  at: Date = goldenAt,
 ) {
   const { local, scope, command, session, config } = world;
   await provisionTillReference(local, command, {

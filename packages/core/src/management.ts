@@ -103,7 +103,12 @@ export const mutateManagement = defineCommand({
         action === "create"
           ? await tx
               .insert(branch)
-              .values({ orgId: context.orgId, name: data.name!, storeId: data.storeId! })
+              .values({
+                orgId: context.orgId,
+                name: data.name!,
+                storeId: data.storeId!,
+                alertPhones: data.alertPhones,
+              })
               .returning()
           : await tx.update(branch).set(data).where(where).returning();
     }

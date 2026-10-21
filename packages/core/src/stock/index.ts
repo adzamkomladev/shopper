@@ -1,2 +1,13 @@
 export { acceptStockDocument } from "./accept";
+export { countDeltas } from "./counts";
 export { StockError } from "./error";
+export { onHand } from "./onhand";
+export { listDocuments, readDocument } from "./documents";
+export { listStock, readStockProduct, stockBranches } from "./queries";
+export { adjustStock, receiveStock } from "./record";
+export { lastCosts, stockValuation } from "./valuation";
+export { cancelTake, countTake, startTake } from "./takes/commands";
+export { postTake } from "./takes/post";
+export { listTakes, readTake } from "./takes/queries";
+export { checkReorder, setReorder } from "./reorder";
+export { deliverStockAlert } from "./alerts/deliver";

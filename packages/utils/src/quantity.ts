@@ -6,10 +6,13 @@ export function parseQuantity(text: string, allowZero = false): number | null {
   return thousandths > 0 || allowZero ? thousandths : null;
 }
 
-export function formatQuantity(thousandths: number): string {
-  const whole = Math.trunc(thousandths / 1000);
-  const fraction = String(thousandths % 1000)
+/** Thousandths as a decimal with the minus sign first: -1500 is "−1.5" (a true minus; pass "-" where text must be plain ASCII, as in an SMS). */
+export function formatQuantity(thousandths: number, minus = "−"): string {
+  const sign = thousandths < 0 ? minus : "";
+  const magnitude = Math.abs(thousandths);
+  const fraction = String(magnitude % 1000)
     .padStart(3, "0")
     .replace(/0+$/, "");
-  return fraction ? `${whole}.${fraction}` : String(whole);
+  const whole = Math.trunc(magnitude / 1000);
+  return `${sign}${whole}${fraction ? `.${fraction}` : ""}`;
 }

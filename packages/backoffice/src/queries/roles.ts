@@ -23,9 +23,12 @@ export function permissionsListQuery(shop = currentShop()) {
   });
 }
 
-/** What the owner role is called on screen: the stored name is internal. */
+// Built-in roles are stored under short internal names.
+const ROLE_NAMES: Record<string, string> = { inventory: "Inventory manager" };
+
+/** What a role is called on screen: the stored name is internal. */
 export const roleLabel = (role: Pick<RoleView, "name" | "protectedOwner">) =>
-  role.protectedOwner ? "Owner" : role.name;
+  role.protectedOwner ? "Owner" : (ROLE_NAMES[role.name] ?? role.name);
 
 /** Creates a role, or saves `editing`. A role change can change what this member may do, so permissions are refetched too. */
 export function useSaveRole(editing: RoleView | undefined, onSaved: () => void) {

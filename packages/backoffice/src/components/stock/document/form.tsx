@@ -13,8 +13,9 @@ import { Input } from "@shopper/ui/components/input";
 import { Kbd } from "@shopper/ui/components/kbd";
 import { Label } from "@shopper/ui/components/label";
 import { ApiError } from "../../../api/client";
-import { documentLines, lineErrors, quantityId } from "../../../lib/stock/lines";
+import { documentLines, lineErrors, quantityId, searchId } from "../../../lib/stock/lines";
 import type { DraftLine, Kind } from "../../../lib/stock/types";
+import { productSearchQuery } from "../../../queries/stock/products";
 import { useQueueStock } from "../../../queries/stock/queue";
 import type { StockProduct } from "../../../schemas/stock/queue";
 import { DocumentLines } from "./lines";
@@ -84,7 +85,7 @@ export function DocumentForm({ kind, copy }: { kind: Kind; copy: DocumentCopy })
       role="group"
       aria-label={kind === "count" ? "Stock count" : "Stock receiving"}
     >
-      <ProductSearch kind={kind} onPick={add} />
+      <ProductSearch id={searchId(kind)} query={productSearchQuery} onPick={add} />
       {done && (
         <Alert role="status">
           <CircleCheck aria-hidden />

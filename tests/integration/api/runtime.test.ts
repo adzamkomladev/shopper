@@ -186,3 +186,11 @@ test("box ignores caller IP spoofing when limiting password attempts", async () 
   );
   expect(differentPeer.status).toBe(401);
 });
+
+test("stock paths reach the tenant API, not the public one", async () => {
+  for (const path of ["/stock", "/stock/branches", "/stock/documents", "/stock/products/x"]) {
+    const response = await host.fetch(new Request(`http://localhost${path}`));
+    expect(response.status, path).toBe(401);
+  }
+  expect((await host.fetch(new Request("http://localhost/stockroom"))).status).toBe(404);
+});

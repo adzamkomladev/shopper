@@ -11,6 +11,10 @@ MAILEROO_FROM=
 # Paystack secret key (sk_test_... in development) for MoMo charges and webhook signatures.
 PAYSTACK_SECRET_KEY=
 
+# Arkesel API key for low-stock SMS. ARKESEL_SENDER is a text binding in cloudflare.config.ts;
+# ARKESEL_BASE_URL is an optional override for a local fake.
+ARKESEL_API_KEY=
+
 # R2 direct upload signing credentials. The endpoint, bucket names and region are text bindings
 # in cloudflare.config.ts; IMPORTS and RECEIPTS use the remote dev buckets.
 SHOPPER_S3_ACCESS_KEY_ID=

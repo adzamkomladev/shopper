@@ -5,13 +5,16 @@ import { currentShop } from "../stores/shops";
 const API_BASE = "/api";
 
 export class ApiError extends Error {
+  /** The API's machine-readable reason, when it gives one (stock refusals do). */
+  readonly code?: string;
   constructor(
     readonly status: number,
     message: string,
     readonly field?: string,
-    options?: ErrorOptions,
+    options?: ErrorOptions & { code?: string },
   ) {
     super(message, options);
+    this.code = options?.code;
   }
 }
 
@@ -88,6 +91,7 @@ export async function apiFetch<S extends v.GenericSchema>(
         body,
       ),
       details.field,
+      { code: details.code },
     );
   }
   const parsed = v.safeParse(schema, payload);

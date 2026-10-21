@@ -19,5 +19,7 @@ The server keeps the previous 30-second idle timeout so spreadsheet imports are 
 Set `SHOPPER_LINK_SECRET` to enable invitation links, including LAN setup links without email.
 Email delivery additionally needs `MAILEROO_API_KEY` and `MAILEROO_FROM`; `MAILEROO_ENDPOINT`
 can point to the local integration fake. The box never exposes self-service onboarding, including when no fixed org is configured.
+Set `ARKESEL_API_KEY` (and `ARKESEL_SENDER`, default `Shopper`; `ARKESEL_BASE_URL` for a fake) to text
+low-stock alerts to branch alert phones. The in-memory notification queue loses pending messages on restart until day 36.
 Waiting auth flows currently use the shared memory engine; PostgreSQL still enforces deadlines
 and link consumption after restart, while automatic timer recovery is scheduled for day 36.

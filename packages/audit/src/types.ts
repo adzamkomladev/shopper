@@ -1,8 +1,11 @@
 import type { workflowRun } from "@shopper/db-pg";
 import type { auditLog } from "@shopper/db-pg";
+import type { Queue } from "@shopper/ports";
 
 export interface CommandContext {
   orgId: string;
+  /** Receives messages queued with enqueueAfterCommit, after the transaction commits. */
+  queue?: Queue;
   onStoreChanged?: (storeId: string, sequence: string) => Promise<void>;
   actorId?: string;
   role?: string;

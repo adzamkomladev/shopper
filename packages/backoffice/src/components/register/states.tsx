@@ -18,27 +18,32 @@ import { permissionsQuery } from "../../queries/session/permissions";
 export function Gate({
   need,
   what,
+  verb,
   fallback,
   children,
 }: {
   need: PermissionCode;
   what: string;
+  /** What the permission lets them do, when it is not just to view `what`. */
+  verb?: string;
   fallback: ReactNode;
   children: ReactNode;
 }) {
   const { data, isPending } = useQuery(permissionsQuery());
   if (isPending) return fallback;
-  return data?.includes(need) ? children : <NoPermission what={what} />;
+  return data?.includes(need) ? children : <NoPermission what={what} verb={verb} />;
 }
 
-export function NoPermission({ what }: { what: string }) {
+export function NoPermission({ what, verb = "view" }: { what: string; verb?: string }) {
   return (
     <Empty className="border">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <ShieldOff aria-hidden />
         </EmptyMedia>
-        <EmptyTitle>You don't have permission to view {what}</EmptyTitle>
+        <EmptyTitle>
+          You don't have permission to {verb} {what}
+        </EmptyTitle>
         <EmptyDescription>Ask a manager to give your account access.</EmptyDescription>
       </EmptyHeader>
     </Empty>

@@ -2,6 +2,14 @@ import "./catalogue";
 import * as v from "valibot";
 import { branchInput, storeInput } from "@shopper/core/schemas";
 import { fromDecimal, toDecimal, type Money } from "@shopper/money";
+import {
+  emptyPhones,
+  isRepeated,
+  phoneField,
+  phoneList,
+  phoneValues,
+  REPEAT_ERROR,
+} from "./branches";
 // Loading the catalogue schema also installs the plain-English validation messages the shared schemas need.
 
 const id = v.string();
@@ -11,7 +19,13 @@ export const storeView = v.object({
   cashRoundingStep: v.number(),
   createdAt: v.string(),
 });
-export const branchView = v.object({ id, name: v.string(), storeId: id, createdAt: v.string() });
+export const branchView = v.object({
+  id,
+  name: v.string(),
+  storeId: id,
+  alertPhones: v.optional(v.array(v.string()), []),
+  createdAt: v.string(),
+});
 export type StoreView = v.InferOutput<typeof storeView>;
 export type BranchView = v.InferOutput<typeof branchView>;
 
@@ -44,14 +58,39 @@ export function toStoreBody({ name, cashRounding }: StoreValues) {
   return v.parse(storeInput, { name, cashRoundingStep: fromDecimal(cashRounding.trim()) });
 }
 
-export const branchFormSchema = v.object({
-  name: branchInput.entries.name,
-  storeId: v.pipe(v.string(), v.nonEmpty("Choose a store")),
-});
+export const branchFormSchema = v.pipe(
+  v.object({
+    name: branchInput.entries.name,
+    storeId: v.pipe(v.string(), v.nonEmpty("Choose a store")),
+    alertPhone1: phoneField,
+    alertPhone2: phoneField,
+    alertPhone3: phoneField,
+  }),
+  v.forward(
+    v.check((values) => !isRepeated(values, "alertPhone2"), REPEAT_ERROR),
+    ["alertPhone2"],
+  ),
+  v.forward(
+    v.check((values) => !isRepeated(values, "alertPhone3"), REPEAT_ERROR),
+    ["alertPhone3"],
+  ),
+);
 export type BranchValues = v.InferInput<typeof branchFormSchema>;
 
-export const emptyBranch = (storeId = ""): BranchValues => ({ name: "", storeId });
+export const emptyBranch = (storeId = ""): BranchValues => ({
+  name: "",
+  storeId,
+  ...emptyPhones(),
+});
+export const branchValues = (
+  branch: Pick<BranchView, "name" | "storeId" | "alertPhones">,
+): BranchValues => ({
+  name: branch.name,
+  storeId: branch.storeId,
+  ...phoneValues(branch.alertPhones),
+});
 
 export function toBranchBody(values: BranchValues) {
-  return v.parse(branchInput, values);
+  const { name, storeId } = values;
+  return v.parse(branchInput, { name, storeId, alertPhones: phoneList(values) });
 }

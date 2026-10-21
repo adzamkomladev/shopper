@@ -54,4 +54,10 @@ steps, but its waiting timers do not survive a process restart. Recreating a
 launcher honours the stored expiry; automatic recovery of waiting box flows is
 scheduled for Rivet Workflows on day 36.
 
-Queue, Scheduler and Realtime remain contracts until their feature days.
+Queue is `{ policy, send }` plus a `QueueHandler`: Cloudflare pushes batches to the
+Worker, so there is no pull-style `consume`. `send` rejects an invalid envelope or one
+over 96 KB. Delivery carries `attempts`; a handler that throws or returns without
+`ack()` is redelivered. The box queue is in memory (lost on restart) until Rivet queues
+on day 36.
+
+Scheduler and Realtime remain contracts until their feature days.

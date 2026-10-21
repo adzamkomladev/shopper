@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import * as v from "valibot";
 import { buildInfo } from "@shopper/config";
 import { acceptStockDocument, StockError } from "@shopper/core/stock";
+import type { Queue } from "@shopper/ports";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { createDeviceService } from "@shopper/auth/devices";
 import { stockUpload } from "../schemas/sync/routes";
@@ -13,6 +14,7 @@ import { stockUpload } from "../schemas/sync/routes";
 export function createStockRoutes(options: {
   database: ShopperDatabase;
   devices: ReturnType<typeof createDeviceService>;
+  notifications?: Queue;
   now?: () => number;
 }) {
   const app = new Hono();
@@ -26,7 +28,7 @@ export function createStockRoutes(options: {
         principal,
         data.document,
         data.proof,
-        { appVersion: buildInfo.version, now: options.now },
+        { appVersion: buildInfo.version, now: options.now, queue: options.notifications },
       );
       return c.json({ requestId: data.requestId, accepted });
     } catch (error) {

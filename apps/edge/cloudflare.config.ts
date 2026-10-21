@@ -1,4 +1,4 @@
-import { bindings, defineConfig, exports } from "cf/config";
+import { bindings, defineConfig, exports, triggers } from "cf/config";
 
 const accountId = "bd9ef997b398c9aeeee8ac3d3618efdc";
 // Hyperdrive and D1 ids are account infrastructure identifiers, not secrets.
@@ -21,6 +21,7 @@ const secrets = [
   "MAILEROO_API_KEY",
   "MAILEROO_FROM",
   "PAYSTACK_SECRET_KEY",
+  "ARKESEL_API_KEY",
   "SHOPPER_S3_ACCESS_KEY_ID",
   "SHOPPER_S3_SECRET_ACCESS_KEY",
 ];
@@ -41,6 +42,17 @@ export default defineConfig(({ mode }) => {
       ...(stage === "staging"
         ? { workersDev: true, domains: ["shopper-api-staging.temtem.dev"] }
         : {}),
+      // Failed notifications retry five times, then land in the dead-letter queue. The config
+      // loader cannot import workspace packages; edge.test.ts pins these to NOTIFICATION_RETRY.
+      triggers: [
+        triggers.queue({
+          name: `shopper-notifications-${stage}`,
+          deadLetterQueue: `shopper-notifications-dlq-${stage}`,
+          maxRetries: 5,
+          retryDelay: 60,
+          maxBatchSize: 10,
+        }),
+      ],
       env: {
         CACHE_DB: bindings.d1({ name: `shopper-cache-${stage}`, id: ids[stage].d1 }),
         HYPERDRIVE: bindings.hyperdrive({
@@ -73,6 +85,8 @@ export default defineConfig(({ mode }) => {
         SHOPPER_S3_RECEIPTS_BUCKET: bindings.text(`shopper-receipts-${stage}`),
         SHOPPER_S3_ENDPOINT: bindings.text(`https://${accountId}.r2.cloudflarestorage.com`),
         SHOPPER_S3_REGION: bindings.text("auto"),
+        // The registered Arkesel sender ID (11 characters at most).
+        ARKESEL_SENDER: bindings.text("Shopper"),
         ...Object.fromEntries(secrets.map((secret) => [secret, bindings.secret()])),
         ...(stage === "dev" ? { SHOPPER_BOOTSTRAP_TOKEN: bindings.secret() } : {}),
       },

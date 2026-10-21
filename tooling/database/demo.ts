@@ -5,6 +5,7 @@ import { registerOrganizationUser } from "../../packages/auth/src/users";
 import { rolePermissions } from "../../packages/auth/src/roles/defaults";
 import { org, role, type ShopperDatabase } from "../../packages/db/pg/src/index";
 import { provisionOrg, provisioningContext } from "./seed";
+import { seedStock } from "./stock";
 
 export const SEED_PASSWORD = "Admin@12345";
 export type Credential = { org: string; role: string; email: string };
@@ -40,12 +41,15 @@ export async function seedDemo(db: ShopperDatabase, devOrgId: string) {
     action: "create",
     data: { name: "Shopper development" },
   });
-  for (const name of BRANCHES)
-    await mutateManagement(db, context, {
+  const branchIds: string[] = [];
+  for (const name of BRANCHES) {
+    const branch = await mutateManagement(db, context, {
       kind: "branch",
       action: "create",
       data: { name, storeId: store.id },
     });
+    branchIds.push(branch.id);
+  }
 
   const ownerEmail = nextEmail();
   const owner = await createVerifiedOwner(db, context, {
@@ -59,6 +63,7 @@ export async function seedDemo(db: ShopperDatabase, devOrgId: string) {
     .from(role)
     .where(eq(role.orgId, devOrgId));
   const actor = { ...context, actorId: owner.userId, role: "superadmin" };
+  await seedStock(db, actor, branchIds[0]!);
   for (const name of Object.keys(rolePermissions).filter((name) => name !== "superadmin")) {
     const email = nextEmail();
     await registerOrganizationUser(db, actor, {

@@ -1,31 +1,41 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type UseQueryOptions } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { Input } from "@shopper/ui/components/input";
+import { Kbd } from "@shopper/ui/components/kbd";
 import { Skeleton } from "@shopper/ui/components/skeleton";
-import { searchId } from "../../../lib/stock/lines";
-import type { Kind } from "../../../lib/stock/types";
 import { useDebouncedCallback } from "../../../hooks/debounced/callback";
-import { productSearchQuery } from "../../../queries/stock/products";
-import type { StockProduct } from "../../../schemas/stock/queue";
 
 const DEBOUNCE_MS = 200;
 
+type Product = { productId: string; sku: string; name: string };
+type Props<P extends Product> = {
+  /** The input's id, so a line's Enter can send focus back here. */
+  id: string;
+  /** The products matching a search, from the register (till) or the shop's stock (portal). */
+  query: (search: string) => UseQueryOptions<P[], Error, P[], string[]>;
+  onPick: (product: P) => void;
+  /** Whether the field is 44px tall, as on the till. */
+  touch?: boolean;
+  /** The key that jumps to this field, shown at its end. */
+  shortcut?: string;
+};
+
 /** Name, SKU or barcode. Enter adds the first match, so a scanner (which types the code and Enter) works. */
-export function ProductSearch({
-  kind,
+export function ProductSearch<P extends Product>({
+  id,
+  query,
   onPick,
-}: {
-  kind: Kind;
-  onPick: (product: StockProduct) => void;
-}) {
+  touch = true,
+  shortcut,
+}: Props<P>) {
   const [text, setText] = useState("");
   const [search, setSearch] = useState("");
   const debounced = useDebouncedCallback(setSearch, DEBOUNCE_MS);
   const queryClient = useQueryClient();
-  const results = useQuery(productSearchQuery(search));
+  const results = useQuery(query(search));
   const matches = search === text.trim() ? (results.data ?? []) : [];
-  const pick = (product: StockProduct) => {
+  const pick = (product: P) => {
     onPick(product);
     debounced.cancel();
     setText("");
@@ -37,7 +47,7 @@ export function ProductSearch({
     if (!code) return;
     debounced.cancel();
     setSearch(code);
-    const found = await queryClient.fetchQuery(productSearchQuery(code)).catch(() => []);
+    const found = await queryClient.fetchQuery(query(code)).catch(() => []);
     if (found[0]) pick(found[0]);
   }
   return (
@@ -50,21 +60,33 @@ export function ProductSearch({
         <Input
           aria-label="Scan barcode or search products"
           autoComplete="off"
-          className="bg-card pl-12"
-          id={searchId(kind)}
+          className={shortcut ? "bg-card pr-10 pl-12" : "bg-card pl-12"}
+          id={id}
           onChange={(event) => {
             setText(event.target.value);
             debounced(event.target.value.trim());
           }}
           onKeyDown={(event) => {
+            // Escape empties the search first; with nothing typed it reaches the screen (which may go back).
+            if (event.key === "Escape" && text) {
+              event.stopPropagation();
+              debounced.cancel();
+              setText("");
+              setSearch("");
+            }
             if (event.key !== "Enter") return;
             event.preventDefault();
             void enter();
           }}
           placeholder="Scan barcode or search products"
-          touch
+          touch={touch}
           value={text}
         />
+        {shortcut && (
+          <Kbd aria-hidden className="absolute top-1/2 right-3 -translate-y-1/2">
+            {shortcut}
+          </Kbd>
+        )}
       </div>
       {text.trim() && (
         <div aria-label="Matching products" className="rounded-xl border bg-card" role="group">

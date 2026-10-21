@@ -16,7 +16,7 @@ import { allowPublicAuth } from "./middleware/public/auth";
 export const publicApi = createApi();
 export function isPublicRequest(request: Request) {
   const path = new URL(request.url).pathname;
-  return !/^\/(?:payments(?:\/|$)|webhooks\/paystack$|api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|devices(?:\/|$)|shifts(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
+  return !/^\/(?:payments(?:\/|$)|webhooks\/paystack$|api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|devices(?:\/|$)|shifts(?:\/|$)|stock(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
     path,
   );
 }
@@ -52,6 +52,7 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
       sequencer: options.sequencer,
       blobs: options.blobs,
       live: options.live,
+      notifications: options.notifications,
     }).fetch(request);
   }
   const linkOptions =
@@ -146,5 +147,6 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     realtime: options.realtime,
     invitations,
     blobs: options.blobs,
+    notifications: options.notifications,
   }).fetch(request);
 }

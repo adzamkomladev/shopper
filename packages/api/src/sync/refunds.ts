@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import * as v from "valibot";
 import { acceptRefund, lookupSale, RefundError } from "@shopper/core/refunds";
+import type { Queue } from "@shopper/ports";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { createDeviceService } from "@shopper/auth/devices";
 import { refundUpload, saleLookup } from "../schemas/sync/refunds";
@@ -12,6 +13,7 @@ import { refundUpload, saleLookup } from "../schemas/sync/refunds";
 export function createRefundRoutes(options: {
   database: ShopperDatabase;
   devices: ReturnType<typeof createDeviceService>;
+  notifications?: Queue;
   now?: () => number;
 }) {
   const app = new Hono();
@@ -26,6 +28,7 @@ export function createRefundRoutes(options: {
         data.refund,
         data.proof,
         options.now,
+        options.notifications,
       );
       return c.json({ requestId: data.requestId, accepted });
     } catch (error) {

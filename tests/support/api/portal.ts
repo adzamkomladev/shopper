@@ -8,6 +8,7 @@ import { createApi } from "@shopper/api";
 import { createAuth, registerOrganizationUser } from "@shopper/auth";
 import { role } from "@shopper/db-pg";
 import { appVersion, databases } from "../till/server";
+import { notifications } from "../stock/queue";
 
 export const baseURL = "http://localhost:8787";
 export const secret = "portal api integration secret that is at least thirty two chars";
@@ -40,7 +41,7 @@ export async function portalOwner(orgId: string, actorId?: string) {
   const cookie = await signIn(auth, email);
   const principal = await auth.resolvePrincipal(new Request(baseURL, { headers: { cookie } }));
   return {
-    api: createApi({ database: db, authentication: auth }),
+    api: createApi({ database: db, authentication: auth, notifications }),
     auth,
     cookie,
     principal: principal!,

@@ -163,7 +163,7 @@ test("org B cannot read or change org A's products", async () => {
   expect(mirrored.status).toBe(201);
 });
 
-test("inventory manager, accountant and cashier can read but not write; admin and super admin can write", async () => {
+test("inventory manager, accountant and cashier can read but not write products; admin and super admin can write", async () => {
   for (const role of ["superadmin", "admin", "accountant", "inventory", "cashier"]) {
     const writer = role === "superadmin" || role === "admin";
     const code = barcode();
@@ -203,9 +203,9 @@ test("inventory manager, accountant and cashier can read but not write; admin an
     for (const [method, path, body, allowed, denied] of operations) {
       const response = await call(path, method, body, role);
       const isWrite = method !== "GET";
-      expect(response.status, `${role} ${method} ${path}`).toBe(
-        isWrite && !writer ? denied : allowed,
-      );
+      // Suppliers are stock.write: the inventory manager keeps them.
+      const may = writer || (role === "inventory" && path.startsWith("/suppliers"));
+      expect(response.status, `${role} ${method} ${path}`).toBe(isWrite && !may ? denied : allowed);
     }
   }
 });

@@ -93,8 +93,9 @@ export interface Delivery {
 export interface Queue {
   readonly policy: RetryPolicy;
   send(message: Envelope): Promise<void>;
-  consume(handler: (delivery: Delivery) => Promise<void>): Promise<void>;
 }
+// Cloudflare pushes batches to the consumer, so delivery is a handler, not a pull.
+export type QueueHandler = (delivery: Delivery) => Promise<void>;
 
 export type BlobUploadOptions = { contentType: string; expiresInSeconds: number };
 export type BlobUpload = {

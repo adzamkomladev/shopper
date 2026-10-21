@@ -5,7 +5,7 @@ import type {
   createInvitations,
 } from "@shopper/auth";
 import type { ShopperDatabase } from "@shopper/db-pg";
-import type { Blobs, Realtime, Sequencer, WorkflowLauncher } from "@shopper/ports";
+import type { Blobs, Queue, Realtime, Sequencer, WorkflowLauncher } from "@shopper/ports";
 import type { Cache } from "@shopper/ports";
 import type { LiveUpgrade } from "./sync/live";
 
@@ -23,6 +23,7 @@ export interface ApiOptions {
   sequencer?: Sequencer;
   blobs?: Blobs;
   realtime?: Realtime;
+  notifications?: Queue;
   devices?: ReturnType<typeof createDeviceService>;
   // Populated by the authenticated session adapter; never derive this from request parameters.
   resolveOrgId?: (request: Request) => Promise<string | null>;
@@ -39,6 +40,7 @@ export interface RuntimeOptions {
   blobs?: Blobs;
   live?: LiveUpgrade;
   realtime?: Realtime;
+  notifications?: Queue;
   cache: Cache;
   secret: string;
   baseURL: string;

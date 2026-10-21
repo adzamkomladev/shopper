@@ -40,3 +40,10 @@ export function roundCash(amount: Money, step: number): Money {
     throw new RangeError("Rounding step must be a positive integer");
   return fromBigInt(divide(BigInt(money(amount)), BigInt(step)) * BigInt(step));
 }
+/**
+ * A quantity of a product at its unit cost, rounded half-up to the pesewa (100 units). A document
+ * prints and adds these rounded lines, so what is shown always sums to the total.
+ */
+export function lineTotal(unitCost: Money, thousandths: number): Money {
+  return roundCash(mulQty(unitCost, thousandths), 100);
+}

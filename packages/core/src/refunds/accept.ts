@@ -8,6 +8,8 @@ import type { UploadPrincipal } from "../sales/types";
 import { validateRefundAuthority } from "./authority";
 import { refundDocument } from "./document";
 import { validateRefund } from "./validate";
+import { checkReorder } from "../stock/reorder";
+import type { Queue } from "@shopper/ports";
 
 type Input = {
   principal: UploadPrincipal;
@@ -23,6 +25,7 @@ export async function acceptRefund(
   raw: unknown,
   proof: string,
   now = Date.now,
+  queue?: Queue,
 ) {
   const event = decodeRefundEvent(raw);
   const { refund: snapshot } = event;
@@ -38,6 +41,7 @@ export async function acceptRefund(
       actorId: snapshot.cashierId,
       appVersion: snapshot.appVersion,
       deviceTime: new Date(snapshot.deviceTime),
+      queue,
     },
     {
       principal,
@@ -137,6 +141,12 @@ const accept = defineCommand({
         quantityThousandths: line.tax.quantityThousandths,
         occurredAt: input.occurredAt,
       })),
+    );
+    await checkReorder(
+      tx,
+      ctx,
+      snapshot.branchId,
+      snapshot.lines.map((line) => line.productId),
     );
     return output(saved!);
   },

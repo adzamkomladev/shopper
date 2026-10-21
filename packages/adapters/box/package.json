@@ -12,6 +12,10 @@
       "types": "./src/renderer.ts",
       "default": "./src/renderer.ts"
     },
+    "./queue": {
+      "types": "./src/queue.ts",
+      "default": "./src/queue.ts"
+    },
     "./till": {
       "types": "./src/till/index.ts",
       "default": "./src/till/index.ts"

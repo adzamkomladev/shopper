@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { captureSizes } from "../../../../support/admin";
-import { activeTab, heading, openRecords, rowOf, seedStock } from "../../../../support/admin/stock";
+import { activeTab, heading, openRecords, seedStock } from "../../../../support/admin/stock";
 import { expectNoSeriousAxe } from "../../../../support/e2e";
 
 // See list.spec.ts for what seedStock() records at Accra Central.
@@ -10,7 +10,7 @@ test.describe("as the owner of E2E Mart", () => {
     page,
   }, info) => {
     const { supplier, tag, receiptId, rice, tomatoes } = await openRecords(page);
-    await rowOf(page, supplier.name).getByRole("link").click();
+    await page.locator(`a[href$="/stock/records/${receiptId}"]`).click();
     await expect(page).toHaveURL(new RegExp(`/stock/records/${receiptId}`));
     await expect(heading(page, "Goods received")).toBeFocused();
     const main = page.getByRole("main");

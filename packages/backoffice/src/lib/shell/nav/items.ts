@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import type { PermissionCode } from "../../roles/permissions";
 import {
   ClockIcon,
+  WarehouseIcon,
   GitBranchIcon,
   MonitorSmartphoneIcon,
   PackageIcon,
@@ -18,10 +19,19 @@ type NavItem = {
   icon: LucideIcon;
   /** Shown only to members who hold this permission. */
   permission?: PermissionCode;
+  /** Other pages of the same area: the link stays highlighted on them. */
+  also?: readonly string[];
 };
 
 export const NAV_ITEMS: readonly NavItem[] = [
   { to: "/products", label: "Products", icon: PackageIcon },
+  {
+    to: "/stock",
+    label: "Inventory",
+    icon: WarehouseIcon,
+    permission: "stock.read",
+    also: ["/suppliers"],
+  },
   { to: "/barcodes", label: "Barcodes", icon: ScanBarcodeIcon, permission: "product.read" },
   { to: "/imports", label: "Import", icon: UploadIcon },
   { to: "/stores", label: "Stores", icon: StoreIcon, permission: "store.read" },

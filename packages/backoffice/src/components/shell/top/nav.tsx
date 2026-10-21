@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { SearchIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@shopper/ui/components/input-group";
@@ -22,6 +22,7 @@ type Props = {
 export function TopNav({ shops, currentId, user }: Props) {
   const [palette, setPalette] = useState<PaletteState>(closedPalette);
   const navItems = useNavItems();
+  const path = useRouterState({ select: (state) => state.location.pathname });
   const searchRef = useRef<HTMLInputElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const open = (query = "") => setPalette({ open: true, query, term: query });
@@ -40,16 +41,22 @@ export function TopNav({ shops, currentId, user }: Props) {
       <div className="flex min-w-0 flex-1 items-center gap-x-6 xl:flex-initial">
         <ShopSwitcher shops={shops} currentId={currentId} />
       </div>
-      <div className="order-last flex w-full flex-wrap gap-x-6 gap-y-1 xl:order-none xl:w-auto xl:flex-nowrap">
-        {navItems.map(({ to, label }) => (
-          <Link
-            key={to}
-            to={to}
-            className="-mx-2 rounded-md px-2 py-1 text-sm font-medium text-muted-foreground hover:text-foreground data-[status=active]:text-foreground"
-          >
-            {label}
-          </Link>
-        ))}
+      <div className="order-last flex w-full flex-wrap gap-x-6 gap-y-1 xl:order-none xl:w-auto xl:flex-nowrap xl:gap-x-4 2xl:gap-x-6">
+        {navItems.map(({ to, label, also }) => {
+          const here = [to, ...(also ?? [])].some(
+            (page) => path === page || path.startsWith(`${page}/`),
+          );
+          return (
+            <Link
+              key={to}
+              to={to}
+              aria-current={here ? "page" : undefined}
+              className="-mx-2 rounded-md px-2 py-1 text-sm font-medium text-muted-foreground hover:text-foreground aria-[current=page]:text-foreground"
+            >
+              {label}
+            </Link>
+          );
+        })}
       </div>
       <div className="flex items-center gap-4 md:ml-auto">
         <Button
@@ -62,7 +69,7 @@ export function TopNav({ shops, currentId, user }: Props) {
         >
           <SearchIcon aria-hidden />
         </Button>
-        <InputGroup className="hidden w-72 xl:flex">
+        <InputGroup className="hidden w-64 xl:flex 2xl:w-72">
           <InputGroupAddon>
             <SearchIcon aria-hidden />
           </InputGroupAddon>

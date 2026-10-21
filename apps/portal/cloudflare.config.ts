@@ -17,6 +17,7 @@ const secrets = [
   "SHOPPER_AUTH_SECRET",
   "SHOPPER_LINK_SECRET",
   "PAYSTACK_SECRET_KEY",
+  "ARKESEL_API_KEY",
   "SHOPPER_S3_ACCESS_KEY_ID",
   "SHOPPER_S3_SECRET_ACCESS_KEY",
 ];
@@ -78,6 +79,8 @@ export default defineConfig(({ mode }) => {
         SHOPPER_S3_RECEIPTS_BUCKET: bindings.text(`shopper-receipts-${stage}`),
         SHOPPER_S3_ENDPOINT: bindings.text(`https://${accountId}.r2.cloudflarestorage.com`),
         SHOPPER_S3_REGION: bindings.text("auto"),
+        // The registered Arkesel sender ID (11 characters at most).
+        ARKESEL_SENDER: bindings.text("Shopper"),
         ...Object.fromEntries(secrets.map((secret) => [secret, bindings.secret()])),
       },
     },

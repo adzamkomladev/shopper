@@ -197,6 +197,36 @@ arithmetic (`SHIFT_MISMATCH`), the closing session's `shift.write` and the appro
 refund totals until the Day 20 cross-check. The back office reads `GET /shifts` and `GET /shifts/:id`
 behind `shift.read`; open shifts stay on the till.
 
+### Inventory (Day 16)
+
+Stock on hand is never stored. It is the fold of the signed `stock_movement` ledger
+(`onHand`/`onHandOf` in `packages/core/src/stock/onhand.ts` are the only readers), per branch, and a
+reorder point and every report read the same fold. Every writer runs inside its own `defineCommand`:
+sales and refunds (from the till), till counts and receipts (sync upload), and the portal's goods
+received (`stock.receipt.record`, supplier required, unit cost per base unit on the movement as
+`unit_cost`), adjustments (`stock.adjustment.record`, with a cause: damaged, expired and theft
+remove, found adds, other picks a direction; wastage is damaged or expired) and stock takes. Portal
+records reuse `stock_document` with no device; the client sends a UUIDv7 id so a retried submit
+replays (same id and content) instead of doubling stock.
+
+A stock take (`stock_take`, one open per branch) snapshots every active product, or one category.
+Counts stamp `counted_at`; the post (`stock.take.post`) refuses while a line is uncounted
+(`NOT_COUNTED`) and writes `count` movements of counted − on hand at each line's `counted_at`, the same
+rule and `SUPERSEDED` check as a till count (`countDeltas`). Sales continue during a take. Valuation is
+on hand × the last received unit cost for that product and branch; receipt line totals round to the
+pesewa (`lineTotal`). Every route sits under `/stock` behind `stock.read` (reads, valuation) and
+`stock.write` (writes, suppliers); a till principal is forced to its own branch.
+
+Low stock: `reorder_point` is per product per branch. `checkReorder`, called by every writer in the
+same transaction, raises a `stock_alert` when on hand ≤ the level and clears it when on hand rises
+above it; the partial unique index `stock_alert_open` makes one alert per crossing. The raise queues
+a `stock.low` v1 envelope through `enqueueAfterCommit`, which `defineCommand` sends only after the
+transaction commits (a rolled-back write sends nothing; a failed send is logged). The consumer
+(`deliverStockAlert`) texts the branch's `alert_phones` (up to 3) through Arkesel and marks
+`sent_at` with an audited `stock.alert.sent`; a cleared or already-sent alert, or a branch with no
+phones, is acked without a text. A send lost after commit, or an alert raised before phones were set,
+stays unsent until the watchdog re-send exists.
+
 ## Assets and organization management
 
 `@shopper/assets` owns publicity/access policy, purpose and bucket selection, audited asset tracking and authorized presigned grants. Provider operations use Blobs; credentials stay in adapters. The API receives metadata and asset references, never client file bytes. Before processing, resolve the tenant-owned asset and verify bounded actual bytes against its registered digest and size. A presigned URL remains a bearer capability until expiry, so repeat verification before every use.

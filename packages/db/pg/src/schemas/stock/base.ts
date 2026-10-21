@@ -11,23 +11,26 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
-import { tenant, branch } from "./base";
-import { user } from "./auth";
-import { device } from "./devices";
-import { product } from "./catalogue";
-import { sale, saleLine } from "./sales";
-import { refund, refundLine } from "./refunds";
+import { tenant, branch, moneyColumn } from "../base";
+import { user } from "../auth";
+import { device } from "../devices";
+import { product, supplier } from "../catalogue";
+import { sale, saleLine } from "../sales";
+import { refund, refundLine } from "../refunds";
 
 export const stockReasons = ["sale", "adjustment", "return", "count", "receipt"] as const;
-export const stockDocumentKinds = ["count", "receipt"] as const;
+export const stockDocumentKinds = ["count", "receipt", "adjustment"] as const;
+export const adjustmentCauses = ["damaged", "expired", "theft", "found", "other"] as const;
 
-/** A stock count or receiving note taken on a till, keyed by the till's UUIDv7. */
+/** A stock count, receiving note or adjustment: from a till (device) or the back office (no device), keyed by a UUIDv7. */
 export const stockDocument = pgTable(
   "stock_document",
   {
     ...tenant(),
     branchId: uuid("branch_id").notNull(),
-    deviceId: uuid("device_id").notNull(),
+    deviceId: uuid("device_id"),
+    supplierId: uuid("supplier_id"),
+    cause: text("cause", { enum: adjustmentCauses }),
     actorId: uuid("actor_id").notNull(),
     kind: text("kind", { enum: stockDocumentKinds }).notNull(),
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
@@ -40,7 +43,21 @@ export const stockDocument = pgTable(
     foreignKey({ columns: [t.orgId, t.branchId], foreignColumns: [branch.orgId, branch.id] }),
     foreignKey({ columns: [t.orgId, t.deviceId], foreignColumns: [device.orgId, device.id] }),
     foreignKey({ columns: [t.orgId, t.actorId], foreignColumns: [user.orgId, user.id] }),
-    check("stock_document_kind", sql`${t.kind} IN ('count', 'receipt')`),
+    foreignKey({
+      columns: [t.orgId, t.supplierId],
+      foreignColumns: [supplier.orgId, supplier.id],
+    }),
+    index("stock_document_kind").on(t.orgId, t.branchId, t.kind, t.occurredAt),
+    check("stock_document_kind", sql`${t.kind} IN ('count', 'receipt', 'adjustment')`),
+    check("stock_document_cause", sql`(${t.kind} = 'adjustment') = (${t.cause} IS NOT NULL)`),
+    check(
+      "stock_document_cause_value",
+      sql`${t.cause} IS NULL OR ${t.cause} IN ('damaged', 'expired', 'theft', 'found', 'other')`,
+    ),
+    check(
+      "stock_document_receipt_source",
+      sql`${t.kind} <> 'receipt' OR ${t.deviceId} IS NOT NULL OR ${t.supplierId} IS NOT NULL`,
+    ),
   ],
 );
 
@@ -57,6 +74,8 @@ export const stockMovement = pgTable(
     refundId: uuid("refund_id"),
     refundLineId: uuid("refund_line_id"),
     quantityThousandths: bigint("quantity_thousandths", { mode: "number" }).notNull(),
+    /** Cost of one base unit; set on costed receipts only. */
+    unitCost: moneyColumn("unit_cost"),
     reason: text("reason", { enum: stockReasons }).notNull(),
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -90,6 +109,10 @@ export const stockMovement = pgTable(
       sql`${t.reason} NOT IN ('count', 'receipt') OR ${t.documentId} IS NOT NULL`,
     ),
     check("stock_movement_receipt", sql`${t.reason} <> 'receipt' OR ${t.quantityThousandths} > 0`),
+    check(
+      "stock_movement_unit_cost",
+      sql`${t.unitCost} IS NULL OR (${t.reason} = 'receipt' AND ${t.unitCost} >= 0)`,
+    ),
     check("stock_movement_quantity", sql`${t.quantityThousandths} <> 0`),
     check(
       "stock_movement_sale",

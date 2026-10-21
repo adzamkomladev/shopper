@@ -10,7 +10,7 @@ import { acceptSale, SaleError } from "@shopper/core/sales";
 import { issueReceiptBlocks } from "@shopper/core/till";
 
 import type { ShopperDatabase } from "@shopper/db-pg";
-import type { Blobs, Sequencer } from "@shopper/ports";
+import type { Blobs, Queue, Sequencer } from "@shopper/ports";
 import type { createDeviceService } from "@shopper/auth/devices";
 import { createApproverRoutes } from "./approvers";
 import { createReceiptRoutes } from "./receipts";
@@ -30,6 +30,7 @@ export function createSyncRoutes(options: {
   protocol?: number;
   live?: LiveUpgrade;
   blobs?: Blobs;
+  notifications?: Queue;
   now?: () => number;
 }) {
   const protocol = options.protocol ?? buildInfo.syncProtocol;
@@ -110,6 +111,7 @@ export function createSyncRoutes(options: {
           raw,
           proofs.get(session.sale.sessionId) ?? "",
           options.now,
+          options.notifications,
         );
         occurredAt = result.occurredAt;
       } catch (error) {

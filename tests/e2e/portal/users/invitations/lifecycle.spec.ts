@@ -77,7 +77,9 @@ test.describe("as the owner of E2E Mart", () => {
     const members = page.getByRole("region", { name: "Members" });
     await members.focus();
     await page.keyboard.press("End");
-    await expect(members.getByRole("row").filter({ hasText: email })).toContainText("inventory");
+    await expect(members.getByRole("row").filter({ hasText: email })).toContainText(
+      "Inventory manager",
+    );
   });
 
   test("an invitation uses the role that was chosen, including a custom one", async ({

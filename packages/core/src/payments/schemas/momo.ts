@@ -1,18 +1,14 @@
 import * as v from "valibot";
 import { uuidV7Schema } from "@shopper/ports";
+import { ghanaPhone } from "../../schemas/fields";
 import { networkSchema } from "../paystack/schemas/base";
 
-export const momoPhone = v.pipe(
-  v.string(),
-  v.regex(/^(?:0\d{9}|\+233\d{9})$/),
-  v.transform((phone) => (phone.startsWith("+233") ? `0${phone.slice(4)}` : phone)),
-);
 export const phoneFingerprintSchema = v.pipe(v.string(), v.regex(/^[0-9a-f]{64}$/));
 
 export const momoInput = v.strictObject({
   reference: v.optional(uuidV7Schema),
   amount: v.pipe(v.number(), v.safeInteger(), v.minValue(100), v.multipleOf(100)),
-  phone: momoPhone,
+  phone: ghanaPhone,
   network: networkSchema,
 });
 export const momoParams = v.object({

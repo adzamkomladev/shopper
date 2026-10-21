@@ -1,12 +1,12 @@
 import * as v from "valibot";
 import { tillId } from "../till/fields";
 
-const quantity = (min: number) => v.pipe(v.number(), v.safeInteger(), v.minValue(min));
+export const quantity = (min: number) => v.pipe(v.number(), v.safeInteger(), v.minValue(min));
 const timestamp = v.pipe(v.string(), v.isoTimestamp());
 const text = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(200));
 
 /** Lines name each product once; a document with no lines or a repeated product is malformed. */
-const lines = <E extends v.ObjectEntries>(entries: E) =>
+export const lines = <E extends v.ObjectEntries>(entries: E) =>
   v.pipe(
     v.array(v.strictObject({ productId: tillId, ...entries })),
     v.minLength(1),

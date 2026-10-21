@@ -60,6 +60,11 @@ branches Accra Central, Osu and Kumasi Adum, one user per default role (`superad
 `adzamkomla.dev+<300-2000>@gmail.com`, all with password `Admin@12345`. The credentials table prints
 at the end and is written to `.shopper/seed/credentials.md` (gitignored, never commit it).
 
+The dev shop also gets a delivery, reorder levels with two products already low, and one damaged
+item (`tooling/database/stock.ts`), so the inventory screens are never empty. Low-stock SMS needs
+`ARKESEL_API_KEY` (and optionally `ARKESEL_SENDER`, `ARKESEL_BASE_URL`) in `.env`; without it no text
+is sent. Tests use the Arkesel fake.
+
 Not seeded: branch address, phone and TIN (no columns exist), user phone numbers, and till devices
 (enrolment needs a device keypair handshake).
 

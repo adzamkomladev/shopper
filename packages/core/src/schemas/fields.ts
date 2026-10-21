@@ -2,6 +2,12 @@ import * as v from "valibot";
 
 export const text = (max: number) => v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(max));
 export const name = text(200);
+/** A Ghana mobile number as 0XXXXXXXXX; +233XXXXXXXXX and 233XXXXXXXXX are normalized to it. */
+export const ghanaPhone = v.pipe(
+  v.string(),
+  v.regex(/^(?:0\d{9}|\+?233\d{9})$/),
+  v.transform((phone) => phone.replace(/^\+?233/, "0")),
+);
 export const positiveInt = v.pipe(
   v.number(),
   v.safeInteger(),

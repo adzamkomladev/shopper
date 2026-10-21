@@ -32,6 +32,10 @@
       "types": "./src/till/index.ts",
       "default": "./src/till/index.ts"
     },
+    "./sms/arkesel": {
+      "types": "./src/sms/arkesel.ts",
+      "default": "./src/sms/arkesel.ts"
+    },
     "./payments/paystack": {
       "types": "./src/payments/paystack/index.ts",
       "default": "./src/payments/paystack/index.ts"

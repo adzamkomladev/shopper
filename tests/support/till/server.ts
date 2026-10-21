@@ -18,6 +18,7 @@ import { appVersion, context, seedServerDatabase } from "./server/data";
 import { serveHono, type HttpClient } from "./http";
 import { enrollFixtureTill } from "./enrollment";
 import { insertOpenShift } from "./shifts";
+import { notifications } from "../stock/queue";
 export type SaleEvent = v.InferOutput<typeof saleEvent>;
 
 let fixture: Awaited<ReturnType<typeof postgresFixture>>;
@@ -59,7 +60,9 @@ beforeAll(async () => {
     secret: new Uint8Array(32).fill(7),
   });
   blobs = storage.blobs;
-  api = await serveHono(apiPackage.createApi({ database: db, devices, sequencer, blobs }));
+  api = await serveHono(
+    apiPackage.createApi({ database: db, devices, sequencer, blobs, notifications }),
+  );
   local = openTillDatabase(join(localDirectory, "till.sqlite"));
   await provisionReferences(cashier.branchId);
 });

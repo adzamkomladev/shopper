@@ -1,3 +1,4 @@
+import type { cloudflareQueue } from "../queue";
 import type { cloudflareLauncher } from "../launcher";
 import type { cloudflareLive } from "../live";
 import type { cloudflareSequencer } from "../sequencer";
@@ -19,6 +20,9 @@ export interface AuthEnvironment {
   SHOPPER_ENVIRONMENT?: string;
   PAYSTACK_SECRET_KEY?: string;
   PAYSTACK_BASE_URL?: string;
+  ARKESEL_API_KEY?: string;
+  ARKESEL_SENDER?: string;
+  ARKESEL_BASE_URL?: string;
 }
 
 export interface CloudflareRuntimeEnvironment extends AuthEnvironment {
@@ -30,6 +34,7 @@ export interface CloudflareRuntimeEnvironment extends AuthEnvironment {
   STORE_SEQUENCER: Parameters<typeof cloudflareSequencer>[0];
   STORE_HUB: Parameters<typeof cloudflareLive>[0];
   PRICE_CHANGE: Parameters<typeof cloudflareLauncher>[0];
+  NOTIFICATIONS?: Parameters<typeof cloudflareQueue>[0];
   MOMO_PAYMENT?: Parameters<typeof cloudflareLauncher>[0];
   AUTH_FLOWS?: Parameters<typeof cloudflareLauncher>[0];
 }

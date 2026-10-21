@@ -18,6 +18,7 @@
     "@shopper/auth": "workspace:*",
     "@shopper/config": "workspace:*",
     "@shopper/core": "workspace:*",
+    "@shopper/ports": "workspace:*",
     "hono": "4.13.13"
   }
 }

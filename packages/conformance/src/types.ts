@@ -2,6 +2,8 @@ import type {
   Blobs,
   Cache,
   Json,
+  Queue,
+  QueueHandler,
   Renderer,
   Sequencer,
   Workflow,
@@ -54,3 +56,9 @@ export interface RendererFixture {
   receipt: Json;
   close(): Promise<void>;
 }
+
+export type QueueFixture = (handler: QueueHandler) => Promise<{
+  queue: Queue;
+  // Resolves once every delivery and redelivery has run.
+  settle(): Promise<void>;
+}>;

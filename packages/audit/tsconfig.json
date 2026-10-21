@@ -13,6 +13,9 @@
       "path": "../db/sqlite"
     },
     {
+      "path": "../ports"
+    },
+    {
       "path": "../utils"
     }
   ]

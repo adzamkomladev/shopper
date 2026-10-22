@@ -11,7 +11,8 @@ import { validateRefundAuthority } from "./authority";
 import { refundDocument } from "./document";
 import { validateRefund } from "./validate";
 import { checkReorder } from "../stock/reorder";
-import { accountShare, creditRefund, saleAccount } from "../customers/credit/refunds";
+import { allocateRefund, creditRefund, saleAccount } from "../customers/credit/refunds";
+import { salePoints, settleRefundPoints } from "../customers/loyalty/ledger";
 import type { Queue } from "@shopper/ports";
 
 type Input = {
@@ -94,7 +95,11 @@ const accept = defineCommand({
     if (!original || original.storeId !== input.principal.storeId)
       throw new SaleError("INVALID_REFERENCE", "Original sale not found in this store");
     const account = await saleAccount(tx, ctx.orgId, original.id);
-    const share = accountShare(snapshot.totals.gross, account.charged, account.credited);
+    const held = await salePoints(tx, ctx.orgId, original.id);
+    const share = allocateRefund(snapshot.totals.gross, account, {
+      redeemed: held.redeemed,
+      returned: held.returned,
+    });
     await validateRefund(tx, ctx.orgId, original.payload, snapshot, share);
     const receipt = await refundDocument(tx, snapshot, {
       receiptNumber: original.receiptNumber,
@@ -118,7 +123,8 @@ const accept = defineCommand({
         gross: snapshot.totals.gross,
         cashRounding: snapshot.cashRounding,
         total: snapshot.total,
-        accountCredit: share,
+        accountCredit: share.account,
+        pointsReturned: share.points,
         appVersion: snapshot.appVersion,
         eventVersion: input.event.v,
         deviceTime: new Date(snapshot.deviceTime),
@@ -130,9 +136,18 @@ const accept = defineCommand({
       .returning();
     await creditRefund(tx, ctx, {
       customerId: account.customerId,
-      share,
+      share: share.account,
       refundId: snapshot.id,
       reason: snapshot.reason,
+      actorId: snapshot.cashierId,
+      occurredAt: input.occurredAt,
+    });
+    await settleRefundPoints(tx, ctx, {
+      held,
+      gross: snapshot.totals.gross,
+      returned: share.points,
+      refundId: snapshot.id,
+      saleId: original.id,
       actorId: snapshot.cashierId,
       occurredAt: input.occurredAt,
     });

@@ -48,19 +48,21 @@ export async function lookupSale(db: ShopperDatabase, principal: UploadPrincipal
 }
 
 /**
- * Gross already paid back in cash for a sale (the till rounds the next cash payout on top of it), and what its
- * refunds credited to the customer's account.
+ * Gross already paid back in cash for a sale (the till rounds the next cash payout on top of it), what its refunds
+ * credited to the customer's account and the redeemed points they handed back.
  */
 async function refundedMoney(db: ShopperDatabase, orgId: string, saleId: string) {
   const [prior] = await db
     .select({
-      cash: sql<string>`COALESCE(SUM(${refund.gross} - ${refund.accountCredit}) FILTER (WHERE ${refund.tenderKind} = 'cash'), 0)::text`,
+      cash: sql<string>`COALESCE(SUM(${refund.total} - ${refund.cashRounding}) FILTER (WHERE ${refund.tenderKind} = 'cash'), 0)::text`,
       account: sql<string>`COALESCE(SUM(${refund.accountCredit}), 0)::text`,
+      points: sql<string>`COALESCE(SUM(${refund.pointsReturned}), 0)::text`,
     })
     .from(refund)
     .where(and(eq(refund.orgId, orgId), eq(refund.originalSaleId, saleId)));
   return {
     cashRefunded: fromBigInt(BigInt(prior?.cash ?? "0")),
     accountCredited: fromBigInt(BigInt(prior?.account ?? "0")),
+    pointsReturned: Number(prior?.points ?? 0),
   };
 }

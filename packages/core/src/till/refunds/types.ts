@@ -15,6 +15,8 @@ export type Original = {
   cashRefunded: Money;
   /** What earlier refunds credited back to the customer's account. */
   accountCredited: Money;
+  /** The redeemed points earlier refunds handed back. */
+  pointsReturned: number;
   finalSale: Record<string, boolean>;
 };
 export type Policy = { returnWindowDays: number; requirePinForReturns: boolean };

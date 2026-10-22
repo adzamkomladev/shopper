@@ -111,10 +111,16 @@ const addAccountTender = defineCommand({
       position: Math.max(-1, ...tenders.map((t) => t.position)) + 1,
       kind: input.kind,
       amount: input.amount,
+      points: input.kind === "loyalty" ? input.points : null,
       status: "applied",
       createdAt: input.at.toISOString(),
     });
     return toView(tx, input.scope, input.at, found);
   },
-  audit: (input) => ({ tenderId: input.id, kind: input.kind, amount: input.amount }),
+  audit: (input) => ({
+    tenderId: input.id,
+    kind: input.kind,
+    amount: input.amount,
+    ...(input.kind === "loyalty" && { points: input.points }),
+  }),
 });

@@ -47,7 +47,7 @@ const body = {
   change: nonnegative,
   tenders: v.array(
     v.strictObject({
-      kind: v.picklist(["cash", "momo", "card", "credit"]),
+      kind: v.picklist(["cash", "momo", "card", "credit", "loyalty"]),
       amount: nonnegative,
       reference: v.nullable(v.string()),
       approvalCode: v.nullable(v.string()),

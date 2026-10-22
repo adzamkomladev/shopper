@@ -1,6 +1,6 @@
 import { v7 } from "uuid";
 import { add, money, sub } from "@shopper/money";
-import { accountShare } from "../../customers/credit/refunds";
+import { allocateRefund } from "../../customers/credit/refunds";
 import { refundShare } from "@shopper/tax";
 import type { RefundSnapshot } from "../../schemas/till/refund";
 import { refundPayout } from "../../refunds/payout";
@@ -103,15 +103,24 @@ export function buildRefund(
   const totals = Object.fromEntries(
     keys.map((key) => [key, lines.reduce((sum, line) => add(sum, line.tax[key]), money(0))]),
   ) as RefundSnapshot["totals"];
-  // A sale paid on account takes the refund back onto the account first; only the rest is paid out.
-  const charged = original.sale.tenders
-    .filter((tender) => tender.kind === "credit")
-    .reduce((sum, tender) => add(sum, tender.amount), money(0));
-  const share = accountShare(totals.gross, charged, original.accountCredited);
+  // A sale paid on account takes the refund back onto the account first, then hands redeemed points back; only the
+  // rest is paid out.
+  const tendered = (kind: "credit" | "loyalty") =>
+    original.sale.tenders.filter((tender) => tender.kind === kind);
+  const charged = tendered("credit").reduce((sum, tender) => add(sum, tender.amount), money(0));
+  const [loyalty] = tendered("loyalty");
+  const share = allocateRefund(
+    totals.gross,
+    { charged, credited: original.accountCredited },
+    {
+      redeemed: loyalty ? { points: loyalty.points!, value: loyalty.amount } : null,
+      returned: original.pointsReturned,
+    },
+  );
   const payout = refundPayout({
     kind: request.tender.kind,
     priorCash: original.cashRefunded,
-    gross: sub(totals.gross, share),
+    gross: sub(sub(totals.gross, share.account), share.pointsValue),
     rounding,
   });
   return {
@@ -124,6 +133,9 @@ export function buildRefund(
     totals,
     cashRounding: payout.cashRounding,
     total: payout.total,
+    accountCredit: share.account,
+    pointsReturned: share.points,
+    pointsValue: share.pointsValue,
     tender: request.tender,
   };
 }

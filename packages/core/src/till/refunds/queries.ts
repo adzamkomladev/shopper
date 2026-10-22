@@ -7,7 +7,7 @@ import {
   type TillDatabase,
   type TillSqlite,
 } from "@shopper/db-sqlite";
-import { add, money, sub } from "@shopper/money";
+import { add, money } from "@shopper/money";
 import { paidOut } from "../../customers/credit/refunds";
 import { receiptDocument } from "../../schemas/receipts/document";
 import { refundEvent, type RefundSnapshot } from "../../schemas/till/refund";
@@ -59,13 +59,14 @@ export async function loadLocalOriginal(
   const refunded: Record<string, number> = {};
   let cashRefunded = money(0);
   let accountCredited = money(0);
+  let pointsReturned = 0;
   for (const { snapshot } of await refundsOf(tx, scope.orgId, saleId)) {
     for (const line of snapshot.lines)
       refunded[line.originalLineId] =
         (refunded[line.originalLineId] ?? 0) + line.tax.quantityThousandths;
-    const out = paidOut(snapshot);
-    if (snapshot.tender.kind === "cash") cashRefunded = add(cashRefunded, out);
-    accountCredited = add(accountCredited, sub(snapshot.totals.gross, out));
+    if (snapshot.tender.kind === "cash") cashRefunded = add(cashRefunded, paidOut(snapshot));
+    accountCredited = add(accountCredited, snapshot.accountCredit);
+    pointsReturned += snapshot.pointsReturned;
   }
   const products = await tx.select().from(reference).where(eq(reference.entity, "product"));
   const finalSale = Object.fromEntries(
@@ -82,6 +83,7 @@ export async function loadLocalOriginal(
     refunded,
     cashRefunded,
     accountCredited,
+    pointsReturned,
     finalSale,
   };
 }

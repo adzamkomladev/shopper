@@ -52,13 +52,20 @@ export const addDraftTenderInput = v.variant("kind", [
     last4: v.optional(v.pipe(v.string(), v.regex(/^[0-9]{4}$/))),
   }),
 ]);
-/** An account tender: `id` is the server hold the host already took for it. */
-export const accountTenderInput = v.strictObject({
+/** An account tender: `id` is the server hold the host already took for it. Points tender `points` worth `amount`. */
+const accountTender = {
   ...draftEdit,
   id: tillId,
-  kind: v.literal("credit"),
   amount: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
-});
+};
+export const accountTenderInput = v.variant("kind", [
+  v.strictObject({ ...accountTender, kind: v.literal("credit") }),
+  v.strictObject({
+    ...accountTender,
+    kind: v.literal("loyalty"),
+    points: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
+  }),
+]);
 export const removeDraftTenderInput = v.strictObject({ ...draftEdit, tenderId: tillId });
 export const holdDraftInput = v.strictObject({
   ...draftEdit,

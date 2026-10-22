@@ -3,19 +3,23 @@ import { money } from "@shopper/money";
 import { tillId } from "../till/fields";
 import { tillSession } from "../till/session";
 import { customerId } from "./inputs";
+import { loyaltyHold } from "./loyalty";
 
 const positive = v.pipe(v.number(), v.safeInteger(), v.minValue(1), v.transform(money));
 const day = v.pipe(v.string(), v.isoDate());
 
-/** A till's request to set credit aside; its id is the till's tender id. */
-export const holdInput = v.strictObject({
-  id: customerId,
-  orgId: customerId,
-  sessionId: customerId,
-  customerId,
-  kind: v.literal("credit"),
-  amount: positive,
-});
+/** A till's request to set credit or points aside; its id is the till's tender id. */
+export const holdInput = v.variant("kind", [
+  v.strictObject({
+    id: customerId,
+    orgId: customerId,
+    sessionId: customerId,
+    customerId,
+    kind: v.literal("credit"),
+    amount: positive,
+  }),
+  loyaltyHold,
+]);
 export type HoldInput = v.InferOutput<typeof holdInput>;
 export const holdRelease = v.strictObject({ orgId: customerId, sessionId: customerId });
 

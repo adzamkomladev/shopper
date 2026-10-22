@@ -21,6 +21,8 @@ export const serverSale = v.strictObject({
     v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.transform(money)),
     0,
   ),
+  /** The redeemed points refunds already handed back; older servers send none. */
+  pointsReturned: v.optional(v.pipe(v.number(), v.safeInteger(), v.minValue(0)), 0),
   finalSale: v.record(v.string(), v.boolean()),
 });
 export type ServerSale = v.InferOutput<typeof serverSale>;

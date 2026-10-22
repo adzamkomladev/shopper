@@ -8,6 +8,7 @@ import {
   listCustomers,
   mergeCustomers,
   readCustomer,
+  readLoyalty,
   unarchiveCustomer,
   updateCustomer,
 } from "@shopper/core/customers";
@@ -60,6 +61,9 @@ export function customerRoutes(
     const { id, replayed } = await createCustomer(database, run(c), { customer: await body(c) });
     return c.json(await readCustomer(database, org(c), id), replayed ? 200 : 201);
   });
+  app.get("/customers/:id/loyalty", async (c) =>
+    c.json(await readLoyalty(database, org(c), c.req.param("id"))),
+  );
   app.get("/customers/:id", async (c) =>
     c.json(await readCustomer(database, org(c), c.req.param("id"))),
   );

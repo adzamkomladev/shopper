@@ -18,6 +18,7 @@ export const tenderLabel = {
   card: "Card",
   momo: "MoMo",
   credit: "On account",
+  loyalty: "Points",
 } as const;
 
 export const tenderDetail = (tender: Tender) =>

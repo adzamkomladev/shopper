@@ -84,9 +84,9 @@ export const saleSnapshot = v.strictObject({
       v.pipe(
         v.strictObject({
           id: tillId,
-          kind: v.picklist(["cash", "momo", "card", "credit"]),
+          kind: v.picklist(["cash", "momo", "card", "credit", "loyalty"]),
           amount: v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.transform(money)),
-          /** Points an account tender spends; set by the loyalty tender only. */
+          /** Points a loyalty tender spends, whole and worth `amount` at the point value of its hold. */
           points: v.optional(v.pipe(v.number(), v.safeInteger(), v.minValue(1))),
           reference: v.optional(v.string()),
           approvalCode: v.optional(v.pipe(v.string(), v.regex(/^[a-zA-Z0-9]{4,12}$/))),
@@ -96,11 +96,19 @@ export const saleSnapshot = v.strictObject({
         v.check((t) => t.amount > 0 || t.kind === "cash", "Only cash may have a zero amount"),
         v.check((t) => t.kind !== "card" || t.approvalCode !== undefined, "Card approval required"),
         v.check((t) => t.kind !== "momo" || t.reference !== undefined, "MoMo reference required"),
+        v.check(
+          (t) => (t.kind === "loyalty") === (t.points !== undefined),
+          "Points belong to the loyalty tender",
+        ),
       ),
     ),
     v.minLength(1),
     // An account tender spends the customer's server hold, whose id is the tender id.
     v.check((ts) => ts.filter((t) => t.kind === "credit").length <= 1, "One credit tender at most"),
+    v.check(
+      (ts) => ts.filter((t) => t.kind === "loyalty").length <= 1,
+      "One loyalty tender at most",
+    ),
   ),
 });
 /** Just the buyer of a stored sale: what a refund needs, without the rest of the payload parsing. */

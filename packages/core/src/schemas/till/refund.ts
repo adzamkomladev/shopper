@@ -43,7 +43,13 @@ export const refundSnapshot = v.strictObject({
   totals: saleTotals,
   /** Signed: the cash paid out minus the refunded gross. */
   cashRounding: v.pipe(v.number(), v.safeInteger(), v.transform(money)),
+  /** What the payout is: the gross less what went back to the account and to redeemed points, plus the rounding. */
   total: nonnegative,
+  /** The part of the gross credited to the customer's account. */
+  accountCredit: v.optional(nonnegative, money(0)),
+  /** The redeemed points handed back, and what they were worth. */
+  pointsReturned: v.optional(v.pipe(v.number(), v.safeInteger(), v.minValue(0)), 0),
+  pointsValue: v.optional(nonnegative, money(0)),
   tender: refundTender,
 });
 export const refundEvent = v.strictObject({

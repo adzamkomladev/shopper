@@ -196,5 +196,6 @@ const fromServer = (found: NonNullable<Input["original"]>): Original => ({
   refunded: found.refunded,
   cashRefunded: found.cashRefunded,
   accountCredited: found.accountCredited,
+  pointsReturned: found.pointsReturned,
   finalSale: found.finalSale,
 });

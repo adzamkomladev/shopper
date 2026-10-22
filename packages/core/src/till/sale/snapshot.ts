@@ -17,6 +17,7 @@ type Tender = {
   approvalCode: string | null;
   last4: string | null;
   network: string | null;
+  points?: number | null;
 };
 type Parts = {
   id: string;
@@ -99,6 +100,7 @@ export function buildSaleEvent(p: Parts) {
         ...(t.approvalCode ? { approvalCode: t.approvalCode } : {}),
         ...(t.last4 ? { last4: t.last4 } : {}),
         ...(t.network ? { network: t.network } : {}),
+        ...(t.kind === "loyalty" && t.points ? { points: t.points } : {}),
       })),
     },
   });

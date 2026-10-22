@@ -7,6 +7,8 @@ export class TillError extends Error {
       | "TENDER_ACTIVE"
       | "CREDIT_LIMIT"
       | "NOT_ELIGIBLE"
+      | "POINTS_SHORT"
+      | "LOYALTY_OFF"
       | "SALE_UNKNOWN"
       | "PAYMENT_UNAVAILABLE"
       | "PAYMENT_INVALID"

@@ -11,7 +11,7 @@ import {
 } from "@shopper/core/till";
 import { createPushTransport } from "@shopper/sync";
 import type { BridgeMessage, BridgeRequest } from "@shopper/sync/bridge";
-import { accountView } from "@shopper/sync/bridge";
+import { accountView, pointsHoldReply } from "@shopper/sync/bridge";
 import type { Host } from "./types";
 
 type Request = Extract<
@@ -91,6 +91,11 @@ export function createAccounts(host: Host) {
       throw new TillError("REVISION_STALE", "The basket changed; try again");
     if (!current.customer)
       throw new TillError("CUSTOMER_UNKNOWN", "Attach a customer to sell on account");
+    // Credit tenders an amount, points whole points; the other is never taken from the request.
+    const size =
+      request.kind === "loyalty" ? { points: request.points } : { amount: request.amount };
+    if (Object.values(size)[0] === undefined)
+      throw new TillError("AMOUNT_INVALID", `A ${request.kind} tender needs its size`);
     const holdId = v7();
     const held = await call("/sync/customers/holds", {
       requestId: v7(),
@@ -101,13 +106,18 @@ export function createAccounts(host: Host) {
         sessionId: session.id,
         customerId: current.customer.id,
         kind: request.kind,
-        amount: request.amount,
+        ...size,
       },
     });
     if (held.status !== 201) {
       const refusal = held.body as Refusal;
-      if (refusal.code === "CREDIT_LIMIT" || refusal.code === "NOT_ELIGIBLE")
-        throw new TillError(refusal.code, refusal.error ?? "Credit refused");
+      if (
+        refusal.code === "CREDIT_LIMIT" ||
+        refusal.code === "NOT_ELIGIBLE" ||
+        refusal.code === "POINTS_SHORT" ||
+        refusal.code === "LOYALTY_OFF"
+      )
+        throw new TillError(refusal.code, refusal.error ?? "Account tender refused");
       throw new TillError("DEVICE_REJECTED", "The server refused the hold");
     }
     const context = {
@@ -125,8 +135,13 @@ export function createAccounts(host: Host) {
         at,
         expectedRevision: request.expectedRevision,
         id: holdId,
-        kind: request.kind,
-        amount: request.amount,
+        ...(request.kind === "loyalty"
+          ? {
+              kind: request.kind,
+              points: request.points,
+              amount: v.parse(pointsHoldReply, held.body).hold.value,
+            }
+          : { kind: request.kind, amount: request.amount }),
       });
     } catch (error) {
       await release([holdId]);

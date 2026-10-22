@@ -70,7 +70,7 @@ export async function validateTenders(tx: ShopperTransaction, snapshot: SaleSnap
       paymentId = confirmed.id;
     }
     // The hold an account tender spends is checked and consumed by `consumeHolds`.
-    const holdId = tender.kind === "credit" ? tender.id : null;
+    const holdId = tender.kind === "credit" || tender.kind === "loyalty" ? tender.id : null;
     const { points: _points, ...row } = tender;
     rows.push({ ...row, orgId: snapshot.orgId, saleId: snapshot.id, position, paymentId, holdId });
   }

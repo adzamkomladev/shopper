@@ -8,7 +8,7 @@ type Tender = (typeof TENDERS)[number];
 type Parts = {
   float: Money;
   sales: readonly Pick<SaleSnapshot, "total" | "totals" | "change" | "tenders">[];
-  refunds: readonly Pick<RefundSnapshot, "total" | "tender" | "totals" | "cashRounding">[];
+  refunds: readonly Pick<RefundSnapshot, "total" | "tender" | "accountCredit">[];
   drops: readonly Money[];
   /** Cash and MoMo paid onto customers' accounts at the drawer. */
   accountPayments: readonly { method: "cash" | "momo"; amount: Money }[];
@@ -18,7 +18,7 @@ type Parts = {
  * What a shift's drawer and terminals should hold. Cash kept from a sale is its cash tenders less change (cash
  * rounding is already inside the change); a cash refund pays out its total (its rounding is inside the total).
  * Cash paid onto an account is in the drawer too. The account lines are the sales put on account, the payments by
- * method and the refunds credited back to accounts (the gross less what was paid out). The till's X and Z come from here. The server re-derives the same rules from the Z's own figures in
+ * method, the refunds credited back to accounts and the points redeemed (and what they were worth). The till's X and Z come from here. The server re-derives the same rules from the Z's own figures in
  * `validate.ts`; change both together, or every uploaded Z becomes SHIFT_MISMATCH.
  */
 export function shiftTotals({ float, sales, refunds, drops, accountPayments }: Parts) {
@@ -36,6 +36,7 @@ export function shiftTotals({ float, sales, refunds, drops, accountPayments }: P
   const paid = (method: "cash" | "momo") =>
     sum(accountPayments.filter((p) => p.method === method).map((p) => p.amount));
   const accountCash = paid("cash");
+  const redeemed = sales.flatMap((s) => s.tenders.filter((t) => t.kind === "loyalty"));
   const tenders = TENDERS.map((tender) => {
     const lines = { sales: taken(tender), refunds: repaid(tender) };
     const net = sub(lines.sales, lines.refunds);
@@ -59,10 +60,9 @@ export function shiftTotals({ float, sales, refunds, drops, accountPayments }: P
         sales.flatMap((s) => s.tenders.filter((t) => t.kind === "credit").map((t) => t.amount)),
       ),
       payments: { cash: accountCash, momo: paid("momo") },
-      refunds: sum(refunds.map((r) => sub(r.totals.gross, sub(r.total, r.cashRounding)))),
-      // Filled in with the loyalty tender.
-      points: 0,
-      pointsValue: money(0),
+      refunds: sum(refunds.map((r) => r.accountCredit)),
+      points: redeemed.reduce((n, t) => n + (t.points ?? 0), 0),
+      pointsValue: sum(redeemed.map((t) => t.amount)),
     },
     cash: {
       float,

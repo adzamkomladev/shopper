@@ -12,7 +12,10 @@ export class CustomerError extends Error {
       | "ARCHIVED"
       | "CREDIT_LIMIT"
       | "NOT_ELIGIBLE"
-      | "NOT_VERIFIED",
+      | "NOT_VERIFIED"
+      | "LOYALTY_OFF"
+      | "POINTS_SHORT"
+      | "SAME_CUSTOMER",
     message: string,
     /** Extra fields of the problem body, such as the credit still `available`. */
     public detail: Record<string, unknown> = {},

@@ -103,6 +103,10 @@ The PR targets `main`. The diff narrows once #27 merges.
 
 **Refunds.** A refund goes back to the account first, as a credit note, up to the amount the sale charged to it. Then points are re-credited, then the original tenders as today. This replaces the earlier `ACCOUNT_REFUND` refusal.
 
+- The refund event states the split it was paid in (`accountCredit`, `pointsReturned`, `pointsValue`), and the server checks it against its own working.
+- Points are re-credited as whole points, up to the points the sale redeemed less those already returned.
+- The earn is reversed at the rate and point value its entry stored, capped at the unreversed points.
+
 **Credit notes.** A portal credit note is a negative `credit_entry` with a reason. It needs `customer.manage`.
 
 **Interest.** Org settings `credit_terms_days` (default 30) and `credit_interest_bps` per month (default 0, meaning off).
@@ -145,9 +149,12 @@ The PR targets `main`. The diff narrows once #27 merges.
 
 **Account payments at the drawer.** `till.account.payment` in cash or MoMo (MoMo needs the network) writes an `account.payment` v1 document.
 
-- It prints a payment receipt.
+- It prints a payment receipt (a slip; cash opens the drawer).
 - `shiftTotals` adds cash account payments to expected cash.
 - X/Z gets "Account payments" lines.
+- The payment is a till `account_payment` row (SQLite step 11) uploaded by its own document lane to `POST /sync/accounts/payments`, after the sales and after the customer's own upload. The server runs `customer.payment` with the method and shift.
+- The shift's Z arrives only when it closes, so the ledger entry links the shift only if the server already has it; the audit row always names it.
+- MoMo needs the network and records the confirmed MoMo reference; the prompt-to-pay flow is not wired to account payments.
 
 **X/Z lines:** On-account sales, Points redeemed (points and GH₵), Account payments by method, and the refunds credited to accounts.
 

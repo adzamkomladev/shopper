@@ -13,6 +13,7 @@ import { saleDocument } from "./document";
 import { ensureSaleCustomer } from "../customers/sale";
 import { publishCustomer } from "../customers/feed";
 import { consumeHolds } from "../customers/credit/holds";
+import { earnPoints } from "../customers/loyalty/ledger";
 import { checkReorder } from "../stock/reorder";
 import type { Queue } from "@shopper/ports";
 
@@ -153,12 +154,18 @@ const accept = defineCommand({
       snapshot.branchId,
       snapshot.lines.map((line) => line.productId),
     );
+    const earned = await earnPoints(tx, ctx, {
+      snapshot,
+      customerId: buyer.id,
+      occurredAt: input.occurredAt,
+    });
     if (buyer.created) await publishCustomer(tx, ctx.orgId, buyer.created);
     return {
       localId: saved.localId,
       occurredAt: saved.occurredAt.toISOString(),
       customerId: buyer.id,
       customerCreated: Boolean(buyer.created),
+      ...(earned ? { pointsEarned: earned } : {}),
     };
   },
   audit: (input, output) => ({ ...output, ...overrideAudit(input.event.sale) }),

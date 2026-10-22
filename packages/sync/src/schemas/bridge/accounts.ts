@@ -4,15 +4,19 @@ import { uuidV7Schema } from "@shopper/ports";
 const id = uuidV7Schema;
 const amount = v.pipe(v.number(), v.safeInteger());
 
-/** Credit is online only: read what the attached customer may spend, and take a server hold as a tender. */
+/**
+ * Credit and points are online only: read what the attached customer may spend, and take a server hold as a tender.
+ * Credit tenders an `amount`, loyalty whole `points`; the host checks which one the kind needs.
+ */
 export const accountRequests = [
   v.strictObject({ id, type: v.literal("customer.account"), customerId: id }),
   v.strictObject({
     id,
     type: v.literal("tender.account"),
     expectedRevision: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
-    kind: v.literal("credit"),
-    amount: v.pipe(amount, v.minValue(1)),
+    kind: v.picklist(["credit", "loyalty"]),
+    amount: v.optional(v.pipe(amount, v.minValue(1))),
+    points: v.optional(v.pipe(amount, v.minValue(1))),
   }),
   /** Cash or MoMo paid onto an account at the drawer. Content is checked on the host so a bad amount answers INVALID_INPUT. */
   v.strictObject({
@@ -36,6 +40,10 @@ export const accountView = v.strictObject({
   points: amount,
   pointValue: amount,
   loyaltyEnabled: v.boolean(),
+});
+/** The server's answer to a points hold: the worth of the points it set aside, which is the tender's amount. */
+export const pointsHoldReply = v.object({
+  hold: v.object({ value: v.pipe(amount, v.minValue(1)) }),
 });
 export const accountReplies = [
   v.strictObject({

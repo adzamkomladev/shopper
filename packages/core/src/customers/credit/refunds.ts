@@ -1,7 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import type { CommandContext } from "@shopper/audit";
 import { creditEntry, refund, type ShopperTransaction } from "@shopper/db-pg";
-import { fromBigInt, money, sub, type Money } from "@shopper/money";
+import { fromBigInt, money, mulRatio, sub, unitsOf, type Money } from "@shopper/money";
 
 /**
  * How much of a refund goes back to the customer's account: all of it, up to what the sale charged to the account
@@ -9,6 +9,28 @@ import { fromBigInt, money, sub, type Money } from "@shopper/money";
  */
 export const accountShare = (gross: Money, charged: Money, credited: Money) =>
   money(Math.max(0, Math.min(gross, sub(charged, credited))));
+
+type Redeemed = { points: number; value: Money } | null;
+
+/**
+ * How a refund of `gross` is paid back: to the account first, then as redeemed points (whole points, up to the points
+ * the sale redeemed less those already handed back), and only the rest in the refund's own tender.
+ */
+export function allocateRefund(
+  gross: Money,
+  account: { charged: Money; credited: Money },
+  points: { redeemed: Redeemed; returned: number },
+) {
+  const toAccount = accountShare(gross, account.charged, account.credited);
+  const { redeemed } = points;
+  if (!redeemed) return { account: toAccount, points: 0, pointsValue: money(0) };
+  const perPoint = mulRatio(redeemed.value, 1, redeemed.points);
+  const back = Math.min(
+    redeemed.points - points.returned,
+    unitsOf(sub(gross, toAccount), perPoint),
+  );
+  return { account: toAccount, points: back, pointsValue: mulRatio(perPoint, back, 1) };
+}
 
 /** The part of a refund paid out in its tender, read back from a refund event: total less its rounding. */
 export const paidOut = (snapshot: { total: Money; cashRounding: Money }) =>

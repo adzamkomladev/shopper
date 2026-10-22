@@ -34,6 +34,12 @@ export function mulQty(amount: Money, thousandths: number): Money {
 export function mulRate(amount: Money, basisPoints: number): Money {
   return mulRatio(amount, basisPoints, 10_000);
 }
+/** How many whole `unit`s fit in `amount` (floor division): points from money, for one. `amount` is not negative, `unit` positive. */
+export function unitsOf(amount: Money, unit: Money): number {
+  if (amount < 0 || unit <= 0)
+    throw new RangeError("Units need a non-negative amount and a positive unit");
+  return Number(BigInt(money(amount)) / BigInt(money(unit)));
+}
 /** Rounds half-up (ties away from zero) to a multiple of `step`, a positive whole number of money units. */
 export function roundCash(amount: Money, step: number): Money {
   if (!Number.isSafeInteger(step) || step <= 0)

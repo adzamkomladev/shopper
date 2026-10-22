@@ -10,3 +10,13 @@ export { createHold, releaseHold } from "./credit/holds";
 export { addCreditNote, recordPayment, setCreditLimit } from "./credit/payments";
 export { readStatement } from "./credit/statement";
 export { acceptAccountPayment } from "./credit/till";
+export { earnPoints, readLoyalty } from "./loyalty/ledger";
+export {
+  archiveTier,
+  createTier,
+  listTiers,
+  readLoyaltySettings,
+  setLoyaltySettings,
+  updateTier,
+} from "./loyalty/settings";
+export { transferPoints } from "./loyalty/transfer";

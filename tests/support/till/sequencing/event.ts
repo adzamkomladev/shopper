@@ -19,7 +19,7 @@ export async function createSaleEvent(appVersion: string, orgId: string, storeId
   };
   const deviceTime = "2025-12-31T23:30:00.000Z";
   const event = v.parse(saleEvent, {
-    v: 4,
+    v: 5,
     type: "sale.recorded",
     sale: {
       id: ids.localId,

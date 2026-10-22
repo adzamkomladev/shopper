@@ -179,7 +179,7 @@ async function plan(tx: TillSqlite, { config, session, data, time }: Prepared) {
   };
   const receipt = buildRefundReceipt(
     event.refund,
-    { receiptNumber: original.sale.receiptNumber },
+    { receiptNumber: original.sale.receiptNumber, customer: original.sale.customer },
     {
       ...config.receiptReference,
       ...(names && { branchName: names.value.storeName, deviceName: names.value.registerName }),

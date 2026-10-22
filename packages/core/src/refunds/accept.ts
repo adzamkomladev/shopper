@@ -1,7 +1,9 @@
 import { and, eq } from "drizzle-orm";
+import * as v from "valibot";
 import { canonicalJson, defineCommand } from "@shopper/audit";
 import { refund, refundLine, sale, stockMovement, type ShopperDatabase } from "@shopper/db-pg";
 import { sha256 } from "@shopper/utils";
+import { saleCustomer } from "../schemas/till/sale";
 import { decodeRefundEvent, type RefundEvent } from "../schemas/till/refund";
 import { SaleError } from "../sales/error";
 import type { UploadPrincipal } from "../sales/types";
@@ -91,7 +93,10 @@ const accept = defineCommand({
     if (!original || original.storeId !== input.principal.storeId)
       throw new SaleError("INVALID_REFERENCE", "Original sale not found in this store");
     await validateRefund(tx, ctx.orgId, original.payload, snapshot);
-    const receipt = await refundDocument(tx, snapshot, original.receiptNumber);
+    const receipt = await refundDocument(tx, snapshot, {
+      receiptNumber: original.receiptNumber,
+      customer: v.parse(saleCustomer, original.payload).customer,
+    });
     const [saved] = await tx
       .insert(refund)
       .values({

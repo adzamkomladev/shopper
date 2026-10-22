@@ -1,4 +1,5 @@
 import { buildReceipt } from "@shopper/core/receipts";
+import type { SaleSnapshot } from "@shopper/core/schemas";
 import { money } from "@shopper/money";
 import type { ReceiptDocument } from "../src/sale/types";
 import { basket, id, items, today } from "./fixtures";
@@ -13,7 +14,7 @@ export function makeReceipt(): ReceiptDocument {
   });
 }
 
-export function makeSaleSnapshot(): Parameters<typeof buildReceipt>[0] {
+export function makeSaleSnapshot(): SaleSnapshot {
   const view = basket(items.slice(0, 4));
   const lines: Parameters<typeof buildReceipt>[0]["lines"] = view.quote.lines.flatMap(
     (line, index) => {
@@ -58,6 +59,7 @@ export function makeSaleSnapshot(): Parameters<typeof buildReceipt>[0] {
     total: money(1_265_000),
     paid: money(1_300_000),
     change: money(35_000),
+    customer: null,
     tenders: [{ id: id("8"), kind: "cash", amount: money(1_300_000) }],
   };
 }

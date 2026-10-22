@@ -1,5 +1,7 @@
 import * as v from "valibot";
 import { money } from "@shopper/money";
+import { customerSnapshot } from "../customers/inputs";
+import { createEventDecoder } from "../events";
 import { tillId } from "./fields";
 import { dateSchema, taxClassSchema, taxRuleSchema } from "@shopper/tax";
 
@@ -75,6 +77,8 @@ export const saleSnapshot = v.strictObject({
   total: nonnegative,
   paid: nonnegative,
   change: nonnegative,
+  /** Who the sale was rung up to, as the till knew them; the buyer on the receipt comes from it. */
+  customer: v.optional(v.nullable(customerSnapshot), null),
   tenders: v.pipe(
     v.array(
       v.pipe(
@@ -95,8 +99,10 @@ export const saleSnapshot = v.strictObject({
     v.minLength(1),
   ),
 });
+/** Just the buyer of a stored sale: what a refund needs, without the rest of the payload parsing. */
+export const saleCustomer = v.object({ customer: saleSnapshot.entries.customer });
 export const saleEvent = v.strictObject({
-  v: v.literal(4),
+  v: v.literal(5),
   type: v.literal("sale.recorded"),
   sale: saleSnapshot,
 });
@@ -114,4 +120,7 @@ export const recordSaleInput = v.strictObject({
 export type SaleEvent = v.InferOutput<typeof saleEvent>;
 export type SaleSnapshot = v.InferOutput<typeof saleSnapshot>;
 
-export const decodeSaleEvent = (raw: unknown) => v.parse(saleEvent, raw);
+/** v4 had no customer: a stored v4 sale reads as a walk-in. */
+export const decodeSaleEvent = createEventDecoder(5, (raw) => v.parse(saleEvent, raw), {
+  4: (raw) => ({ ...(raw as object), v: 5 }),
+});

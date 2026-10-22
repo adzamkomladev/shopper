@@ -10,10 +10,10 @@ const sale = goldenReceipt();
 const options = { paperMm: 80 as const, reprint: false };
 
 test("the document marks a sale as a sale and a refund as a refund of the original receipt", () => {
-  expect(sale).toMatchObject({ v: 2, kind: "sale", refundOf: null });
+  expect(sale).toMatchObject({ v: 3, kind: "sale", refundOf: null });
   const refund = goldenRefundReceipt();
   expect(refund).toMatchObject({
-    v: 2,
+    v: 3,
     kind: "refund",
     refundOf: "BR1-T1-000001",
     header: { receiptNumber: null },
@@ -23,6 +23,27 @@ test("the document marks a sale as a sale and a refund as a refund of the origin
   });
   expect(refund.lines).toHaveLength(1);
   expect(refund.total).toBe(refund.gross);
+});
+
+test("a refund of a sale to a VAT buyer carries the buyer, and a refund of a walk-in sale does not", () => {
+  const customer = {
+    id: "019a0000-0000-7000-8000-0000000000c1",
+    name: "Kofi Mensah",
+    phone: "0241234599",
+    kind: "business" as const,
+    businessName: "Kofi Traders Ltd",
+    tin: "C0012345678",
+  };
+  const refund = goldenRefundReceipt({ kind: "cash" }, customer);
+  expect(refund).toMatchObject({
+    kind: "refund",
+    buyer: { name: "Kofi Traders Ltd", tin: "C0012345678" },
+  });
+  expect(receiptHtml(refund, options)).toContain("TIN C0012345678");
+  expect(goldenRefundReceipt()).toMatchObject({ buyer: null });
+  expect(goldenRefundReceipt({ kind: "cash" }, { ...customer, tin: null })).toMatchObject({
+    buyer: null,
+  });
 });
 
 test("the HTML shows REFUND, the original receipt and the payout in place of paid and change", () => {

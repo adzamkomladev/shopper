@@ -6,15 +6,15 @@ import type { ReceiptReference } from "./types";
 
 type Lines = SaleSnapshot["lines"] | RefundSnapshot["lines"];
 type Totals = SaleSnapshot["totals"];
+/** A sale as the receipt reads it; a walk-in has no customer to name. */
+type Sold = Omit<SaleSnapshot, "customer"> & Partial<Pick<SaleSnapshot, "customer">>;
 
-export function buildReceipt(
-  sale: SaleSnapshot,
-  reference: ReceiptReference = {},
-): ReceiptDocument {
+export function buildReceipt(sale: Sold, reference: ReceiptReference = {}): ReceiptDocument {
   return {
     ...common(sale, sale.lines, sale.totals, sale.receiptNumber, reference),
     kind: "sale",
     refundOf: null,
+    buyer: buyerOf(sale.customer),
     cashRounding: sale.cashRounding,
     total: sale.total,
     paid: sale.paid,
@@ -36,7 +36,7 @@ export function buildReceipt(
 /** What was paid back for a refund: the returned lines with their share of the sold tax, and the payout as the one tender. */
 export function buildRefundReceipt(
   refund: RefundSnapshot,
-  original: { receiptNumber: string | null },
+  original: { receiptNumber: string | null; customer?: SaleSnapshot["customer"] },
   reference: ReceiptReference = {},
 ): ReceiptDocument {
   const { tender } = refund;
@@ -44,6 +44,8 @@ export function buildRefundReceipt(
     ...common(refund, refund.lines, refund.totals, null, reference),
     kind: "refund",
     refundOf: original.receiptNumber,
+    // A credit note to a VAT buyer needs the buyer's TIN too.
+    buyer: buyerOf(original.customer),
     // The sale's id ties the receipt to the sale it returns.
     saleId: refund.originalSaleId,
     cashRounding: refund.cashRounding,
@@ -62,6 +64,10 @@ export function buildRefundReceipt(
     ],
   };
 }
+
+/** The invoice's buyer: a customer with a TIN, under its full business name when it has one. */
+const buyerOf = (customer: SaleSnapshot["customer"] | undefined) =>
+  customer?.tin ? { name: customer.businessName ?? customer.name, tin: customer.tin } : null;
 
 /** The header, lines, tax summary and totals that a sale and a refund receipt share. */
 function common(
@@ -86,7 +92,7 @@ function common(
       .reduce((total, line) => add(total, line.tax.base), money(0));
   const at = new Date(source.deviceTime).valueOf() - source.clockOffsetMs;
   return {
-    v: 2 as const,
+    v: 3 as const,
     saleId: source.id,
     header: {
       org: reference.orgName ?? source.orgId,

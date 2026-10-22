@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { defineCommand, type CommandContext } from "@shopper/audit";
 import {
   auditLog,
@@ -18,6 +18,8 @@ import { customerUpsert } from "../changes";
 import { fieldsOf, insertCustomer, savedCreate } from "./commands";
 import { publishCustomer } from "./feed";
 import { CustomerError } from "./error";
+import { laterThanServer } from "./lww";
+import { SALE_CREATE } from "./sale";
 import { readCustomerRow } from "./queries";
 
 type Created = Extract<CustomerEvent, { type: "customer.created" }>;
@@ -45,7 +47,6 @@ type Applied = {
   applied: string[];
   skipped: string[];
 };
-const HISTORY = ["customer.update", "customer.till.update"];
 
 /**
  * Applies one customer event from a till and answers the customer as it now stands. A rejection (`SaleError` or
@@ -130,8 +131,11 @@ async function authorize(tx: ShopperTransaction, ctx: CommandContext, input: Inp
 const create = defineCommand({
   name: "customer.till.create",
   async replay(tx, ctx, input: Input<Created>) {
-    const next = newCustomer(input.event);
-    const output = await savedCreate(tx, ctx.orgId, next);
+    const { id } = input.event.customer;
+    // A sale of this till already created the customer, from the fields as they stood when it sold.
+    const output = (await soldTo(tx, ctx, id))
+      ? { id, replayed: true }
+      : await savedCreate(tx, ctx.orgId, newCustomer(input.event));
     if (output) await authorize(tx, ctx, input);
     return output && { output };
   },
@@ -142,6 +146,22 @@ const create = defineCommand({
   audit: (input, output) => ({ id: output.id, requestId: input.requestId }),
   details: (_input, output) => ({ entity: "customer", entityId: output.id }),
 });
+
+/** Whether this device's sale created the customer, so its own `customer.created` is a replay whatever was edited since. */
+async function soldTo(tx: ShopperTransaction, ctx: CommandContext, id: string) {
+  const [made] = await tx
+    .select({ id: auditLog.id })
+    .from(auditLog)
+    .where(
+      and(
+        eq(auditLog.orgId, ctx.orgId),
+        eq(auditLog.command, SALE_CREATE),
+        eq(auditLog.entityId, id),
+        eq(auditLog.deviceId, ctx.deviceId!),
+      ),
+    );
+  return Boolean(made);
+}
 
 const update = defineCommand({
   name: "customer.till.update",
@@ -168,7 +188,9 @@ const update = defineCommand({
       throw new CustomerError("MERGED", "The customer was merged into another");
     if (current.archivedAt) throw new CustomerError("ARCHIVED", "The customer is archived");
     const applied =
-      baseVersion === current.version ? changes : await laterThanServer(tx, ctx.orgId, input);
+      baseVersion === current.version
+        ? changes
+        : await laterThanServer(tx, ctx.orgId, input.event.customer, input.occurredAt);
     const before = fieldsOf(current);
     const after = fieldsOf(v.parse(customerFields, { ...before, ...applied }));
     let version = current.version;
@@ -202,42 +224,3 @@ const update = defineCommand({
     after: output.after,
   }),
 });
-
-/**
- * The till's fields that nobody wrote after it did. The history is every edit since the version the till saw; a
- * field takes the time of its latest writer, which for a till is when the cashier acted, not when it uploaded.
- */
-async function laterThanServer(tx: ShopperTransaction, orgId: string, input: Input<Updated>) {
-  const { id, baseVersion, changes } = input.event.customer;
-  const history = await tx
-    .select({
-      before: auditLog.before,
-      after: auditLog.after,
-      payload: auditLog.payload,
-      at: auditLog.createdAt,
-    })
-    .from(auditLog)
-    .where(
-      and(
-        eq(auditLog.orgId, orgId),
-        eq(auditLog.entity, "customer"),
-        eq(auditLog.entityId, id),
-        inArray(auditLog.command, HISTORY),
-        sql`(${auditLog.payload}->>'version')::int > ${baseVersion}`,
-      ),
-    );
-  const lastWrite = (field: keyof Fields) =>
-    Math.max(
-      -Infinity,
-      ...history
-        .filter((row) => (row.before as Fields)[field] !== (row.after as Fields)[field])
-        .map((row) =>
-          Date.parse((row.payload.occurredAt as string | undefined) ?? row.at.toISOString()),
-        ),
-    );
-  return Object.fromEntries(
-    Object.entries(changes).filter(
-      ([field]) => lastWrite(field as keyof Fields) <= input.occurredAt.valueOf(),
-    ),
-  );
-}

@@ -35,6 +35,20 @@ export const customerInput = v.pipe(
 );
 export type CustomerInput = v.InferOutput<typeof customerInput>;
 
+/**
+ * The customer a sale was rung up to, as the till knew them. Lenient on purpose: a genuine sale, and the refund
+ * of it, must never be refused over a format that changed since; the customer commands do the validating.
+ */
+export const customerSnapshot = v.strictObject({
+  id: customerId,
+  name: v.pipe(v.string(), v.maxLength(200)),
+  phone: v.pipe(v.string(), v.maxLength(32)),
+  kind: v.pipe(v.string(), v.maxLength(20)),
+  businessName: v.nullable(v.pipe(v.string(), v.maxLength(200))),
+  tin: v.nullable(v.pipe(v.string(), v.maxLength(32))),
+});
+export type CustomerSnapshot = v.InferOutput<typeof customerSnapshot>;
+
 export const customerPatch = v.partial(v.strictObject(fields));
 /** The editable fields of a whole customer: what a patch must leave valid. */
 export const customerFields = v.pipe(

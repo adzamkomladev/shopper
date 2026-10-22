@@ -58,21 +58,35 @@ const body = {
   footer: v.string(),
 };
 const current = v.strictObject({
-  v: v.literal(2),
+  v: v.literal(3),
   /** A refund receipt has no number of its own: `refundOf` is the receipt number of the sale it returns. */
   kind: v.picklist(["sale", "refund"]),
   refundOf: v.nullable(v.string()),
+  /** Who the invoice is made out to: set only for a customer with a TIN, null for a walk-in. */
+  buyer: v.nullable(v.strictObject({ name: v.string(), tin: v.string() })),
   ...body,
 });
+type Current = v.InferOutput<typeof current>;
+/** v2 had no buyer: every stored v2 receipt is to a walk-in. */
+const upcastV2 = v.pipe(
+  v.strictObject({
+    v: v.literal(2),
+    kind: v.picklist(["sale", "refund"]),
+    refundOf: v.nullable(v.string()),
+    ...body,
+  }),
+  v.transform(({ v: _version, ...rest }): Current => ({ v: 3, buyer: null, ...rest })),
+);
 /** v1 had no refunds: every stored v1 receipt is a sale. */
 const upcastV1 = v.pipe(
   v.strictObject({ v: v.literal(1), ...body }),
-  v.transform(({ v: _version, ...rest }): v.InferOutput<typeof current> => ({
-    v: 2,
+  v.transform(({ v: _version, ...rest }): Current => ({
+    v: 3,
     kind: "sale",
     refundOf: null,
+    buyer: null,
     ...rest,
   })),
 );
-export const receiptDocument = v.union([current, upcastV1]);
+export const receiptDocument = v.union([current, upcastV2, upcastV1]);
 export type ReceiptDocument = v.InferOutput<typeof receiptDocument>;

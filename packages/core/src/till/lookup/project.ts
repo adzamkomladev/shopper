@@ -1,5 +1,5 @@
-import { sql } from "drizzle-orm";
-import type { TillSqlite } from "@shopper/db-sqlite";
+import { eq, sql } from "drizzle-orm";
+import { customerLookup, type TillSqlite } from "@shopper/db-sqlite";
 import type { ProjectedProduct } from "./types";
 
 const CHUNK = 500;
@@ -55,4 +55,5 @@ export async function clearProjection(tx: TillSqlite, orgId: string) {
   );
   await tx.run(sql`DELETE FROM product_barcode WHERE org_id = ${orgId}`);
   await tx.run(sql`DELETE FROM product_lookup WHERE org_id = ${orgId}`);
+  await tx.delete(customerLookup).where(eq(customerLookup.orgId, orgId));
 }

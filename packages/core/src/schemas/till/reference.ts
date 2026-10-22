@@ -5,6 +5,8 @@ import { money } from "@shopper/money";
 import { createEventDecoder } from "../events";
 import { mappingInput } from "../catalogue/mappings";
 import { sequenceSchema } from "@shopper/ports";
+import { ghanaPhone } from "../fields";
+import { customerId, customerKindSchema, tinSchema } from "../customers/inputs";
 
 const timestamp = v.pipe(v.string(), v.isoTimestamp());
 export const cashRoundingSchema = v.picklist(["none", "10p"]);
@@ -56,6 +58,22 @@ export const tillMapping = v.pipe(
     return NEVER;
   }),
 );
+/**
+ * What a till needs to recognise a customer. The limit, the ledgers and the email stay on the server, and the strict
+ * object keeps it so: a new column never reaches a till by accident.
+ */
+export const tillCustomer = v.strictObject({
+  id: customerId,
+  orgId: tillId,
+  name: v.string(),
+  phone: ghanaPhone,
+  kind: customerKindSchema,
+  businessName: v.nullable(v.string()),
+  tin: v.nullable(tinSchema),
+  version: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
+  archivedAt: v.nullable(timestamp),
+  mergedIntoId: v.nullable(tillId),
+});
 /** Startup provisioning accepts v1 products (no barcodes) and v2 products; barcodes default to none. */
 export const tillReference = v.strictObject({
   products: v.array(v.strictObject({ ...productFields, barcodes: v.optional(barcodes, []) })),
@@ -64,11 +82,12 @@ export const tillReference = v.strictObject({
   barcodeMappings: v.optional(v.array(tillMapping), []),
   cashRounding,
 });
-const tillReferenceV3 = v.strictObject({
+const tillReferenceV4 = v.strictObject({
   products: v.array(tillProduct),
   prices: v.array(tillPrice),
   taxRules: v.array(tillTaxRule),
   barcodeMappings: v.array(tillMapping),
+  customers: v.array(tillCustomer),
   // Snapshots cached before the setting existed omit it.
   cashRounding,
 });
@@ -78,15 +97,16 @@ const payloads = {
   price: tillPrice,
   "tax-rule": tillTaxRule,
   "barcode-mapping": tillMapping,
+  customer: tillCustomer,
 };
 const remove = v.object({ id: tillId });
-const changeV3 = v.pipe(
+const changeV4 = v.pipe(
   v.looseObject({
     seq: sequenceSchema,
     entityId: v.string(),
     entity: v.picklist(Object.keys(payloads) as (keyof typeof payloads)[]),
     op: v.picklist(["upsert", "delete"]),
-    v: v.literal(3),
+    v: v.literal(4),
   }),
   v.rawTransform(({ dataset, addIssue, NEVER }) => {
     const change = dataset.value;
@@ -97,20 +117,20 @@ const changeV3 = v.pipe(
     return NEVER;
   }),
 );
-const snapshotV3 = v.object({
-  v: v.literal(3),
+const snapshotV4 = v.object({
+  v: v.literal(4),
   orgId: tillId,
   storeId: tillId,
   cursor: sequenceSchema,
-  reference: tillReferenceV3,
+  reference: tillReferenceV4,
 });
-export type ReferenceChange = v.InferOutput<typeof changeV3>;
-export type ReferenceSnapshot = v.InferOutput<typeof snapshotV3>;
+export type ReferenceChange = v.InferOutput<typeof changeV4>;
+export type ReferenceSnapshot = v.InferOutput<typeof snapshotV4>;
 
 type Raw = Record<string, unknown>;
 export const decodeReferenceChange = createEventDecoder<ReferenceChange>(
-  3,
-  (raw) => v.parse(changeV3, raw),
+  4,
+  (raw) => v.parse(changeV4, raw),
   {
     1: (raw) => {
       const change = raw as Raw & { entity: unknown; op: unknown; payload: Raw };
@@ -122,11 +142,12 @@ export const decodeReferenceChange = createEventDecoder<ReferenceChange>(
       };
     },
     2: (raw) => ({ ...(raw as Raw), v: 3 }),
+    3: (raw) => ({ ...(raw as Raw), v: 4 }),
   },
 );
 export const decodeSnapshot = createEventDecoder<ReferenceSnapshot>(
-  3,
-  (raw) => v.parse(snapshotV3, raw),
+  4,
+  (raw) => v.parse(snapshotV4, raw),
   {
     1: (raw) => {
       const snapshot = raw as Raw & { reference: { products: Raw[] } };
@@ -142,5 +163,10 @@ export const decodeSnapshot = createEventDecoder<ReferenceSnapshot>(
       };
     },
     2: (raw) => ({ ...(raw as Raw), v: 3 }),
+    // Customers came with v4; an older till's snapshot simply has none.
+    3: (raw) => {
+      const snapshot = raw as Raw & { reference: Raw };
+      return { ...snapshot, v: 4, reference: { ...snapshot.reference, customers: [] } };
+    },
   },
 );

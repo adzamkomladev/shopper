@@ -7,6 +7,7 @@ import { momoView } from "@shopper/core/payments";
 import { purchaseReplies, purchaseRequests } from "./purchases";
 import { deviceRequests, printerList, printerStatus, scanMessage, settingsStatus } from "./devices";
 import { approvalReplies, approvalRequests } from "./approvals";
+import { customerReplies, customerRequests } from "./customers";
 import { namesOneSale, refundReplies, refundRequests } from "./refunds";
 import { sessionRequests, sessionUser } from "./session";
 import { shiftReplies, shiftRequests, shiftStatus } from "./shifts";
@@ -72,6 +73,7 @@ export const bridgeRequest = v.pipe(
     ...approvalRequests,
     ...refundRequests,
     ...shiftRequests,
+    ...customerRequests,
   ]),
   v.check((request) => namesOneSale(request), "Name the sale by id or by receipt number, not both"),
   v.check(
@@ -100,6 +102,7 @@ export const bridgeMessage = v.union([
   ...approvalReplies,
   ...refundReplies,
   ...shiftReplies,
+  ...customerReplies,
   printerList,
   scanMessage,
   v.strictObject({

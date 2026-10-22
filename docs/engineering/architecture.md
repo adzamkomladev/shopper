@@ -248,4 +248,17 @@ Host and a same-origin Origin on writes; it canonicalises the path, keeps the up
 forwards `/auth`, `/sync` or `/cashiers`, and strips cookies and CORS headers. Stock counts and receiving
 are queued in till SQLite and uploaded to `POST /sync/stock` only after the sale backlog drains.
 
+### Customers on the till (Day 17)
+
+Customers reach tills as `customer` rows of the change feed and snapshot (both v4; v3 upcasts, a v3 snapshot has no
+customers) and land in `customer_lookup`: name, phone, kind, business name, TIN and the version read. The limit, the
+ledgers and the email never leave the server. Archived and merged customers drop out of the lookup. Quick-create and
+edit work offline: the lookup changes at once and a `customer.created` or `customer.updated` v1 event is queued in
+`customer_upload`, uploaded to `POST /sync/customers` on the document lane after the sale backlog drains. The server
+audits `customer.till.create` / `customer.till.update` (the session needs `customer.write`). An update that names the
+version the server holds applies whole; otherwise each field takes the later writer by the time the cashier acted,
+read from the audit history after that version, and both versions go in the audit. A conflict is never a rejection,
+so it never blocks the queue. The reply carries the customer as it now stands, which replaces the lookup row; a
+snapshot rebuild and every pull put the edits still waiting back on top.
+
 The owner approved this architecture on 14 October 2026. This cleanup documents it; it does not implement new management hosts, billing, backup services or Electron. TanStack Start remains the customer-shop SSR framework; management keeps the existing Router SPA.

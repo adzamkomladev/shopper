@@ -21,3 +21,5 @@ export * from "./stock/views";
 export * from "./stock/portal";
 export * from "./stock/takes";
 export * from "./customers/inputs";
+export * from "./customers/events";
+export { compactPhone } from "./fields";

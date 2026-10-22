@@ -30,6 +30,7 @@ export class TillError extends Error {
       | "PRINTER_UNCONFIGURED"
       | "PRINTER_OFFLINE"
       | "LINE_UNKNOWN"
+      | "CUSTOMER_UNKNOWN"
       | "INVALID_CREDENTIALS"
       | "SIGN_IN_LOCKED"
       | "OFFLINE_UNAVAILABLE"

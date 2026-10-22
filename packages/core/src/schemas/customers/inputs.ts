@@ -12,15 +12,21 @@ export const customerId = v.pipe(
   v.transform((value) => value.toLowerCase()),
 );
 
-const fields = {
+export const customerKindSchema = v.picklist(customerKinds);
+
+/** What a till may edit; the email stays with the portal. */
+export const editableCustomerFields = {
   name,
   phone: ghanaPhone,
-  kind: v.picklist(customerKinds),
+  kind: customerKindSchema,
   businessName: v.optional(v.nullable(text(200))),
   tin: v.optional(v.nullable(tinSchema)),
+};
+const fields = {
+  ...editableCustomerFields,
   email: v.optional(v.nullable(v.pipe(v.string(), v.trim(), v.email(), v.maxLength(200)))),
 };
-const businessMessage = "A business needs a business name";
+export const businessMessage = "A business needs a business name";
 
 /** A customer keyed by the client's UUIDv7, so a retried create replays instead of doubling. */
 export const customerInput = v.pipe(

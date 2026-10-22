@@ -187,6 +187,23 @@ ALTER TABLE refund ADD COLUMN shift_id TEXT;
 CREATE INDEX local_sale_shift ON local_sale(org_id,shift_id);
 CREATE INDEX refund_shift ON refund(org_id,shift_id);`;
 
+const customers = `
+CREATE TABLE customer_lookup (
+ org_id TEXT NOT NULL, customer_id TEXT NOT NULL, name TEXT NOT NULL, phone TEXT NOT NULL,
+ kind TEXT NOT NULL CHECK(kind IN ('individual','business')), business_name TEXT, tin TEXT,
+ version INTEGER NOT NULL CHECK(version > 0),
+ PRIMARY KEY(org_id,customer_id)
+);
+CREATE INDEX customer_lookup_phone ON customer_lookup(org_id,phone);
+CREATE TABLE customer_upload (
+ id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, device_id TEXT NOT NULL, customer_id TEXT NOT NULL,
+ payload TEXT NOT NULL, session_id TEXT NOT NULL, created_at TEXT NOT NULL,
+ attempts INTEGER NOT NULL DEFAULT 0, next_attempt_at INTEGER,
+ blocked_code TEXT, blocked_reason TEXT, accepted_at TEXT, result TEXT
+);
+CREATE INDEX customer_upload_customer ON customer_upload(org_id,customer_id);
+ALTER TABLE sale_draft ADD COLUMN customer_id TEXT;`;
+
 export const tillMigrations: string[] = [
   `${initial}${lookup}${drafts}${payments}`,
   registers,
@@ -196,4 +213,5 @@ export const tillMigrations: string[] = [
   priceOverrides,
   refunds,
   shifts,
+  customers,
 ];

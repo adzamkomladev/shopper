@@ -1,6 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 import * as v from "valibot";
-import { defineCommand } from "@shopper/audit";
+import { defineCommand, type CommandContext } from "@shopper/audit";
 import { accountHold, customer, type ShopperTransaction } from "@shopper/db-pg";
 import {
   customerFields,
@@ -13,10 +13,8 @@ import { CustomerError } from "./error";
 import { publishCustomer } from "./feed";
 import { readCustomerRow } from "./queries";
 
-type Saved = { id: string; replayed: boolean };
-
 /** The fields a user edits, in one fixed shape for audit and comparison. */
-const fieldsOf = (row: CustomerFields) => ({
+export const fieldsOf = (row: CustomerFields) => ({
   name: row.name,
   phone: row.phone,
   kind: row.kind,
@@ -25,9 +23,8 @@ const fieldsOf = (row: CustomerFields) => ({
   email: row.email ?? null,
 });
 
-/** A customer keyed by the client's UUIDv7; the same id with the same content replays, other content is a CONFLICT. */
 /** The create already saved under this id: its replay output, undefined when none, CONFLICT when the content differs. */
-async function savedCreate(tx: ShopperTransaction, orgId: string, next: CustomerInput) {
+export async function savedCreate(tx: ShopperTransaction, orgId: string, next: CustomerInput) {
   const [saved] = await tx
     .select()
     .from(customer)
@@ -39,28 +36,34 @@ async function savedCreate(tx: ShopperTransaction, orgId: string, next: Customer
   return { id: next.id, replayed: true };
 }
 
+/** Inserts a customer; a concurrent create of the same id answers as a replay, or CONFLICT when it differs. */
+export async function insertCustomer(
+  tx: ShopperTransaction,
+  ctx: CommandContext,
+  next: CustomerInput,
+) {
+  const [row] = await tx
+    .insert(customer)
+    .values({ ...next, orgId: ctx.orgId, createdDeviceId: ctx.deviceId })
+    .onConflictDoNothing()
+    .returning();
+  if (!row) {
+    const output = await savedCreate(tx, ctx.orgId, next);
+    if (output) return output;
+    throw new CustomerError("CONFLICT", "Customer identity already exists");
+  }
+  await publishCustomer(tx, ctx.orgId, row);
+  return { id: next.id, replayed: false };
+}
+
 export const createCustomer = defineCommand({
   name: "customer.create",
   async replay(tx, ctx, input: { customer: unknown }) {
     const output = await savedCreate(tx, ctx.orgId, v.parse(customerInput, input.customer));
     return output && { output };
   },
-  async run(tx, ctx, input: { customer: unknown }): Promise<Saved> {
-    const next = v.parse(customerInput, input.customer);
-    const [row] = await tx
-      .insert(customer)
-      .values({ ...next, orgId: ctx.orgId, createdDeviceId: ctx.deviceId })
-      .onConflictDoNothing()
-      .returning();
-    // A concurrent create of the same id won: answer as a replay, or CONFLICT if it differs.
-    if (!row) {
-      const output = await savedCreate(tx, ctx.orgId, next);
-      if (output) return output;
-      throw new CustomerError("CONFLICT", "Customer identity already exists");
-    }
-    await publishCustomer(tx, ctx.orgId, row);
-    return { id: next.id, replayed: false };
-  },
+  run: (tx, ctx, input: { customer: unknown }) =>
+    insertCustomer(tx, ctx, v.parse(customerInput, input.customer)),
   audit: (input, output) => ({
     id: output.id,
     ...fieldsOf(v.parse(customerInput, input.customer)),

@@ -2,6 +2,7 @@ import * as v from "valibot";
 import { uuidV7Schema } from "@shopper/ports";
 import { saleTaxSnapshot, saleTotals } from "@shopper/core/schemas";
 import { approval } from "./approvals";
+import { basketCustomer } from "./customers";
 
 const id = uuidV7Schema;
 const text = v.pipe(v.string(), v.minLength(1));
@@ -178,6 +179,7 @@ export const draftView = v.strictObject({
     }),
   ),
   cashRounding: v.optional(v.picklist(["none", "10p"])),
+  customer: v.optional(v.nullable(basketCustomer)),
   settlementError: v.optional(v.string()),
   settlement: v.optional(
     v.strictObject({

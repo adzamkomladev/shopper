@@ -8,7 +8,8 @@ export class CustomerError extends Error {
       | "HOLDS_OPEN"
       | "MERGE_SELF"
       | "MERGE_UNAVAILABLE"
-      | "MERGED",
+      | "MERGED"
+      | "ARCHIVED",
     message: string,
   ) {
     super(message);

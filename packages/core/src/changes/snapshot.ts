@@ -1,6 +1,7 @@
 import { and, eq, gt, isNull, or, sql } from "drizzle-orm";
 import {
   branch,
+  customer,
   org,
   price,
   product,
@@ -16,7 +17,7 @@ import type { Blobs } from "@shopper/ports";
 import { listBarcodeMappings } from "../catalogue/mappings/queries";
 import { loadBarcodes } from "./barcodes";
 import { FEED_VERSION } from "./record";
-import { priceUpsert, productUpsert, taxRuleUpsert } from "./project";
+import { customerUpsert, priceUpsert, productUpsert, taxRuleUpsert } from "./project";
 
 export async function buildSnapshot(
   database: ShopperDatabase,
@@ -75,6 +76,16 @@ export async function buildSnapshot(
           ),
         );
       const taxes = await tx.select().from(taxRule).where(eq(taxRule.orgId, scope.orgId));
+      const customers = await tx
+        .select()
+        .from(customer)
+        .where(
+          and(
+            eq(customer.orgId, scope.orgId),
+            isNull(customer.archivedAt),
+            isNull(customer.mergedIntoId),
+          ),
+        );
       return {
         v: FEED_VERSION,
         orgId: scope.orgId,
@@ -88,6 +99,7 @@ export async function buildSnapshot(
           prices: prices.map((row) => priceUpsert(row).payload),
           taxRules: taxes.map((row) => taxRuleUpsert(row).payload),
           barcodeMappings: await listBarcodeMappings(tx, scope.orgId),
+          customers: customers.map((row) => customerUpsert(row).payload),
           cashRounding: settings!.cashRounding, // the store row read above belongs to this org
         },
       };

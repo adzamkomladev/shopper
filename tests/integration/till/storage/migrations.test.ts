@@ -138,10 +138,9 @@ const columns = (database: TillDatabase, table: string) =>
 
 test("step 8 adds the shift tables, the shift_id columns and the one-open-shift index", async () => {
   const { tillMigrations } = await import("@shopper/db-sqlite");
-  expect(tillMigrations).toHaveLength(8);
   directory = await mkdtemp(join(tmpdir(), "shopper-till-migrations-"));
   db = openTillDatabase(join(directory, "till.sqlite"));
-  expect(await version(db)).toBe(8);
+  expect(await version(db)).toBe(tillMigrations.length);
   expect(await columns(db, "shift")).toEqual(
     expect.arrayContaining([
       "id",
@@ -202,7 +201,7 @@ test("step 8 keeps existing sales and refunds, now without a shift", async () =>
   );
   old.close();
   db = openTillDatabase(path);
-  expect(await version(db)).toBe(8);
+  expect(await version(db)).toBe(tillMigrations.length);
   const kept = (table: string) =>
     db!.read((tx) => tx.all<{ shift_id: string | null }>(sql.raw(`SELECT shift_id FROM ${table}`)));
   expect(await kept("local_sale")).toEqual([{ shift_id: null }]);

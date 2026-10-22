@@ -41,6 +41,8 @@ export const saleDraft = sqliteTable(
     cashierId: text("cashier_id").notNull(),
     status: text("status", { enum: draftStatuses }).notNull().default("open"),
     name: text("name"),
+    /** The customer attached to the basket, from `customer_lookup`. */
+    customerId: text("customer_id"),
     revision: integer("revision").notNull(),
     totals: text("totals", { mode: "json" }).$type<Record<string, number>>().notNull(),
     createdAt: text("created_at").notNull(),

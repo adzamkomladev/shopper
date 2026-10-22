@@ -44,34 +44,34 @@ const empty = { prices: [], taxRules: [] };
 
 test("a v2 product row decodes with its barcodes untouched", () => {
   const decoded = decodeReferenceChange(change(2, { ...product, barcodes }));
-  expect(decoded).toMatchObject({ v: 3, entity: "product", op: "upsert" });
+  expect(decoded).toMatchObject({ v: 4, entity: "product", op: "upsert" });
   expect(decoded.payload).toEqual({ ...product, barcodes, finalSale: false });
 });
 
 test("a v3 product row keeps its finalSale flag", () => {
   const decoded = decodeReferenceChange(change(3, { ...product, barcodes, finalSale: true }));
-  expect(decoded).toMatchObject({ v: 3, payload: { finalSale: true } });
+  expect(decoded).toMatchObject({ v: 4, payload: { finalSale: true } });
 });
 
 test("a v2 product row without barcodes is rejected rather than defaulted", () => {
-  expect(decodeReferenceChange(change(2, { ...product, barcodes })).v).toBe(3);
+  expect(decodeReferenceChange(change(2, { ...product, barcodes })).v).toBe(4);
   expect(() => decodeReferenceChange(change(2, product))).toThrow();
 });
 
-test("a v1 product row upcasts to v3 with empty barcodes and not final sale", () => {
+test("a v1 product row upcasts to v4 with empty barcodes and not final sale", () => {
   const decoded = decodeReferenceChange(change(1, product));
-  expect(decoded.v).toBe(3);
+  expect(decoded.v).toBe(4);
   expect(decoded.payload).toEqual({ ...product, barcodes: [], finalSale: false });
 });
 
 test("a v1 delete row upcasts without inventing product fields", () => {
   const decoded = decodeReferenceChange(change(1, { id: productId }, "product", "delete"));
-  expect(decoded).toMatchObject({ v: 3, op: "delete", payload: { id: productId } });
+  expect(decoded).toMatchObject({ v: 4, op: "delete", payload: { id: productId } });
 });
 
 test("a v2 mapping row decodes", () => {
   const decoded = decodeReferenceChange(change(2, mapping, "barcode-mapping"));
-  expect(decoded).toMatchObject({ v: 3, entity: "barcode-mapping", payload: mapping });
+  expect(decoded).toMatchObject({ v: 4, entity: "barcode-mapping", payload: mapping });
 });
 
 test("a v2 snapshot decodes with products' barcodes and the mappings", () => {
@@ -81,24 +81,67 @@ test("a v2 snapshot decodes with products' barcodes and the mappings", () => {
     barcodeMappings: [mapping],
   });
   const decoded = decodeSnapshot(raw);
-  expect(decoded.v).toBe(3);
+  expect(decoded.v).toBe(4);
   expect(decoded.reference.products).toEqual([{ ...product, barcodes, finalSale: false }]);
   expect(decoded.reference.barcodeMappings).toEqual([mapping]);
 });
 
 test("a v1 snapshot upcasts: products get no barcodes and there are no mappings", () => {
   const decoded = decodeSnapshot(snapshot(1, { ...empty, products: [product] }));
-  expect(decoded).toMatchObject({ v: 3, orgId, cursor: "12" });
+  expect(decoded).toMatchObject({ v: 4, orgId, cursor: "12" });
   expect(decoded.reference.products).toEqual([{ ...product, barcodes: [], finalSale: false }]);
   expect(decoded.reference.barcodeMappings).toEqual([]);
 });
 
 test("unsupported versions are refused", () => {
-  expect(decodeReferenceChange(change(3, { ...product, barcodes })).v).toBe(3);
-  for (const version of [4, 0]) {
+  expect(decodeReferenceChange(change(4, { ...product, barcodes })).v).toBe(4);
+  for (const version of [5, 0]) {
     expect(() => decodeReferenceChange(change(version, { ...product, barcodes }))).toThrow();
     expect(() =>
       decodeSnapshot(snapshot(version, { ...empty, products: [], barcodeMappings: [] })),
     ).toThrow();
   }
+});
+
+const person = {
+  id: v7(),
+  orgId,
+  name: "Ama Mensah",
+  phone: "0241234567",
+  kind: "individual",
+  businessName: null,
+  tin: null,
+  version: 1,
+  archivedAt: null,
+  mergedIntoId: null,
+};
+const customerChange = (payload: unknown, op = "upsert") => change(4, payload, "customer", op);
+
+test("a v4 customer row decodes with its lookup fields and nothing about money", () => {
+  const decoded = decodeReferenceChange(customerChange(person));
+  expect(decoded).toMatchObject({ v: 4, entity: "customer", op: "upsert", payload: person });
+  expect(() =>
+    decodeReferenceChange(customerChange({ ...person, creditLimit: 5_000_000 })),
+  ).toThrow();
+  expect(() => decodeReferenceChange(customerChange({ ...person, phone: "12" }))).toThrow();
+  expect(decodeReferenceChange(customerChange({ id: person.id }, "delete"))).toMatchObject({
+    v: 4,
+    op: "delete",
+  });
+});
+
+test("a v3 snapshot upcasts to v4 with no customers, a v4 snapshot carries them", () => {
+  const v3 = decodeSnapshot(
+    snapshot(3, { ...empty, products: [{ ...product, barcodes }], barcodeMappings: [mapping] }),
+  );
+  expect(v3.v).toBe(4);
+  expect(v3.reference.customers).toEqual([]);
+  expect(v3.reference.products).toEqual([{ ...product, barcodes, finalSale: false }]);
+  const v4 = decodeSnapshot(
+    snapshot(4, { ...empty, products: [], barcodeMappings: [], customers: [person] }),
+  );
+  expect(v4.reference.customers).toEqual([person]);
+  expect(() =>
+    decodeSnapshot(snapshot(4, { ...empty, products: [], barcodeMappings: [] })),
+  ).toThrow();
 });

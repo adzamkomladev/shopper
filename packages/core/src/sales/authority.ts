@@ -23,6 +23,8 @@ export async function sessionAuthority(
   proofHash: string,
   time: Date,
   required: string,
+  /** What a valid session that lacks `required` is refused with; most lanes do not tell the two apart. */
+  deniedCode = "INVALID_SESSION",
 ) {
   const [registered] = await tx
     .select()
@@ -59,15 +61,16 @@ export async function sessionAuthority(
     .select({ id: member.id })
     .from(member)
     .where(and(eq(member.orgId, ctx.orgId), eq(member.userId, snapshot.cashierId)));
+  const refused = "Sale lacks valid historical cashier authority";
   if (
     !registered ||
     !session ||
     !membership ||
-    !session.permissions.includes(required) ||
     time < session.issuedAt ||
     time >= session.expiresAt
   )
-    throw new SaleError("INVALID_SESSION", "Sale lacks valid historical cashier authority");
+    throw new SaleError("INVALID_SESSION", refused);
+  if (!session.permissions.includes(required)) throw new SaleError(deniedCode, refused);
   return session;
 }
 

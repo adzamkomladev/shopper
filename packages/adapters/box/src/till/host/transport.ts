@@ -7,6 +7,7 @@ import { serveTillUi } from "./http/static";
 import { uuidV7Schema } from "@shopper/ports";
 import {
   approvalRequestTypes,
+  customerRequestTypes,
   refundRequestTypes,
   shiftRequestTypes,
   basketRequestTypes,
@@ -31,6 +32,7 @@ const browserRequests: readonly string[] = [
   ...approvalRequestTypes,
   ...refundRequestTypes,
   ...shiftRequestTypes,
+  ...customerRequestTypes,
 ];
 export async function openHostTransport(options: {
   port: number;

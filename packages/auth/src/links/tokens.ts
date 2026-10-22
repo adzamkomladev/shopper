@@ -1,4 +1,4 @@
-import { sha256 } from "@shopper/utils";
+import { hmacHex, sha256 } from "@shopper/utils";
 import { constantTimeEqual } from "../session/http";
 
 export async function createLinkToken(
@@ -7,20 +7,7 @@ export async function createLinkToken(
   id: string,
 ) {
   if (secret.length < 32) throw new Error("Link secret must be at least 32 characters");
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  return hex(
-    await crypto.subtle.sign(
-      "HMAC",
-      key,
-      new TextEncoder().encode(`shopper:${purpose}:${id.toLowerCase()}`),
-    ),
-  );
+  return hmacHex(secret, `shopper:${purpose}:${id.toLowerCase()}`);
 }
 export async function linkDigest(token: string) {
   return sha256(token);
@@ -37,7 +24,4 @@ export class AuthLinkError extends Error {
     super(message);
     this.name = "AuthLinkError";
   }
-}
-function hex(buffer: ArrayBuffer) {
-  return Array.from(new Uint8Array(buffer), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }

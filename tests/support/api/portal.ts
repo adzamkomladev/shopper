@@ -4,6 +4,7 @@
 //   get(api, cookie, path)       -> { status, body } for GET path as that session (no cookie = anonymous)
 import { and, eq } from "drizzle-orm";
 import { v7 } from "uuid";
+import { boxRenderer } from "@shopper/adapters-box/renderer";
 import { createApi } from "@shopper/api";
 import { createAuth, registerOrganizationUser } from "@shopper/auth";
 import { role } from "@shopper/db-pg";
@@ -12,6 +13,7 @@ import { notifications } from "../stock/queue";
 
 export const baseURL = "http://localhost:8787";
 export const secret = "portal api integration secret that is at least thirty two chars";
+export const linkSecret = "statement link secret that is at least thirty two chars";
 const bootstrapToken = "portal api bootstrap token that is sufficiently long";
 const password = "Shopper-test-password-123";
 let ips = 0;
@@ -41,7 +43,14 @@ export async function portalOwner(orgId: string, actorId?: string) {
   const cookie = await signIn(auth, email);
   const principal = await auth.resolvePrincipal(new Request(baseURL, { headers: { cookie } }));
   return {
-    api: createApi({ database: db, authentication: auth, notifications }),
+    api: createApi({
+      database: db,
+      authentication: auth,
+      notifications,
+      linkSecret,
+      baseURL,
+      renderer: boxRenderer(),
+    }),
     auth,
     cookie,
     principal: principal!,

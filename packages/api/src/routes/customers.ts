@@ -16,11 +16,13 @@ import type { Queue } from "@shopper/ports";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import { commandContext } from "./stock/context";
 import { customerCreditRoutes } from "./customers/credit";
+import { customerStatementRoutes } from "./customers/statements";
 import { problem } from "../middleware/problem";
 import { requirePermission } from "../middleware/require/permission";
-import type { ApiAuthentication, ApiEnvironment } from "../types";
+import type { ApiAuthentication, ApiEnvironment, StatementLinks } from "../types";
 
-const managed = /\/(?:archive|unarchive|merge|payments|limit|credit\/notes)$/;
+const managed =
+  /\/(?:archive|unarchive|merge|payments|limit|credit\/notes|statements|statement\/links(?:\/[^/]+)?)$/;
 
 /**
  * Customers for the back office: reading needs `customer.read`, editing `customer.write`, and archive, merge,
@@ -30,6 +32,7 @@ export function customerRoutes(
   database: ShopperDatabase,
   authentication: ApiAuthentication | undefined,
   notifications?: Queue,
+  links?: StatementLinks,
 ) {
   const app = new Hono<ApiEnvironment>();
   const guard = requirePermission(authentication, (request) => {
@@ -56,6 +59,7 @@ export function customerRoutes(
     }),
   );
   app.route("/", customerCreditRoutes(database, notifications));
+  app.route("/", customerStatementRoutes(database, notifications, links));
   app.post("/customers", async (c) => {
     const { id, replayed } = await createCustomer(database, run(c), { customer: await body(c) });
     return c.json(await readCustomer(database, org(c), id), replayed ? 200 : 201);

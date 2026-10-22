@@ -54,6 +54,8 @@ export type LauncherFixture = (expired: boolean) => Promise<WorkflowLauncherFixt
 export interface RendererFixture {
   renderer: Renderer;
   receipt: Json;
+  /** A statement document; adapters that render statements (not the till host) supply one. */
+  statement?: Json;
   close(): Promise<void>;
 }
 

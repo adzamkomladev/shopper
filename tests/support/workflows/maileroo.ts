@@ -7,6 +7,16 @@ const emailSchema = v.strictObject({
   subject: v.string(),
   plain: v.string(),
   tracking: v.literal(false),
+  attachments: v.optional(
+    v.array(
+      v.strictObject({
+        file_name: v.string(),
+        content_type: v.string(),
+        content: v.string(),
+        inline: v.literal(false),
+      }),
+    ),
+  ),
 });
 export type MailerooEmail = v.InferOutput<typeof emailSchema>;
 

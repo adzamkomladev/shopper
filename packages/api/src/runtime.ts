@@ -16,7 +16,7 @@ import { allowPublicAuth } from "./middleware/public/auth";
 export const publicApi = createApi();
 export function isPublicRequest(request: Request) {
   const path = new URL(request.url).pathname;
-  return !/^\/(?:payments(?:\/|$)|webhooks\/paystack$|api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|devices(?:\/|$)|shifts(?:\/|$)|stock(?:\/|$)|customers(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
+  return !/^\/(?:payments(?:\/|$)|webhooks\/paystack$|api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|devices(?:\/|$)|shifts(?:\/|$)|stock(?:\/|$)|customers(?:\/|$)|public\/statements(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
     path,
   );
 }
@@ -26,6 +26,17 @@ export function runtimeUnavailable() {
 export async function serveRuntime(request: Request, options: RuntimeOptions): Promise<Response> {
   if (isPublicRequest(request)) return publicApi.fetch(request);
   const url = new URL(request.url);
+  if (url.pathname.startsWith("/public/statements/")) {
+    if (!options.linkSecret) return runtimeUnavailable();
+    // A link is a bearer secret; this budget only slows guessing. ponytail: isolate-local like allowPublicAuth.
+    if (!allowPublicAuth(options.clientIP, "statements", Date.now(), 30))
+      return new Response(null, { status: 429 });
+    return createApi({
+      database: options.database,
+      linkSecret: options.linkSecret,
+      renderer: options.renderer,
+    }).fetch(request);
+  }
   if (/^\/orgs(?:\/|$)/.test(url.pathname)) return orgRoutes(options).fetch(request);
   const headers = new Headers(request.headers);
   headers.delete("X-Shopper-Client-IP");
@@ -148,5 +159,7 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     invitations,
     blobs: options.blobs,
     notifications: options.notifications,
+    linkSecret: options.linkSecret,
+    baseURL: options.baseURL,
   }).fetch(request);
 }

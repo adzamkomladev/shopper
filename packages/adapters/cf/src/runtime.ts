@@ -4,6 +4,7 @@ import { cloudflareResponse } from "./response";
 import { cloudflareLive } from "./live";
 import { cloudflareRealtime } from "./realtime";
 import { cloudflareQueue } from "./queue";
+import { cloudflareRenderer } from "./renderer";
 import { NOTIFICATION_RETRY } from "@shopper/ports";
 import { cloudflareDatabase } from "./database";
 import { cloudflareLauncher } from "./launcher";
@@ -49,6 +50,7 @@ export async function cloudflareRuntime(
           receiptsObjectStorage: s3(env, env.SHOPPER_S3_RECEIPTS_BUCKET),
         })
       ).blobs,
+      renderer: env.BROWSER ? cloudflareRenderer(env.BROWSER) : undefined,
       secret: env.SHOPPER_AUTH_SECRET,
       baseURL: env.SHOPPER_AUTH_URL,
       bootstrapToken: env.SHOPPER_BOOTSTRAP_TOKEN,

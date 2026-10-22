@@ -4,6 +4,7 @@ import { cloudflareRenderer } from "@shopper/adapters-cf";
 import { rendererConformance } from "@shopper/conformance";
 import type { Json } from "@shopper/ports";
 import { goldenReceipt } from "@shopper/tests/support/hardware/receipt";
+import { goldenStatement } from "@shopper/tests/support/hardware/statement";
 
 // Forwards `quickAction` to the local Chromium stand-in, as Browser Run would answer it.
 const browser = {
@@ -17,5 +18,6 @@ const browser = {
 rendererConformance("cloudflare renderer", test, async () => ({
   renderer: cloudflareRenderer(browser as Parameters<typeof cloudflareRenderer>[0]),
   receipt: goldenReceipt() as unknown as Json,
+  statement: goldenStatement,
   async close() {},
 }));

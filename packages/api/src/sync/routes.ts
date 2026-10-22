@@ -13,6 +13,7 @@ import type { ShopperDatabase } from "@shopper/db-pg";
 import type { Blobs, Queue, Sequencer } from "@shopper/ports";
 import type { createDeviceService } from "@shopper/auth/devices";
 import { createApproverRoutes } from "./approvers";
+import { createAccountRoutes } from "./accounts";
 import { createCustomerRoutes } from "./customers";
 import { createReceiptRoutes } from "./receipts";
 import { createRefundRoutes } from "./refunds";
@@ -57,6 +58,7 @@ export function createSyncRoutes(options: {
   app.route("/", createRefundRoutes(options));
   app.route("/", createShiftRoutes(options));
   app.route("/", createCustomerRoutes(options));
+  app.route("/", createAccountRoutes(options));
   app.route("/", createApproverRoutes(options));
   app.post("/sync/handshake", async (c) => {
     const principal = await options.devices.resolveUploadPrincipal(c.req.raw);

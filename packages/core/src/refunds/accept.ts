@@ -11,6 +11,7 @@ import { validateRefundAuthority } from "./authority";
 import { refundDocument } from "./document";
 import { validateRefund } from "./validate";
 import { checkReorder } from "../stock/reorder";
+import { accountShare, creditRefund, saleAccount } from "../customers/credit/refunds";
 import type { Queue } from "@shopper/ports";
 
 type Input = {
@@ -92,7 +93,9 @@ const accept = defineCommand({
       .for("update");
     if (!original || original.storeId !== input.principal.storeId)
       throw new SaleError("INVALID_REFERENCE", "Original sale not found in this store");
-    await validateRefund(tx, ctx.orgId, original.payload, snapshot);
+    const account = await saleAccount(tx, ctx.orgId, original.id);
+    const share = accountShare(snapshot.totals.gross, account.charged, account.credited);
+    await validateRefund(tx, ctx.orgId, original.payload, snapshot, share);
     const receipt = await refundDocument(tx, snapshot, {
       receiptNumber: original.receiptNumber,
       customer: v.parse(saleCustomer, original.payload).customer,
@@ -115,6 +118,7 @@ const accept = defineCommand({
         gross: snapshot.totals.gross,
         cashRounding: snapshot.cashRounding,
         total: snapshot.total,
+        accountCredit: share,
         appVersion: snapshot.appVersion,
         eventVersion: input.event.v,
         deviceTime: new Date(snapshot.deviceTime),
@@ -124,6 +128,14 @@ const accept = defineCommand({
         contentHash: input.contentHash,
       })
       .returning();
+    await creditRefund(tx, ctx, {
+      customerId: account.customerId,
+      share,
+      refundId: snapshot.id,
+      reason: snapshot.reason,
+      actorId: snapshot.cashierId,
+      occurredAt: input.occurredAt,
+    });
     await tx.insert(refundLine).values(
       snapshot.lines.map((line) => ({
         id: line.id,

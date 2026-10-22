@@ -4,3 +4,8 @@ export { customerCsv } from "./export";
 export { mergeCustomers } from "./merge";
 export { listCustomers, readCustomer } from "./queries";
 export { acceptCustomerEvent } from "./till";
+export { accountSummary, tillActor } from "./credit/account";
+export { ageingCsv, readAgeing } from "./credit/ageing";
+export { createHold, releaseHold } from "./credit/holds";
+export { addCreditNote, recordPayment, setCreditLimit } from "./credit/payments";
+export { readStatement } from "./credit/statement";

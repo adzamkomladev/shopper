@@ -13,6 +13,8 @@ export type Original = {
   refunded: Record<string, number>;
   /** Gross already paid back in cash; the next cash payout is rounded on top of it. */
   cashRefunded: Money;
+  /** What earlier refunds credited back to the customer's account. */
+  accountCredited: Money;
   finalSale: Record<string, boolean>;
 };
 export type Policy = { returnWindowDays: number; requirePinForReturns: boolean };

@@ -30,3 +30,4 @@ export { approval, approvalRequestTypes, type Approval } from "../schemas/bridge
 export { refundRequestTypes, type EligibilityView } from "../schemas/bridge/refunds";
 export { shiftRequestTypes, type ShiftStatus } from "../schemas/bridge/shifts";
 export { customerRequestTypes } from "../schemas/bridge/customers";
+export { accountRequestTypes, accountView } from "../schemas/bridge/accounts";

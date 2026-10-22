@@ -28,7 +28,7 @@ const columns = (database: TillDatabase, table: string) =>
     .then((rows) => rows.map((row) => row.name));
 
 test("step 9 adds customer_lookup, customer_upload and sale_draft.customer_id", async () => {
-  expect(tillMigrations).toHaveLength(9);
+  expect(tillMigrations).toHaveLength(10);
   directory = await mkdtemp(join(tmpdir(), "shopper-till-customers-"));
   db = openTillDatabase(join(directory, "till.sqlite"));
   expect(await columns(db, "customer_lookup")).toEqual(
@@ -70,7 +70,7 @@ test("step 9 adds customer_lookup, customer_upload and sale_draft.customer_id", 
   expect(indexes.some((row) => /org_id\s*,\s*phone/.test(row.sql ?? ""))).toBe(true);
 });
 
-test("step 9 keeps existing drafts, now without a customer, and leaves the tender kinds alone", async () => {
+test("step 9 keeps existing drafts, now without a customer, and step 10 widens the tender kinds", async () => {
   directory = await mkdtemp(join(tmpdir(), "shopper-till-customers-"));
   const path = join(directory, "till.sqlite");
   const old = new Database(path);
@@ -92,7 +92,7 @@ test("step 9 keeps existing drafts, now without a customer, and leaves the tende
   const tenders = await db.read((tx) =>
     tx.all<{ sql: string }>(sql`SELECT sql FROM sqlite_master WHERE name = 'sale_draft_tender'`),
   );
-  expect(tenders[0]!.sql).toContain("('cash','momo','card')");
+  expect(tenders[0]!.sql).toContain("('cash','momo','card','credit','loyalty')");
 });
 
 test("a customer is looked up by phone through the index and one lookup row exists per customer", async () => {

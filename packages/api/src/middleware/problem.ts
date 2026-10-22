@@ -32,7 +32,7 @@ export function problem(error: Error, c: Context) {
     );
   if (error instanceof CustomerError)
     return c.json(
-      { error: error.message, code: error.code },
+      { error: error.message, code: error.code, ...error.detail },
       customerStatus[error.code as keyof typeof customerStatus] ?? 409,
     );
   const pg = error as {

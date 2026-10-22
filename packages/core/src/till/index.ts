@@ -26,7 +26,7 @@ export { hostTime, validateSession } from "./session";
 export { readDraft } from "./drafts/queries";
 export { addToDraft, setDraftQuantity, removeDraftLine } from "./drafts/commands";
 export { settle } from "./tenders/settle";
-export { addDraftTender, removeDraftTender } from "./tenders/commands";
+export { addDraftAccountTender, addDraftTender, removeDraftTender } from "./tenders/commands";
 export { completeDraftSale } from "./complete";
 export { holdDraftSale, resumeDraftSale, voidDraftSale, listHeldDraftSales } from "./drafts/status";
 export { setDraftDiscount } from "./drafts/discount";

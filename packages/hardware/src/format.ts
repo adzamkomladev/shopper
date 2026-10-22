@@ -13,7 +13,12 @@ export function quantity(thousandths: number) {
 
 type Tender = ReceiptDocument["tenders"][number];
 
-export const tenderLabel = { cash: "Cash", card: "Card", momo: "MoMo" } as const;
+export const tenderLabel = {
+  cash: "Cash",
+  card: "Card",
+  momo: "MoMo",
+  credit: "On account",
+} as const;
 
 export const tenderDetail = (tender: Tender) =>
   tender.approvalCode ?? tender.reference ?? tender.phone;

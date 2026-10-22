@@ -23,3 +23,4 @@ export * from "./stock/takes";
 export * from "./customers/inputs";
 export * from "./customers/events";
 export { compactPhone } from "./fields";
+export * from "./customers/credit";

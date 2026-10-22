@@ -21,7 +21,7 @@ export type DraftLabel =
     };
 
 export const draftStatuses = ["open", "held", "voided"] as const;
-export const draftTenderKinds = ["cash", "momo", "card"] as const;
+export const draftTenderKinds = ["cash", "momo", "card", "credit", "loyalty"] as const;
 export const draftTenderStatuses = [
   "applied",
   "pending",
@@ -102,6 +102,8 @@ export const saleDraftTender = sqliteTable(
     network: text("network"),
     status: text("status", { enum: draftTenderStatuses }).notNull(),
     createdAt: text("created_at").notNull(),
+    /** The points a loyalty tender spends. */
+    points: integer("points"),
   },
   (t) => [
     unique().on(t.draftId, t.position),

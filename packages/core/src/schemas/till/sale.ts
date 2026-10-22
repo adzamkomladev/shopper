@@ -84,8 +84,10 @@ export const saleSnapshot = v.strictObject({
       v.pipe(
         v.strictObject({
           id: tillId,
-          kind: v.picklist(["cash", "momo", "card"]),
+          kind: v.picklist(["cash", "momo", "card", "credit"]),
           amount: v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.transform(money)),
+          /** Points an account tender spends; set by the loyalty tender only. */
+          points: v.optional(v.pipe(v.number(), v.safeInteger(), v.minValue(1))),
           reference: v.optional(v.string()),
           approvalCode: v.optional(v.pipe(v.string(), v.regex(/^[a-zA-Z0-9]{4,12}$/))),
           last4: v.optional(v.pipe(v.string(), v.regex(/^[0-9]{4}$/))),
@@ -97,6 +99,8 @@ export const saleSnapshot = v.strictObject({
       ),
     ),
     v.minLength(1),
+    // An account tender spends the customer's server hold, whose id is the tender id.
+    v.check((ts) => ts.filter((t) => t.kind === "credit").length <= 1, "One credit tender at most"),
   ),
 });
 /** Just the buyer of a stored sale: what a refund needs, without the rest of the payload parsing. */

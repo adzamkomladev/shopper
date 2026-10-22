@@ -6,6 +6,7 @@ import { loopbackGuard } from "./http/guard";
 import { serveTillUi } from "./http/static";
 import { uuidV7Schema } from "@shopper/ports";
 import {
+  accountRequestTypes,
   approvalRequestTypes,
   customerRequestTypes,
   refundRequestTypes,
@@ -33,6 +34,7 @@ const browserRequests: readonly string[] = [
   ...refundRequestTypes,
   ...shiftRequestTypes,
   ...customerRequestTypes,
+  ...accountRequestTypes,
 ];
 export async function openHostTransport(options: {
   port: number;

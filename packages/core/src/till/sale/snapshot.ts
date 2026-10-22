@@ -1,6 +1,7 @@
 import * as v from "valibot";
 import { add, money } from "@shopper/money";
 import { saleEvent, type SaleSnapshot } from "../../schemas/till/sale";
+import type { draftTenderKinds } from "@shopper/db-sqlite";
 import { TillError } from "../error";
 import type { claimDraft } from "../drafts/edit";
 import type { quoteDraft } from "../drafts/quote";
@@ -10,7 +11,7 @@ type Drafted = Awaited<ReturnType<typeof claimDraft>>;
 type Quoted = ReturnType<typeof quoteDraft>;
 type Tender = {
   id: string;
-  kind: "cash" | "momo" | "card";
+  kind: (typeof draftTenderKinds)[number];
   amount: number;
   reference: string | null;
   approvalCode: string | null;

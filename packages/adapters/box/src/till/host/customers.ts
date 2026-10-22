@@ -11,7 +11,10 @@ import { buildInfo } from "@shopper/config";
 import type { BridgeMessage, BridgeRequest } from "@shopper/sync/bridge";
 import type { Host } from "./types";
 
-type Request = Extract<BridgeRequest, { type: `customer.${string}` }>;
+type Request = Extract<
+  BridgeRequest,
+  { type: "customer.find" | "customer.create" | "customer.update" | "customer.attach" }
+>;
 
 /**
  * Customers at the till: find by phone, create and edit offline (the upload lane carries them to the server) and

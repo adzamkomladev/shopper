@@ -21,7 +21,7 @@ export const purchaseSummary = v.strictObject({
   receiptNumber: v.nullable(v.string()),
   occurredAt: v.pipe(v.string(), v.isoTimestamp()),
   total: v.number(),
-  kinds: v.array(v.picklist(["cash", "momo", "card"])),
+  kinds: v.array(v.picklist(["cash", "momo", "card", "credit", "loyalty"])),
   /** A Returns row: the receipt number of the sale it returned. Its total is negative. */
   refundOf: v.nullable(v.string()),
   /** How much of a completed sale has gone back. */

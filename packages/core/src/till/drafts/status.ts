@@ -62,6 +62,13 @@ const hold = defineCommand({
     const found = await claimDraft(tx, input.scope, input.expectedRevision, input.at);
     await assertPayments(tx, found.draft.id, true);
     if (!found.lines.length) throw new TillError("DRAFT_UNKNOWN", "Cannot hold an empty draft");
+    // The account hold lapses within the hour, so a parked basket could not spend it later.
+    const tenders = await tx
+      .select({ kind: saleDraftTender.kind })
+      .from(saleDraftTender)
+      .where(eq(saleDraftTender.draftId, found.draft.id));
+    if (tenders.some((t) => t.kind === "credit" || t.kind === "loyalty"))
+      throw new TillError("TENDER_ACTIVE", "Remove the account tender before parking the sale");
     const [draft] = await tx
       .update(saleDraft)
       .set({ status: "held", name: input.name ?? null, heldAt: input.at.toISOString() })

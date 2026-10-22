@@ -9,8 +9,13 @@ export class CustomerError extends Error {
       | "MERGE_SELF"
       | "MERGE_UNAVAILABLE"
       | "MERGED"
-      | "ARCHIVED",
+      | "ARCHIVED"
+      | "CREDIT_LIMIT"
+      | "NOT_ELIGIBLE"
+      | "NOT_VERIFIED",
     message: string,
+    /** Extra fields of the problem body, such as the credit still `available`. */
+    public detail: Record<string, unknown> = {},
   ) {
     super(message);
   }

@@ -8,7 +8,7 @@ import {
   type ShopperDatabase,
   type ShopperTransaction,
 } from "@shopper/db-pg";
-import { add, money } from "@shopper/money";
+import { add, money, sub, type Money } from "@shopper/money";
 import { refundShare } from "@shopper/tax";
 import { saleSnapshot } from "../schemas/till/sale";
 import type { RefundSnapshot } from "../schemas/till/refund";
@@ -43,6 +43,8 @@ export async function validateRefund(
   orgId: string,
   sold: unknown,
   snapshot: RefundSnapshot,
+  /** The part credited back to the customer's account; only the rest is paid out. */
+  accountShare: Money,
 ) {
   const lines = new Map(v.parse(saleSnapshot, sold).lines.map((line) => [line.id, line]));
   const seen = new Set<string>();
@@ -88,7 +90,7 @@ export async function validateRefund(
   );
   if (canonicalJson(totals) !== canonicalJson(snapshot.totals))
     throw new SaleError("INVALID_TOTALS", "Refund totals do not match its lines");
-  await validatePayout(tx, orgId, snapshot);
+  await validatePayout(tx, orgId, snapshot, accountShare);
 }
 
 async function finalSaleProducts(tx: ShopperTransaction, orgId: string, productIds: string[]) {
@@ -103,15 +105,21 @@ async function finalSaleProducts(tx: ShopperTransaction, orgId: string, productI
 
 /**
  * Cash on a 10p org may be rounded by up to 5p either way: the till rounds on the cumulative cash paid,
- * which differs between registers, so the server accepts any rounding within bounds. Everything else pays the gross.
+ * which differs between registers, so the server accepts any rounding within bounds. Everything else pays the
+ * gross less the account share.
  */
-async function validatePayout(tx: ShopperTransaction, orgId: string, snapshot: RefundSnapshot) {
+async function validatePayout(
+  tx: ShopperTransaction,
+  orgId: string,
+  snapshot: RefundSnapshot,
+  accountShare: Money,
+) {
   const [organisation] = await tx.select().from(org).where(eq(org.id, orgId));
   const rounds = snapshot.tender.kind === "cash" && (organisation?.cashRounding ?? "10p") === "10p";
   const limit = rounds ? 500 : 0;
   if (
     Math.abs(snapshot.cashRounding) > limit ||
-    snapshot.total !== add(snapshot.totals.gross, snapshot.cashRounding)
+    snapshot.total !== add(sub(snapshot.totals.gross, accountShare), snapshot.cashRounding)
   )
     throw new SaleError("INVALID_TOTALS", "Refund payout does not match its rounding");
 }

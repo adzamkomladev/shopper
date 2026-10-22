@@ -12,6 +12,7 @@ import { validateTenders } from "./tenders";
 import { saleDocument } from "./document";
 import { ensureSaleCustomer } from "../customers/sale";
 import { publishCustomer } from "../customers/feed";
+import { consumeHolds } from "../customers/credit/holds";
 import { checkReorder } from "../stock/reorder";
 import type { Queue } from "@shopper/ports";
 
@@ -121,6 +122,7 @@ const accept = defineCommand({
       .onConflictDoNothing({ target: [sale.deviceId, sale.localId] })
       .returning();
     if (!saved) throw new SaleError("CONFLICT", "Sale identity already exists");
+    await consumeHolds(tx, ctx, snapshot, input.occurredAt);
     await tx.insert(saleLine).values(
       snapshot.lines.map((line) => ({
         id: line.id,

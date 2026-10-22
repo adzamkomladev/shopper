@@ -1,6 +1,7 @@
 import { Hono, type Context } from "hono";
 import * as v from "valibot";
 import {
+  ageingCsv,
   archiveCustomer,
   createCustomer,
   customerCsv,
@@ -14,13 +15,17 @@ import { customerMerge } from "@shopper/core/schemas";
 import type { Queue } from "@shopper/ports";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import { commandContext } from "./stock/context";
+import { customerCreditRoutes } from "./customers/credit";
 import { problem } from "../middleware/problem";
 import { requirePermission } from "../middleware/require/permission";
 import type { ApiAuthentication, ApiEnvironment } from "../types";
 
-const managed = /\/(?:archive|unarchive|merge)$/;
+const managed = /\/(?:archive|unarchive|merge|payments|limit|credit\/notes)$/;
 
-/** Customers for the back office: reading needs `customer.read`, editing `customer.write`, archive and merge `customer.manage`. */
+/**
+ * Customers for the back office: reading needs `customer.read`, editing `customer.write`, and archive, merge,
+ * payments, limits and credit notes `customer.manage`.
+ */
 export function customerRoutes(
   database: ShopperDatabase,
   authentication: ApiAuthentication | undefined,
@@ -44,6 +49,13 @@ export function customerRoutes(
       "content-disposition": 'attachment; filename="customers.csv"',
     }),
   );
+  app.get("/customers/ageing.csv", async (c) =>
+    c.body(await ageingCsv(database, org(c)), 200, {
+      "content-type": "text/csv; charset=utf-8",
+      "content-disposition": 'attachment; filename="ageing.csv"',
+    }),
+  );
+  app.route("/", customerCreditRoutes(database, notifications));
   app.post("/customers", async (c) => {
     const { id, replayed } = await createCustomer(database, run(c), { customer: await body(c) });
     return c.json(await readCustomer(database, org(c), id), replayed ? 200 : 201);

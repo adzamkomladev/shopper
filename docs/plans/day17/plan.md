@@ -563,7 +563,7 @@ Events carry only `{action}`. The instance id is the case id.
 - `GET`/`PATCH /customers/:id`
 - `POST /customers/:id/{archive,unarchive,merge}`
 - `GET /customers/:id/{sales,statement,ageing,loyalty}`
-- `POST /customers/:id/{payments,credit-notes,statements,statement-links}`
+- `POST /customers/:id/{payments,credit/notes,statements,statement-links}`
 - `DELETE /customers/:id/statement-links/:linkId`
 - `POST /loyalty/transfers`
 - `GET /public/statements/:token` and `/pdf`: no session; rate-limited by the existing RateLimiter

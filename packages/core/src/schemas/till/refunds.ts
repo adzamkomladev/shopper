@@ -16,6 +16,11 @@ export const serverSale = v.strictObject({
   refunded: v.record(v.string(), v.pipe(v.number(), v.safeInteger(), v.minValue(0))),
   /** Gross already paid back in cash, which fixes the next cash payout's rounding. */
   cashRefunded: v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.transform(money)),
+  /** What refunds already credited to the customer's account; older servers send none. */
+  accountCredited: v.optional(
+    v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.transform(money)),
+    0,
+  ),
   finalSale: v.record(v.string(), v.boolean()),
 });
 export type ServerSale = v.InferOutput<typeof serverSale>;

@@ -204,6 +204,23 @@ CREATE TABLE customer_upload (
 CREATE INDEX customer_upload_customer ON customer_upload(org_id,customer_id);
 ALTER TABLE sale_draft ADD COLUMN customer_id TEXT;`;
 
+// Account tenders spend a server hold whose id is the tender id; loyalty also records the points it spends.
+const accountTenders = `
+CREATE TABLE sale_draft_tender_next (
+ id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, draft_id TEXT NOT NULL, position INTEGER NOT NULL,
+ kind TEXT NOT NULL CHECK(kind IN ('cash','momo','card','credit','loyalty')), amount INTEGER NOT NULL,
+ reference TEXT, approval_code TEXT, last4 TEXT, phone TEXT, network TEXT,
+ status TEXT NOT NULL CHECK(status IN ('applied','pending','otp','confirmed','failed','expired')),
+ created_at TEXT NOT NULL, points INTEGER CHECK(points IS NULL OR points > 0),
+ UNIQUE(draft_id,position), FOREIGN KEY(org_id,draft_id) REFERENCES sale_draft(org_id,id)
+);
+INSERT INTO sale_draft_tender_next (id, org_id, draft_id, position, kind, amount, reference, approval_code,
+ last4, phone, network, status, created_at)
+SELECT id, org_id, draft_id, position, kind, amount, reference, approval_code, last4, phone, network, status,
+ created_at FROM sale_draft_tender;
+DROP TABLE sale_draft_tender;
+ALTER TABLE sale_draft_tender_next RENAME TO sale_draft_tender;`;
+
 export const tillMigrations: string[] = [
   `${initial}${lookup}${drafts}${payments}`,
   registers,
@@ -214,4 +231,5 @@ export const tillMigrations: string[] = [
   refunds,
   shifts,
   customers,
+  accountTenders,
 ];

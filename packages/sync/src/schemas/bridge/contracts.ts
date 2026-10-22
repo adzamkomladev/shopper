@@ -8,6 +8,7 @@ import { purchaseReplies, purchaseRequests } from "./purchases";
 import { deviceRequests, printerList, printerStatus, scanMessage, settingsStatus } from "./devices";
 import { approvalReplies, approvalRequests } from "./approvals";
 import { customerReplies, customerRequests } from "./customers";
+import { accountReplies, accountRequests } from "./accounts";
 import { namesOneSale, refundReplies, refundRequests } from "./refunds";
 import { sessionRequests, sessionUser } from "./session";
 import { shiftReplies, shiftRequests, shiftStatus } from "./shifts";
@@ -74,6 +75,7 @@ export const bridgeRequest = v.pipe(
     ...refundRequests,
     ...shiftRequests,
     ...customerRequests,
+    ...accountRequests,
   ]),
   v.check((request) => namesOneSale(request), "Name the sale by id or by receipt number, not both"),
   v.check(
@@ -103,6 +105,7 @@ export const bridgeMessage = v.union([
   ...refundReplies,
   ...shiftReplies,
   ...customerReplies,
+  ...accountReplies,
   printerList,
   scanMessage,
   v.strictObject({

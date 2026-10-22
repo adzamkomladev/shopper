@@ -1,5 +1,6 @@
 import { v7 } from "uuid";
-import { add, money } from "@shopper/money";
+import { add, money, sub } from "@shopper/money";
+import { accountShare } from "../../customers/credit/refunds";
 import { refundShare } from "@shopper/tax";
 import type { RefundSnapshot } from "../../schemas/till/refund";
 import { refundPayout } from "../../refunds/payout";
@@ -102,10 +103,15 @@ export function buildRefund(
   const totals = Object.fromEntries(
     keys.map((key) => [key, lines.reduce((sum, line) => add(sum, line.tax[key]), money(0))]),
   ) as RefundSnapshot["totals"];
+  // A sale paid on account takes the refund back onto the account first; only the rest is paid out.
+  const charged = original.sale.tenders
+    .filter((tender) => tender.kind === "credit")
+    .reduce((sum, tender) => add(sum, tender.amount), money(0));
+  const share = accountShare(totals.gross, charged, original.accountCredited);
   const payout = refundPayout({
     kind: request.tender.kind,
     priorCash: original.cashRefunded,
-    gross: totals.gross,
+    gross: sub(totals.gross, share),
     rounding,
   });
   return {

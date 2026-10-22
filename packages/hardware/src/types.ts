@@ -37,3 +37,16 @@ export type EncodeOptions = {
 };
 
 export type SerialOptions = { path: string; baudRate: number };
+
+/** What a payment slip says: who paid, how much, by what, and who took it. */
+export type AccountPaymentSlip = {
+  shopName: string;
+  registerName: string;
+  customerName: string;
+  method: "cash" | "momo";
+  amount: number;
+  reference: string | null;
+  /** Accra time, "2026-10-22 14:05". */
+  at: string;
+  cashierName: string;
+};

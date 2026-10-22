@@ -3,6 +3,7 @@ import * as v from "valibot";
 import { buildInfo } from "@shopper/config";
 import {
   accountSummary,
+  acceptAccountPayment,
   createHold,
   CustomerError,
   releaseHold,
@@ -12,7 +13,7 @@ import { customerId, holdInput, holdRelease } from "@shopper/core/schemas";
 import { SaleError } from "@shopper/core/sales";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { createDeviceService } from "@shopper/auth/devices";
-import { holdReleaseUpload, holdUpload } from "../schemas/sync/customers";
+import { accountPaymentUpload, holdReleaseUpload, holdUpload } from "../schemas/sync/customers";
 
 const customerStatus: Record<string, 404 | 409> = { NOT_FOUND: 404 };
 const saleStatus: Record<string, 401 | 403> = {
@@ -28,6 +29,7 @@ const saleStatus: Record<string, 401 | 403> = {
 export function createAccountRoutes(options: {
   database: ShopperDatabase;
   devices: ReturnType<typeof createDeviceService>;
+  now?: () => number;
 }) {
   const app = new Hono();
   const { database } = options;
@@ -72,6 +74,36 @@ export function createAccountRoutes(options: {
     return answer(c, async () =>
       c.json(await accountSummary(database, principal.orgId, c.req.param("id"))),
     );
+  });
+  // Cash and MoMo taken at the drawer. `rejected` is terminal for the till: it never retries.
+  app.post("/sync/accounts/payments", async (c) => {
+    const principal = await device(c);
+    if (!principal) return c.json({ error: "Invalid device credential" }, 401);
+    const data = v.parse(accountPaymentUpload, await c.req.json());
+    try {
+      const accepted = await acceptAccountPayment(database, principal, data.payment, data.proof, {
+        appVersion: buildInfo.version,
+        now: options.now,
+      });
+      return c.json({ requestId: data.requestId, accepted });
+    } catch (error) {
+      const pg = error as { code?: string; cause?: { code?: string } };
+      const failure =
+        (pg?.code ?? pg?.cause?.code) === "23505"
+          ? new CustomerError("CONFLICT", "Payment identity already exists")
+          : error;
+      if (failure instanceof CustomerError || failure instanceof SaleError)
+        return c.json({
+          requestId: data.requestId,
+          rejected: { code: failure.code, message: failure.message },
+        });
+      if (v.isValiError(failure))
+        return c.json({
+          requestId: data.requestId,
+          rejected: { code: "INVALID_EVENT", message: "Invalid account payment" },
+        });
+      throw failure;
+    }
   });
   return app;
 }

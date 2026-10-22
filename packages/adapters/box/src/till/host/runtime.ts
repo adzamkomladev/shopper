@@ -172,6 +172,7 @@ export async function startTillHost(
     uploadRefunds: () => worker.uploadRefunds(),
     uploadShifts: () => worker.uploadShifts(),
     uploadCustomers: () => worker.uploadCustomers(),
+    uploadAccountPayments: () => worker.uploadAccountPayments(),
     close: () => void close(),
   };
   const dispatch = createDispatch(host);

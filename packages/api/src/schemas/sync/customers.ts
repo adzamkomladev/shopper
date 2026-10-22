@@ -16,3 +16,8 @@ export const holdReleaseUpload = v.strictObject({
   release: v.unknown(),
   proof: v.pipe(v.string(), v.minLength(1), v.maxLength(256)),
 });
+export const accountPaymentUpload = v.strictObject({
+  requestId: managementId,
+  payment: v.unknown(),
+  proof: v.pipe(v.string(), v.minLength(1), v.maxLength(256)),
+});

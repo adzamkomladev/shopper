@@ -114,6 +114,7 @@ export function createDispatch(host: Host) {
           return await customers(request);
         case "customer.account":
         case "tender.account":
+        case "account.payment":
           return await accounts.accounts(request);
         case "approvers.list":
           return {

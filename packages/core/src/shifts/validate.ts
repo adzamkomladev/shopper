@@ -13,9 +13,10 @@ export function validateShiftReport(z: ZReport) {
     throw new SaleError("SHIFT_MISMATCH", `Shift ${what} does not add up`);
   };
   const sum = (amounts: Money[]) => amounts.reduce(add, money(0));
-  const { cash } = z;
+  const { cash, account } = z;
   // Signs and reasons first: anything the database would refuse must be a rejection, never a server error.
-  const amounts = [cash.float, z.declared.card, z.declared.momo, z.threshold];
+  const amounts = [cash.float, z.declared.card, z.declared.momo, z.threshold, account.sales];
+  amounts.push(account.payments.cash, account.payments.momo, account.refunds, account.pointsValue);
   for (const t of z.tenders) amounts.push(t.sales, t.refunds);
   if (amounts.some((amount) => amount < 0)) mismatch("amounts");
   if (
@@ -26,10 +27,8 @@ export function validateShiftReport(z: ZReport) {
     mismatch("movements");
   const drops = sum(z.movements.filter((m) => m.kind === "drop").map((m) => money(m.amount)));
   if (drops !== cash.drops) mismatch("drops");
-  if (
-    cash.expected !==
-    sub(add(money(cash.float), sub(money(cash.sales), money(cash.refunds))), drops)
-  )
+  const net = sub(money(cash.sales), money(cash.refunds));
+  if (cash.expected !== sub(add(add(money(cash.float), net), money(account.payments.cash)), drops))
     mismatch("expected cash");
   const kinds = z.tenders.map((t) => t.tender);
   if (kinds.join() !== "cash,card,momo") mismatch("tenders");

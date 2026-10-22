@@ -9,3 +9,4 @@ export { ageingCsv, readAgeing } from "./credit/ageing";
 export { createHold, releaseHold } from "./credit/holds";
 export { addCreditNote, recordPayment, setCreditLimit } from "./credit/payments";
 export { readStatement } from "./credit/statement";
+export { acceptAccountPayment } from "./credit/till";

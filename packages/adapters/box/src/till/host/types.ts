@@ -39,6 +39,7 @@ export type Host = {
   uploadRefunds: () => Promise<void>;
   uploadShifts: () => Promise<void>;
   uploadCustomers: () => Promise<void>;
+  uploadAccountPayments: () => Promise<void>;
   close: () => void;
   payments: ReturnType<typeof createHostPayments>;
   devices: ReturnType<typeof createDevices>;

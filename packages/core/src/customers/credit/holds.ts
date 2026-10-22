@@ -1,20 +1,14 @@
 import { and, eq } from "drizzle-orm";
 import { defineCommand, type CommandContext } from "@shopper/audit";
 import { accountHold, creditEntry, type ShopperTransaction } from "@shopper/db-pg";
-import { sessionAuthority } from "../../sales/authority";
 import { SaleError } from "../../sales/error";
-import type { UploadPrincipal } from "../../sales/types";
 import type { HoldInput } from "../../schemas/customers/credit";
 import type { SaleSnapshot } from "../../schemas/till/sale";
 import { CustomerError } from "../error";
 import { accountSummary } from "./account";
+import { authorize } from "./authority";
+import type { Authority } from "../types";
 
-type Authority = {
-  principal: UploadPrincipal;
-  sessionId: string;
-  cashierId: string;
-  proofHash: string;
-};
 type Row = typeof accountHold.$inferSelect;
 
 const holdView = (row: Row) => ({
@@ -139,21 +133,6 @@ export async function consumeHolds(
       occurredAt,
     });
   }
-}
-
-/** The register, a live session of the cashier, and `sale.create`, as of now. */
-async function authorize(tx: ShopperTransaction, ctx: CommandContext, input: Authority) {
-  const granted = await sessionAuthority(
-    tx,
-    ctx,
-    input.principal,
-    { sessionId: input.sessionId, cashierId: input.cashierId },
-    input.proofHash,
-    new Date(),
-    "sale.create",
-    "PERMISSION_DENIED",
-  );
-  ctx.role = granted.roleName;
 }
 
 async function findHold(tx: ShopperTransaction, orgId: string, id: string, lock = false) {

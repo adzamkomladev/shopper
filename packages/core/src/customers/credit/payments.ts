@@ -1,18 +1,33 @@
 import { and, eq } from "drizzle-orm";
 import * as v from "valibot";
 import { defineCommand } from "@shopper/audit";
-import { creditEntry, customer } from "@shopper/db-pg";
+import { creditEntry, customer, shift, type ShopperTransaction } from "@shopper/db-pg";
 import { money, sub } from "@shopper/money";
 import { creditNoteInput, limitInput, paymentInput } from "../../schemas/customers/credit";
 import { CustomerError } from "../error";
 import { readCustomerRow } from "../queries";
+import { authorize } from "./authority";
+import type { Authority } from "../types";
 
 type Target = { id: string; body: unknown };
+/** A payment taken at a drawer: who took it, when, into which shift, and the MoMo reference. */
+type Till = Authority & { occurredAt: Date; shiftId: string; reference: string | null };
+type Paid = {
+  id: string;
+  entryId: string;
+  replayed: boolean;
+  shiftId?: string;
+  reference?: string | null;
+};
 
-/** Money paid onto the account; more than is owed becomes a deposit. A retry under the same id replays. */
+/**
+ * Money paid onto the account; more than is owed becomes a deposit. A retry under the same id replays. From a till
+ * (`till`) it needs a live `sale.create` session, and the entry is linked to the shift only if the server has it:
+ * the shift's Z arrives when it closes, long after the money was taken.
+ */
 export const recordPayment = defineCommand({
   name: "customer.payment",
-  async replay(tx, ctx, input: Target) {
+  async replay(tx, ctx, input: Target & { till?: Till }) {
     const payment = v.parse(paymentInput, input.body);
     const [saved] = await tx
       .select()
@@ -26,10 +41,13 @@ export const recordPayment = defineCommand({
       saved.method !== payment.method
     )
       throw new CustomerError("CONFLICT", "Payment identity already has different content");
+    if (input.till) await authorize(tx, ctx, input.till, input.till.occurredAt);
     return { output: { id: saved.customerId, entryId: saved.id, replayed: true } };
   },
-  async run(tx, ctx, input) {
+  async run(tx, ctx, input): Promise<Paid> {
     const payment = v.parse(paymentInput, input.body);
+    const { till } = input;
+    if (till) await authorize(tx, ctx, till, till.occurredAt);
     const current = await readCustomerRow(tx, ctx.orgId, input.id, true);
     await tx.insert(creditEntry).values({
       id: payment.id,
@@ -38,14 +56,28 @@ export const recordPayment = defineCommand({
       kind: "payment",
       amount: sub(money(0), payment.amount),
       method: payment.method,
+      shiftId: till && (await knownShift(tx, ctx.orgId, till.shiftId)),
       actorId: ctx.actorId,
-      occurredAt: new Date(),
+      occurredAt: till?.occurredAt ?? new Date(),
     });
-    return { id: current.id, entryId: payment.id, replayed: false };
+    return {
+      id: current.id,
+      entryId: payment.id,
+      replayed: false,
+      ...(till && { shiftId: till.shiftId, reference: till.reference }),
+    };
   },
   audit: (input, output) => ({ ...output, ...v.parse(paymentInput, input.body) }),
   details: (_input, output) => ({ entity: "customer", entityId: output.id }),
 });
+
+const knownShift = async (tx: ShopperTransaction, orgId: string, id: string) => {
+  const [found] = await tx
+    .select({ id: shift.id })
+    .from(shift)
+    .where(and(eq(shift.orgId, orgId), eq(shift.id, id)));
+  return found?.id ?? null;
+};
 
 /** The credit limit; above zero only for a KYC-verified customer. */
 export const setCreditLimit = defineCommand({

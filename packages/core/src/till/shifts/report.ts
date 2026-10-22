@@ -81,6 +81,7 @@ export function buildShiftReport(parts: ShiftParts, at: Date): XReport {
     sales: parts.sales,
     refunds: parts.refunds,
     drops: movements.filter((m) => m.kind === "drop").map((m) => money(m.amount)),
+    accountPayments: parts.payments.map((p) => ({ method: p.method, amount: money(p.amount) })),
   });
   return v.parse(xReport, {
     kind: "x",

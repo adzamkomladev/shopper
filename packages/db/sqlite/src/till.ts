@@ -221,6 +221,18 @@ SELECT id, org_id, draft_id, position, kind, amount, reference, approval_code, l
 DROP TABLE sale_draft_tender;
 ALTER TABLE sale_draft_tender_next RENAME TO sale_draft_tender;`;
 
+// Cash and MoMo taken on an account at the drawer: a document per payment, uploaded after its customer.
+const accountPayments = `
+CREATE TABLE account_payment (
+ id TEXT PRIMARY KEY NOT NULL, org_id TEXT NOT NULL, device_id TEXT NOT NULL, shift_id TEXT NOT NULL,
+ customer_id TEXT NOT NULL, method TEXT NOT NULL CHECK(method IN ('cash','momo')),
+ amount INTEGER NOT NULL CHECK(amount > 0), payload TEXT NOT NULL, session_id TEXT NOT NULL, created_at TEXT NOT NULL,
+ attempts INTEGER NOT NULL DEFAULT 0, next_attempt_at INTEGER,
+ blocked_code TEXT, blocked_reason TEXT, accepted_at TEXT, result TEXT
+);
+CREATE INDEX account_payment_shift ON account_payment(org_id,shift_id);
+CREATE INDEX account_payment_customer ON account_payment(org_id,customer_id);`;
+
 export const tillMigrations: string[] = [
   `${initial}${lookup}${drafts}${payments}`,
   registers,
@@ -232,4 +244,5 @@ export const tillMigrations: string[] = [
   shifts,
   customers,
   accountTenders,
+  accountPayments,
 ];

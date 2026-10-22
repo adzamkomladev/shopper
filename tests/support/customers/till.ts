@@ -25,20 +25,29 @@ export type Fields = {
   tin?: string;
 };
 
-export async function startCounter(options: { without?: readonly string[] } = {}) {
+export async function startCounter(
+  options: { without?: readonly string[]; permissions?: readonly string[]; shift?: boolean } = {},
+) {
   const upstream = await startHostUpstream(api);
   let register: Register;
   try {
-    register = await startRegister({ upstream: upstream.url, without: options.without });
+    register = await startRegister({
+      upstream: upstream.url,
+      without: options.without,
+      permissions: options.permissions,
+      shift: options.shift,
+    });
   } catch (error) {
     await upstream.close();
     throw error;
   }
-  /** Sales still in the outbox plus customer events not yet accepted. */
+  /** Sales still in the outbox plus customer events and account payments not yet accepted. */
   const unsent = () =>
     register.fixture.database.read(async (tx) => {
       const [row] = await tx.all<{ n: number }>(sql`SELECT
-        (SELECT count(*) FROM outbox) + (SELECT count(*) FROM customer_upload WHERE accepted_at IS NULL AND blocked_code IS NULL) AS n`);
+        (SELECT count(*) FROM outbox)
+        + (SELECT count(*) FROM customer_upload WHERE accepted_at IS NULL AND blocked_code IS NULL)
+        + (SELECT count(*) FROM account_payment WHERE accepted_at IS NULL AND blocked_code IS NULL) AS n`);
       return row!.n;
     });
   const ask = (message: Reply): Promise<Reply> => register.ask(message);
@@ -78,16 +87,21 @@ export async function startCounter(options: { without?: readonly string[] } = {}
         .toBe(true);
       await counter.settle();
     },
-    /** What reached the server, in order: accepted sale pushes as "sale", customer uploads by event type. */
+    /** What reached the server, in order: accepted sale pushes as "sale", customer uploads by event type, "account.payment". */
     wire: () =>
       upstream.requests
         .filter(
-          (r) => (r.path === "/sync/push" && r.status === 200) || r.path === "/sync/customers",
+          (r) =>
+            (r.path === "/sync/push" && r.status === 200) ||
+            r.path === "/sync/customers" ||
+            r.path === "/sync/accounts/payments",
         )
         .map((r) =>
           r.path === "/sync/push"
             ? "sale"
-            : (r.request as { customer: { type: string } }).customer.type,
+            : r.path === "/sync/accounts/payments"
+              ? "account.payment"
+              : (r.request as { customer: { type: string } }).customer.type,
         ),
     uploads: () => upstream.requests.filter((r) => r.path === "/sync/customers"),
     lookup: () =>

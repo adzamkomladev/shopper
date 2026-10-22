@@ -61,6 +61,7 @@ test("the X of a day with cash and card sales, refunds, a drop and a no-sale rec
         { tender: "card", sales: 26_000, refunds: 6_000, expected: 20_000 },
         { tender: "momo", sales: 0, refunds: 0, expected: 0 },
       ],
+      account: { sales: 0, payments: { cash: 0, momo: 0 }, refunds: 0, points: 0, pointsValue: 0 },
       cash: {
         float: 2_000_000,
         sales: 59_000,

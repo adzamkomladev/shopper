@@ -12,6 +12,12 @@ export type { CatalogueMatch, ProjectedCustomer, ProjectedProduct } from "./look
 export { projectCustomers, removeCustomers, replayPendingCustomers } from "./lookup/customers";
 export { attachDraftCustomer, createTillCustomer, updateTillCustomer } from "./customers/commands";
 export { findCustomers } from "./customers/queries";
+export { recordAccountPayment } from "./accounts/payment";
+export {
+  markAccountPaymentAccepted,
+  markAccountPaymentFailed,
+  markAccountPaymentRejected,
+} from "./accounts/uploads";
 export {
   markCustomerAccepted,
   markCustomerFailed,

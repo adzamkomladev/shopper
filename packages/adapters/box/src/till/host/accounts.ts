@@ -5,6 +5,7 @@ import {
   addDraftAccountTender,
   hostTime,
   readDraft,
+  recordAccountPayment,
   TillError,
   validateSession,
 } from "@shopper/core/till";
@@ -13,11 +14,14 @@ import type { BridgeMessage, BridgeRequest } from "@shopper/sync/bridge";
 import { accountView } from "@shopper/sync/bridge";
 import type { Host } from "./types";
 
-type Request = Extract<BridgeRequest, { type: "customer.account" | "tender.account" }>;
+type Request = Extract<
+  BridgeRequest,
+  { type: "customer.account" | "tender.account" | "account.payment" }
+>;
 type Refusal = { code?: string; error?: string };
 
 /**
- * Selling on account, online only: the server answers what the customer may spend and holds credit before the
+ * Account payments at the drawer take cash anywhere and MoMo only online. Selling on account, online only: the server answers what the customer may spend and holds credit before the
  * tender goes on the basket, under the tender's own id. Removing the tender or voiding the basket releases the
  * hold, best effort: a release that never arrives leaves the hold to lapse after an hour.
  */
@@ -81,6 +85,7 @@ export function createAccounts(host: Host) {
         account: await account(request.customerId),
       };
     const at = await hostTime(database, identity, deviceTime);
+    if (request.type === "account.payment") return payment(request, scope, session, at);
     const current = await readDraft(database, scope, { at });
     if ((current.draft?.revision ?? 0) !== request.expectedRevision)
       throw new TillError("REVISION_STALE", "The basket changed; try again");
@@ -129,6 +134,71 @@ export function createAccounts(host: Host) {
     }
     host.peripherals.basket(view);
     return { id: request.id, type: "result", kind: "draft", view };
+  }
+
+  /**
+   * Cash or MoMo paid onto an account at the drawer. Cash is kept even offline, since it can only lower what is
+   * owed; MoMo needs the network, which also proves the server knows the customer. The slip prints after the commit.
+   */
+  async function payment(
+    request: Extract<Request, { type: "account.payment" }>,
+    scope: { orgId: string; deviceId: string; branchId: string; cashierId: string },
+    session: NonNullable<typeof config.session>,
+    at: Date,
+  ): Promise<BridgeMessage> {
+    if (request.method === "momo") await account(request.customerId);
+    const { orgId, deviceId, branchId, cashierId } = scope;
+    const made = await recordAccountPayment(
+      database,
+      {
+        orgId,
+        actorId: cashierId,
+        role: session.roleName,
+        deviceId,
+        branchId,
+        appVersion: buildInfo.version,
+      },
+      {
+        scope: { orgId, deviceId, branchId },
+        session,
+        at,
+        customerId: request.customerId,
+        method: request.method,
+        amount: request.amount,
+        reference: request.reference ?? null,
+      },
+    );
+    void host.uploadAccountPayments();
+    const printed = await host.receipts
+      .printAccountPayment({
+        shopName: identity.shopName,
+        registerName: identity.registerName,
+        customerName: made.customerName,
+        method: made.method,
+        amount: made.amount,
+        reference: made.reference,
+        // Accra is UTC all year.
+        at: made.at.slice(0, 16).replace("T", " "),
+        cashierName: host.session.current()?.name ?? "Cashier",
+      })
+      .then(
+        () => true,
+        () => false,
+      );
+    return {
+      id: request.id,
+      type: "result",
+      kind: "accountPayment",
+      payment: {
+        id: made.id,
+        customerId: made.customerId,
+        shiftId: made.shiftId,
+        method: made.method,
+        amount: made.amount,
+        reference: made.reference,
+      },
+      printed,
+    };
   }
   return { accounts, release };
 }

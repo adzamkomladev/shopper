@@ -89,6 +89,7 @@ test("Shift with sales, refunds, drops and a no-sale → Z-report reconciles to 
         { tender: "card", sales: 24_000, refunds: 12_000, expected: 12_000 },
         { tender: "momo", sales: 0, refunds: 0, expected: 0 },
       ],
+      account: { sales: 0, payments: { cash: 0, momo: 0 }, refunds: 0, points: 0, pointsValue: 0 },
       cash: {
         float: 2_000_000,
         sales: 49_000,

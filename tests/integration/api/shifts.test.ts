@@ -100,7 +100,11 @@ test("a shift's detail is the stored Z exactly, with the names of the members it
   expect(status).toBe(200);
   expect(body).toEqual({
     ...rowsOf().short,
-    report: events.short.shift.report,
+    // The fixture Z predates the account lines, so it reads with them all at zero.
+    report: {
+      ...events.short.shift.report,
+      account: { sales: 0, payments: { cash: 0, momo: 0 }, refunds: 0, points: 0, pointsValue: 0 },
+    },
     names: { [cashier]: "Cashier", [manager]: "Shift Manager" },
   });
   expect(v.safeParse(zReport, body.report).success).toBe(true);

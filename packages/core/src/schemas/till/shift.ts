@@ -9,6 +9,26 @@ const tender = v.picklist(["cash", "card", "momo"]);
 
 const variance = v.strictObject({ tender, expected: amount, declared: amount, variance: amount });
 
+/**
+ * What happened on customers' accounts in the shift: sales put on account, money paid onto accounts at the drawer by
+ * method (the cash part is inside the expected cash), refunds credited back to accounts, and points redeemed. A Z from
+ * a till that predates these lines reads as all zero.
+ */
+export const accountLines = v.strictObject({
+  sales: amount,
+  payments: v.strictObject({ cash: amount, momo: amount }),
+  refunds: amount,
+  points: count,
+  pointsValue: amount,
+});
+const noAccount = {
+  sales: 0,
+  payments: { cash: 0, momo: 0 },
+  refunds: 0,
+  points: 0,
+  pointsValue: 0,
+};
+
 /** The X report: a shift's takings so far, read while it is open; printing it closes nothing. */
 export const xReport = v.strictObject({
   kind: v.literal("x"),
@@ -24,6 +44,7 @@ export const xReport = v.strictObject({
   sales: v.strictObject({ count, gross: amount, tax: amount }),
   refunds: v.strictObject({ count, total: amount }),
   tenders: v.array(v.strictObject({ tender, sales: amount, refunds: amount, expected: amount })),
+  account: v.optional(accountLines, noAccount),
   cash: v.strictObject({
     float: amount,
     sales: amount,

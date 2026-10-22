@@ -28,7 +28,7 @@ const columns = (database: TillDatabase, table: string) =>
     .then((rows) => rows.map((row) => row.name));
 
 test("step 9 adds customer_lookup, customer_upload and sale_draft.customer_id", async () => {
-  expect(tillMigrations).toHaveLength(10);
+  expect(tillMigrations).toHaveLength(11);
   directory = await mkdtemp(join(tmpdir(), "shopper-till-customers-"));
   db = openTillDatabase(join(directory, "till.sqlite"));
   expect(await columns(db, "customer_lookup")).toEqual(

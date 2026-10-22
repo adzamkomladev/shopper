@@ -8,17 +8,20 @@ type Tender = (typeof TENDERS)[number];
 type Parts = {
   float: Money;
   sales: readonly Pick<SaleSnapshot, "total" | "totals" | "change" | "tenders">[];
-  refunds: readonly Pick<RefundSnapshot, "total" | "tender">[];
+  refunds: readonly Pick<RefundSnapshot, "total" | "tender" | "totals" | "cashRounding">[];
   drops: readonly Money[];
+  /** Cash and MoMo paid onto customers' accounts at the drawer. */
+  accountPayments: readonly { method: "cash" | "momo"; amount: Money }[];
 };
 
 /**
  * What a shift's drawer and terminals should hold. Cash kept from a sale is its cash tenders less change (cash
  * rounding is already inside the change); a cash refund pays out its total (its rounding is inside the total).
- * The till's X and Z come from here. The server re-derives the same rules from the Z's own figures in
+ * Cash paid onto an account is in the drawer too. The account lines are the sales put on account, the payments by
+ * method and the refunds credited back to accounts (the gross less what was paid out). The till's X and Z come from here. The server re-derives the same rules from the Z's own figures in
  * `validate.ts`; change both together, or every uploaded Z becomes SHIFT_MISMATCH.
  */
-export function shiftTotals({ float, sales, refunds, drops }: Parts) {
+export function shiftTotals({ float, sales, refunds, drops, accountPayments }: Parts) {
   const sum = (amounts: readonly Money[]) => amounts.reduce(add, money(0));
   const taken = (kind: Tender) =>
     sum(
@@ -30,11 +33,15 @@ export function shiftTotals({ float, sales, refunds, drops }: Parts) {
   const repaid = (kind: Tender) =>
     sum(refunds.filter((r) => r.tender.kind === kind).map((r) => r.total));
   const dropped = sum(drops);
+  const paid = (method: "cash" | "momo") =>
+    sum(accountPayments.filter((p) => p.method === method).map((p) => p.amount));
+  const accountCash = paid("cash");
   const tenders = TENDERS.map((tender) => {
     const lines = { sales: taken(tender), refunds: repaid(tender) };
     const net = sub(lines.sales, lines.refunds);
-    // The drawer also holds the float and has lost its drops; a no-sale moves nothing.
-    return { tender, ...lines, expected: tender === "cash" ? sub(add(float, net), dropped) : net };
+    // The drawer also holds the float and the cash paid onto accounts, and has lost its drops; a no-sale moves nothing.
+    const drawer = sub(add(add(float, net), accountCash), dropped);
+    return { tender, ...lines, expected: tender === "cash" ? drawer : net };
   });
   const cash = tenders[0]!;
   return {
@@ -47,6 +54,16 @@ export function shiftTotals({ float, sales, refunds, drops }: Parts) {
     },
     refunds: { count: refunds.length, total: sum(refunds.map((r) => r.total)) },
     tenders,
+    account: {
+      sales: sum(
+        sales.flatMap((s) => s.tenders.filter((t) => t.kind === "credit").map((t) => t.amount)),
+      ),
+      payments: { cash: accountCash, momo: paid("momo") },
+      refunds: sum(refunds.map((r) => sub(r.totals.gross, sub(r.total, r.cashRounding)))),
+      // Filled in with the loyalty tender.
+      points: 0,
+      pointsValue: money(0),
+    },
     cash: {
       float,
       sales: cash.sales,

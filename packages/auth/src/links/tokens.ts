@@ -6,6 +6,10 @@ export async function createLinkToken(
   purpose: "registration" | "registration-resend" | "invitation",
   id: string,
 ) {
+  return hmacHex(secret, `shopper:${purpose}:${id.toLowerCase()}`);
+}
+/** HMAC-SHA-256 of a message under the shared link secret, as lowercase hex. */
+export async function hmacHex(secret: string, message: string) {
   if (secret.length < 32) throw new Error("Link secret must be at least 32 characters");
   const key = await crypto.subtle.importKey(
     "raw",
@@ -14,13 +18,7 @@ export async function createLinkToken(
     false,
     ["sign"],
   );
-  return hex(
-    await crypto.subtle.sign(
-      "HMAC",
-      key,
-      new TextEncoder().encode(`shopper:${purpose}:${id.toLowerCase()}`),
-    ),
-  );
+  return hex(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message)));
 }
 export async function linkDigest(token: string) {
   return sha256(token);

@@ -1,11 +1,22 @@
 import * as v from "valibot";
 import type { Context } from "hono";
 import { AssetError } from "@shopper/assets";
+import { AdministrationError } from "@shopper/auth";
+import { KycError } from "@shopper/auth/kyc";
 import { ManagementError } from "@shopper/core/management";
 import { CustomerError } from "@shopper/core/customers";
 import { StockError } from "@shopper/core/stock";
 
 const customerStatus = { NOT_FOUND: 404 } as const;
+const kycStatus = {
+  NOT_FOUND: 404,
+  OTP_INVALID: 400,
+  OTP_LOCKED: 429,
+  ID_NOT_ACCEPTED: 400,
+  ID_NOT_SIGHTED: 400,
+  LIMIT_REQUIRED: 400,
+  UNAVAILABLE: 503,
+} as const;
 const stockStatus = { NOT_FOUND: 404, INVALID_REFERENCE: 400, INVALID_SIGN: 400 } as const;
 
 // Unique constraints the catalogue exposes, as the body field they belong to.
@@ -29,6 +40,12 @@ export function problem(error: Error, c: Context) {
     return c.json(
       { error: error.message, code: error.code },
       stockStatus[error.code as keyof typeof stockStatus] ?? 409,
+    );
+  if (error instanceof AdministrationError) return c.json({ error: error.message }, error.status);
+  if (error instanceof KycError)
+    return c.json(
+      { error: error.message, code: error.code },
+      kycStatus[error.code as keyof typeof kycStatus] ?? 409,
     );
   if (error instanceof CustomerError)
     return c.json(

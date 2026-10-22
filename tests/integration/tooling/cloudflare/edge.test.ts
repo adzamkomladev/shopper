@@ -40,6 +40,7 @@ test("Durable Objects, Workflows and every resource binding are the staging ones
     ["PriceChangeWorkflow", "shopper-price-change-staging"],
     ["AuthWorkflow", "shopper-auth-flow-staging"],
     ["MomoPaymentWorkflow", "shopper-momo-payment-staging"],
+    ["KycWorkflow", "shopper-kyc-staging"],
   ]) {
     expect(exports[exportName]).toMatchObject({ type: "workflow", name });
   }

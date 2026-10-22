@@ -15,6 +15,7 @@ import {
   boxPriceChange,
   boxRealtime,
   boxAuthFlows,
+  boxKycFlows,
   boxMomoPayment,
   boxQueue,
 } from "@shopper/adapters-box";
@@ -25,6 +26,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
   let workflowPool: ReturnType<typeof boxPool> | undefined;
   let cache: ReturnType<typeof boxCache> | undefined;
   let authFlows: ReturnType<typeof boxAuthFlows> | undefined;
+  let kycFlows: ReturnType<typeof boxKycFlows> | undefined;
   let momoPayment: ReturnType<typeof boxMomoPayment> | undefined;
   let priceChange: ReturnType<typeof boxPriceChange> | undefined;
   let notifications: ReturnType<typeof boxQueue> | undefined;
@@ -91,6 +93,12 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
       notifications ??= boxQueue(NOTIFICATION_RETRY, (delivery) =>
         deliverStockAlert(workflowDatabase, sms, delivery, buildInfo.version),
       );
+      if (environment.SHOPPER_LINK_SECRET)
+        kycFlows ??= boxKycFlows({
+          withDatabase: (run) => run(workflowDatabase),
+          sms,
+          linkSecret: environment.SHOPPER_LINK_SECRET,
+        });
     }
     try {
       return await serveRuntime(request, {
@@ -120,6 +128,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
         momoPayment,
         paystackSecret: environment.PAYSTACK_SECRET_KEY,
         authFlows,
+        kyc: kycFlows,
         linkSecret: environment.SHOPPER_LINK_SECRET,
       });
     } finally {

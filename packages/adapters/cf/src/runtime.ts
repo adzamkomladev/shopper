@@ -60,6 +60,10 @@ export async function cloudflareRuntime(
           : undefined,
       paystackSecret: env.PAYSTACK_SECRET_KEY,
       authFlows: env.AUTH_FLOWS ? cloudflareLauncher(env.AUTH_FLOWS) : undefined,
+      kyc:
+        env.KYC_FLOWS && env.ARKESEL_API_KEY && env.ARKESEL_SENDER
+          ? cloudflareLauncher(env.KYC_FLOWS)
+          : undefined,
       linkSecret: env.SHOPPER_LINK_SECRET,
       publicOnboarding: true,
     });

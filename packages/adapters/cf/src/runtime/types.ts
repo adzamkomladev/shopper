@@ -37,4 +37,5 @@ export interface CloudflareRuntimeEnvironment extends AuthEnvironment {
   NOTIFICATIONS?: Parameters<typeof cloudflareQueue>[0];
   MOMO_PAYMENT?: Parameters<typeof cloudflareLauncher>[0];
   AUTH_FLOWS?: Parameters<typeof cloudflareLauncher>[0];
+  KYC_FLOWS?: Parameters<typeof cloudflareLauncher>[0];
 }

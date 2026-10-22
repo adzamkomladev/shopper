@@ -9,3 +9,4 @@ export { openTillDatabase, TillDatabaseKeyError } from "./till/database";
 export { boxLive, type BoxWebSocketServer } from "./live";
 export { boxMomoPayment } from "./workflows/payments";
 export { boxQueue } from "./queue";
+export { boxKycFlows } from "./workflows/kyc";

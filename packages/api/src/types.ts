@@ -32,6 +32,8 @@ export interface ApiOptions {
   priceChange?: WorkflowLauncher;
   onboarding?: ReturnType<typeof createOnboarding>;
   invitations?: ReturnType<typeof createInvitations>;
+  kyc?: WorkflowLauncher;
+  linkSecret?: string;
 }
 
 export interface RuntimeOptions {
@@ -51,6 +53,7 @@ export interface RuntimeOptions {
   paystackSecret?: string;
   priceChange?: WorkflowLauncher;
   authFlows?: WorkflowLauncher;
+  kyc?: WorkflowLauncher;
   linkSecret?: string;
   publicOnboarding?: boolean;
 }

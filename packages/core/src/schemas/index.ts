@@ -22,4 +22,4 @@ export * from "./stock/portal";
 export * from "./stock/takes";
 export * from "./customers/inputs";
 export * from "./customers/events";
-export { compactPhone } from "./fields";
+export { compactPhone, ghanaPhone, positiveInt } from "./fields";

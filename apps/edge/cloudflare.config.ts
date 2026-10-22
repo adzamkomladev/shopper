@@ -75,6 +75,11 @@ export default defineConfig(({ mode }) => {
           worker: name,
           exportName: "AuthWorkflow",
         }),
+        KYC_FLOWS: bindings.workflow({
+          name: workflow("kyc"),
+          worker: name,
+          exportName: "KycWorkflow",
+        }),
         MOMO_PAYMENT: bindings.workflow({
           name: workflow("momo-payment"),
           worker: name,
@@ -98,6 +103,7 @@ export default defineConfig(({ mode }) => {
         PriceChangeWorkflow: exports.workflow({ name: workflow("price-change") }),
         AuthWorkflow: exports.workflow({ name: workflow("auth-flow") }),
         MomoPaymentWorkflow: exports.workflow({ name: workflow("momo-payment") }),
+        KycWorkflow: exports.workflow({ name: workflow("kyc") }),
       },
     },
   };

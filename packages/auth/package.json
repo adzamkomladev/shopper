@@ -8,6 +8,10 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./kyc": {
+      "types": "./src/kyc/index.ts",
+      "default": "./src/kyc/index.ts"
+    },
     "./devices": {
       "types": "./src/devices/index.ts",
       "default": "./src/devices/index.ts"
@@ -26,6 +30,7 @@
     "@shopper/config": "workspace:*",
     "@shopper/core": "workspace:*",
     "@shopper/db-pg": "workspace:*",
+    "@shopper/money": "workspace:*",
     "@shopper/ports": "workspace:*",
     "@shopper/utils": "workspace:*",
     "better-auth": "1.7.7",

@@ -155,7 +155,7 @@ The `release` skill walks through this list.
 
 ## Auth link and email configuration
 
-The edge requires `AUTH_FLOWS` bound to the exported `AuthWorkflow` class. Set a dedicated
+The edge requires `AUTH_FLOWS` bound to the exported `AuthWorkflow` class, and `KYC_FLOWS` to `KycWorkflow` (workflow `shopper-kyc-<stage>`; it needs the Arkesel secrets and the link secret, otherwise the KYC case routes answer 503). Set a dedicated
 `SHOPPER_LINK_SECRET` of at least 32 characters alongside `SHOPPER_AUTH_SECRET` and
 `SHOPPER_AUTH_URL`; do not reuse the authentication secret. Set `MAILEROO_API_KEY` and
 `MAILEROO_FROM` to a sender on a domain verified in Maileroo. The sender is trusted runtime

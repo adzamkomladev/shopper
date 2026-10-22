@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   bigint,
+  boolean,
   check,
   customType,
   foreignKey,
@@ -29,6 +30,7 @@ const times = () => ({
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 export const cashRoundingModes = ["none", "10p"] as const;
+export const statementSchedules = ["off", "monthly"] as const;
 export const org = pgTable(
   "org",
   {
@@ -47,6 +49,35 @@ export const org = pgTable(
       .notNull()
       .default("full"),
     cashRounding: text("cash_rounding", { enum: cashRoundingModes }).notNull().default("10p"),
+    loyaltyEnabled: boolean("loyalty_enabled").notNull().default(false),
+    /** Points earned per 10 000 bps of a sale's value, and what one point is worth. */
+    loyaltyEarnBps: integer("loyalty_earn_bps").notNull().default(0),
+    loyaltyPointValue: moneyColumn("loyalty_point_value")
+      .notNull()
+      .default(sql`0`),
+    /** Days until earned points lapse; 0 means never. */
+    loyaltyExpiryDays: integer("loyalty_expiry_days").notNull().default(0),
+    /** Days before a tier downgrade that the customer is told; 0 turns notices off. */
+    tierNoticeDays: integer("tier_notice_days").notNull().default(14),
+    creditTermsDays: integer("credit_terms_days").notNull().default(30),
+    /** Monthly interest on the balance aged past terms; 0 turns interest off. */
+    creditInterestBps: integer("credit_interest_bps").notNull().default(0),
+    statementSchedule: text("statement_schedule", { enum: statementSchedules })
+      .notNull()
+      .default("off"),
+    statementDay: integer("statement_day").notNull().default(1),
+    statementChannels: text("statement_channels")
+      .array()
+      .notNull()
+      .default(sql`'{}'`),
+    statementMinBalance: moneyColumn("statement_min_balance")
+      .notNull()
+      .default(sql`0`),
+    kycIdRequired: boolean("kyc_id_required").notNull().default(false),
+    kycIdTypes: text("kyc_id_types")
+      .array()
+      .notNull()
+      .default(sql`'{ghana_card,passport,voter_id,drivers_licence}'`),
     ...times(),
   },
   (t) => [
@@ -54,6 +85,22 @@ export const org = pgTable(
     unique().on(t.slug),
     check("org_mode", sql`${t.mode} IN ('full', 'relay')`),
     check("org_cash_rounding", sql`${t.cashRounding} IN ('none', '10p')`),
+    check(
+      "org_loyalty",
+      sql`${t.loyaltyEarnBps} BETWEEN 0 AND 10000 AND ${t.loyaltyPointValue} >= 0 AND ${t.loyaltyExpiryDays} >= 0 AND ${t.tierNoticeDays} >= 0 AND (NOT ${t.loyaltyEnabled} OR ${t.loyaltyPointValue} > 0)`,
+    ),
+    check(
+      "org_credit",
+      sql`${t.creditTermsDays} >= 0 AND ${t.creditInterestBps} BETWEEN 0 AND 10000`,
+    ),
+    check(
+      "org_statements",
+      sql`${t.statementSchedule} IN ('off', 'monthly') AND ${t.statementDay} BETWEEN 1 AND 28 AND ${t.statementChannels} <@ ARRAY['sms', 'email']::text[] AND ${t.statementMinBalance} >= 0 AND (${t.statementSchedule} = 'off' OR cardinality(${t.statementChannels}) > 0)`,
+    ),
+    check(
+      "org_kyc",
+      sql`${t.kycIdTypes} <@ ARRAY['ghana_card', 'passport', 'voter_id', 'drivers_licence']::text[] AND (NOT ${t.kycIdRequired} OR cardinality(${t.kycIdTypes}) > 0)`,
+    ),
   ],
 );
 export const tenant = () => ({

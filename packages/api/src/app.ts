@@ -9,6 +9,7 @@ import { administrationRoutes } from "./routes/administration";
 import { deviceRoutes } from "./routes/devices";
 import { shiftRoutes } from "./routes/shifts";
 import { stockRoutes } from "./routes/stock";
+import { customerRoutes } from "./routes/customers";
 import { managementRoutes } from "./routes/management";
 import { systemRoutes } from "./routes/system";
 import { taxRuleRoutes } from "./routes/tax/rules";
@@ -56,5 +57,7 @@ export function createApi(options: ApiOptions = {}) {
   if (options.database) app.route("/", shiftRoutes(options.database, options.authentication));
   if (options.database)
     app.route("/", stockRoutes(options.database, options.authentication, options.notifications));
+  if (options.database)
+    app.route("/", customerRoutes(options.database, options.authentication, options.notifications));
   return app;
 }

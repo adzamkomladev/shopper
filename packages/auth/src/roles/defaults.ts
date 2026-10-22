@@ -4,7 +4,16 @@ export const rolePermissions: Record<string, readonly string[]> = {
   admin: permissionNames.filter(
     (code) => !code.startsWith("store.") && !code.startsWith("branch.") && code !== "tax.write",
   ),
-  accountant: ["product.read", "shift.read", "stock.read", "tax.read", "report.read", "audit.read"],
+  accountant: [
+    "product.read",
+    "shift.read",
+    "stock.read",
+    "tax.read",
+    "report.read",
+    "audit.read",
+    "customer.read",
+    "customer.manage",
+  ],
   inventory: ["product.read", "stock.read", "stock.write", "product.propose"],
   cashier: [
     "product.read",
@@ -13,6 +22,8 @@ export const rolePermissions: Record<string, readonly string[]> = {
     "refund.request",
     "shift.read",
     "shift.write",
+    "customer.read",
+    "customer.write",
   ],
 };
 export const tillPermissions = new Set([
@@ -31,4 +42,6 @@ export const tillPermissions = new Set([
   "report.read",
   "stock.read",
   "stock.write",
+  "customer.read",
+  "customer.write",
 ]);

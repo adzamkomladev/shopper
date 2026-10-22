@@ -35,6 +35,10 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   "device.revoke": "Revoke devices",
   "cashier.pin.assign": "Set cashier PINs",
   "register.settings": "Change register settings",
+  "customer.read": "View customers",
+  "customer.write": "Create and edit customers",
+  "customer.manage": "Manage customer accounts",
+  "kyc.approve": "Approve identity checks",
 };
 
 /** The matrix reads top to bottom in these groups. */
@@ -50,6 +54,10 @@ export const PERMISSION_GROUPS: readonly { name: string; codes: readonly Permiss
       "refund.request",
       "refund.approve",
     ],
+  },
+  {
+    name: "Customers",
+    codes: ["customer.read", "customer.write", "customer.manage", "kyc.approve"],
   },
   { name: "Shifts", codes: ["shift.read", "shift.write", "shift.approve"] },
   {

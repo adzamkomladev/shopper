@@ -2,6 +2,7 @@ import * as v from "valibot";
 import { count, eq } from "drizzle-orm";
 import { localSale, productLookup, refund, type TillDatabase } from "@shopper/db-sqlite";
 import { add, money, sub, toDecimal, type Money } from "@shopper/money";
+import { formatQuantity, toCsv } from "@shopper/utils";
 import { refundEvent } from "../schemas/till/refund";
 import { saleSnapshot } from "../schemas/till/sale";
 import {
@@ -99,22 +100,23 @@ export async function registerReport(db: TillDatabase, raw: unknown): Promise<Re
 /** The report as CSV: totals, tenders, then top products, money in cedis to 2 dp. */
 export function registerReportCsv(report: RegisterReport): string {
   const cedis = (n: number) => toDecimal(money(n));
-  const cell = (s: string) => (/[",\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s);
   const { totals } = report;
-  return [
-    `Register report,${report.from} to ${report.to}`,
-    `Total sales,${cedis(totals.sales)}`,
-    `Transactions,${totals.transactions}`,
-    `Tax,${cedis(totals.tax)}`,
-    `Discounts,${cedis(totals.discounts)}`,
-    `Net sales,${cedis(totals.net)}`,
-    "",
-    "Tender,Amount",
-    ...report.tenders.map((t) => `${t.method},${cedis(t.amount)}`),
-    "",
-    "Product,Quantity,Amount",
-    ...report.topProducts.map(
-      (p) => `${cell(p.name)},${(p.quantityThousandths / 1000).toFixed(3)},${cedis(p.amount)}`,
-    ),
-  ].join("\n");
+  return toCsv([
+    ["Register report", `${report.from} to ${report.to}`],
+    ["Total sales", cedis(totals.sales)],
+    ["Transactions", String(totals.transactions)],
+    ["Tax", cedis(totals.tax)],
+    ["Discounts", cedis(totals.discounts)],
+    ["Net sales", cedis(totals.net)],
+    [],
+    ["Tender", "Amount"],
+    ...report.tenders.map((t) => [t.method, cedis(t.amount)]),
+    [],
+    ["Product", "Quantity", "Amount"],
+    ...report.topProducts.map((p) => [
+      p.name,
+      formatQuantity(p.quantityThousandths, "-"),
+      cedis(p.amount),
+    ]),
+  ]);
 }

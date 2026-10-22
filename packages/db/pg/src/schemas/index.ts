@@ -11,3 +11,4 @@ export * from "./payments";
 export * from "./stock";
 export * from "./refunds";
 export * from "./shifts";
+export * from "./customers";

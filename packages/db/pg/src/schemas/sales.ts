@@ -3,6 +3,7 @@ import {
   bigint,
   check,
   foreignKey,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -18,6 +19,8 @@ import { device, cashierSession } from "./devices";
 import { product, price, taxRule } from "./catalogue";
 import { payment } from "./payments";
 import { asset } from "./assets";
+import { customer } from "./customers/base";
+import { accountHold } from "./customers/holds";
 
 export const sale = pgTable(
   "sale",
@@ -49,10 +52,13 @@ export const sale = pgTable(
       .default(sql`0`),
     receipt: jsonb("receipt"),
     receiptAssetId: uuid("receipt_asset_id"),
+    customerId: uuid("customer_id"),
   },
   (t) => [
     unique().on(t.orgId, t.id),
     unique().on(t.deviceId, t.localId),
+    index("sale_customer").on(t.orgId, t.customerId),
+    foreignKey({ columns: [t.orgId, t.customerId], foreignColumns: [customer.orgId, customer.id] }),
     foreignKey({ columns: [t.orgId, t.receiptAssetId], foreignColumns: [asset.orgId, asset.id] }),
     uniqueIndex("sale_receipt_unique").on(t.orgId, t.receiptNumber),
     unique().on(t.orgId, t.storeId, t.storeSequence),
@@ -88,28 +94,41 @@ export const saleLine = pgTable(
 );
 
 export const tenderKinds = ["cash", "momo", "card"] as const;
+/** What a sale can be paid with: the money tenders plus an account tender (customer credit or points). */
+export const saleTenderKinds = [...tenderKinds, "credit", "loyalty"] as const;
 export const saleTender = pgTable(
   "sale_tender",
   {
     ...tenant(),
     saleId: uuid("sale_id").notNull(),
     position: integer("position").notNull(),
-    kind: text("kind", { enum: tenderKinds }).notNull(),
+    kind: text("kind", { enum: saleTenderKinds }).notNull(),
     amount: moneyColumn("amount").notNull(),
     reference: text("reference"),
     approvalCode: text("approval_code"),
     last4: text("last4"),
     network: text("network"),
     paymentId: uuid("payment_id"),
+    /** The account hold an account tender spends: the hold's id is the tender id. */
+    holdId: uuid("hold_id"),
   },
   (t) => [
     unique().on(t.orgId, t.id),
     unique().on(t.orgId, t.saleId, t.position),
     // A confirmed MoMo payment settles one tender only.
     unique().on(t.orgId, t.paymentId),
+    unique().on(t.orgId, t.holdId),
     foreignKey({ columns: [t.orgId, t.saleId], foreignColumns: [sale.orgId, sale.id] }),
     foreignKey({ columns: [t.orgId, t.paymentId], foreignColumns: [payment.orgId, payment.id] }),
-    check("sale_tender_kind", sql`${t.kind} IN ('cash', 'momo', 'card')`),
+    foreignKey({
+      columns: [t.orgId, t.holdId],
+      foreignColumns: [accountHold.orgId, accountHold.id],
+    }),
+    check("sale_tender_kind", sql`${t.kind} IN ('cash', 'momo', 'card', 'credit', 'loyalty')`),
+    check(
+      "sale_tender_hold",
+      sql`(${t.kind} IN ('credit', 'loyalty')) = (${t.holdId} IS NOT NULL)`,
+    ),
     check("sale_tender_amount", sql`${t.amount} > 0 OR (${t.kind} = 'cash' AND ${t.amount} = 0)`),
     check("sale_tender_position", sql`${t.position} >= 0`),
     check("sale_tender_momo_payment", sql`${t.kind} <> 'momo' OR ${t.paymentId} IS NOT NULL`),

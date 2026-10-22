@@ -4,6 +4,7 @@ import {
   check,
   foreignKey,
   index,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -35,6 +36,11 @@ export const refund = pgTable(
     gross: moneyColumn("gross").notNull(),
     cashRounding: moneyColumn("cash_rounding").notNull(),
     total: moneyColumn("total").notNull(),
+    /** The part of the refund credited to the customer's account, and the points given back. */
+    accountCredit: moneyColumn("account_credit")
+      .notNull()
+      .default(sql`0`),
+    pointsReturned: integer("points_returned").notNull().default(0),
     appVersion: text("app_version").notNull(),
     eventVersion: bigint("event_version", { mode: "number" }).notNull().default(1),
     deviceTime: timestamp("device_time", { withTimezone: true }).notNull(),
@@ -63,6 +69,7 @@ export const refund = pgTable(
       sql`${t.tenderKind} = 'cash' OR (${t.tenderReference} IS NOT NULL AND ${t.tenderReference} <> '')`,
     ),
     check("refund_amounts", sql`${t.gross} >= 0 AND ${t.total} >= 0`),
+    check("refund_account", sql`${t.accountCredit} >= 0 AND ${t.pointsReturned} >= 0`),
     check("refund_event_version_positive", sql`${t.eventVersion} > 0`),
   ],
 );

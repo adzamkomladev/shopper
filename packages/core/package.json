@@ -67,6 +67,10 @@
     "./shifts": {
       "types": "./src/shifts/index.ts",
       "default": "./src/shifts/index.ts"
+    },
+    "./customers": {
+      "types": "./src/customers/index.ts",
+      "default": "./src/customers/index.ts"
     }
   },
   "scripts": {

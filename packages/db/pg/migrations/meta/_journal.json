@@ -176,6 +176,13 @@
       "when": 1792231200008,
       "tag": "0024_inventory",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792231200009,
+      "tag": "0025_customers",
+      "breakpoints": true
     }
   ]
 }

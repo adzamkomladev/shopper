@@ -5,6 +5,8 @@ import { add, fromBigInt, money, sub, type Money } from "@shopper/money";
 import type { SaleSnapshot } from "../../schemas/till/sale";
 import type { Queryable } from "../../types";
 import { readCustomerRow } from "../queries";
+import { currentCustomerId } from "../sale";
+import { wakeAccount } from "../accounts/wake";
 import { pointsEarned, pointsReversed } from "./points";
 import { readLoyaltySettings, tierView } from "./settings";
 import { readTierProjection, tierFor } from "./tiers";
@@ -84,10 +86,9 @@ type Settled = Awaited<ReturnType<typeof salePoints>>;
 
 /**
  * The ledger side of an accepted refund: the redeemed points it hands back (first), then the earn it reverses at the
- * rate the earn stored, capped at what is left of it. Both go to the customer the sale was rung up to.
+ * rate the earn stored, capped at what is left of it. Both go to the customer the sale was rung up to, or to the
+ * winner when that customer was merged away; each customer whose points moved has their account workflow woken.
  */
-// ponytail: a customer merged away since the sale keeps these entries on the merged-away id; follow `mergedIntoId`
-// here if merges after a sale and a later refund prove common.
 export async function settleRefundPoints(
   tx: ShopperTransaction,
   ctx: CommandContext,
@@ -111,22 +112,22 @@ export async function settleRefundPoints(
     actorId: input.actorId,
     occurredAt: input.occurredAt,
   };
-  if (input.returned > 0 && held.redeemed)
-    await tx.insert(loyaltyEntry).values({
-      ...entry,
-      customerId: held.redeemed.customerId,
-      points: input.returned,
-    });
-  if (!held.earn) return;
-  const reversed = pointsReversed(
-    input.paid,
-    { rateBps: held.earn.rateBps!, pointValue: held.earn.pointValue! },
-    held.unreversed,
-  );
-  if (reversed > 0)
-    await tx
-      .insert(loyaltyEntry)
-      .values({ ...entry, customerId: held.earn.customerId, points: -reversed });
+  const moved = new Set<string>();
+  const put = async (customerId: string, points: number) => {
+    const id = await currentCustomerId(tx, ctx.orgId, customerId);
+    await tx.insert(loyaltyEntry).values({ ...entry, customerId: id, points });
+    moved.add(id);
+  };
+  if (input.returned > 0 && held.redeemed) await put(held.redeemed.customerId, input.returned);
+  if (held.earn) {
+    const reversed = pointsReversed(
+      input.paid,
+      { rateBps: held.earn.rateBps!, pointValue: held.earn.pointValue! },
+      held.unreversed,
+    );
+    if (reversed > 0) await put(held.earn.customerId, -reversed);
+  }
+  for (const id of moved) wakeAccount(tx, ctx.orgId, id);
 }
 
 /** A customer's points with a running balance after each entry, and the tier they would earn at now. */

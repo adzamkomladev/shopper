@@ -4,7 +4,7 @@ export { customerCsv } from "./export";
 export { mergeCustomers } from "./merge";
 export { listCustomers, readCustomer, readCustomerRow } from "./queries";
 export { acceptCustomerEvent } from "./till";
-export { accountSummary, tillActor } from "./credit/account";
+export { accountSummary, tillAccount, tillActor } from "./credit/account";
 export { ageingCsv, readAgeing, readAgeingReport } from "./credit/ageing";
 export { listCustomerSales, listStatementDeliveries } from "./history";
 export { createHold, releaseHold } from "./credit/holds";
@@ -32,15 +32,14 @@ export {
   statementLinkUrl,
 } from "./statements/links";
 export { sendStatement } from "./statements/send";
-export type { StatementDeliveryDeps, StatementMail } from "./statements/types";
+export type { StatementDeliveryDeps } from "./statements/types";
 export { applyVerifiedLimit } from "./limit";
 export { postInterest } from "./credit/interest";
 export { readCreditSettings, setCreditSettings } from "./credit/settings";
 export { expirePoints } from "./loyalty/expiry";
 export { deliverTierNotice, sendTierNotice } from "./loyalty/notices";
-export { tierProjection } from "./loyalty/tiers";
 export { nextDue } from "./accounts/due";
-export { ACCOUNT_RUN, accountDue } from "./accounts/post";
+export { accountDue } from "./accounts/post";
 export { deliverAccountMessage, ledgerCustomers, wakeAccount, wakeAccounts } from "./accounts/wake";
 export { runAccount, type AccountFlowDeps } from "../workflows/account";
 export { accountFlowParams } from "../schemas/customers/accounts";

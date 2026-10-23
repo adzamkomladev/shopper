@@ -1,6 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import type { CommandContext } from "@shopper/audit";
 import { creditEntry, refund, type ShopperTransaction } from "@shopper/db-pg";
+import { currentCustomerId } from "../sale";
 import { fromBigInt, money, mulRatio, sub, unitsOf, type Money } from "@shopper/money";
 
 /**
@@ -59,7 +60,8 @@ export async function saleAccount(tx: ShopperTransaction, orgId: string, saleId:
   };
 }
 
-/** Writes the credit note that returns a refund's account share; nothing when the share is zero. */
+/** Writes the credit note that returns a refund's account share, to the merge winner if the customer was merged away;
+ * nothing when the share is zero. */
 export async function creditRefund(
   tx: ShopperTransaction,
   ctx: CommandContext,
@@ -75,7 +77,7 @@ export async function creditRefund(
   if (input.share === 0 || !input.customerId) return;
   await tx.insert(creditEntry).values({
     orgId: ctx.orgId,
-    customerId: input.customerId,
+    customerId: await currentCustomerId(tx, ctx.orgId, input.customerId),
     kind: "credit_note",
     amount: sub(money(0), input.share),
     refundId: input.refundId,

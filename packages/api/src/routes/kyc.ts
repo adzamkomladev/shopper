@@ -44,7 +44,7 @@ export function kycRoutes(options: ApiOptions) {
   app.post("/kyc/:id/resend", async (c) => c.json(await kyc.resend(run(c), id(c))));
   app.post("/kyc/:id/verify", async (c) => c.json(await kyc.verify(run(c), id(c), await body(c))));
   app.post("/kyc/:id/id", async (c) => c.json(await kyc.recordId(run(c), id(c), await body(c))));
-  app.post("/kyc/:id/skip-id", async (c) => c.json(await kyc.skipId(run(c), id(c))));
+  app.post("/kyc/:id/id/skip", async (c) => c.json(await kyc.skipId(run(c), id(c))));
   app.post("/kyc/:id/decision", async (c) =>
     c.json(await kyc.decide(run(c), id(c), await body(c))),
   );

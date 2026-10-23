@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { v7 } from "uuid";
 import * as v from "valibot";
 import { defineCommand, enqueueAfterCommit, type CommandContext } from "@shopper/audit";
@@ -127,7 +127,7 @@ export async function deliverSchedule(
       const [row] = await deps.db
         .select({ email: customer.email })
         .from(customer)
-        .where(eq(customer.id, payload.customerId));
+        .where(and(eq(customer.orgId, orgId), eq(customer.id, payload.customerId)));
       for (const channel of payload.channels)
         if (channel === "sms" || row?.email)
           await sendStatement(deps.db, ctx, {

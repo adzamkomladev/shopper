@@ -8,7 +8,7 @@ import {
 import { statementRunsSince } from "../customers/statements/restart";
 import { statementFlowParams } from "../schemas/customers/statements";
 import type { StatementFlowDeps } from "./types";
-import { MAX_WAIT_MS, woken } from "./wait";
+import { LAST_WAKE_MS, MAX_WAIT_MS, woken } from "./wait";
 export type { StatementFlowDeps } from "./types";
 
 const policy = { maxAttempts: 5, delayMs: 1000, backoff: "exponential" } as const;
@@ -40,7 +40,11 @@ export async function runStatementSchedule(
           null,
       ),
     );
-    if (due === null) break;
+    if (due === null) {
+      // Cloudflare drops a wake sent as an instance ends: take one already buffered before ending.
+      if (await woken(flow, `last-${tick}`, LAST_WAKE_MS)) continue;
+      break;
+    }
     const wait = due - Date.now();
     if (
       wait > 0 &&

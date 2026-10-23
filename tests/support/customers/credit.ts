@@ -2,7 +2,7 @@
 //   Assumed wire shapes (the plan names the routes, not the bodies):
 //     POST /sync/customers/holds              {requestId, proof, hold:{id, orgId, sessionId, customerId, kind:"credit", amount}}
 //     POST /sync/customers/holds/:id/release  {requestId, proof, release:{orgId, sessionId}}
-//     GET  /sync/customers/:id/account        -> {limit, balance, held, available, eligible, points, pointValue, loyaltyEnabled}
+//     POST /sync/customers/:id/account        {proof, session:{orgId, sessionId}} -> {limit, balance, held, available, eligible, points, pointValue, loyaltyEnabled}
 //   creditHolds(headers?)           -> { create, release, account } for one enrolled device (default: the fixture's)
 //   secondDevice()                  -> another enrolled device with a session valid now
 //   sessionOf(userId, pin)          -> a session valid now for that member on the fixture device
@@ -15,6 +15,7 @@
 import { sql } from "drizzle-orm";
 import { v7 } from "uuid";
 import type { customerApi } from "./http";
+import { accountRead } from "./account";
 import { enrollFixtureTill } from "../till/enrollment";
 import { pushEvents, syncHeaders } from "../till/requests";
 import { openTillDatabase } from "@shopper/adapters-box";
@@ -83,8 +84,8 @@ export function creditHolds(device?: Record<string, string>) {
         proof: session.proof,
         release: { orgId: ids.org, sessionId: session.sessionId },
       }),
-    account: (customerId: string) =>
-      send("GET", `/sync/customers/${customerId}/account`, headers()),
+    account: async (customerId: string, session?: Session) =>
+      send("POST", `/sync/customers/${customerId}/account`, headers(), await accountRead(session)),
   };
 }
 

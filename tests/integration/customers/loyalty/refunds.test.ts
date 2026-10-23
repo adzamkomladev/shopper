@@ -17,6 +17,7 @@ import { addLoyaltyEntry, folds } from "../../../support/customers/seed";
 import { ON, customerSale, loyaltyApi, pointEntries } from "../../../support/customers/loyalty";
 import { ids } from "../../../support/till/sales";
 import { databases } from "../../../support/till/server";
+import { sentMessages } from "../../../support/stock/queue";
 
 let world: Awaited<ReturnType<typeof goldenWorld>>;
 let portal: ReturnType<typeof customerApi>;
@@ -46,6 +47,13 @@ test("a refund goes to the account first, then to redeemed points, then out in i
   });
   await arrived(counter, sold.saleId);
   expect(await folds(customerId)).toEqual({ balance: 800_000, points: 150 - 100 + 119 });
+  const wakes = async () =>
+    (await sentMessages()).filter(
+      (m) =>
+        m.type === "account.wake" &&
+        (m.payload as { customerId?: string }).customerId === customerId,
+    ).length;
+  const before = await wakes();
 
   const refunds: Record<string, any>[] = [];
   for (const [index, quantityThousandths] of [50_000, 50_000].entries()) {
@@ -84,6 +92,8 @@ test("a refund goes to the account first, then to redeemed points, then out in i
   expect(ofRefunds.map((e) => e.points)).toEqual([-60, 100, -59]);
   // Everything came back: the account owes nothing and the points are where they began.
   expect(await folds(customerId)).toEqual({ balance: 0, points: 150 });
+  // Each refund moved points, so each wakes the account workflow to look at expiry and tiers again.
+  expect((await wakes()) - before).toBe(2);
 });
 
 // GH₵120.00 paid 6000 points (GH₵60.00) + GH₵60 cash earns 60 points on the money part only. Returning half hands

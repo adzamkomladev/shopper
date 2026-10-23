@@ -1,6 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { customer, type ShopperTransaction } from "@shopper/db-pg";
 import type { Money } from "@shopper/money";
+import { CustomerError } from "./error";
 import { publishCustomer } from "./feed";
 import { readCustomerRow } from "./queries";
 
@@ -16,6 +17,9 @@ export async function applyVerifiedLimit(
   verifiedAt: Date,
 ) {
   const current = await readCustomerRow(tx, orgId, id, true);
+  if (current.mergedIntoId)
+    throw new CustomerError("MERGED", "The customer was merged into another");
+  if (current.archivedAt) throw new CustomerError("ARCHIVED", "The customer is archived");
   const [row] = await tx
     .update(customer)
     .set({

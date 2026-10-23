@@ -48,8 +48,11 @@ export function createAccounts(host: Host) {
     return { status: result.response.status, body: JSON.parse(result.raw) as unknown };
   }
 
-  async function account(customerId: string) {
-    const reply = await call(`/sync/customers/${customerId}/account`);
+  async function account(customerId: string, session: { id: string; proof: string }) {
+    const reply = await call(`/sync/customers/${customerId}/account`, {
+      proof: session.proof,
+      session: { orgId: identity.orgId, sessionId: session.id },
+    });
     if (reply.status === 404)
       throw new TillError("CUSTOMER_UNKNOWN", "The server does not know this customer yet");
     if (reply.status !== 200)
@@ -82,7 +85,7 @@ export function createAccounts(host: Host) {
         id: request.id,
         type: "result",
         kind: "account",
-        account: await account(request.customerId),
+        account: await account(request.customerId, session),
       };
     const at = await hostTime(database, identity, deviceTime);
     if (request.type === "account.payment") return payment(request, scope, session, at);
@@ -161,7 +164,7 @@ export function createAccounts(host: Host) {
     session: NonNullable<typeof config.session>,
     at: Date,
   ): Promise<BridgeMessage> {
-    if (request.method === "momo") await account(request.customerId);
+    if (request.method === "momo") await account(request.customerId, session);
     const { orgId, deviceId, branchId, cashierId } = scope;
     const made = await recordAccountPayment(
       database,

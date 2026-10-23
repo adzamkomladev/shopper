@@ -74,7 +74,7 @@ export function as(who: string) {
     resend: (id: string) => c("POST", `/kyc/${id}/resend`),
     verify: (id: string, code: string) => c("POST", `/kyc/${id}/verify`, { code }),
     recordId: (id: string, body: unknown) => c("POST", `/kyc/${id}/id`, body),
-    skipId: (id: string) => c("POST", `/kyc/${id}/skip-id`),
+    skipId: (id: string) => c("POST", `/kyc/${id}/id/skip`),
     decide: (id: string, body: unknown) => c("POST", `/kyc/${id}/decision`, body),
     read: (id: string) => c("GET", `/kyc/${id}`),
     list: (query = "") => c("GET", `/kyc${query ? `?${query}` : ""}`),

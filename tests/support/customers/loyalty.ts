@@ -15,6 +15,7 @@ import { ids } from "../till/sales";
 import { api, databases } from "../till/server";
 import { expect } from "vite-plus/test";
 import type { Session } from "./credit";
+import { accountRead } from "./account";
 import type { startCounter } from "./till";
 import type { recordSale } from "../till/server";
 
@@ -98,7 +99,8 @@ export function loyaltyHolds() {
         proof: session.proof,
         release: { orgId: ids.org, sessionId: session.sessionId },
       }),
-    account: (customerId: string) => send("GET", `/sync/customers/${customerId}/account`),
+    account: async (customerId: string) =>
+      send("POST", `/sync/customers/${customerId}/account`, await accountRead()),
   };
 }
 

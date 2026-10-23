@@ -3,7 +3,7 @@ import type { Workflow } from "@shopper/ports";
 import { accountDue, endAccountRun, postDue } from "../customers/accounts/post";
 import { accountFlowParams } from "../schemas/customers/accounts";
 import type { AccountFlowDeps } from "./types";
-import { MAX_WAIT_MS, woken } from "./wait";
+import { LAST_WAKE_MS, MAX_WAIT_MS, woken } from "./wait";
 export type { AccountFlowDeps } from "./types";
 
 const policy = { maxAttempts: 5, delayMs: 1000, backoff: "exponential" } as const;
@@ -29,7 +29,11 @@ export async function runAccount(
         async (db) => (await accountDue(db, orgId, customerId, new Date()))?.getTime() ?? null,
       ),
     );
-    if (due === null) break;
+    if (due === null) {
+      // Cloudflare drops a wake sent as an instance ends: take one already buffered before ending.
+      if (await woken(flow, `last-${tick}`, LAST_WAKE_MS)) continue;
+      break;
+    }
     const wait = due - Date.now();
     // Woken early, or a long sleep cut short: look again. Slept to the due moment: post it.
     if (

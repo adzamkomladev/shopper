@@ -188,3 +188,21 @@ test("a customer has one open case at a time, and cases are listed and read by s
   expect((await as("admin").read(made.id)).body).toMatchObject({ id: made.id, status: "otp_sent" });
   expect((await as("admin").read(v7())).status).toBe(404);
 });
+
+test("a merge expires the loser's open case, and a case is not decided for an archived customer", async () => {
+  const loser = await creditInReview();
+  const winner = await newCustomer();
+  const merged = await as("admin").call("POST", `/customers/${winner.id}/merge`, {
+    loserId: loser.customerId,
+  });
+  expect(merged.status).toBe(200);
+  expect((await caseRow(loser.id)).status).toBe("expired");
+
+  const made = await creditInReview();
+  const archived = await as("admin").call("POST", `/customers/${made.customerId}/archive`);
+  expect(archived.status).toBe(200);
+  const refused = await as("admin").decide(made.id, { approve: true, limit: 100_000, note: "x" });
+  expect(refused.status).toBe(409);
+  expect(refused.body.code).toBe("ARCHIVED");
+  expect((await customerRow(made.customerId)).creditLimit).toBe(0);
+});

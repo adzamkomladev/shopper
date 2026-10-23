@@ -2,18 +2,23 @@ import { Hono, type Context } from "hono";
 import * as v from "valibot";
 import { buildInfo } from "@shopper/config";
 import {
-  accountSummary,
   acceptAccountPayment,
   createHold,
   CustomerError,
   releaseHold,
+  tillAccount,
   tillActor,
 } from "@shopper/core/customers";
 import { customerId, holdInput, holdRelease } from "@shopper/core/schemas";
 import { SaleError } from "@shopper/core/sales";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { createDeviceService } from "@shopper/auth/devices";
-import { accountPaymentUpload, holdReleaseUpload, holdUpload } from "../schemas/sync/customers";
+import {
+  accountPaymentUpload,
+  accountReadUpload,
+  holdReleaseUpload,
+  holdUpload,
+} from "../schemas/sync/customers";
 
 const customerStatus: Record<string, 404 | 409> = { NOT_FOUND: 404 };
 const saleStatus: Record<string, 401 | 403> = {
@@ -68,12 +73,17 @@ export function createAccountRoutes(options: {
       return c.json({ requestId: data.requestId, hold: done.hold });
     });
   });
-  app.get("/sync/customers/:id/account", async (c) => {
+  app.post("/sync/customers/:id/account", async (c) => {
     const principal = await device(c);
     if (!principal) return c.json({ error: "Invalid device credential" }, 401);
-    return answer(c, async () =>
-      c.json(await accountSummary(database, principal.orgId, c.req.param("id"))),
-    );
+    const data = v.parse(accountReadUpload, await c.req.json());
+    return answer(c, async () => {
+      const session = v.parse(holdRelease, data.session);
+      const id = c.req.param("id");
+      return c.json(
+        await tillAccount(database, principal, session, data.proof, buildInfo.version, id),
+      );
+    });
   });
   // Cash and MoMo taken at the drawer. `rejected` is terminal for the till: it never retries.
   app.post("/sync/accounts/payments", async (c) => {

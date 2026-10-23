@@ -2,10 +2,12 @@ import {
   boxAuthFlows,
   boxBlobs,
   boxCache,
+  boxKycFlows,
   boxPool,
   boxPriceChange,
   boxRealtime,
 } from "@shopper/adapters-box";
+import { createArkesel } from "@shopper/core/sms/arkesel";
 import { serveRuntime } from "@shopper/api/runtime";
 import { probePortal, servePortal } from "@shopper/api/portal";
 import type { PortalContext } from "@shopper/api/portal";
@@ -16,6 +18,7 @@ import { sha256 } from "@shopper/utils";
 import { readFile } from "node:fs/promises";
 import { extname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { startArkeselFake } from "../../../tooling/arkesel/server";
 
 const databaseURL = process.env.E2E_DATABASE_URL;
 if (!databaseURL || !new URL(databaseURL).pathname.endsWith("_e2e")) {
@@ -36,6 +39,14 @@ const authFlows = boxAuthFlows({
     endpoint: "http://127.0.0.1:3103/api/v2/emails",
   }),
 });
+// Identity checks send their one-time codes through an Arkesel fake: a spec reads the code from
+// http://127.0.0.1:3104/test/requests, as a person would read it from their phone.
+const arkesel = await startArkeselFake({ port: Number(process.env.E2E_ARKESEL_PORT ?? 3104) });
+const kyc = boxKycFlows({
+  withDatabase: (run) => run(database.db),
+  sms: createArkesel({ apiKey: arkesel.apiKey, sender: "Shopper", baseUrl: arkesel.baseUrl }),
+  linkSecret,
+});
 const priceChange = boxPriceChange({ database: database.db, realtime: boxRealtime() }).launcher;
 const blobs = await boxBlobs(".shopper/portal/blobs", {
   baseUrl: baseURL,
@@ -49,7 +60,13 @@ const blobs = await boxBlobs(".shopper/portal/blobs", {
   },
 });
 const server = await import(pathToFileURL(resolve("apps/portal/dist/server/server.js")).href);
+// Satori and resvg read their wasm from their own folders, which a bundle in .shopper/ cannot reach, so this
+// server has no renderer. A statement's PDF comes from the box on the same database and link secret.
+const boxURL = process.env.E2E_BOX_URL ?? "http://localhost:3101";
+const statementPdf = /^\/api(\/public\/statements\/[^/]+\/pdf)$/;
 const portalRuntime = async (request: Request) => {
+  const pdf = statementPdf.exec(new URL(request.url).pathname);
+  if (pdf) return fetch(new URL(pdf[1]!, boxURL));
   const clientIP = await clientAddress(request);
   return servePortal(request, (request) =>
     serveRuntime(request, {
@@ -61,6 +78,7 @@ const portalRuntime = async (request: Request) => {
       linkSecret,
       authFlows,
       priceChange,
+      kyc,
       publicOnboarding,
       clientIP,
       blobs: blobs.blobs,
@@ -118,8 +136,8 @@ async function serveStatic(request: Request, path: string) {
     ? undefined
     : await readFile(file).catch(() => undefined);
   if (target) return respond(target, extname(file));
-  if (!extname(path) && wantsDocument)
-    return respond(await readFile(resolve(assets, "index.html")), ".html");
+  // A document navigation to any other path gets the shell, whatever the path ends in: a statement link ends in its signature.
+  if (wantsDocument) return respond(await readFile(resolve(assets, "index.html")), ".html");
   return undefined;
 }
 

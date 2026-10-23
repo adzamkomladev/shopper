@@ -17,16 +17,24 @@ type Props = {
   placeholder?: string;
   /** Focuses the select when it mounts. */
   autoFocus?: boolean;
+  /** Called with the chosen value, after the field has taken it. */
+  onChange?: (value: string) => void;
 };
 
 /** A labelled Select bound to a TanStack Form field; the label names the combobox. */
-export function SelectField({ field, label, options, placeholder, autoFocus }: Props) {
+export function SelectField({ field, label, options, placeholder, autoFocus, onChange }: Props) {
   const message = field.state.meta.errors[0]?.message;
   const errorId = `${field.name}-error`;
   return (
     <Field data-invalid={!!message}>
       <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
-      <Select value={field.state.value} onValueChange={field.handleChange}>
+      <Select
+        value={field.state.value}
+        onValueChange={(value) => {
+          field.handleChange(value);
+          onChange?.(value);
+        }}
+      >
         <SelectTrigger
           id={field.name}
           ref={autoFocus ? focusOnMount : undefined}

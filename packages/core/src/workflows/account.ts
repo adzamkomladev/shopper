@@ -1,13 +1,12 @@
 import * as v from "valibot";
-import { WorkflowTimeoutError, type Workflow } from "@shopper/ports";
+import type { Workflow } from "@shopper/ports";
 import { accountDue, endAccountRun, postDue } from "../customers/accounts/post";
 import { accountFlowParams } from "../schemas/customers/accounts";
 import type { AccountFlowDeps } from "./types";
+import { MAX_WAIT_MS, woken } from "./wait";
 export type { AccountFlowDeps } from "./types";
 
 const policy = { maxAttempts: 5, delayMs: 1000, backoff: "exponential" } as const;
-/** Long sleeps wake to look again, well inside every engine's event timeout. */
-const MAX_WAIT_MS = 30 * 86_400_000;
 
 /**
  * One customer's account over time: sleep until the next due moment (a "wake" cuts the sleep short, so new earns,
@@ -53,14 +52,4 @@ export async function runAccount(
       return { ended: true };
     }),
   );
-}
-
-async function woken(flow: Pick<Workflow, "waitFor">, name: string, timeoutMs: number) {
-  try {
-    await flow.waitFor(name, "wake", timeoutMs);
-    return true;
-  } catch (error) {
-    if (error instanceof WorkflowTimeoutError) return false;
-    throw error;
-  }
 }

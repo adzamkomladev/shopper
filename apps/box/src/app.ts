@@ -17,6 +17,7 @@ import {
   boxAuthFlows,
   boxKycFlows,
   boxAccountFlows,
+  boxStatementFlows,
   boxMomoPayment,
   boxQueue,
 } from "@shopper/adapters-box";
@@ -33,6 +34,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
   let priceChange: ReturnType<typeof boxPriceChange> | undefined;
   let notifications: ReturnType<typeof boxQueue> | undefined;
   let accountFlows: ReturnType<typeof boxAccountFlows> | undefined;
+  let statementFlows: ReturnType<typeof boxStatementFlows> | undefined;
   const renderer = boxRenderer();
   return new Hono<{ Bindings: BoxBindings }>().all("*", async (context) => {
     const request = context.req.raw;
@@ -115,10 +117,17 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
           linkSecret: environment.SHOPPER_LINK_SECRET,
           baseUrl: SHOPPER_AUTH_URL,
           accounts: accountFlows,
+          statements: statementFlows,
+          queue: notifications,
         },
         delivery,
       ),
     );
+    statementFlows ??= boxStatementFlows({
+      withDatabase: (run) => run(workflowDatabase),
+      appVersion: buildInfo.version,
+      queue: notifications,
+    });
     if (!accountFlows) {
       accountFlows = boxAccountFlows({
         withDatabase: (run) => run(workflowDatabase),

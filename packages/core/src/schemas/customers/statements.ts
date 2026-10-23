@@ -56,3 +56,42 @@ export const statementDocument = v.strictObject({
   closing: signed,
 });
 export type StatementDocument = v.InferOutput<typeof statementDocument>;
+
+/** Statements on a schedule, per org: off, or monthly on a day (1-28, Accra) over the channels, above a minimum. */
+export const statementSettings = v.pipe(
+  v.strictObject({
+    schedule: v.picklist(["off", "monthly"]),
+    day: v.pipe(v.number(), v.safeInteger(), v.minValue(1), v.maxValue(28)),
+    channels: v.pipe(v.array(v.picklist(["sms", "email"])), v.maxLength(2)),
+    minBalance: v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.transform(money)),
+  }),
+  v.check((s) => s.schedule === "off" || s.channels.length > 0, "Choose at least one channel"),
+);
+
+/** Start or wake the org's schedule; the actor is whom the scheduled statements are sent as. */
+export const statementScheduleMessage = v.looseObject({
+  type: v.literal("statement.schedule"),
+  v: v.literal(1),
+  orgId: uuidV7Schema,
+  payload: v.strictObject({ actorId: v.pipe(v.string(), v.uuid()) }),
+});
+
+/** One customer's statements for one scheduled period. */
+export const statementScheduledMessage = v.looseObject({
+  type: v.literal("statement.scheduled"),
+  v: v.literal(1),
+  orgId: uuidV7Schema,
+  payload: v.strictObject({
+    customerId,
+    actorId: v.pipe(v.string(), v.uuid()),
+    from: day,
+    to: day,
+    channels: v.array(v.picklist(["sms", "email"])),
+  }),
+});
+
+/** What the statement-schedule workflow starts with; its instance id is the org id. */
+export const statementFlowParams = v.strictObject({
+  orgId: uuidV7Schema,
+  actorId: v.pipe(v.string(), v.uuid()),
+});

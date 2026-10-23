@@ -76,6 +76,8 @@ export async function cloudflareNotifications(
     | "SHOPPER_AUTH_URL"
     | "BROWSER"
     | "ACCOUNT_FLOWS"
+    | "STATEMENT_FLOWS"
+    | "NOTIFICATIONS"
   >,
 ): Promise<void> {
   const sms =
@@ -105,6 +107,10 @@ export async function cloudflareNotifications(
       linkSecret: env.SHOPPER_LINK_SECRET,
       baseUrl: env.SHOPPER_AUTH_URL,
       accounts: env.ACCOUNT_FLOWS ? cloudflareLoopLauncher(env.ACCOUNT_FLOWS, "wake") : undefined,
+      statements: env.STATEMENT_FLOWS
+        ? cloudflareLoopLauncher(env.STATEMENT_FLOWS, "wake")
+        : undefined,
+      queue: env.NOTIFICATIONS ? cloudflareQueue(env.NOTIFICATIONS, NOTIFICATION_RETRY) : undefined,
     };
     await cloudflareDeliver(
       batch,

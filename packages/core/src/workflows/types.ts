@@ -15,3 +15,10 @@ export interface AccountFlowDeps {
   /** Carries tier notices to the notification consumer. */
   queue?: Queue;
 }
+
+export interface StatementFlowDeps {
+  withDatabase<T>(run: (db: ShopperDatabase) => Promise<T>): Promise<T>;
+  appVersion: string;
+  /** Carries the fanned-out statements to the notification consumer. */
+  queue?: Queue;
+}

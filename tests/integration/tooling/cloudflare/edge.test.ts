@@ -42,6 +42,7 @@ test("Durable Objects, Workflows and every resource binding are the staging ones
     ["MomoPaymentWorkflow", "shopper-momo-payment-staging"],
     ["KycWorkflow", "shopper-kyc-staging"],
     ["AccountWorkflow", "shopper-account-staging"],
+    ["StatementWorkflow", "shopper-statements-staging"],
   ]) {
     expect(exports[exportName]).toMatchObject({ type: "workflow", name });
   }
@@ -66,6 +67,11 @@ test("Durable Objects, Workflows and every resource binding are the staging ones
     type: "workflow",
     name: "shopper-account-staging",
     exportName: "AccountWorkflow",
+  });
+  expect(bound.STATEMENT_FLOWS).toMatchObject({
+    type: "workflow",
+    name: "shopper-statements-staging",
+    exportName: "StatementWorkflow",
   });
   expect(bound.BROWSER).toMatchObject({ type: "browser" });
   expect(bound.BROWSER.dev?.remote).toBeUndefined();

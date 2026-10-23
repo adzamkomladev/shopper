@@ -1,5 +1,10 @@
 import type { Delivery } from "@shopper/ports";
-import { deliverAccountMessage, deliverStatement, deliverTierNotice } from "../customers";
+import {
+  deliverAccountMessage,
+  deliverSchedule,
+  deliverStatement,
+  deliverTierNotice,
+} from "../customers";
 import { deliverStockAlert } from "../stock";
 import type { NotificationDeps } from "./types";
 export type { NotificationDeps } from "./types";
@@ -20,6 +25,9 @@ export async function deliverNotification(deps: NotificationDeps, delivery: Deli
     case "account.wake":
     case "account.settings":
       return await deliverAccountMessage(deps, delivery);
+    case "statement.schedule":
+    case "statement.scheduled":
+      return await deliverSchedule(deps, delivery);
     default:
       console.error({ event: "notification.unknown_type", type: delivery.message.type });
       return await delivery.retry();

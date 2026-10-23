@@ -41,4 +41,5 @@ export interface CloudflareRuntimeEnvironment extends AuthEnvironment {
   BROWSER?: Parameters<typeof cloudflareRenderer>[0];
   KYC_FLOWS?: Parameters<typeof cloudflareLauncher>[0];
   ACCOUNT_FLOWS?: Parameters<typeof cloudflareLoopLauncher>[0];
+  STATEMENT_FLOWS?: Parameters<typeof cloudflareLoopLauncher>[0];
 }

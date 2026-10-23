@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { buildInfo } from "@shopper/config";
 import { createPaystack } from "@shopper/core/payments/paystack";
+import { deliverNotification } from "@shopper/core/notifications";
 import { createArkesel } from "@shopper/core/sms/arkesel";
-import { deliverStockAlert } from "@shopper/core/stock";
 import { createMaileroo } from "@shopper/auth";
 import type { BoxBindings } from "./types";
 import {
@@ -18,6 +18,7 @@ import {
   boxMomoPayment,
   boxQueue,
 } from "@shopper/adapters-box";
+import { boxRenderer } from "@shopper/adapters-box/renderer";
 import { NOTIFICATION_RETRY } from "@shopper/ports";
 import { isPublicRequest, publicApi, runtimeUnavailable, serveRuntime } from "@shopper/api/runtime";
 export function createBoxApp(environment: Record<string, string | undefined> = process.env) {
@@ -28,6 +29,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
   let momoPayment: ReturnType<typeof boxMomoPayment> | undefined;
   let priceChange: ReturnType<typeof boxPriceChange> | undefined;
   let notifications: ReturnType<typeof boxQueue> | undefined;
+  const renderer = boxRenderer();
   return new Hono<{ Bindings: BoxBindings }>().all("*", async (context) => {
     const request = context.req.raw;
     if (isPublicRequest(request)) return publicApi.fetch(request);
@@ -82,20 +84,42 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
           baseUrl: environment.PAYSTACK_BASE_URL,
         }),
       });
-    if (environment.ARKESEL_API_KEY) {
-      const sms = createArkesel({
-        apiKey: environment.ARKESEL_API_KEY,
-        sender: environment.ARKESEL_SENDER ?? "Shopper",
-        baseUrl: environment.ARKESEL_BASE_URL || undefined,
-      });
+    const sms = environment.ARKESEL_API_KEY
+      ? createArkesel({
+          apiKey: environment.ARKESEL_API_KEY,
+          sender: environment.ARKESEL_SENDER ?? "Shopper",
+          baseUrl: environment.ARKESEL_BASE_URL || undefined,
+        })
+      : undefined;
+    const mail =
+      environment.MAILEROO_API_KEY && environment.MAILEROO_FROM
+        ? createMaileroo({
+            apiKey: environment.MAILEROO_API_KEY,
+            from: environment.MAILEROO_FROM,
+            endpoint: environment.MAILEROO_ENDPOINT,
+          })
+        : undefined;
+    // Alerts and statements share one queue; with no channel configured nothing is queued.
+    if (sms || mail)
       notifications ??= boxQueue(NOTIFICATION_RETRY, (delivery) =>
-        deliverStockAlert(workflowDatabase, sms, delivery, buildInfo.version),
+        deliverNotification(
+          {
+            db: workflowDatabase,
+            appVersion: buildInfo.version,
+            sms,
+            mail,
+            renderer,
+            linkSecret: environment.SHOPPER_LINK_SECRET,
+            baseUrl: SHOPPER_AUTH_URL,
+          },
+          delivery,
+        ),
       );
-    }
     try {
       return await serveRuntime(request, {
         database: connection.db,
         notifications,
+        renderer,
         sequencer: boxSequencer(connection.db),
         cache: cache.cache,
         realtime,

@@ -25,3 +25,4 @@ export * from "./customers/events";
 export { compactPhone } from "./fields";
 export * from "./customers/credit";
 export * from "./customers/loyalty";
+export * from "./customers/statements";

@@ -67,5 +67,5 @@ test("the local Maileroo failure endpoint rejects invalid counts and fails only 
     link: "http://shopper.local/verify",
   };
   await expect(send(message)).rejects.toThrow("delivery failed");
-  await expect(send(message)).resolves.toBeUndefined();
+  await expect(send(message)).resolves.toEqual(expect.any(String));
 });

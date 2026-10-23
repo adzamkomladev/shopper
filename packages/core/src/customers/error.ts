@@ -15,7 +15,8 @@ export class CustomerError extends Error {
       | "NOT_VERIFIED"
       | "LOYALTY_OFF"
       | "POINTS_SHORT"
-      | "SAME_CUSTOMER",
+      | "SAME_CUSTOMER"
+      | "NO_CONTACT",
     message: string,
     /** Extra fields of the problem body, such as the credit still `available`. */
     public detail: Record<string, unknown> = {},

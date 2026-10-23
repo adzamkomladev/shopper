@@ -68,6 +68,10 @@
       "types": "./src/shifts/index.ts",
       "default": "./src/shifts/index.ts"
     },
+    "./notifications": {
+      "types": "./src/notifications/deliver.ts",
+      "default": "./src/notifications/deliver.ts"
+    },
     "./customers": {
       "types": "./src/customers/index.ts",
       "default": "./src/customers/index.ts"

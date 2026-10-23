@@ -1,3 +1,3 @@
 export { receiptFonts } from "./fonts";
-export { receiptHtml } from "./html";
-export { pngPdf } from "./pdf";
+export { receiptHtml, statementHtml } from "./html";
+export { A4_POINTS, pngPage, pngPdf } from "./pdf";

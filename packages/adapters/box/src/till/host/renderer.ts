@@ -27,6 +27,8 @@ export function parentRenderer(send: (message: RenderRequest) => void, timeoutMs
           settle(id)?.reject(error instanceof Error ? error : new Error("Render request failed"));
         }
       }),
+    // Statements are rendered by the box server, never on a till.
+    statement: () => Promise.reject(new Error("The till host does not render statements")),
   };
   const settle = (id: string) => {
     const entry = pending.get(id);

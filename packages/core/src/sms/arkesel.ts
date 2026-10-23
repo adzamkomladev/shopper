@@ -22,7 +22,8 @@ export function createArkesel({
   fetch: fetcher = fetch,
 }: ArkeselOptions) {
   return {
-    async send(recipients: string[], message: string): Promise<void> {
+    /** Sends one message and answers Arkesel's id for the first recipient, when it gives one. */
+    async send(recipients: string[], message: string): Promise<string | undefined> {
       const response = await fetcher(`${baseUrl}/api/v2/sms/send`, {
         method: "POST",
         headers: { "api-key": apiKey, "content-type": "application/json" },
@@ -35,6 +36,8 @@ export function createArkesel({
           (reply.success && reply.output.message) || `Arkesel replied ${response.status}`,
           response.status,
         );
+      const [first] = Array.isArray(reply.output.data) ? reply.output.data : [];
+      return typeof first?.id === "string" ? first.id : undefined;
     },
   };
 }

@@ -27,7 +27,7 @@ const uniqueField = (constraint?: string) => {
 };
 
 /** Maps validation, management and constraint errors to a problem body; `field` names the culprit. */
-export function problem(error: Error, c: Context) {
+export function problem(error: Error, c: Context): Response {
   if (v.isValiError(error)) {
     const [issue] = error.issues;
     const field = v.getDotPath(issue) ?? undefined;

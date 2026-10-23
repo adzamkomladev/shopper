@@ -4,18 +4,22 @@ import { uuidV7Schema } from "@shopper/ports";
 import { customerId } from "./inputs";
 
 const day = v.pipe(v.string(), v.isoDate());
-const periodMessage = "The statement must start before it ends";
+const MAX_PERIOD_DAYS = 366;
+/** A statement period: `from` not after `to`, at most a year of inclusive days, so a PDF and its query stay bounded. */
+export const inPeriod = ({ from, to }: { from: string; to: string }) =>
+  from <= to && (Date.parse(to) - Date.parse(from)) / 86_400_000 < MAX_PERIOD_DAYS;
+export const periodMessage = `The statement must start before it ends and cover at most ${MAX_PERIOD_DAYS} days`;
 /** Below zero is a deposit, so unlike a payment the amount may be negative. */
 const signed = v.pipe(v.number(), v.safeInteger(), v.transform(money));
 
 /** Which statement to send, and over what. `pdf` rows exist for downloads; only these two are sent. */
 export const statementSendInput = v.pipe(
   v.strictObject({ channel: v.picklist(["sms", "email"]), from: day, to: day }),
-  v.check((q) => q.from <= q.to, periodMessage),
+  v.check((q) => inPeriod(q), periodMessage),
 );
 export const statementLinkInput = v.pipe(
   v.strictObject({ from: day, to: day }),
-  v.check((q) => q.from <= q.to, periodMessage),
+  v.check((q) => inPeriod(q), periodMessage),
 );
 
 /** What the queue carries for a statement to send; the consumer reads everything else from the row. */

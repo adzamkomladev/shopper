@@ -13,6 +13,11 @@ const hmacKey = (secret: string, usage: "sign" | "verify") =>
     [usage],
   );
 
+/** Every signed link (auth, statements) is keyed by one shared secret that must be at least 32 characters. */
+export function assertLinkSecret(secret: string) {
+  if (secret.length < 32) throw new Error("Link secret must be at least 32 characters");
+}
+
 /** HMAC-SHA-256 of `message` under `secret`, as lowercase hex. */
 export async function hmacHex(secret: string, message: string): Promise<string> {
   const signature = await crypto.subtle.sign(

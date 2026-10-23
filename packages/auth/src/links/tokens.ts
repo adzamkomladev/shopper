@@ -1,4 +1,4 @@
-import { hmacHex as hmac, sha256 } from "@shopper/utils";
+import { assertLinkSecret, hmacHex as hmac, sha256 } from "@shopper/utils";
 import { constantTimeEqual } from "../session/http";
 
 export async function createLinkToken(
@@ -10,7 +10,7 @@ export async function createLinkToken(
 }
 /** HMAC-SHA-256 of a message under the shared link secret, as lowercase hex. */
 export async function hmacHex(secret: string, message: string) {
-  if (secret.length < 32) throw new Error("Link secret must be at least 32 characters");
+  assertLinkSecret(secret);
   return hmac(secret, message);
 }
 export async function linkDigest(token: string) {

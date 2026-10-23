@@ -2,7 +2,7 @@ import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import * as v from "valibot";
 import { defineCommand } from "@shopper/audit";
 import { statementLink } from "@shopper/db-pg";
-import { hmacHex, hmacVerify } from "@shopper/utils";
+import { assertLinkSecret, hmacHex, hmacVerify } from "@shopper/utils";
 import {
   statementLinkInput,
   statementTokenPayload,
@@ -23,6 +23,7 @@ const notFound = () => new CustomerError("NOT_FOUND", "Statement not found");
 
 /** The token a customer holds: the payload, then its HMAC. Only the link row can make it count. */
 export async function signStatementToken(secret: string, payload: StatementTokenPayload) {
+  assertLinkSecret(secret);
   const body = base64url(JSON.stringify(payload));
   return `${body}.${await hmacHex(secret, body)}`;
 }

@@ -41,11 +41,11 @@ Read the doc for the area you are touching **before** you change it:
 
 ```ts
 // Good
-const journal = await Bun.file(path.join(dir, "journal.json")).json()
+const journal = await Bun.file(path.join(dir, "journal.json")).json();
 
 // Bad
-const journalPath = path.join(dir, "journal.json")
-const journal = await Bun.file(journalPath).json()
+const journalPath = path.join(dir, "journal.json");
+const journal = await Bun.file(journalPath).json();
 ```
 
 ### Destructuring
@@ -54,11 +54,11 @@ Avoid unnecessary destructuring. Use dot notation to preserve context.
 
 ```ts
 // Good
-obj.a
-obj.b
+obj.a;
+obj.b;
 
 // Bad
-const { a, b } = obj
+const { a, b } = obj;
 ```
 
 ### Variables
@@ -67,12 +67,12 @@ Prefer `const` over `let`. Use ternaries or early returns instead of reassignmen
 
 ```ts
 // Good
-const foo = condition ? 1 : 2
+const foo = condition ? 1 : 2;
 
 // Bad
-let foo
-if (condition) foo = 1
-else foo = 2
+let foo;
+if (condition) foo = 1;
+else foo = 2;
 ```
 
 ### Control Flow
@@ -82,14 +82,14 @@ Avoid `else` statements. Prefer early returns.
 ```ts
 // Good
 function foo() {
-  if (condition) return 1
-  return 2
+  if (condition) return 1;
+  return 2;
 }
 
 // Bad
 function foo() {
-  if (condition) return 1
-  else return 2
+  if (condition) return 1;
+  else return 2;
 }
 ```
 
@@ -101,9 +101,9 @@ as the happy path and move supporting details into small helpers below it.
 ```ts
 // Good
 export function loadThing(input: unknown) {
-  const config = requireConfig(input)
-  const metadata = readMetadata(input)
-  return createThing({ config, metadata })
+  const config = requireConfig(input);
+  const metadata = readMetadata(input);
+  return createThing({ config, metadata });
 }
 
 function requireConfig(input: unknown) {

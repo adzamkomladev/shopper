@@ -41,6 +41,8 @@ export function ShellFrame({
   const chosen = useRef<ShellView | ShellAction | null>(null);
   const can = (permission: string) => permissions.includes(permission);
   const shifts = can("shift.write");
+  // A payment goes into the open shift's drawer and finds the customer by phone.
+  const accounts = can("sale.create") && can("customer.read");
   const go = (next: ShellView | ShellAction) => {
     chosen.current = next;
     setMenuOpen(false);
@@ -57,6 +59,7 @@ export function ShellFrame({
             "Alt+K": () => onAction("drop"),
             "Alt+J": () => onAction("nosale"),
           }),
+          ...(accounts && { "Alt+A": () => onAction("payment") }),
           [menuShortcut]: () => setMenuOpen((open) => !open),
           [signOutShortcut]: onSignOut,
           ...Object.fromEntries(
@@ -80,11 +83,12 @@ export function ShellFrame({
           chosen.current = null;
           if (!next) return;
           event.preventDefault();
-          if (next === "drop" || next === "nosale") onAction(next);
+          if (next === "drop" || next === "nosale" || next === "payment") onAction(next);
           else onView(next);
         }}
         onSignOut={onSignOut}
         onView={go}
+        accounts={accounts}
         online={link.online}
         shifts={shifts}
         registerName={registerName}

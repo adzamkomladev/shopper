@@ -4,22 +4,25 @@ import type { BasketCustomer, CustomerActions } from "./customer/types";
 import type { createSaleOperations } from "./operations";
 
 const lost = "The register connection ended. Reconnect and try again.";
-const failure = (reply: BridgeMessage | undefined) =>
+export const failure = (reply: BridgeMessage | undefined) =>
   reply?.type === "error"
     ? { code: reply.code, message: reply.message }
     : { code: "CONNECTION_LOST", message: lost };
+
+/** Every customer on a number, from the register's own copy. */
+export async function findCustomers(phone: string) {
+  const reply = await request({ type: "customer.find", phone });
+  if (reply?.type === "result" && reply.kind === "customers")
+    return { ok: true as const, customers: reply.customers };
+  return { ok: false as const, message: failure(reply).message };
+}
 
 /** The three customer actions, answered by the register host. `runDraft` is the basket's own revisioned call. */
 export function customerActions(
   runDraft: ReturnType<typeof createSaleOperations>["runDraft"],
 ): CustomerActions {
   return {
-    async findCustomers(phone) {
-      const reply = await request({ type: "customer.find", phone });
-      if (reply?.type === "result" && reply.kind === "customers")
-        return { ok: true, customers: reply.customers };
-      return { ok: false, message: failure(reply).message };
-    },
+    findCustomers,
     async saveCustomer(fields, id) {
       const reply = await request(
         id

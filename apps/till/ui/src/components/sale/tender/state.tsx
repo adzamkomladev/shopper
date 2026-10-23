@@ -143,3 +143,18 @@ export function ReceiptComplete({
     </section>
   );
 }
+
+/** A MoMo payment came in that no sale has taken yet: Purchases shows where it went. */
+export function UnappliedConfirmation({ onPurchases }: { onPurchases?: () => void }) {
+  return (
+    <div
+      className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+      role="status"
+    >
+      <span>MoMo confirmed — not yet applied to a sale</span>
+      <Button onClick={onPurchases} size="touch" variant="outline">
+        Purchases
+      </Button>
+    </div>
+  );
+}

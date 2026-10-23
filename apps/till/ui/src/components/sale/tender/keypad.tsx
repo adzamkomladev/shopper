@@ -8,11 +8,14 @@ const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "00", "0", "C"] as co
 export function TenderKeypad({
   balance,
   value,
+  pad = true,
   onChange,
   onEnter,
 }: {
   balance: Money;
   value: string;
+  /** False leaves the amount box alone: the till-size panel has no room for the pad beside an account summary. */
+  pad?: boolean;
   onChange: (value: string) => void;
   onEnter: () => void;
 }) {
@@ -46,26 +49,28 @@ export function TenderKeypad({
           onChange={(event) => onChange(event.target.value.replace(/[^\d.]/g, "").slice(0, 12))}
         />
       </label>
-      <div className="grid shrink-0 grid-cols-5 gap-3">
-        <div aria-label="Amount keypad" className="col-span-3 grid grid-cols-3 gap-2">
-          {keys.map((key) => (
-            <Button
-              key={key}
-              aria-label={key}
-              className="h-11 text-lg"
-              onClick={() => press(key)}
-              variant="outline"
-            >
-              {key}
-            </Button>
-          ))}
+      {pad && (
+        <div className="grid shrink-0 grid-cols-5 gap-3">
+          <div aria-label="Amount keypad" className="col-span-3 grid grid-cols-3 gap-2">
+            {keys.map((key) => (
+              <Button
+                key={key}
+                aria-label={key}
+                className="h-11 text-lg"
+                onClick={() => press(key)}
+                variant="outline"
+              >
+                {key}
+              </Button>
+            ))}
+          </div>
+          <QuickCash
+            balance={balance}
+            onBackspace={backspace}
+            onSelect={(amount) => onChange(toDecimal(amount))}
+          />
         </div>
-        <QuickCash
-          balance={balance}
-          onBackspace={backspace}
-          onSelect={(amount) => onChange(toDecimal(amount))}
-        />
-      </div>
+      )}
       <span className="sr-only" aria-live="polite">
         Tender balance {formatGHS(balance)}
       </span>

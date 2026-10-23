@@ -200,6 +200,32 @@ ID of at most 11 characters. Without the key the hosts enqueue nothing and no SM
 reads the same names from its sealed config. Supplier writes now need `stock.write` instead of
 `product.write`.
 
+## Customers, credit and loyalty (Day 17)
+
+Apply `0025_customers`: customers, holds, the two append-only ledgers (with reject-history triggers), tiers,
+statement links and deliveries, tier notices, KYC cases, the org settings columns, `sale.customer_id`, hold-linked
+tenders, and the 36 permission codes (`customer.read`, `customer.write`, `customer.manage`, `kyc.approve`),
+backfilled to existing orgs by role.
+
+**Versions.** Sale event v5, change feed and snapshot v4, receipt v3, refund v2 and shift Z v2 ship together, with
+v3/v4/v2 upcasters on the server. A till on the old build keeps pushing v4 sales, which upcast, but cannot read a v4
+feed: update tills with the release.
+
+**Reset dev data and till databases.** Dev data is disposable: run `vp run db:reset`, `db:migrate` and `db:seed`,
+and delete each till's SQLite database (SQLite step 9 to 11 add `customer_lookup`, `customer_upload`,
+`account_payment` and rebuild the draft tender table). Do not backfill.
+
+**Workflows.** Create `shopper-kyc-<stage>`, `shopper-account-<stage>` and `shopper-statements-<stage>` with the
+edge Worker (`apps/edge/cloudflare.config.ts`) and bind them as `KYC_FLOWS`, `ACCOUNT_FLOWS` and `STATEMENT_FLOWS`.
+Workflows need no manual setup beyond the deploy.
+
+**Secrets.** None new. Statement links and the KYC OTP use the existing link secret (at least 32 characters);
+Arkesel and Maileroo keys are the ones already configured. Without Arkesel the KYC routes answer 503.
+
+**Public route.** `/statement/*` is public on the portal: it is in the prerendered shell, and the API serves
+`GET /public/statements/:token` (and `/pdf`) with no session, rate limited per client, answering 503 when the
+link secret is missing.
+
 ## Browser Run (receipt rendering)
 
 `apps/edge` and `apps/portal` bind `BROWSER` (`bindings.browser({})`; compatibility date 2026-03-24 or later). Browser Run is available on every Workers account and needs nothing enabled in the dashboard. `quickAction` does not run in local dev; no local code path calls it yet, so the binding has no `dev: { remote: true }`. Add that (it requires a Cloudflare login) when a route starts rendering online-order PDFs. Tests use `tooling/browser/server.ts`, a Playwright Chromium stand-in (CI installs Chromium before `vp test --run`).

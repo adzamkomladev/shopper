@@ -123,6 +123,9 @@ test("the list searches by name, phone and TIN, pages with a cursor and hides no
   const byTin = await cashier.list("q=C0099999999");
   expect(byTin.body.items.map((c: { id: string }) => c.id)).toEqual([people[3]!.id]);
   expect((await cashier.list(`q=${mark}nobody`)).body.items).toEqual([]);
+  const businesses = await cashier.list(`q=${mark}&kind=business`);
+  expect(businesses.body.items.map((c: { id: string }) => c.id)).toEqual([people[3]!.id]);
+  expect((await cashier.list(`q=${mark}&kind=other`)).status).toBe(400);
 
   const seen: string[] = [];
   let cursor: string | null = null;

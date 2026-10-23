@@ -60,6 +60,7 @@ export type CustomerFields = v.InferOutput<typeof customerFields>;
 export const customerQuery = v.object({
   q: v.optional(text(100)),
   archived: v.optional(v.literal("1")),
+  kind: v.optional(customerKindSchema),
   cursor: v.optional(customerId),
   limit: listQuery.entries.limit,
 });

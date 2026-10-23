@@ -25,3 +25,9 @@ export const takeSheetSearch = v.object({
   uncounted: v.optional(v.literal(true)),
   review: v.optional(v.literal(true)),
 });
+
+/** The customer list: a search, and either business customers only or the archived ones. */
+export const customersSearch = v.object({
+  q: v.optional(v.string()),
+  segment: v.optional(v.picklist(["business", "archived"])),
+});

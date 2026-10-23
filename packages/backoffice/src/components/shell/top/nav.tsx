@@ -41,7 +41,7 @@ export function TopNav({ shops, currentId, user }: Props) {
       <div className="flex min-w-0 flex-1 items-center gap-x-6 xl:flex-initial">
         <ShopSwitcher shops={shops} currentId={currentId} />
       </div>
-      <div className="order-last flex w-full flex-wrap gap-x-6 gap-y-1 xl:order-none xl:w-auto xl:flex-nowrap xl:gap-x-4 2xl:gap-x-6">
+      <div className="order-last flex w-full flex-wrap gap-x-6 gap-y-1 xl:order-none xl:w-auto xl:flex-nowrap xl:gap-x-3 2xl:gap-x-6">
         {navItems.map(({ to, label, also }) => {
           const here = [to, ...(also ?? [])].some(
             (page) => path === page || path.startsWith(`${page}/`),
@@ -69,7 +69,7 @@ export function TopNav({ shops, currentId, user }: Props) {
         >
           <SearchIcon aria-hidden />
         </Button>
-        <InputGroup className="hidden w-64 xl:flex 2xl:w-72">
+        <InputGroup className="hidden w-48 xl:flex 2xl:w-72">
           <InputGroupAddon>
             <SearchIcon aria-hidden />
           </InputGroupAddon>

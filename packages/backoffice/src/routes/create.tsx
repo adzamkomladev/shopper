@@ -12,6 +12,9 @@ import { permissionsQuery } from "../queries/session/permissions";
 import { administrationRoutes } from "./administration";
 import { publicAuthRoutes } from "./auth/public";
 import { inventoryRoutes } from "./inventory";
+import { kycRoutes } from "./kyc";
+import { settingsRoutes } from "./settings";
+import { publicStatementRoutes } from "./statements/public";
 import { shiftRoutes } from "./shifts";
 import { currentOrgQuery, requireSession } from "../queries/session/session";
 import type { BackofficeContext } from "../types";
@@ -123,6 +126,7 @@ export function createBackofficeRoutes(
     indexRoute,
     loginRoute,
     ...publicAuthRoutes(rootRoute),
+    ...publicStatementRoutes(rootRoute),
     shopRoute.addChildren([
       productsRoute,
       productRoute,
@@ -131,6 +135,8 @@ export function createBackofficeRoutes(
       ...inventoryRoutes(shopRoute),
       ...administrationRoutes(shopRoute),
       ...shiftRoutes(shopRoute),
+      ...kycRoutes(shopRoute),
+      ...settingsRoutes(shopRoute),
     ]),
   ]);
 }

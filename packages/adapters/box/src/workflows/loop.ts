@@ -7,6 +7,9 @@ import {
   type WorkflowLauncher,
 } from "@shopper/ports";
 
+// Engine keys are unique per process, so a second launcher (a restart) never replays another run's steps.
+let runs = 0;
+
 /**
  * The box launcher for a workflow that loops until it has nothing to do (one per customer or org): start launches
  * it, or sends "wake" while it runs. Each run gets a fresh engine key, so one that ended starts again cleanly.
@@ -18,7 +21,6 @@ export function boxLoopFlows<P extends Json>(
 ): WorkflowLauncher & { active(id: string): boolean } {
   const running = new Map<string, string>();
   const again = new Set<string>();
-  let runs = 0;
   const launcher = {
     active: (id: string) => running.has(id),
     async start(id: string, raw: Json) {

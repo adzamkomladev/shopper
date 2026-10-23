@@ -17,7 +17,7 @@ export const ACCOUNT_RUN = "customer-account";
 /** When the customer's account next needs a posting after `now`, or null. */
 export async function accountDue(db: Queryable, orgId: string, customerId: string, now: Date) {
   const { state, settings } = await readAccount(db, orgId, customerId, now);
-  return nextDue(state, settings, now);
+  return nextDue(state, settings);
 }
 
 /**

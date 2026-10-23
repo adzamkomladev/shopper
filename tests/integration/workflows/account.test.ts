@@ -5,7 +5,7 @@
 //   start(customerId, { orgId, customerId }) is idempotent: a running flow is sent "wake" instead.
 //   An `account.wake` notification { customerId } reaches it through deliverNotification({ accounts }).
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test, vi } from "vite-plus/test";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { v7 } from "uuid";
 import { boxAccountFlows } from "@shopper/adapters-box";
 import { deliverNotification } from "@shopper/core/notifications";
@@ -103,6 +103,28 @@ test("it sleeps until the next due moment, posts, and ends when nothing is due",
     expect(await run(customerId)).toMatchObject({ type: "customer-account", status: "completed" }),
   );
   expect(await kinds(customerId)).toEqual(["charge", "interest", "payment"]);
+});
+
+test("a run late across month starts catches up every unposted period, oldest first, once", async () => {
+  const customerId = await addCustomer({ phone: "0271796006" });
+  await addEntryAt(customerId, "charge", 1_000_000, "2026-09-01T10:00:00Z");
+  // Due on 1 Nov, but the box is down until mid-December: both November and December are owed.
+  vi.setSystemTime(new Date("2026-12-15T09:00:00Z"));
+  await flows.start(customerId, params(customerId));
+  const periods = async () =>
+    (
+      await databases().db.execute<{ period: string }>(sql`
+        SELECT period FROM credit_entry WHERE customer_id = ${customerId} AND kind = 'interest'
+        ORDER BY occurred_at`)
+    ).rows.map((row) => row.period);
+  await eventually(async () => expect(await periods()).toEqual(["2026-11", "2026-12"]));
+  const booted = boxAccountFlows({
+    withDatabase: (run) => run(databases().db),
+    appVersion: "test",
+  });
+  await booted.relaunch();
+  await vi.advanceTimersByTimeAsync(60_000);
+  expect(await periods()).toEqual(["2026-11", "2026-12"]);
 });
 
 test("an earn wakes a sleeping flow, and a wake starts one that has ended", async () => {

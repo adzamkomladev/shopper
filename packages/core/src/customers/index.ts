@@ -50,5 +50,6 @@ export {
   setStatementSettings,
   statementRunDue,
 } from "./statements/schedule";
+export { scheduledOrgs, statementRunsSince } from "./statements/restart";
 export { runStatementSchedule, type StatementFlowDeps } from "../workflows/statements";
 export { statementFlowParams } from "../schemas/customers/statements";

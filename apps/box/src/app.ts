@@ -123,11 +123,17 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
         delivery,
       ),
     );
-    statementFlows ??= boxStatementFlows({
-      withDatabase: (run) => run(workflowDatabase),
-      appVersion: buildInfo.version,
-      queue: notifications,
-    });
+    if (!statementFlows) {
+      statementFlows = boxStatementFlows({
+        withDatabase: (run) => run(workflowDatabase),
+        appVersion: buildInfo.version,
+        queue: notifications,
+      });
+      // On boot every monthly statement schedule starts again and runs a run day it missed.
+      statementFlows
+        .relaunch()
+        .catch((error: unknown) => console.error({ event: "statement.relaunch_failed", error }));
+    }
     if (!accountFlows) {
       accountFlows = boxAccountFlows({
         withDatabase: (run) => run(workflowDatabase),

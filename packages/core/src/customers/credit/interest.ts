@@ -46,12 +46,18 @@ export function overdueAt(entries: readonly Entry[], termsDays: number, at: Date
   return sub(total, buckets.current);
 }
 
-/** The first month start after `now` with something overdue, assuming no new entries; null when there is none. */
-export function nextInterestAt(entries: readonly Entry[], termsDays: number, now: Date) {
+/**
+ * The oldest unposted month start with something overdue: the first after the last interest entry (or after the
+ * first entry), so a run that is late across month starts catches up every missed period, oldest first. Null when
+ * nothing is overdue, assuming no new entries.
+ */
+export function nextInterestAt(entries: readonly Entry[], termsDays: number) {
   if (entries.length === 0) return null;
-  const last = Math.max(...entries.map((e) => e.occurredAt.getTime()));
-  const horizon = last + (termsDays + 62) * DAY;
-  for (let at = nextMonthStart(now); at.getTime() <= horizon; at = nextMonthStart(at))
+  const times = (list: readonly Entry[]) => list.map((e) => e.occurredAt.getTime());
+  const charged = entries.filter((e) => e.kind === "interest");
+  const from = charged.length ? Math.max(...times(charged)) : Math.min(...times(entries));
+  const horizon = Math.max(...times(entries)) + (termsDays + 62) * DAY;
+  for (let at = nextMonthStart(new Date(from)); at.getTime() <= horizon; at = nextMonthStart(at))
     if (overdueAt(entries, termsDays, at) > 0) return at;
   return null;
 }

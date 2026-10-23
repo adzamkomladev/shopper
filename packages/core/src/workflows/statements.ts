@@ -5,6 +5,7 @@ import {
   readStatementSettings,
   statementRunDue,
 } from "../customers/statements/schedule";
+import { statementRunsSince } from "../customers/statements/restart";
 import { statementFlowParams } from "../schemas/customers/statements";
 import type { StatementFlowDeps } from "./types";
 import { MAX_WAIT_MS, woken } from "./wait";
@@ -25,8 +26,11 @@ export async function runStatementSchedule(
   if (orgId !== flow.instanceId)
     throw new Error("Statement schedule instance must equal its org id");
   const context = { orgId, actorId, appVersion: deps.appVersion, queue: deps.queue };
-  // Runs follow the last one, not the clock, so a wake that arrives late never skips a run day.
-  let since = await flow.step("start", policy, async () => Date.now());
+  // Runs follow the last one, not the clock, so a wake that arrives late never skips a run day, and a start after a
+  // restart runs a missed run day once.
+  let since = await flow.step("start", policy, () =>
+    deps.withDatabase((db) => statementRunsSince(db, orgId, Date.now())),
+  );
   for (let tick = 0; ; tick++) {
     const after = since;
     const due = await flow.step(`due-${tick}`, policy, () =>

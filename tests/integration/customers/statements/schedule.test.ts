@@ -132,3 +132,44 @@ test("a settings change wakes the flow, and turning the schedule off ends it", a
   await flows.start(ids.org, { orgId: ids.org, actorId: ids.cashier });
   await eventually(async () => expect(flows.active(ids.org)).toBe(false));
 });
+
+const booted = () =>
+  boxStatementFlows({ withDatabase: (run) => run(db()), appVersion: "test", queue });
+
+test("on boot the box relaunches a monthly schedule, and it runs on its day", async () => {
+  vi.useRealTimers();
+  expect((await settings({ ...monthly, channels: ["sms"] })).status).toBe(200);
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+  vi.setSystemTime(new Date("2027-01-10T09:00:00Z"));
+  const january = await addCustomer({ phone: "0271797005" });
+  await addEntryAt(january, "charge", 200_000, "2027-01-08T10:00:00Z");
+  const restarted = booted();
+  await restarted.relaunch();
+  expect(restarted.active(ids.org)).toBe(true);
+  await vi.advanceTimersByTimeAsync(60_000);
+  await until("2027-02-05T00:00:01Z");
+  await eventually(async () =>
+    expect(await deliveries()).toContainEqual([january, "sms", "2027-01-01..2027-01-31"]),
+  );
+});
+
+test("a run day missed across a restart runs once on the next start", async () => {
+  // The box was down over 5 March: the February run is owed when it comes back on the 7th.
+  vi.setSystemTime(new Date("2027-03-07T09:00:00Z"));
+  const february = await addCustomer({ phone: "0271797006" });
+  await addEntryAt(february, "charge", 200_000, "2027-02-08T10:00:00Z");
+  const rows = async () =>
+    (await deliveries()).filter((row) => row[2] === "2027-02-01..2027-02-28");
+  await booted().relaunch();
+  await eventually(async () =>
+    expect(await rows()).toContainEqual([february, "sms", "2027-02-01..2027-02-28"]),
+  );
+  await queue.idle();
+  const sent = await rows();
+  const all = (await deliveries()).length;
+  await booted().relaunch();
+  await vi.advanceTimersByTimeAsync(60_000);
+  await queue.idle();
+  expect(await rows()).toEqual(sent);
+  expect(await deliveries()).toHaveLength(all);
+});

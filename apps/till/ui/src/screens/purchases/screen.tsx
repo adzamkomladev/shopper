@@ -136,6 +136,12 @@ export function PurchasesScreen({
                 <SelectItem className="min-h-11" value="card">
                   Card
                 </SelectItem>
+                <SelectItem className="min-h-11" value="credit">
+                  On account
+                </SelectItem>
+                <SelectItem className="min-h-11" value="loyalty">
+                  Points
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>

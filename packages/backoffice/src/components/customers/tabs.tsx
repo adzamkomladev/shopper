@@ -4,28 +4,32 @@ import { focusIfIdle } from "../../lib/focus";
 import type { PermissionCode } from "../../lib/roles/permissions";
 import { usePermissions } from "../../queries/session/permissions";
 
-type CustomersTab = "customers" | "ageing";
+type CustomersTab = "customers" | "ageing" | "kyc" | "loyalty";
 
-// Each tab is shown only to members who hold its permission; Identity checks and Loyalty join this list.
+// Each tab is shown only to members who hold its permission.
 const TABS: {
   value: CustomersTab;
-  to: "/customers" | "/customers/ageing";
+  to: "/customers" | "/customers/ageing" | "/kyc" | "/settings/loyalty";
   label: string;
   need: PermissionCode;
 }[] = [
   { value: "customers", to: "/customers", label: "Customers", need: "customer.read" },
   { value: "ageing", to: "/customers/ageing", label: "Ageing", need: "customer.read" },
+  { value: "kyc", to: "/kyc", label: "Identity checks", need: "kyc.approve" },
+  { value: "loyalty", to: "/settings/loyalty", label: "Loyalty", need: "customer.manage" },
 ];
 
 type Props = {
   active: CustomersTab;
+  /** The page heading; the tab bar says which area it belongs to. */
+  title?: string;
   /** The tab's primary button, at the end of the tab bar. */
   action?: React.ReactNode;
   children: React.ReactNode;
 };
 
 /** The customers area's heading and tab bar; `children` is the active tab's content. */
-export function CustomersPage({ active, action, children }: Props) {
+export function CustomersPage({ active, title = "Customers", action, children }: Props) {
   const held = usePermissions();
   const tabs = TABS.filter(({ need }) => held?.includes(need));
   return (
@@ -36,7 +40,7 @@ export function CustomersPage({ active, action, children }: Props) {
         ref={focusIfIdle}
         className="text-3xl font-bold tracking-tight outline-none"
       >
-        Customers
+        {title}
       </h1>
       <Tabs value={active} activationMode="manual" className="min-h-0 flex-1 gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">

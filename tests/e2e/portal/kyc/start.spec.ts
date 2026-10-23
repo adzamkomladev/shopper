@@ -16,7 +16,7 @@ async function chooseCustomer(page: Page, phone: string) {
   await page.keyboard.press("k");
   const sheet = page.getByRole("dialog", { name: "Start an identity check" });
   await expect(sheet).toBeVisible();
-  await page.getByLabel("Customer").click();
+  await page.getByLabel("Customer", { exact: true }).click();
   await page.getByRole("option", { name: new RegExp(phone) }).click();
   return sheet;
 }

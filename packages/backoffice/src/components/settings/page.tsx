@@ -4,23 +4,27 @@ import { Button } from "@shopper/ui/components/button";
 import { Kbd } from "@shopper/ui/components/kbd";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { MOD_KEY } from "../../lib/mod/key";
+import { SettingsLinks } from "./links";
 import { focusIfIdle } from "../../lib/focus";
 
-type PageProps = { title: string; description: string; children: React.ReactNode };
+type PageProps = { title?: string; description: string; children: React.ReactNode };
 
-/** The heading and a line on what the settings do; the form (and anything under it) is `children`. */
+/** The heading (left out when a tab bar already carries it), the other settings pages, and a line on what the settings do; the form (and anything under it) is `children`. */
 export function SettingsPage({ title, description, children }: PageProps) {
   return (
     <div className="flex max-w-2xl flex-col gap-6 pb-6">
       <div className="flex flex-col gap-1">
-        {/* Focused on arrival, so the screen's shortcuts work straight after navigating here. */}
-        <h1
-          tabIndex={-1}
-          ref={focusIfIdle}
-          className="text-3xl font-bold tracking-tight outline-none"
-        >
-          {title}
-        </h1>
+        {title && (
+          // Focused on arrival, so the screen's shortcuts work straight after navigating here.
+          <h1
+            tabIndex={-1}
+            ref={focusIfIdle}
+            className="text-3xl font-bold tracking-tight outline-none"
+          >
+            {title}
+          </h1>
+        )}
+        <SettingsLinks />
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
       {children}

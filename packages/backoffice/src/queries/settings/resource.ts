@@ -5,12 +5,14 @@ import { apiFetch } from "../../api/client";
 import { creditSettingsView } from "../../schemas/settings/credit";
 import { kycSettingsView } from "../../schemas/settings/kyc";
 import { loyaltySettingsView } from "../../schemas/settings/loyalty";
+import { statementSettingsView } from "../../schemas/settings/statements";
 import { currentShop } from "../../stores/shops";
 
 const schemas = {
   loyalty: loyaltySettingsView,
   credit: creditSettingsView,
   kyc: kycSettingsView,
+  statements: statementSettingsView,
 } as const;
 type Name = keyof typeof schemas;
 

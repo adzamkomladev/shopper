@@ -12,10 +12,12 @@ type Props = {
   onEdit?: () => void;
   onMerge?: () => void;
   onArchive?: () => void;
+  onVerify?: () => void;
   archiving: boolean;
   editRef: React.Ref<HTMLButtonElement>;
   mergeRef: React.Ref<HTMLButtonElement>;
   archiveRef: React.Ref<HTMLButtonElement>;
+  verifyRef: React.Ref<HTMLButtonElement>;
 };
 
 /** The back link, the name with its line, and the actions with their keys. */
@@ -48,6 +50,12 @@ export function CustomerHeader({ customer, archiving, ...actions }: Props) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {actions.onVerify && (
+            <Button ref={actions.verifyRef} variant="outline" onClick={actions.onVerify}>
+              Verify identity
+              <Kbd aria-hidden>K</Kbd>
+            </Button>
+          )}
           {actions.onEdit && (
             <Button ref={actions.editRef} variant="outline" onClick={actions.onEdit}>
               Edit

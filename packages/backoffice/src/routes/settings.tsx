@@ -7,7 +7,7 @@ import type { BackofficeContext } from "../types";
 
 type Context = { context: BackofficeContext };
 
-/** The org's customer settings: loyalty and its tiers, credit terms, and identity checks. Each needs `customer.manage`. */
+/** The org's customer settings: loyalty and its tiers, credit terms, statements, and identity checks. Each needs `customer.manage`. */
 export function settingsRoutes(shopRoute: AnyRoute) {
   const loyaltyRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -46,5 +46,17 @@ export function settingsRoutes(shopRoute: AnyRoute) {
     ...routeStates,
     pendingComponent: () => <SettingsSkeleton label="Loading identity check settings" fields={2} />,
   });
-  return [loyaltyRoute, creditRoute, kycRoute];
+  const statementsRoute = createRoute({
+    getParentRoute: () => shopRoute,
+    path: "/settings/statements",
+    loader: ({ context }: Context) =>
+      context.queryClient.ensureQueryData(settingsQuery("statements")),
+    component: lazyRouteComponent(
+      () => import("../screens/settings/statements/screen"),
+      "StatementsSettingsScreen",
+    ),
+    ...routeStates,
+    pendingComponent: () => <SettingsSkeleton label="Loading statement settings" fields={3} />,
+  });
+  return [loyaltyRoute, creditRoute, statementsRoute, kycRoute];
 }

@@ -13,6 +13,7 @@ import { CustomerDetails, CustomerSummary } from "../../../components/customers/
 import { CustomerTabs } from "../../../components/customers/detail/tabs";
 import { CustomerSheet } from "../../../components/customers/form/sheet";
 import { MergeDialog } from "../../../components/customers/merge/dialog";
+import { KycStartSheet } from "../../../components/kyc/start";
 import { Gate, OfflineNote } from "../../../components/register/states";
 import { usePanel } from "../../../hooks/admin/panel";
 import { useAccountPanels } from "../../../hooks/customers/panels";
@@ -39,9 +40,11 @@ function Customer() {
   const editRef = useRef<HTMLButtonElement>(null);
   const mergeRef = useRef<HTMLButtonElement>(null);
   const archiveRef = useRef<HTMLButtonElement>(null);
+  const verifyRef = useRef<HTMLButtonElement>(null);
   const edit = usePanel(editRef);
   const merge = usePanel<string>(mergeRef);
   const archive = usePanel(archiveRef);
+  const verify = usePanel(verifyRef);
   const account = useAccountPanels();
   const restore = useCustomerStatus(customer.id, "unarchive");
   const shared = useSharedPhone(customer);
@@ -49,13 +52,15 @@ function Customer() {
   const merged = !!customer.mergedIntoId;
   const canEdit = !!held?.includes("customer.write") && !merged;
   const canManage = !!held?.includes("customer.manage") && !merged;
-  const busy = edit.open || merge.open || archive.open || account.busy;
+  const busy = edit.open || merge.open || archive.open || verify.open || account.busy;
   const onEdit = canEdit ? () => edit.show() : undefined;
   const onMerge = canManage && !customer.archivedAt ? () => merge.show("") : undefined;
   const onArchive = canManage
     ? () => (customer.archivedAt ? restore.mutate() : archive.show())
     : undefined;
   const verified = !!customer.kycVerifiedAt;
+  const onVerify =
+    canManage && online && !verified && !customer.archivedAt ? () => verify.show() : undefined;
   const shortcuts = useShortcuts(
     busy
       ? {}
@@ -66,6 +71,7 @@ function Customer() {
             T: () => account.transfer.show(),
             ...(verified && { L: () => account.limit.show() }),
           }),
+          ...(onVerify && { K: onVerify }),
           ...(onEdit && { E: onEdit }),
           ...(onMerge && { M: onMerge }),
           ...(onArchive && { "Alt+A": onArchive }),
@@ -78,10 +84,12 @@ function Customer() {
         onEdit={onEdit}
         onMerge={onMerge}
         onArchive={onArchive}
+        onVerify={onVerify}
         archiving={restore.isPending}
         editRef={editRef}
         mergeRef={mergeRef}
         archiveRef={archiveRef}
+        verifyRef={verifyRef}
       />
       {!online && (
         <OfflineNote>
@@ -114,6 +122,12 @@ function Customer() {
         onOpenChange={merge.setOpen}
         restoreFocus={merge.restoreFocus}
         initialText={merge.value ?? ""}
+      />
+      <KycStartSheet
+        open={verify.open}
+        onOpenChange={verify.setOpen}
+        restoreFocus={verify.restoreFocus}
+        subject={{ kind: "customer", id: customer.id, phone: customer.phone }}
       />
       <AccountDialogs panels={account} customer={customer} />
       <ArchiveDialog

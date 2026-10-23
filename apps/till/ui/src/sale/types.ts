@@ -81,7 +81,7 @@ export type MomoInput = {
 export type PurchaseFilters = {
   status: "all" | "completed" | "returned" | "voided" | "pending";
   query: string;
-  kind: "all" | TenderKind;
+  kind: "all" | TenderKind | "credit" | "loyalty";
   page: number;
   pageSize: number;
 };

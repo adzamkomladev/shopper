@@ -2,6 +2,7 @@ import type { DraftView, SaleRegister, SaleSnapshot } from "../src/sale/types";
 import { money } from "@shopper/money";
 import { emptyView, items, basket, id, matches, priceLabelled, today } from "./fixtures";
 import { makeReceipt } from "./receipts";
+import { customerScenarios } from "./sale/customers";
 import { withCashTender, withTender } from "./sale/tenders";
 
 const register = (change: Partial<SaleRegister> = {}): SaleRegister => ({
@@ -53,7 +54,7 @@ const base: SaleSnapshot = {
   search: { query: "", status: "idle", matches: [] },
   feedback: null,
   operationError: null,
-  permissions: ["sale.void", "payment.momo"],
+  permissions: ["sale.void", "payment.momo", "customer.read", "customer.write"],
   sync: { offline: false, pendingCount: 0, canSync: true, syncing: false },
   register: register(),
   receiptPrint: null,
@@ -70,6 +71,7 @@ const roundedView = (gross: ReturnType<typeof money>) => {
 
 export const scenarios: Record<string, SaleSnapshot> = {
   lines: base,
+  ...customerScenarios(base),
   many: { ...base, view: basket(items) },
   empty: { ...base, view: emptyView },
   loading: { ...base, loading: true, view: null },

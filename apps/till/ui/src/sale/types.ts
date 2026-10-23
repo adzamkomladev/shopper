@@ -9,6 +9,7 @@ import type {
   PurchaseSummary,
 } from "@shopper/sync/bridge";
 import type { HostConnection } from "../connection/types";
+import type { CustomerActions } from "./customer/types";
 
 export type { EligibilityView, PurchaseDetails, PurchaseSummary };
 export type PurchaseCounts = PurchaseList["counts"];
@@ -177,7 +178,7 @@ export type SaleSnapshot = {
 };
 
 export type AddInput = { code: string } | { productId: string };
-export type SaleActions = {
+export type SaleActions = CustomerActions & {
   search: (query: string) => void;
   add: (input: AddInput) => void;
   setQuantity: (lineId: string, quantityThousandths: number) => void;

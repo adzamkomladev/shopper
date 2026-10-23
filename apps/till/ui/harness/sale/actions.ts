@@ -4,6 +4,7 @@ import { printFailure } from "../../src/purchases/delivery";
 import type { ReceiptPrint, SaleActions, SaleSnapshot } from "../../src/sale/types";
 import { approvalActions } from "../approvals";
 import { scenarios } from "../scenarios";
+import { customerActions } from "./customers";
 import { addTender } from "./tenders";
 
 type Recorder = (type: string) => (...args: unknown[]) => unknown;
@@ -47,6 +48,7 @@ export function saleActions(
     listHeld: record("listHeld"),
     resume: record("resumeSale"),
     ...approvalActions(name, record, setSale),
+    ...customerActions(record, setSale),
     newSale: () => {
       record("newSale")();
       const initial = scenarios.lines!;

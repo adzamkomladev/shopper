@@ -41,10 +41,16 @@ export async function registerReport(db: TillDatabase, raw: unknown): Promise<Re
     net: money(0),
   };
   let discountedSales = 0;
+  // Each customer's first sale on this register, so one in the range with an earlier sale is returning.
+  const firstSale = new Map<string, number>();
+  const buyers = new Set<string>();
   for (const row of rows) {
     const sale = v.parse(saleSnapshot, row.payload);
     const at = Date.parse(sale.deviceTime) - sale.clockOffsetMs;
+    if (sale.customer)
+      firstSale.set(sale.customer.id, Math.min(at, firstSale.get(sale.customer.id) ?? at));
     if (at < start || at >= end) continue;
+    if (sale.customer) buyers.add(sale.customer.id);
     const tax = [sale.totals.vat, sale.totals.nhil, sale.totals.getfund, sale.totals.covid].reduce(
       add,
       money(0),
@@ -94,6 +100,8 @@ export async function registerReport(db: TillDatabase, raw: unknown): Promise<Re
     returns,
     products,
     discountedSales,
+    customers: buyers.size,
+    returningCustomers: [...buyers].filter((id) => firstSale.get(id)! < start).length,
   });
 }
 

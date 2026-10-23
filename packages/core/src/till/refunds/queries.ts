@@ -146,6 +146,13 @@ export async function returnedRows(tx: TillSqlite, scope: Scope, day?: string) {
 export const refundTime = (snapshot: RefundSnapshot) =>
   new Date(Date.parse(snapshot.deviceTime) - snapshot.clockOffsetMs).toISOString();
 
+/** What a purchases row says by default: not a return, nothing refunded, and no customer to name (null is a walk-in sale). */
+export const plainRow = {
+  refundOf: null as string | null,
+  refunded: "none" as "none" | "partial" | "full",
+  customer: undefined as { id: string; name: string } | null | undefined,
+};
+
 /** How much of a sale has gone back, from the refunds this till made of it. */
 export function returnedState(
   sale: v.InferOutput<typeof saleSnapshot>,
@@ -177,6 +184,7 @@ export function serverPurchase(found: ServerSale, view: ReturnType<typeof eligib
     refundOf: null,
     refunded:
       back === 0 ? ("none" as const) : back >= sold ? ("full" as const) : ("partial" as const),
+    customer: sale.customer && { id: sale.customer.id, name: sale.customer.name },
     sale,
     receipt: found.receipt,
     draft: null,

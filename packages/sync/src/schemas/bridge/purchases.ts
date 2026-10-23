@@ -26,6 +26,8 @@ export const purchaseSummary = v.strictObject({
   refundOf: v.nullable(v.string()),
   /** How much of a completed sale has gone back. */
   refunded: v.picklist(["none", "partial", "full"]),
+  /** Who the sale was rung up to. Null for a walk-in; absent for rows the register builds without a sale. */
+  customer: v.optional(v.nullable(v.strictObject({ id, name: v.string() }))),
 });
 export const receiptDelivery = v.strictObject({
   printedAt: v.nullable(v.string()),

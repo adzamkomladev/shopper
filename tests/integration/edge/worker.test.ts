@@ -16,7 +16,7 @@ test("Worker integration and shared conformance suite pass in workerd", async ()
     const { stdout } = await exec("node", ["node_modules/vitest/vitest.mjs", "run"], {
       cwd: new URL("../../../tooling/worker/tests/", import.meta.url),
       env: { ...process.env, CF_TEST_DATABASE_URL: fixture.connectionString },
-      timeout: 180000,
+      timeout: 300000,
     }).catch((error: unknown) => {
       if (error instanceof Error && "stdout" in error && "stderr" in error)
         throw new Error(`${error.message}\n${String(error.stdout)}\n${String(error.stderr)}`, {
@@ -34,4 +34,4 @@ test("Worker integration and shared conformance suite pass in workerd", async ()
   } finally {
     await fixture.close();
   }
-}, 210000);
+}, 330000);

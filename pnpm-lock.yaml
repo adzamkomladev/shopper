@@ -244,6 +244,9 @@ importers:
 
   apps/box:
     dependencies:
+      '@resvg/resvg-wasm':
+        specifier: 2.6.2
+        version: 2.6.2
       '@shopper/adapters-box':
         specifier: workspace:*
         version: link:../../packages/adapters/box
@@ -265,6 +268,9 @@ importers:
       hono:
         specifier: 4.13.13
         version: 4.13.13
+      satori:
+        specifier: 0.33.5
+        version: 0.33.5
 
   apps/edge:
     dependencies:

@@ -66,6 +66,9 @@ export function goldenRefundReceipt(
     },
     cashRounding: 0,
     total: tax.gross,
+    accountCredit: 0,
+    pointsReturned: 0,
+    pointsValue: 0,
     tender,
   });
   return v.parse(

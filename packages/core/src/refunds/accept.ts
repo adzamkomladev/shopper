@@ -37,7 +37,9 @@ export async function acceptRefund(
   const occurredAt = new Date(
     Math.min(now(), new Date(snapshot.deviceTime).valueOf() - snapshot.clockOffsetMs),
   );
-  return accept(
+  // The excess is review data kept in the audit row; a replay cannot rebuild it, so the
+  // response carries only what both can.
+  const saved = await accept(
     db,
     {
       orgId: principal.orgId,
@@ -56,6 +58,7 @@ export async function acceptRefund(
       contentHash: await sha256(canonicalJson(snapshot)),
     },
   );
+  return { id: saved.id, occurredAt: saved.occurredAt, total: saved.total };
 }
 
 const accept = defineCommand({

@@ -4,11 +4,17 @@ import { focusIfIdle } from "../../lib/focus";
 import type { PermissionCode } from "../../lib/roles/permissions";
 import { usePermissions } from "../../queries/session/permissions";
 
-type CustomersTab = "customers";
+type CustomersTab = "customers" | "ageing";
 
-// Each tab is shown only to members who hold its permission; Ageing, Identity checks and Loyalty join this list.
-const TABS: { value: CustomersTab; to: "/customers"; label: string; need: PermissionCode }[] = [
+// Each tab is shown only to members who hold its permission; Identity checks and Loyalty join this list.
+const TABS: {
+  value: CustomersTab;
+  to: "/customers" | "/customers/ageing";
+  label: string;
+  need: PermissionCode;
+}[] = [
   { value: "customers", to: "/customers", label: "Customers", need: "customer.read" },
+  { value: "ageing", to: "/customers/ageing", label: "Ageing", need: "customer.read" },
 ];
 
 type Props = {

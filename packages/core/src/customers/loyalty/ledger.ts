@@ -7,7 +7,7 @@ import type { Queryable } from "../../types";
 import { readCustomerRow } from "../queries";
 import { pointsEarned, pointsReversed } from "./points";
 import { readLoyaltySettings, tierView } from "./settings";
-import { tierFor } from "./tiers";
+import { readTierProjection, tierFor } from "./tiers";
 
 /**
  * Credits the points a sale earned its customer, once (the ledger allows one earn per sale): the share paid in money,
@@ -148,12 +148,20 @@ export async function readLoyalty(db: Queryable, orgId: string, id: string) {
     FROM loyalty_entry WHERE org_id = ${orgId} AND customer_id = ${current.id}
     ORDER BY occurred_at, id`);
   const settings = await readLoyaltySettings(db, orgId);
-  const tier = settings.enabled ? await tierFor(db, orgId, current.id, new Date()) : null;
+  const now = new Date();
+  const tier = settings.enabled ? await tierFor(db, orgId, current.id, now) : null;
+  const moving = settings.enabled ? await readTierProjection(db, orgId, current.id, now) : null;
   return {
     customerId: current.id,
     points: current.points,
     enabled: settings.enabled,
     tier: tier && tierView(tier),
+    /** The tier they lose and the day, assuming no new sales; null while they keep it. */
+    projection: moving && {
+      from: moving.from.name,
+      to: moving.to?.name ?? null,
+      on: moving.on.toISOString(),
+    },
     entries: rows.map((row) => ({
       id: row.id,
       reason: row.reason,

@@ -1,13 +1,14 @@
-import { BuildingIcon, ArchiveIcon, SearchXIcon, UsersIcon } from "lucide-react";
+import { ArchiveIcon, BuildingIcon, SearchXIcon, UsersIcon, WalletIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { Kbd } from "@shopper/ui/components/kbd";
 import { Skeleton } from "@shopper/ui/components/skeleton";
+import type { CustomersSearch } from "../../../queries/customers/types";
 import { EmptyList } from "../../admin/states";
 
 // More rows than any window shows: the table fills the space the loaded one will, and the rest is clipped.
 const SKELETON_ROWS = 12;
 
-type Segment = "business" | "archived" | undefined;
+type Segment = CustomersSearch["segment"];
 
 type NoCustomersProps = { segment: Segment; onAdd?: () => void };
 
@@ -19,6 +20,14 @@ export function NoCustomers({ segment, onAdd }: NoCustomersProps) {
         icon={ArchiveIcon}
         title="No archived customers"
         description="A customer you archive or merge away stays here, out of the till's way."
+      />
+    );
+  if (segment === "account")
+    return (
+      <EmptyList
+        icon={WalletIcon}
+        title="Nobody owes you"
+        description="A customer who buys on account and has not paid it off shows here, with what they owe."
       />
     );
   const business = segment === "business";

@@ -20,7 +20,7 @@ type Props = {
 
 /** The back link, the name with its line, and the actions with their keys. */
 export function CustomerHeader({ customer, archiving, ...actions }: Props) {
-  const { name, businessName, archivedAt, mergedIntoId } = customer;
+  const { name, businessName, archivedAt, mergedIntoId, kycVerifiedAt } = customer;
   return (
     <div className="flex flex-col gap-3">
       <Button asChild variant="ghost" size="sm" className="-ml-3 self-start text-muted-foreground">
@@ -42,6 +42,9 @@ export function CustomerHeader({ customer, archiving, ...actions }: Props) {
           <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             {businessName ?? customer.phone}
             {archivedAt && <Badge variant="outline">{mergedIntoId ? "Merged" : "Archived"}</Badge>}
+            <Badge variant={kycVerifiedAt ? "secondary" : "outline"}>
+              {kycVerifiedAt ? "KYC verified" : "Not verified"}
+            </Badge>
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

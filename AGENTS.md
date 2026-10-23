@@ -20,6 +20,107 @@ Read the doc for the area you are touching **before** you change it:
 | [developer-experience.md](docs/engineering/developer-experience.md) | Setup, commands, tooling, git, MCP servers                   |
 | [ai-workflow.md](docs/engineering/ai-workflow.md)                   | Planning, subagents, models, the Codex review loop           |
 
+## General Principles
+
+- Keep things in one function unless composable or reusable.
+- Validate unknown values once at the boundary that owns them. Pass typed values inward instead of
+  repeating `typeof value === "object"` and property-existence checks. Do not defensively revalidate
+  values already guaranteed by a schema, constructor, or internal type.
+- Do not extract single-use helpers preemptively. Inline the logic at the call site unless the helper
+  is reused, hides a genuinely complex boundary, or has a clear independent name that improves the caller.
+- Before adding complexity for a speculative or vanishingly unlikely race or security edge case,
+  explain the concrete failure mode, likelihood, and complexity cost to the user and get their buy-in.
+  Do not silently expand scope for theoretical robustness.
+- Avoid `try`/`catch` where possible.
+- Avoid using the `any` type.
+- Rely on type inference when possible; avoid explicit type annotations or interfaces unless necessary
+  for exports or clarity.
+- Prefer functional array methods (`flatMap`, `filter`, `map`) over for loops; use type guards on
+  `filter` to maintain type inference downstream.
+- Reduce total variable count by inlining when a value is only used once.
+
+```ts
+// Good
+const journal = await Bun.file(path.join(dir, "journal.json")).json()
+
+// Bad
+const journalPath = path.join(dir, "journal.json")
+const journal = await Bun.file(journalPath).json()
+```
+
+### Destructuring
+
+Avoid unnecessary destructuring. Use dot notation to preserve context.
+
+```ts
+// Good
+obj.a
+obj.b
+
+// Bad
+const { a, b } = obj
+```
+
+### Variables
+
+Prefer `const` over `let`. Use ternaries or early returns instead of reassignment.
+
+```ts
+// Good
+const foo = condition ? 1 : 2
+
+// Bad
+let foo
+if (condition) foo = 1
+else foo = 2
+```
+
+### Control Flow
+
+Avoid `else` statements. Prefer early returns.
+
+```ts
+// Good
+function foo() {
+  if (condition) return 1
+  return 2
+}
+
+// Bad
+function foo() {
+  if (condition) return 1
+  else return 2
+}
+```
+
+### Complex Logic
+
+When a function has several validation branches or supporting details, make the main function read
+as the happy path and move supporting details into small helpers below it.
+
+```ts
+// Good
+export function loadThing(input: unknown) {
+  const config = requireConfig(input)
+  const metadata = readMetadata(input)
+  return createThing({ config, metadata })
+}
+
+function requireConfig(input: unknown) {
+  // Validate the required configuration here.
+}
+```
+
+- Keep helpers close to the code they support, below the main export when that improves readability.
+- Do not over-abstract simple expressions into many single-use helpers; extract only when it names
+  a real concept like `requireConfig` or `readMetadata`.
+- Add comments for non-obvious constraints and surprising behavior, not for obvious assignments or
+  control flow.
+
+### Testing
+
+- Test actual implementation; do not duplicate logic into tests.
+
 ## Non-negotiable rules
 
 - Folder names carry shared context. When several files repeat a prefix or suffix, group them

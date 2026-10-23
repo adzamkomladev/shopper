@@ -20,6 +20,7 @@ import { SignInScreen } from "./screens/signin/screen";
 import { ShellFrame } from "./components/shell/frame";
 import { shellLink } from "./components/shell/link";
 import { RegisterSlot } from "./components/shell/slot";
+import { AccountPaymentDialog } from "./components/accounts/payment";
 import { CheckoutGate } from "./components/shift/gate";
 import { ShiftDialogs } from "./components/shift/dialogs/host";
 import { useShiftDialogs } from "./hooks/shift/dialog/state";
@@ -27,6 +28,7 @@ import type { ShellView } from "./components/shell/types";
 import { landingView } from "./components/shell/views";
 import { connectRegister, initializeConnection, useConnectionSnapshot } from "./connection/store";
 import { initializeDisplay, useDisplaySnapshot } from "./display/store";
+import { paymentActions } from "./sale/accounts";
 import { saleActions, useSaleSnapshot } from "./sale/store";
 import { purchaseOutput } from "./purchases/delivery";
 import { purchaseActions, usePurchasesSnapshot } from "./purchases/store";
@@ -170,6 +172,13 @@ function Workspace({ onRegister }: { onRegister: () => void }) {
         dialog={dialogs.dialog}
         onClose={dialogs.close}
         onClosed={(event) => dialogs.restore(event, () => setSaleFocus((value) => value + 1))}
+      />
+      <AccountPaymentDialog
+        actions={paymentActions}
+        online={link.online}
+        onClose={dialogs.close}
+        onClosed={(event) => dialogs.restore(event, () => setSaleFocus((value) => value + 1))}
+        open={dialogs.dialog === "payment"}
       />
     </RegisterProvider>
   );

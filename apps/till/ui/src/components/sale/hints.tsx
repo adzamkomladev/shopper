@@ -11,6 +11,8 @@ const hints = [
   ["F7", "Held sales"],
   ["F11", "Clear cart"],
   ["Alt+1/2/3", "Tender method"],
+  ["Alt+5/6", "On account or points"],
+  ["Alt+A", "Account payment"],
   ["Alt+U", "Customer"],
   ["Alt+I", "Invoice"],
   ["Alt+E/R", "Edit or remove customer"],

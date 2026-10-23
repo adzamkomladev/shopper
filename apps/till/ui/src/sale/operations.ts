@@ -30,7 +30,16 @@ type Dependencies = {
 /** Refusals the open dialog shows next to its fields, so the cashier can fix them there. */
 const inline = (code: string) =>
   code.startsWith("APPROVAL_") ||
-  ["OVERRIDE_INVALID", "DISCOUNT_INVALID", "DRAFT_BUSY"].includes(code);
+  [
+    "OVERRIDE_INVALID",
+    "DISCOUNT_INVALID",
+    "DRAFT_BUSY",
+    "CREDIT_LIMIT",
+    "NOT_ELIGIBLE",
+    "POINTS_SHORT",
+    "LOYALTY_OFF",
+    "OFFLINE_UNAVAILABLE",
+  ].includes(code);
 
 const refused: SaleOutcome = {
   ok: false,

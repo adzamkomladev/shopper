@@ -7,6 +7,7 @@ import {
   Receipt,
   Settings,
   Timer,
+  Wallet,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -31,6 +32,7 @@ export function MenuDrawer({
   registerName,
   online,
   shifts,
+  accounts,
   onView,
   onSignOut,
   onCloseAutoFocus,
@@ -41,6 +43,8 @@ export function MenuDrawer({
   online: boolean;
   /** The user holds shift.write, so the shift screens and the cash movements are theirs to open. */
   shifts: boolean;
+  /** The user may sell and read customers, so taking a payment on an account is theirs to open. */
+  accounts: boolean;
   onView: (view: ShellView | ShellAction) => void;
   onSignOut: () => void;
   onCloseAutoFocus: (event: Event) => void;
@@ -81,6 +85,11 @@ export function MenuDrawer({
               No sale
             </MenuButton>
           </>
+        )}
+        {accounts && (
+          <MenuButton icon={Wallet} onClick={() => onView("payment")} shortcut="Alt+A">
+            Take account payment
+          </MenuButton>
         )}
         <MenuButton icon={Settings} onClick={() => onView("settings")} shortcut="Alt+T">
           Settings

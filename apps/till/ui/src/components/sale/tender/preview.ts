@@ -1,11 +1,12 @@
 import { settle } from "@shopper/core/till/settlement";
 import type { Money } from "@shopper/money";
-import type { SaleSnapshot, TenderKind } from "../../../sale/types";
+import type { TenderMethod } from "../../../sale/account/types";
+import type { SaleSnapshot } from "../../../sale/types";
 
 export function previewSettlement(
   view: SaleSnapshot["view"],
   gross: Money,
-  selectedKind: TenderKind,
+  selectedKind: TenderMethod,
 ) {
   const draft = view?.draft;
   if (!draft || view.settlementError) return undefined;

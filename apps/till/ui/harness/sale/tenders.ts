@@ -69,7 +69,13 @@ export function withCashTender(amount: Money): DraftView {
   };
 }
 
-export function addTender(snapshot: SaleSnapshot, input: TenderInput): SaleSnapshot {
+export function addTender(
+  snapshot: SaleSnapshot,
+  input:
+    | TenderInput
+    | { kind: "credit"; amount: Money }
+    | { kind: "loyalty"; amount: Money; points: number },
+): SaleSnapshot {
   const view = snapshot.view;
   const draft = view?.draft;
   if (!view || !draft) return snapshot;
@@ -87,6 +93,7 @@ export function addTender(snapshot: SaleSnapshot, input: TenderInput): SaleSnaps
     network: null,
     status: "applied",
     createdAt: "2026-10-15T09:30:00.000Z",
+    ...(input.kind === "loyalty" ? { points: input.points } : {}),
   };
   const tenders = [...draft.tenders, tender];
   const settlement = settle(money(view.quote.totals.gross), tenders, view.cashRounding ?? "none");

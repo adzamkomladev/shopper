@@ -34,10 +34,16 @@ const traders = person("503", {
   tin: "C0012345678",
   pending: true,
 });
+const esi = person("504", { name: "Esi Owusu", phone: "0240000004" });
+/** The directory by name, for the scenarios and specs that need a particular customer. */
+export const directory = { ama, kofi, traders, esi };
 /** "0240000500" is a number the register fails to look up. */
 export const brokenPhone = "0240000500";
 
-const directory = new Map([ama, kofi, traders].map((customer) => [customer.id, customer]));
+const byId = new Map(Object.values(directory).map((customer) => [customer.id, customer]));
+/** Everyone on a number, as the register's lookup answers. */
+export const lookupPhone = (phone: string) =>
+  [...byId.values()].filter((customer) => customer.phone === phone);
 const basketOf = ({
   id,
   name,
@@ -54,17 +60,19 @@ const basketOf = ({
   tin,
 });
 
+/** The sale with this customer on it. */
+export const attached = (base: SaleSnapshot, customer: CustomerRecord): SaleSnapshot => ({
+  ...base,
+  view: { ...base.view!, customer: basketOf(customer) },
+});
+
 /** Scenarios for the customer specs, built on the sale screen's own `lines` snapshot. */
 export function customerScenarios(base: SaleSnapshot): Record<string, SaleSnapshot> {
-  const attached = (customer: CustomerRecord): SaleSnapshot => ({
-    ...base,
-    view: { ...base.view!, customer: basketOf(customer) },
-  });
   return {
     customers: base,
     "customers-empty": { ...base, view: emptyView },
-    "customers-attached": attached(ama),
-    "customers-business": attached(traders),
+    "customers-attached": attached(base, ama),
+    "customers-business": attached(base, traders),
     "customers-offline": { ...base, sync: { ...base.sync, offline: true, pendingCount: 1 } },
     "customers-readonly": { ...base, permissions: ["customer.read"] },
     "customers-nopermission": { ...base, permissions: [] },
@@ -81,23 +89,23 @@ export function customerActions(
       await sleep(60);
       if (phone === brokenPhone)
         return { ok: false, message: "The register could not look that up" };
-      return { ok: true, customers: [...directory.values()].filter((c) => c.phone === phone) };
+      return { ok: true, customers: lookupPhone(phone) };
     },
     async saveCustomer(fields, customerId) {
       if (customerId === undefined) record("saveCustomer")(fields);
       else record("saveCustomer")(fields, customerId);
       const saved = {
         ...fields,
-        id: customerId ?? id(String(600 + directory.size)),
+        id: customerId ?? id(String(600 + byId.size)),
         version: 1,
         pending: true,
       };
-      directory.set(saved.id, saved);
+      byId.set(saved.id, saved);
       return { ok: true, customer: saved };
     },
     async attachCustomer(customerId) {
       record("attachCustomer")(customerId);
-      const customer = customerId ? directory.get(customerId) : undefined;
+      const customer = customerId ? byId.get(customerId) : undefined;
       setSale((current) => ({
         ...current,
         view: current.view && { ...current.view, customer: customer ? basketOf(customer) : null },

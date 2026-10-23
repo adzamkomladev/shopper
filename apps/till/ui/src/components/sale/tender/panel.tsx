@@ -1,24 +1,20 @@
 import { useState } from "react";
-import {
-  add,
-  formatGHS,
-  fromDecimal,
-  money,
-  toDecimal,
-  wholePesewas,
-  type Money,
-} from "@shopper/money";
-import { Button } from "@shopper/ui/components/button";
+import { add, formatGHS, money, wholePesewas } from "@shopper/money";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
+import { useAccountRead } from "../../../hooks/sale/tender/account";
+import { tenderEntry } from "../../../sale/account/entry";
+import { pointsText } from "../../../sale/account/rules";
 import { hasUnappliedConfirmation } from "../../../sale/payments";
-import type { SaleActions, SaleControls, SaleSnapshot, TenderKind } from "../../../sale/types";
+import type { TenderMethod } from "../../../sale/account/types";
+import type { SaleActions, SaleControls, SaleSnapshot } from "../../../sale/types";
 import { TenderActions } from "./actions";
+import { AccountNotice, AccountSummary, PointsEntry } from "./account";
 import { TenderHeader } from "./header";
 import { TenderOverlays } from "./overlays";
 import { TenderKeypad } from "./keypad";
-import { TenderMethods } from "./methods";
+import { methodReasons, TenderMethods } from "./methods";
 import { previewSettlement } from "./preview";
-import { MomoState, ReceiptComplete } from "./state";
+import { MomoState, ReceiptComplete, UnappliedConfirmation } from "./state";
 
 export function TenderPanel({
   snapshot,
@@ -41,7 +37,8 @@ export function TenderPanel({
   onPurchases?: () => void;
 }) {
   const [amountEntry, setAmountEntry] = useState<{ draftKey: string; value: string } | null>(null);
-  const [kind, setKind] = useState<TenderKind>("cash");
+  const [pointsEntry, setPointsEntry] = useState<{ draftKey: string; value: string } | null>(null);
+  const [picked, setKind] = useState<TenderMethod>("cash");
   const [cardOpen, setCardOpen] = useState(false);
   const [momoOpen, setMomoOpen] = useState(false);
   const draft = snapshot.view?.draft;
@@ -49,10 +46,27 @@ export function TenderPanel({
   const amountText = amountEntry?.draftKey === draftKey ? amountEntry.value : null;
   const baseSettlement = snapshot.view?.settlement;
   const gross = money(baseSettlement?.gross ?? snapshot.view?.quote.totals.gross ?? 0);
+  const customer = snapshot.view?.customer ?? null;
+  const account = useAccountRead(customer?.id ?? null, actions);
+  const reasons = methodReasons({
+    offline: snapshot.sync.offline,
+    canMomo: snapshot.permissions.includes("payment.momo"),
+    hasCustomer: customer !== null,
+  });
+  // Removing the customer or losing the connection takes the account methods away, so the step falls back to cash.
+  const kind = (picked === "credit" || picked === "loyalty") && reasons.account ? "cash" : picked;
+  const accountKind = kind === "credit" || kind === "loyalty" ? kind : null;
   const settlement = previewSettlement(snapshot.view, gross, kind) ?? baseSettlement;
   const balance = money(settlement?.balance ?? gross);
   const settlementError = snapshot.view?.settlementError;
-  const amount = parseAmount(amountText ?? toDecimal(balance));
+  const entry = tenderEntry({
+    kind,
+    account: account.account,
+    balance,
+    amountText,
+    pointsText: pointsEntry?.draftKey === draftKey ? pointsEntry.value : null,
+  });
+  const { amount, points } = entry;
   const canTender = amount !== null && amount > 0;
   const { locked } = controls;
   const momoTenders = draft?.tenders.filter((tender) => tender.kind === "momo") ?? [];
@@ -72,7 +86,9 @@ export function TenderPanel({
           "Alt+1": () => setKind("cash"),
           "Alt+2": () => openMomo(),
           "Alt+3": () => openCard(),
-          "Alt+4": addCash,
+          "Alt+4": split,
+          "Alt+5": () => openAccount("credit"),
+          "Alt+6": () => openAccount("loyalty"),
           F5: charge,
         }
       : {},
@@ -82,10 +98,30 @@ export function TenderPanel({
     setKind("card");
     setCardOpen(true);
   }
-  function selectMethod(next: TenderKind) {
+  function selectMethod(next: TenderMethod) {
     if (next === "cash") setKind("cash");
     if (next === "card") openCard();
     if (next === "momo") openMomo();
+    if (next === "credit" || next === "loyalty") openAccount(next);
+  }
+  /** Reads what the customer may spend each time, since another register may have used it. */
+  function openAccount(next: "credit" | "loyalty") {
+    if (reasons.account || locked) return;
+    setKind(next);
+    account.clearRefusal();
+    void account.load(account.read?.status === "ready");
+  }
+  function split() {
+    if (accountKind) void addAccount(false);
+    else addCash();
+  }
+  /** Puts the account tender on the basket, then completes the sale when it covered what was due. */
+  async function addAccount(thenComplete: boolean) {
+    if (locked || !canTender || entry.blocked) return;
+    const added = await account.add(
+      kind === "loyalty" ? { kind, points: points! } : { kind: "credit", amount },
+    );
+    if (added && thenComplete) actions.complete();
   }
   function openMomo() {
     if (snapshot.sync.offline || !snapshot.permissions.includes("payment.momo")) return;
@@ -102,6 +138,8 @@ export function TenderPanel({
         return actions.charge({ kind: "cash", amount: money(0) });
       return actions.complete();
     }
+    if (accountKind)
+      return amount !== null && amount >= balance ? void addAccount(true) : undefined;
     if (kind === "card") return openCard();
     if (kind === "momo") return openMomo();
     if (canTender) actions.charge({ kind: "cash", amount });
@@ -141,6 +179,7 @@ export function TenderPanel({
     !draft ||
     waitingForMomo ||
     !!settlementError ||
+    entry.blocked ||
     (balance > 0 && (!canTender || amount < balance));
   return (
     <section
@@ -157,33 +196,43 @@ export function TenderPanel({
         onBack={onBack}
       />
 
-      <TenderKeypad
-        balance={balance}
-        onChange={(value) => {
-          if (draftKey) setAmountEntry({ draftKey, value });
-        }}
-        onEnter={charge}
-        value={amountText ?? toDecimal(balance)}
-      />
+      {accountKind && (
+        <AccountSummary
+          kind={accountKind}
+          onRetry={() => void account.load()}
+          read={account.read}
+        />
+      )}
+      {kind === "loyalty" ? (
+        <PointsEntry
+          account={account.account}
+          onChange={(value) => {
+            account.clearRefusal();
+            if (draftKey) setPointsEntry({ draftKey, value: pointsText(value) });
+          }}
+          onEnter={charge}
+          points={points}
+          value={entry.pointsInput}
+        />
+      ) : (
+        <TenderKeypad
+          balance={balance}
+          pad={kind !== "credit"}
+          onChange={(value) => {
+            account.clearRefusal();
+            if (draftKey) setAmountEntry({ draftKey, value });
+          }}
+          onEnter={charge}
+          value={entry.amountInput}
+        />
+      )}
+      <AccountNotice problem={entry.issue ?? account.refusal} />
       {balance > 0 && amount !== null && amount < balance && (
         <p className="text-sm text-muted-foreground" role="status">
           Add another tender to finish this sale.
         </p>
       )}
-      <TenderMethods
-        canMomo={snapshot.permissions.includes("payment.momo")}
-        offline={snapshot.sync.offline}
-        onSelect={selectMethod}
-        selected={kind}
-      />
-      {snapshot.sync.offline && (
-        <p className="text-sm text-muted-foreground">Mobile money needs an internet connection.</p>
-      )}
-      {!snapshot.permissions.includes("payment.momo") && (
-        <p className="text-sm text-muted-foreground" role="status">
-          Mobile money permission is required for this register.
-        </p>
-      )}
+      <TenderMethods onSelect={selectMethod} reasons={reasons} selected={kind} />
       {settlementError && (
         <p
           className="rounded-md border border-destructive/40 p-3 text-sm text-destructive"
@@ -192,17 +241,7 @@ export function TenderPanel({
           {settlementError}
         </p>
       )}
-      {unappliedConfirmation && (
-        <div
-          className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
-          role="status"
-        >
-          <span>MoMo confirmed — not yet applied to a sale</span>
-          <Button onClick={onPurchases} size="touch" variant="outline">
-            Purchases
-          </Button>
-        </div>
-      )}
+      {unappliedConfirmation && <UnappliedConfirmation onPurchases={onPurchases} />}
       <MomoState failureReason={momoFailure} tender={momo} onOtp={addMomoOtp} onRetry={openMomo} />
       {snapshot.operationError && (
         <p role="alert" className="text-sm text-destructive">
@@ -248,12 +287,4 @@ export function TenderPanel({
       />
     </section>
   );
-}
-
-function parseAmount(value: string): Money | null {
-  try {
-    return fromDecimal(value);
-  } catch {
-    return null;
-  }
 }

@@ -18,6 +18,7 @@ import { SaleScreen } from "../src/screens/sale/screen";
 import { PurchasesScreen } from "../src/screens/purchases/screen";
 import { SettingsScreen } from "../src/screens/settings/screen";
 import { ShiftScreen } from "../src/screens/shift/screen";
+import { AccountPaymentDialog } from "../src/components/accounts/payment";
 import { CheckoutGate } from "../src/components/shift/gate";
 import { ShiftDialogs } from "../src/components/shift/dialogs/host";
 import { useShiftDialogs } from "../src/hooks/shift/dialog/state";
@@ -26,6 +27,7 @@ import { purchaseOutput } from "../src/purchases/delivery";
 import { purchaseActions } from "./purchases/actions";
 import { initialPurchases } from "./purchases/data";
 import { purchasePermissions } from "./purchases/scenarios";
+import { paymentActions } from "./sale/accounts";
 import { saleActions } from "./sale/actions";
 import { useSettingsHarness } from "./settings";
 import { useShiftHarness } from "./shift/actions";
@@ -50,6 +52,7 @@ const permissions = params.get("permissions")?.split(",") ?? [
   "stock.read",
   "shift.read",
   "shift.write",
+  "customer.read",
 ];
 const link =
   params.has("offline") || name === "find-offline"
@@ -159,6 +162,13 @@ function Harness() {
         dialog={dialogs.dialog}
         onClose={dialogs.close}
         onClosed={(event) => dialogs.restore(event, () => setSaleFocus((value) => value + 1))}
+      />
+      <AccountPaymentDialog
+        actions={paymentActions(name, record)}
+        online={link.online}
+        onClose={dialogs.close}
+        onClosed={(event) => dialogs.restore(event, () => setSaleFocus((value) => value + 1))}
+        open={dialogs.dialog === "payment"}
       />
     </RegisterProvider>
   );

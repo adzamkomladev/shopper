@@ -2,6 +2,7 @@ import type { DraftView, SaleRegister, SaleSnapshot } from "../src/sale/types";
 import { money } from "@shopper/money";
 import { emptyView, items, basket, id, matches, priceLabelled, today } from "./fixtures";
 import { makeReceipt } from "./receipts";
+import { accountScenarios } from "./sale/accounts";
 import { customerScenarios } from "./sale/customers";
 import { withCashTender, withTender } from "./sale/tenders";
 
@@ -72,6 +73,7 @@ const roundedView = (gross: ReturnType<typeof money>) => {
 export const scenarios: Record<string, SaleSnapshot> = {
   lines: base,
   ...customerScenarios(base),
+  ...accountScenarios(base),
   many: { ...base, view: basket(items) },
   empty: { ...base, view: emptyView },
   loading: { ...base, loading: true, view: null },

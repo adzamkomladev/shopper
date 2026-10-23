@@ -12,8 +12,13 @@ export const accraTime = (value: string) => timeOfDay.format(new Date(value));
 export const accraDay = (value: string) => day.format(new Date(value));
 export const accraDateTime = (value: string) => dayAndTime.format(new Date(value));
 
+const tenderLabels: Record<string, string> = {
+  momo: "Mobile money",
+  credit: "On account",
+  loyalty: "Points",
+};
 export const tenderLabel = (kind: string) =>
-  kind === "momo" ? "Mobile money" : kind[0]!.toUpperCase() + kind.slice(1);
+  tenderLabels[kind] ?? kind[0]!.toUpperCase() + kind.slice(1);
 
 export const statusLabel = (status: string) =>
   status === "returned" ? "Returned" : status[0]!.toUpperCase() + status.slice(1);

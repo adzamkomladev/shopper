@@ -10,6 +10,7 @@ import { deviceRoutes } from "./routes/devices";
 import { shiftRoutes } from "./routes/shifts";
 import { stockRoutes } from "./routes/stock";
 import { customerRoutes } from "./routes/customers";
+import { settingsRoutes } from "./routes/settings";
 import { loyaltyRoutes } from "./routes/loyalty";
 import { publicStatementRoutes } from "./routes/public/statements";
 import { kycRoutes } from "./routes/kyc";
@@ -76,6 +77,8 @@ export function createApi(options: ApiOptions = {}) {
     app.route("/", publicStatementRoutes(options.database, options.linkSecret, options.renderer));
   if (options.database)
     app.route("/", loyaltyRoutes(options.database, options.authentication, options.notifications));
+  if (options.database)
+    app.route("/", settingsRoutes(options.database, options.authentication, options.notifications));
   if (options.database) app.route("/", kycRoutes(options));
   return app;
 }

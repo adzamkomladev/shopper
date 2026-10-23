@@ -11,6 +11,7 @@ import {
 } from "../schemas/customers/inputs";
 import { CustomerError } from "./error";
 import { publishCustomer } from "./feed";
+import { wakeAccount } from "./accounts/wake";
 import { readCustomerRow } from "./queries";
 
 /** The fields a user edits, in one fixed shape for audit and comparison. */
@@ -147,6 +148,7 @@ export const archiveCustomer = defineCommand({
       )
       .limit(1);
     if (open) throw new CustomerError("HOLDS_OPEN", "The customer has an open hold");
+    wakeAccount(tx, ctx.orgId, current.id);
     return setArchived(tx, ctx.orgId, current.id, input.now);
   },
   audit: (_input, output) => ({ ...output }),

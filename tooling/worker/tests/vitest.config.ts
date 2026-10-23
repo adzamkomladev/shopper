@@ -82,6 +82,7 @@ export default defineConfig({
       "launcher.test.ts",
       "payments/momo.test.ts",
       "kyc/flow.test.ts",
+      "account/flow.test.ts",
       "renderer.test.ts",
       "queue.test.ts",
       "stock/alerts.test.ts",

@@ -81,3 +81,9 @@ export const recordAccountPaymentInput = v.pipe(
   }),
   v.check((p) => p.method !== "momo" || p.reference !== null, referenceMessage),
 );
+
+/** Credit per org: days before a charge is overdue, and monthly interest on what is overdue (0 is off). */
+export const creditSettings = v.strictObject({
+  termsDays: v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(365)),
+  interestBps: v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(10_000)),
+});

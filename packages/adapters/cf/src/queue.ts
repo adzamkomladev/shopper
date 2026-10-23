@@ -5,6 +5,7 @@ import { createArkesel } from "@shopper/core/sms/arkesel";
 import { messageBody, NOTIFICATION_RETRY, retryDelay } from "@shopper/ports";
 import { cloudflareDatabase } from "./database";
 import { cloudflareRenderer } from "./renderer";
+import { cloudflareLoopLauncher } from "./launcher";
 import type { CloudflareRuntimeEnvironment } from "./runtime/types";
 import type { Envelope, Queue, QueueHandler, RetryPolicy } from "@shopper/ports";
 
@@ -74,6 +75,7 @@ export async function cloudflareNotifications(
     | "SHOPPER_LINK_SECRET"
     | "SHOPPER_AUTH_URL"
     | "BROWSER"
+    | "ACCOUNT_FLOWS"
   >,
 ): Promise<void> {
   const sms =
@@ -92,8 +94,6 @@ export async function cloudflareNotifications(
           endpoint: env.MAILEROO_ENDPOINT || undefined,
         })
       : undefined;
-  // Without any channel every message retries and dead-letters, so a missing secret is never silent.
-  if (!sms && !mail) return batch.retryAll();
   const connection = await cloudflareDatabase(env.HYPERDRIVE.connectionString);
   try {
     const deps = {
@@ -104,6 +104,7 @@ export async function cloudflareNotifications(
       renderer: env.BROWSER ? cloudflareRenderer(env.BROWSER) : undefined,
       linkSecret: env.SHOPPER_LINK_SECRET,
       baseUrl: env.SHOPPER_AUTH_URL,
+      accounts: env.ACCOUNT_FLOWS ? cloudflareLoopLauncher(env.ACCOUNT_FLOWS, "wake") : undefined,
     };
     await cloudflareDeliver(
       batch,

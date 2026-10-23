@@ -14,6 +14,7 @@ import { ensureSaleCustomer } from "../customers/sale";
 import { publishCustomer } from "../customers/feed";
 import { consumeHolds } from "../customers/credit/holds";
 import { earnPoints } from "../customers/loyalty/ledger";
+import { wakeAccount } from "../customers/accounts/wake";
 import { checkReorder } from "../stock/reorder";
 import type { Queue } from "@shopper/ports";
 
@@ -160,6 +161,8 @@ const accept = defineCommand({
       occurredAt: input.occurredAt,
     });
     if (buyer.created) await publishCustomer(tx, ctx.orgId, buyer.created);
+    // Its charge or earn may bring the account's next interest, expiry or tier notice forward.
+    if (buyer.id) wakeAccount(tx, ctx.orgId, buyer.id);
     return {
       localId: saved.localId,
       occurredAt: saved.occurredAt.toISOString(),

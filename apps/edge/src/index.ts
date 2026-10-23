@@ -5,4 +5,5 @@ export {
   AuthWorkflow,
   MomoPaymentWorkflow,
   KycWorkflow,
+  AccountWorkflow,
 } from "@shopper/adapters-cf/workflows";

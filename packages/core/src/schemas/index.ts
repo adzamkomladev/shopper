@@ -26,3 +26,4 @@ export { compactPhone, ghanaPhone, positiveInt } from "./fields";
 export * from "./customers/credit";
 export * from "./customers/loyalty";
 export * from "./customers/statements";
+export * from "./customers/accounts";

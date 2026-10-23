@@ -4,6 +4,7 @@ import { accountHold, creditEntry, customer, loyaltyEntry } from "@shopper/db-pg
 import { sub, money } from "@shopper/money";
 import { CustomerError } from "./error";
 import { publishCustomer } from "./feed";
+import { wakeAccount } from "./accounts/wake";
 import { readCustomerRow } from "./queries";
 
 type Merge = { winnerId: string; loserId: string; now: Date };
@@ -62,6 +63,8 @@ export const mergeCustomers = defineCommand({
       .where(and(eq(customer.orgId, ctx.orgId), eq(customer.id, loser.id)))
       .returning();
     await publishCustomer(tx, ctx.orgId, row!);
+    wakeAccount(tx, ctx.orgId, winner.id);
+    wakeAccount(tx, ctx.orgId, loser.id);
     return {
       winnerId: winner.id,
       loserId: loser.id,

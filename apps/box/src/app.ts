@@ -16,6 +16,7 @@ import {
   boxRealtime,
   boxAuthFlows,
   boxKycFlows,
+  boxAccountFlows,
   boxMomoPayment,
   boxQueue,
 } from "@shopper/adapters-box";
@@ -31,6 +32,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
   let momoPayment: ReturnType<typeof boxMomoPayment> | undefined;
   let priceChange: ReturnType<typeof boxPriceChange> | undefined;
   let notifications: ReturnType<typeof boxQueue> | undefined;
+  let accountFlows: ReturnType<typeof boxAccountFlows> | undefined;
   const renderer = boxRenderer();
   return new Hono<{ Bindings: BoxBindings }>().all("*", async (context) => {
     const request = context.req.raw;
@@ -101,22 +103,33 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
             endpoint: environment.MAILEROO_ENDPOINT,
           })
         : undefined;
-    // Alerts and statements share one queue; with no channel configured nothing is queued.
-    if (sms || mail)
-      notifications ??= boxQueue(NOTIFICATION_RETRY, (delivery) =>
-        deliverNotification(
-          {
-            db: workflowDatabase,
-            appVersion: buildInfo.version,
-            sms,
-            mail,
-            renderer,
-            linkSecret: environment.SHOPPER_LINK_SECRET,
-            baseUrl: SHOPPER_AUTH_URL,
-          },
-          delivery,
-        ),
-      );
+    // Alerts, statements, tier notices and account wakes share one queue; a channel it lacks retries.
+    notifications ??= boxQueue(NOTIFICATION_RETRY, (delivery) =>
+      deliverNotification(
+        {
+          db: workflowDatabase,
+          appVersion: buildInfo.version,
+          sms,
+          mail,
+          renderer,
+          linkSecret: environment.SHOPPER_LINK_SECRET,
+          baseUrl: SHOPPER_AUTH_URL,
+          accounts: accountFlows,
+        },
+        delivery,
+      ),
+    );
+    if (!accountFlows) {
+      accountFlows = boxAccountFlows({
+        withDatabase: (run) => run(workflowDatabase),
+        appVersion: buildInfo.version,
+        queue: notifications,
+      });
+      // On boot every account with a ledger looks for its next due moment again.
+      accountFlows
+        .relaunch()
+        .catch((error: unknown) => console.error({ event: "account.relaunch_failed", error }));
+    }
     if (sms && environment.SHOPPER_LINK_SECRET)
       kycFlows ??= boxKycFlows({
         withDatabase: (run) => run(workflowDatabase),

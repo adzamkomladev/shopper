@@ -6,6 +6,7 @@ import { loyaltySettings, tierInput, tierPatch } from "../../schemas/customers/l
 import { customerId } from "../../schemas/customers/inputs";
 import type { Queryable } from "../../types";
 import { CustomerError } from "../error";
+import { wakeAccounts } from "../accounts/wake";
 
 /** The org's loyalty settings; every org has them, off until a manager switches them on. */
 export async function readLoyaltySettings(db: Queryable, orgId: string) {
@@ -38,6 +39,7 @@ export const setLoyaltySettings = defineCommand({
         updatedAt: new Date(),
       })
       .where(eq(org.id, ctx.orgId));
+    wakeAccounts(tx, ctx.orgId);
     return { before, after: next };
   },
   audit: (_input, output) => ({ ...output }),

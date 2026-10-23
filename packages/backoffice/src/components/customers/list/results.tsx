@@ -15,11 +15,7 @@ type Props = CustomersSearch & {
 
 /** The part of the screen that waits for customers: the table, or the state that stands in for it. */
 export function CustomersResults({ q, segment, onClear, onAdd }: Props) {
-  const query = customersListQuery({
-    q,
-    archived: segment === "archived",
-    business: segment === "business",
-  });
+  const query = customersListQuery({ q, segment });
   const { data, hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage } =
     useSuspenseInfiniteQuery(query);
   const customers = data.pages.flatMap((page) => page.items);

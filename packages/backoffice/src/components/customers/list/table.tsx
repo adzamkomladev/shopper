@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback } from "@shopper/ui/components/avatar";
 import { Badge } from "@shopper/ui/components/badge";
 import { DataTable, type DataTableColumn } from "@shopper/ui/components/data-table";
-import { initials, KIND_LABELS } from "../../../lib/customers/format";
+import { initials, KIND_LABELS, shortDay } from "../../../lib/customers/format";
 import type { CustomerView } from "../../../queries/customers/types";
 import { Balance } from "../balance";
 
@@ -70,6 +70,17 @@ const columns: DataTableColumn<CustomerView>[] = [
     header: "Points",
     meta: { align: "right", className: FROM_MD },
     cell: ({ row }) => <span className="tabular-nums">{row.original.points}</span>,
+  },
+  {
+    id: "lastVisit",
+    header: "Last visit",
+    meta: { align: "right", className: "hidden lg:table-cell" },
+    cell: ({ row }) =>
+      row.original.lastVisitAt ? (
+        <span className="tabular-nums">{shortDay(row.original.lastVisitAt)}</span>
+      ) : (
+        <span className="text-muted-foreground">Never</span>
+      ),
   },
 ];
 

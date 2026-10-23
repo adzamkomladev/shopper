@@ -14,12 +14,22 @@ const balance = sql<string>`COALESCE((SELECT SUM(amount) FROM credit_entry WHERE
 /** The points held: a fold of the loyalty ledger. */
 const points = sql<number>`COALESCE((SELECT SUM(points) FROM loyalty_entry WHERE org_id = "customer".org_id AND customer_id = "customer".id), 0)::bigint`;
 
-const select = (db: Queryable) =>
+/** When they last bought: the newest sale rung up to them. */
+const lastVisit = sql<Date | null>`(SELECT MAX(occurred_at) FROM sale WHERE org_id = "customer".org_id AND customer_id = "customer".id)`;
+
+const folds = () => ({
+  ...customerColumns(),
+  balance: balance.mapWith((value) => fromBigInt(BigInt(value))),
+  points: points.mapWith(Number),
+});
+
+const select = (db: Queryable) => db.select(folds()).from(customer);
+/** Only the readers that show it ask for the last visit: the locked reads on the sale paths do not pay for it. */
+const selectWithVisit = (db: Queryable) =>
   db
     .select({
-      ...customerColumns(),
-      balance: balance.mapWith((value) => fromBigInt(BigInt(value))),
-      points: points.mapWith(Number),
+      ...folds(),
+      lastVisitAt: lastVisit.mapWith((value) => (value ? new Date(value) : null)),
     })
     .from(customer);
 
@@ -34,6 +44,7 @@ function customerColumns() {
     email: customer.email,
     creditLimit: customer.creditLimit,
     version: customer.version,
+    kycVerifiedAt: customer.kycVerifiedAt,
     archivedAt: customer.archivedAt,
     mergedIntoId: customer.mergedIntoId,
   };
@@ -42,8 +53,10 @@ function customerColumns() {
 type CustomerRow = Awaited<ReturnType<typeof readCustomerRow>>;
 
 /** The JSON a client sees. */
-export const customerView = (row: CustomerRow) => ({
+export const customerView = (row: CustomerRow & { lastVisitAt?: Date | null }) => ({
   ...row,
+  kycVerifiedAt: row.kycVerifiedAt?.toISOString() ?? null,
+  lastVisitAt: row.lastVisitAt?.toISOString() ?? null,
   archivedAt: row.archivedAt?.toISOString() ?? null,
 });
 
@@ -60,16 +73,21 @@ export async function readCustomerRow(db: Queryable, orgId: string, id: string, 
 }
 
 export async function readCustomer(db: Queryable, orgId: string, id: string) {
-  return customerView(await readCustomerRow(db, orgId, id));
+  const [found] = await selectWithVisit(db).where(
+    and(eq(customer.orgId, orgId), eq(customer.id, v.parse(customerId, id))),
+  );
+  if (!found) throw new CustomerError("NOT_FOUND", "Customer not found");
+  return customerView(found);
 }
 
 /** Customers newest first, keyset-paged. A search matches name, business name, phone prefix or TIN. */
 export async function listCustomers(db: Queryable, orgId: string, rawQuery: unknown) {
-  const { q, archived, kind, cursor, limit } = v.parse(customerQuery, rawQuery);
+  const { q, archived, kind, onAccount, cursor, limit } = v.parse(customerQuery, rawQuery);
   const filters: (SQL | undefined)[] = [
     eq(customer.orgId, orgId),
     archived ? isNotNull(customer.archivedAt) : isNull(customer.archivedAt),
     kind ? eq(customer.kind, kind) : undefined,
+    onAccount ? sql`${balance} > 0` : undefined,
     cursor ? lt(customer.id, cursor) : undefined,
     q
       ? or(
@@ -80,7 +98,7 @@ export async function listCustomers(db: Queryable, orgId: string, rawQuery: unkn
         )
       : undefined,
   ];
-  const rows = await select(db)
+  const rows = await selectWithVisit(db)
     .where(and(...filters))
     .orderBy(desc(customer.id))
     .limit(limit + 1);

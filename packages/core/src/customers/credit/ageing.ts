@@ -46,9 +46,9 @@ export async function readAgeing(db: Queryable, orgId: string, id: string, asOf 
   return { customerId: current.id, ...ageEntries(entries, await termsOf(db, orgId), asOf) };
 }
 
-/** Every active customer who owes something, aged, as CSV in cedis. */
+/** Every active customer who owes something, aged, by name. */
 // ponytail: one read of the org's whole ledger; aggregate in SQL once ledgers reach millions of rows.
-export async function ageingCsv(db: Queryable, orgId: string, asOf = new Date()) {
+export async function readAgeingReport(db: Queryable, orgId: string, asOf = new Date()) {
   const terms = await termsOf(db, orgId);
   const rows = await db
     .select({
@@ -67,14 +67,24 @@ export async function ageingCsv(db: Queryable, orgId: string, asOf = new Date())
     .orderBy(asc(customer.name), asc(customer.id));
   const byCustomer = new Map<string, typeof rows>();
   for (const row of rows) byCustomer.set(row.id, [...(byCustomer.get(row.id) ?? []), row]);
-  const lines = [...byCustomer.values()].flatMap((entries) => {
+  const items = [...byCustomer.values()].flatMap((entries) => {
     const aged = ageEntries(entries, terms, asOf);
     if (aged.total === 0) return [];
-    const { name, phone } = entries[0]!;
-    return [
-      [name, phone, ...ageingBuckets.map((b) => toDecimal(aged.buckets[b])), toDecimal(aged.total)],
-    ];
+    const { id, name, phone } = entries[0]!;
+    return [{ id, name, phone, ...aged }];
   });
+  return { items };
+}
+
+/** The same report as CSV in cedis. */
+export async function ageingCsv(db: Queryable, orgId: string, asOf = new Date()) {
+  const { items } = await readAgeingReport(db, orgId, asOf);
+  const lines = items.map(({ name, phone, buckets, total }) => [
+    name,
+    phone,
+    ...ageingBuckets.map((b) => toDecimal(buckets[b])),
+    toDecimal(total),
+  ]);
   return toCsv([["Name", "Phone", "Current", "1-30", "31-60", "61-90", "90+", "Total"], ...lines]);
 }
 

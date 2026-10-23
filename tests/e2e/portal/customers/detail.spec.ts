@@ -11,7 +11,7 @@ import {
 import { dialog, signInAs } from "../../../support/admin/people";
 import { expectNoSeriousAxe } from "../../../support/e2e";
 
-const button = (page: Page, name: string) => page.getByRole("button", { name });
+const button = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
 const card = (page: Page, label: string) => page.getByRole("group", { name: label });
 
 test.describe("as the owner of E2E Mart", () => {

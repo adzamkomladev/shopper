@@ -2,25 +2,20 @@ import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 import { apiFetch } from "../../api/client";
 import { customerPage, customerView } from "../../schemas/customers/view";
 import { currentShop } from "../../stores/shops";
+import type { CustomersSearch } from "./types";
 
 const PAGE_SIZE = 50;
-type Filters = { q?: string; archived?: boolean; business?: boolean };
 
 /** Customers newest first, a page at a time. Keyed by shop and filters, so none share a list. */
-export function customersListQuery({ q, archived, business }: Filters = {}, shop = currentShop()) {
+export function customersListQuery({ q, segment }: CustomersSearch = {}, shop = currentShop()) {
   return infiniteQueryOptions({
-    queryKey: [
-      "customers",
-      shop?.id ?? "box",
-      "list",
-      q ?? "",
-      archived ? "archived" : business ? "business" : "active",
-    ],
+    queryKey: ["customers", shop?.id ?? "box", "list", q ?? "", segment ?? "active"],
     queryFn: ({ pageParam }) => {
       const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
       if (q) params.set("q", q);
-      if (archived) params.set("archived", "1");
-      if (business) params.set("kind", "business");
+      if (segment === "archived") params.set("archived", "1");
+      if (segment === "business") params.set("kind", "business");
+      if (segment === "account") params.set("onAccount", "1");
       if (pageParam) params.set("cursor", pageParam);
       return apiFetch(`/customers?${params}`, customerPage, { shopId: shop?.id ?? null });
     },

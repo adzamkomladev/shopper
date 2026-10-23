@@ -16,6 +16,10 @@ export const customerView = v.object({
   email: v.nullable(v.string()),
   creditLimit: amount,
   version: int,
+  /** When their identity was verified; a credit limit needs it. */
+  kycVerifiedAt: v.nullable(v.string()),
+  /** Their newest sale; null before the first. */
+  lastVisitAt: v.nullable(v.string()),
   archivedAt: v.nullable(v.string()),
   mergedIntoId: v.nullable(v.string()),
   /** What they owe; below zero is a deposit held for them. */

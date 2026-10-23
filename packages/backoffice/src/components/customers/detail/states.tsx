@@ -1,7 +1,7 @@
 import { Skeleton } from "@shopper/ui/components/skeleton";
 
 /**
- * Same shape as the loaded page: back link, heading with its line and the three actions, three
+ * Same shape as the loaded page: back link, heading with its line and the three actions, four
  * summary cards, then the details. It is clipped to the window, so the main area has nothing to
  * scroll (and nothing focusable to offer) while the page waits.
  */
@@ -27,7 +27,8 @@ export function CustomerSkeleton() {
           </div>
         </div>
       </div>
-      <div className="grid shrink-0 gap-4 sm:grid-cols-3">
+      <div className="grid shrink-0 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Skeleton className="h-28" />
         <Skeleton className="h-28" />
         <Skeleton className="h-28" />
         <Skeleton className="h-28" />

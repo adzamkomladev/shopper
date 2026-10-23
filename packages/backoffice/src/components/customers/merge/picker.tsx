@@ -10,6 +10,8 @@ const NOTES = {
 };
 
 type Props = {
+  /** What the search box is called for screen readers. */
+  label: string;
   text: string;
   onTextChange: (text: string) => void;
   /** Who matched the search, without the customer being kept. */
@@ -20,13 +22,21 @@ type Props = {
   onChoose: (customer: CustomerView) => void;
 };
 
-/** Finds the customer to fold in by phone or name: arrow keys move through the matches, Enter picks one. */
-export function MergePicker({ text, onTextChange, matches, status, chosen, onChoose }: Props) {
+/** Finds another customer by phone or name: arrow keys move through the matches, Enter picks one. */
+export function MergePicker({
+  label,
+  text,
+  onTextChange,
+  matches,
+  status,
+  chosen,
+  onChoose,
+}: Props) {
   return (
     <Command shouldFilter={false} className="rounded-md border">
       <CommandInput
         autoFocus
-        aria-label="Find the customer to merge in"
+        aria-label={label}
         placeholder="Phone number or name"
         value={text}
         onValueChange={onTextChange}

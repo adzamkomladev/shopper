@@ -7,6 +7,7 @@ import {
   customerCsv,
   listCustomers,
   mergeCustomers,
+  readAgeingReport,
   readCustomer,
   readLoyalty,
   unarchiveCustomer,
@@ -17,6 +18,7 @@ import type { Queue } from "@shopper/ports";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import { commandContext } from "./stock/context";
 import { customerCreditRoutes } from "./customers/credit";
+import { customerHistoryRoutes } from "./customers/history";
 import { customerStatementRoutes } from "./customers/statements";
 import { problem } from "../middleware/problem";
 import { requirePermission } from "../middleware/require/permission";
@@ -59,7 +61,9 @@ export function customerRoutes(
       "content-disposition": 'attachment; filename="ageing.csv"',
     }),
   );
+  app.get("/customers/ageing", async (c) => c.json(await readAgeingReport(database, org(c))));
   app.route("/", customerCreditRoutes(database, notifications));
+  app.route("/", customerHistoryRoutes(database));
   app.route("/", customerStatementRoutes(database, notifications, links));
   app.post("/customers", async (c) => {
     const { id, replayed } = await createCustomer(database, run(c), { customer: await body(c) });

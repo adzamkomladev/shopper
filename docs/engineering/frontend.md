@@ -68,7 +68,9 @@ If none of these fit, stop and ask. Do not work around the guard with a custom w
 - Back-office screens live in `@shopper/backoffice` and must run in the portal **and** Electron:
   no Node APIs, no direct `window.electron`. Use the bridge contract. The Inventory area's tabs
   (Stock, Records, Stock takes, Valuation, Suppliers) live in `components/inventory/tabs.tsx`, each
-  shown only to members holding its permission.
+  shown only to members holding its permission. The Customers area's tabs live in
+  `components/customers/tabs.tsx` the same way. A loader that fetches only for members who hold a
+  permission uses `whenHeld` (`routes/held.ts`).
 
 ## Design system
 

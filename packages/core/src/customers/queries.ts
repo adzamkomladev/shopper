@@ -65,10 +65,11 @@ export async function readCustomer(db: Queryable, orgId: string, id: string) {
 
 /** Customers newest first, keyset-paged. A search matches name, business name, phone prefix or TIN. */
 export async function listCustomers(db: Queryable, orgId: string, rawQuery: unknown) {
-  const { q, archived, cursor, limit } = v.parse(customerQuery, rawQuery);
+  const { q, archived, kind, cursor, limit } = v.parse(customerQuery, rawQuery);
   const filters: (SQL | undefined)[] = [
     eq(customer.orgId, orgId),
     archived ? isNotNull(customer.archivedAt) : isNull(customer.archivedAt),
+    kind ? eq(customer.kind, kind) : undefined,
     cursor ? lt(customer.id, cursor) : undefined,
     q
       ? or(

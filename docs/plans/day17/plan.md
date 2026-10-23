@@ -559,7 +559,7 @@ Events carry only `{action}`. The instance id is the case id.
 
 **Customers**
 
-- `GET`/`POST /customers`
+- `GET`/`POST /customers` (the list takes `q`, `cursor`, `archived=1` and `kind=individual|business`)
 - `GET`/`PATCH /customers/:id`
 - `POST /customers/:id/{archive,unarchive,merge}`
 - `GET /customers/:id/{sales,statement,ageing,loyalty}`

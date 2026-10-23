@@ -11,26 +11,16 @@ import { ValuationSkeleton } from "../components/inventory/valuation/states";
 import { routeStates } from "../components/route/states";
 import { SuppliersSkeleton } from "../components/suppliers/states";
 import { pickBranch } from "../lib/inventory/format";
-import type { PermissionCode } from "../lib/roles/permissions";
 import { recordQuery, recordsListQuery } from "../queries/inventory/records";
 import { stockBranchesQuery, stockListQuery, stockProductQuery } from "../queries/inventory/stock";
 import { takeQuery, takesListQuery } from "../queries/inventory/takes";
 import { valuationQuery } from "../queries/inventory/valuation";
-import { permissionsQuery } from "../queries/session/permissions";
 import { suppliersQuery } from "../queries/suppliers";
 import { recordsSearch, stockProductSearch, stockSearch, takeSheetSearch } from "../schemas/routes";
 import type { BackofficeContext } from "../types";
+import { whenHeld } from "./held";
 
 type Context = { context: BackofficeContext };
-
-// A member without the permission is shown the no-permission state by the screen, so nothing is fetched for them.
-async function whenHeld(
-  { queryClient }: BackofficeContext,
-  code: PermissionCode,
-  load: () => unknown,
-) {
-  if ((await queryClient.ensureQueryData(permissionsQuery())).includes(code)) await load();
-}
 
 /** Stock on hand, a product's movements and reorder level, stock records, receiving, adjusting, stock takes, valuation and suppliers. */
 export function inventoryRoutes(shopRoute: AnyRoute) {

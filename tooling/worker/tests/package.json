@@ -13,6 +13,7 @@
     "@shopper/db-pg": "workspace:*",
     "@shopper/db-sqlite": "workspace:*",
     "@shopper/edge": "workspace:*",
+    "@shopper/money": "workspace:*",
     "@shopper/ports": "workspace:*",
     "@shopper/tests": "workspace:*",
     "@shopper/utils": "workspace:*",

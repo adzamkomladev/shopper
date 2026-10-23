@@ -158,3 +158,18 @@ A healthy idle socket also pulls every five minutes to repair lost nudges. These
 transport delivery; business processes still use Workflows.
 
 Direct browser asset uploads are managed by `@shopper/assets` and use presigned PUT to R2/RustFS. Imports, till receipt PDFs (`receipts/` keys, own bucket) and generated snapshots have separate policies; no upload bytes pass through Hono. Blobs supports bounded reads for integrity validation immediately before processing. Server-generated objects retain the existing R2/filesystem paths; an unavailable S3 upload store fails rather than proxying bytes. See [assets.md](assets.md).
+
+## KYC workflow
+
+`KycWorkflow` is the cloud shell behind `KYC_FLOWS` (`shopper-kyc-<stage>`); `boxKycFlows` is the on-prem
+launcher on `memoryWorkflow`. Both run `runKyc` from `@shopper/auth/kyc`, one instance per case (instance
+id = case id, `workflow_run.type` = `kyc`). `cloudflareFlow` (`adapters/cf/src/workflows/flow.ts`) is the one
+adapter from a Cloudflare `step` to the `Workflow` port; the momo, auth and KYC shells all use it.
+
+Events carry only `{action}` and only wake the flow: it reads the `kyc_case` row, so a lost event or timer is
+caught up at the next deadline, and a late answer is refused from the row's deadlines (OTP 10 minutes, at most 3
+sends, 5 attempts, a 7-day decision window). The OTP is derived from the link secret and the send number, so a
+retried SMS repeats the same code; only an HMAC digest is stored. An ID number is reduced to a mask and an HMAC
+fingerprint before any command runs. Neither the number nor a code reaches an event, step output, audit row or log.
+The edge needs `KYC_FLOWS`, `ARKESEL_API_KEY`, `ARKESEL_SENDER` and `SHOPPER_LINK_SECRET`; without them the KYC
+case routes answer 503. Box timers are lost on restart (Rivet, day 36); PostgreSQL deadlines decide until then.

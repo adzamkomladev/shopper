@@ -39,4 +39,5 @@ export interface CloudflareRuntimeEnvironment extends AuthEnvironment {
   MOMO_PAYMENT?: Parameters<typeof cloudflareLauncher>[0];
   AUTH_FLOWS?: Parameters<typeof cloudflareLauncher>[0];
   BROWSER?: Parameters<typeof cloudflareRenderer>[0];
+  KYC_FLOWS?: Parameters<typeof cloudflareLauncher>[0];
 }

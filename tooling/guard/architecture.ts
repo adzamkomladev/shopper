@@ -49,6 +49,7 @@ const PUBLISHED_ROUTES = new Set([
   "accept-invitation",
   "/auth/get-session",
   "/auth/sign-out",
+  "/kyc/:id/skip-id",
 ]);
 
 export function architectureRules(file: string, program: unknown): Violation[] {

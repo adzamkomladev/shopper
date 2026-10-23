@@ -29,7 +29,7 @@ export interface ApiOptions {
   blobs?: Blobs;
   realtime?: Realtime;
   notifications?: Queue;
-  /** Signs statement links; public statement reads and link creation need it. */
+  /** Signs statement links and KYC codes; public statement reads, link creation and KYC need it. */
   linkSecret?: string;
   baseURL?: string;
   renderer?: Renderer;
@@ -41,6 +41,7 @@ export interface ApiOptions {
   priceChange?: WorkflowLauncher;
   onboarding?: ReturnType<typeof createOnboarding>;
   invitations?: ReturnType<typeof createInvitations>;
+  kyc?: WorkflowLauncher;
 }
 
 export interface RuntimeOptions {
@@ -61,6 +62,7 @@ export interface RuntimeOptions {
   paystackSecret?: string;
   priceChange?: WorkflowLauncher;
   authFlows?: WorkflowLauncher;
+  kyc?: WorkflowLauncher;
   linkSecret?: string;
   publicOnboarding?: boolean;
 }

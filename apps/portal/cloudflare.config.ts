@@ -69,6 +69,11 @@ export default defineConfig(({ mode }) => {
           worker: edge,
           exportName: "AuthWorkflow",
         }),
+        KYC_FLOWS: bindings.workflow({
+          name: workflow("kyc"),
+          worker: edge,
+          exportName: "KycWorkflow",
+        }),
         MOMO_PAYMENT: bindings.workflow({
           name: workflow("momo-payment"),
           worker: edge,

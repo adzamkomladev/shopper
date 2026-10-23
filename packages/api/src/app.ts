@@ -12,6 +12,7 @@ import { stockRoutes } from "./routes/stock";
 import { customerRoutes } from "./routes/customers";
 import { loyaltyRoutes } from "./routes/loyalty";
 import { publicStatementRoutes } from "./routes/public/statements";
+import { kycRoutes } from "./routes/kyc";
 import { managementRoutes } from "./routes/management";
 import { systemRoutes } from "./routes/system";
 import { taxRuleRoutes } from "./routes/tax/rules";
@@ -75,5 +76,6 @@ export function createApi(options: ApiOptions = {}) {
     app.route("/", publicStatementRoutes(options.database, options.linkSecret, options.renderer));
   if (options.database)
     app.route("/", loyaltyRoutes(options.database, options.authentication, options.notifications));
+  if (options.database) app.route("/", kycRoutes(options));
   return app;
 }

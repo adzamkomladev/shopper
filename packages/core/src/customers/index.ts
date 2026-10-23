@@ -2,7 +2,7 @@ export { archiveCustomer, createCustomer, unarchiveCustomer, updateCustomer } fr
 export { CustomerError } from "./error";
 export { customerCsv } from "./export";
 export { mergeCustomers } from "./merge";
-export { listCustomers, readCustomer } from "./queries";
+export { listCustomers, readCustomer, readCustomerRow } from "./queries";
 export { acceptCustomerEvent } from "./till";
 export { accountSummary, tillActor } from "./credit/account";
 export { ageingCsv, readAgeing } from "./credit/ageing";
@@ -32,3 +32,4 @@ export {
 } from "./statements/links";
 export { sendStatement } from "./statements/send";
 export type { StatementDeliveryDeps, StatementMail } from "./statements/types";
+export { applyVerifiedLimit } from "./limit";

@@ -3,7 +3,7 @@ import { count, eq } from "drizzle-orm";
 import { localSale, productLookup, refund, type TillDatabase } from "@shopper/db-sqlite";
 import { add, money, sub, toDecimal, type Money } from "@shopper/money";
 import { formatQuantity, toCsv } from "@shopper/utils";
-import { refundEvent } from "../schemas/till/refund";
+import { decodeRefundEvent } from "../schemas/till/refund";
 import { saleSnapshot } from "../schemas/till/sale";
 import {
   registerReportInput,
@@ -77,7 +77,7 @@ export async function registerReport(db: TillDatabase, raw: unknown): Promise<Re
   }
   let returns = { count: 0, amount: money(0) };
   for (const row of refunds) {
-    const made = v.parse(refundEvent, row.payload).refund;
+    const made = decodeRefundEvent(row.payload).refund;
     const at = Date.parse(made.deviceTime) - made.clockOffsetMs;
     if (at >= start && at < end)
       returns = { count: returns.count + 1, amount: add(returns.amount, made.total) };

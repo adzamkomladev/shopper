@@ -3,7 +3,7 @@ import { defineCommand } from "@shopper/audit/sqlite";
 import { money } from "@shopper/money";
 import { and, eq } from "drizzle-orm";
 import { shift, type TillDatabase, type TillSqlite } from "@shopper/db-sqlite";
-import { xReport, zReport, type XReport, type ZReport } from "../../schemas/till/shift";
+import { decodeZReport, xReport, type XReport, type ZReport } from "../../schemas/till/shift";
 import { shiftReportInput } from "../../schemas/till/shifts";
 import { shiftTotals } from "../../shifts/totals";
 import { contextOf, prepare } from "./commands";
@@ -70,7 +70,7 @@ async function storedZ(tx: TillSqlite, config: Prepared["config"], shiftId: stri
     );
   if (!found?.report)
     throw new TillError("SHIFT_REQUIRED", "That shift is not closed on this register");
-  return v.parse(zReport, found.report);
+  return decodeZReport(found.report);
 }
 
 /** The shift's figures at `at`, from its stored parts. */

@@ -1,10 +1,17 @@
-import { afterEach, expect, test } from "vite-plus/test";
+import { afterEach, describe, expect, test } from "vite-plus/test";
 import { eq } from "drizzle-orm";
 import * as v from "valibot";
 import { sale } from "@shopper/db-pg";
 import { createPushWorker } from "@shopper/sync";
 import { acceptSale } from "@shopper/core/sales";
-import { decodeSaleEvent, receiptDocument } from "@shopper/core/schemas";
+import {
+  decodeRefundEvent,
+  decodeSaleEvent,
+  decodeShiftClosedEvent,
+  receiptDocument,
+} from "@shopper/core/schemas";
+import { refundEvent } from "../../support/sales/refunds";
+import { shiftEvent } from "../../support/sales/shifts";
 import { goldenReceipt } from "../../support/hardware/receipt";
 import { createPushFixture, type PushFixture } from "../../support/till/push";
 import { databases, deviceId, recordSale } from "../../support/till/server";
@@ -80,4 +87,51 @@ test("A stored v2 receipt reads as v3 with no buyer", () => {
   const parsed = v.parse(receiptDocument, { v: 2, ...rest });
   expect(parsed).toMatchObject({ v: 3, kind: "sale", buyer: null });
   expect(parsed).toEqual(goldenReceipt());
+});
+
+describe("refund and Z versions", () => {
+  // Decoding needs only well-formed ids, not a seeded world.
+  const id = "019a0000-0000-7000-8000-000000000001";
+  const world = {
+    session: { userId: id, id },
+    config: { appVersion: "0.0.0-test", storeId: id },
+    scope: { orgId: id, branchId: id, deviceId: id },
+  } as any;
+
+  test("a v1 refund reads as v2 that credited nothing to an account or points; v2 needs the split", async () => {
+    fixture = await createPushFixture();
+    const sold = (await fixture.recordSale()).event.sale;
+    const old = refundEvent(world, sold, [{ line: 0, before: 0, after: 1_000 }]);
+    expect(old.v).toBe(1);
+    const read = decodeRefundEvent(old);
+    expect(read).toEqual({
+      ...old,
+      v: 2,
+      refund: { ...old.refund, accountCredit: 0, pointsReturned: 0, pointsValue: 0 },
+    });
+    expect(decodeRefundEvent(read)).toEqual(read);
+    expect(() => decodeRefundEvent({ ...old, v: 2 })).toThrow();
+    expect(() => decodeRefundEvent({ ...read, v: 3 })).toThrow();
+  });
+
+  test("a v1 Z with no account lines reads as v2 with all-zero account lines; v2 needs them", async () => {
+    const old = shiftEvent(world);
+    expect(old.v).toBe(1);
+    expect("account" in old.shift.report).toBe(false);
+    const read = decodeShiftClosedEvent(old);
+    const account = {
+      sales: 0,
+      payments: { cash: 0, momo: 0 },
+      refunds: 0,
+      points: 0,
+      pointsValue: 0,
+    };
+    expect(read).toEqual({
+      ...old,
+      v: 2,
+      shift: { ...old.shift, report: { ...old.shift.report, account } },
+    });
+    expect(decodeShiftClosedEvent(read)).toEqual(read);
+    expect(() => decodeShiftClosedEvent({ ...old, v: 2 })).toThrow();
+  });
 });

@@ -93,7 +93,8 @@ export async function settleRefundPoints(
   ctx: CommandContext,
   input: {
     held: Settled;
-    gross: Money;
+    /** The refund's gross less the redeemed points it hands back: the earn reverses on money only. */
+    paid: Money;
     returned: number;
     refundId: string;
     saleId: string;
@@ -118,7 +119,7 @@ export async function settleRefundPoints(
     });
   if (!held.earn) return;
   const reversed = pointsReversed(
-    input.gross,
+    input.paid,
     { rateBps: held.earn.rateBps!, pointValue: held.earn.pointValue! },
     held.unreversed,
   );

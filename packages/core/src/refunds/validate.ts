@@ -8,11 +8,10 @@ import {
   type ShopperDatabase,
   type ShopperTransaction,
 } from "@shopper/db-pg";
-import { add, money, sub } from "@shopper/money";
+import { add, money, mulRatio, sub, type Money } from "@shopper/money";
 import { refundShare } from "@shopper/tax";
 import { saleSnapshot } from "../schemas/till/sale";
 import type { RefundSnapshot } from "../schemas/till/refund";
-import type { RefundAllocation } from "../customers/types";
 import { SaleError } from "../sales/error";
 
 const keys = ["base", "vat", "nhil", "getfund", "covid", "gross", "roundingAdjustment"] as const;
@@ -37,15 +36,16 @@ export async function refundedQuantities(
 
 /**
  * Every refunded line is a sold line of the locked sale, within the quantity left, and its tax is exactly
- * the pro-rata share of the sold snapshot; totals and the cash payout are then recomputed.
+ * the pro-rata share of the sold snapshot; totals and the cash payout are then recomputed. Answers the split
+ * to apply: the till's, clamped to what is `left` on the account and in redeemed points, and the excess cut.
  */
 export async function validateRefund(
   tx: ShopperTransaction,
   orgId: string,
   sold: unknown,
   snapshot: RefundSnapshot,
-  /** The part credited back to the account and to redeemed points; only the rest is paid out. */
-  allocation: RefundAllocation,
+  /** What the sale still has to give back: account charge not yet credited, redeemed points not yet returned. */
+  left: { account: Money; points: number },
 ) {
   const lines = new Map(v.parse(saleSnapshot, sold).lines.map((line) => [line.id, line]));
   const seen = new Set<string>();
@@ -91,7 +91,27 @@ export async function validateRefund(
   );
   if (canonicalJson(totals) !== canonicalJson(snapshot.totals))
     throw new SaleError("INVALID_TOTALS", "Refund totals do not match its lines");
-  await validatePayout(tx, orgId, snapshot, allocation);
+  await validatePayout(tx, orgId, snapshot);
+  return split(snapshot, left);
+}
+
+/**
+ * Registers refunding one sale offline each see none of the other's credit, so a stated split may exceed what is
+ * left. A genuine refund is never rejected for it: the split is clamped and the excess kept for review.
+ */
+function split(snapshot: RefundSnapshot, left: { account: Money; points: number }) {
+  const account = money(Math.min(snapshot.accountCredit, Math.max(0, left.account)));
+  const points = Math.min(snapshot.pointsReturned, Math.max(0, left.points));
+  const pointsValue = snapshot.pointsReturned
+    ? mulRatio(snapshot.pointsValue, points, snapshot.pointsReturned)
+    : money(0);
+  return {
+    share: { account, points, pointsValue },
+    excess: {
+      account: sub(snapshot.accountCredit, account),
+      points: snapshot.pointsReturned - points,
+    },
+  };
 }
 
 async function finalSaleProducts(tx: ShopperTransaction, orgId: string, productIds: string[]) {
@@ -107,24 +127,16 @@ async function finalSaleProducts(tx: ShopperTransaction, orgId: string, productI
 /**
  * Cash on a 10p org may be rounded by up to 5p either way: the till rounds on the cumulative cash paid,
  * which differs between registers, so the server accepts any rounding within bounds. Everything else pays the
- * gross less what went back to the account and to redeemed points, which the refund must state as the server works it out.
+ * gross less what the refund states went back to the account and to redeemed points.
  */
-async function validatePayout(
-  tx: ShopperTransaction,
-  orgId: string,
-  snapshot: RefundSnapshot,
-  allocation: RefundAllocation,
-) {
+async function validatePayout(tx: ShopperTransaction, orgId: string, snapshot: RefundSnapshot) {
   const [organisation] = await tx.select().from(org).where(eq(org.id, orgId));
   const rounds = snapshot.tender.kind === "cash" && (organisation?.cashRounding ?? "10p") === "10p";
   const limit = rounds ? 500 : 0;
-  const paidOut = sub(sub(snapshot.totals.gross, allocation.account), allocation.pointsValue);
+  const paidOut = sub(sub(snapshot.totals.gross, snapshot.accountCredit), snapshot.pointsValue);
   if (
     Math.abs(snapshot.cashRounding) > limit ||
-    snapshot.total !== add(paidOut, snapshot.cashRounding) ||
-    snapshot.accountCredit !== allocation.account ||
-    snapshot.pointsReturned !== allocation.points ||
-    snapshot.pointsValue !== allocation.pointsValue
+    snapshot.total !== add(paidOut, snapshot.cashRounding)
   )
     throw new SaleError("INVALID_TOTALS", "Refund payout does not match its rounding");
 }

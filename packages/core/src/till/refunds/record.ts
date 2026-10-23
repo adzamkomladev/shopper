@@ -157,7 +157,7 @@ async function plan(tx: TillSqlite, { config, session, data, time }: Prepared) {
   const names = await findRegisterSettings(tx, config);
   const rounding = readCashRounding(await tx.select().from(reference));
   const event = {
-    v: 1 as const,
+    v: 2 as const,
     type: "refund.recorded" as const,
     refund: buildRefund(
       original,

@@ -54,7 +54,7 @@ test("a closed shift uploads only after the sale backlog is acknowledged and is 
     requestId: z.shiftId,
     proof: expect.any(String),
     shift: {
-      v: 1,
+      v: 2,
       type: "shift.closed",
       shift: { orgId: context.orgId, sessionId: row.closedSessionId, report: z },
     },

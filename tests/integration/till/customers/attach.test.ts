@@ -113,3 +113,21 @@ test("without customer.read the register cannot attach", async () => {
   await counter.ask({ type: "add", expectedRevision: 0, productId });
   expect(await attach(1, v7())).toMatchObject({ type: "error", code: "permission" });
 });
+
+test("a customer can be attached before the first scan: the basket opens with them and keeps them", async () => {
+  counter = await startCounter();
+  const { customer } = await counter.create({ name: "Esi Owusu", phone: "0241234568" });
+  expect(await attach(0, null)).toMatchObject({
+    kind: "draft",
+    view: { draft: null, customer: null },
+  });
+  expect(await attach(3, customer.id)).toMatchObject({ type: "error", code: "REVISION_STALE" });
+  expect(await attach(0, customer.id)).toMatchObject({
+    kind: "draft",
+    view: { draft: { revision: 1, lines: [] }, customer: { id: customer.id, name: "Esi Owusu" } },
+  });
+  const productId = counter.register.fixture.config.references.products[0].id;
+  expect(await counter.ask({ type: "add", expectedRevision: 1, productId })).toMatchObject({
+    view: { draft: { revision: 2 }, customer: { id: customer.id } },
+  });
+});

@@ -102,6 +102,8 @@ test("the register report CSV neutralises formula names and prints quantities as
       returns: { count: 0, amount: 0 },
       products: 4,
       discountedSales: 0,
+      customers: 0,
+      returningCustomers: 0,
     }),
   );
   const start = csv.findIndex((row) => row[0] === "Product");

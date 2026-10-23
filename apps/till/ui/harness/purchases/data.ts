@@ -30,6 +30,7 @@ const row = (number: string, change: Partial<PurchaseSummary>): PurchaseSummary 
   kinds: ["cash"],
   refundOf: null,
   refunded: "none",
+  customer: null,
   ...change,
 });
 
@@ -41,8 +42,9 @@ export const rows: PurchaseSummary[] = [
     occurredAt: "2026-10-15T09:45:00.000Z",
     total: -350_000,
     refundOf: "10481",
+    customer: undefined,
   }),
-  row("10482", {}),
+  row("10482", { customer: { id: id("501"), name: "Ama Mensah" } }),
   row("10481", {
     occurredAt: "2026-10-15T09:12:00.000Z",
     total: 540_000,
@@ -55,6 +57,7 @@ export const rows: PurchaseSummary[] = [
     occurredAt: "2026-10-15T08:30:00.000Z",
     total: 220_000,
     kinds: ["momo"],
+    customer: undefined,
   }),
 ];
 export const purchaseSummary = rows[1]!;

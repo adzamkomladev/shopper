@@ -26,6 +26,21 @@ test("purchase tabs, receipt search and tender filter request today's till recor
   await expectNoSeriousAxe(page);
 });
 
+test("the Customer column names who each sale was rung up to", async ({ page }) => {
+  await openPurchases(page);
+  const list = page.getByRole("region", { name: "Today’s purchases" });
+  await expect(list.getByRole("columnheader", { name: "Customer" })).toBeVisible();
+  const named = list.getByRole("row", { name: /#10482/ });
+  await expect(named).toContainText("Ama Mensah");
+  await expect(named.getByText("AM", { exact: true })).toBeVisible();
+  await expect(list.getByRole("row", { name: /[AP]M #10481/ })).toContainText("Walk-in customer");
+  // A return is not a sale of its own, so it names nobody.
+  const returned = list.getByRole("row", { name: /Return of #10481/ });
+  await expect(returned).not.toContainText("Walk-in customer");
+  await expect(returned).toContainText("—");
+  await expectNoSeriousAxe(page);
+});
+
 test("cashier can open a receipt and return to the list with only the keyboard", async ({
   page,
 }) => {

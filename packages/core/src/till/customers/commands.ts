@@ -15,7 +15,7 @@ import { attachCustomerInput, updateTillCustomerInput } from "../../schemas/till
 import { customerChanges, type CustomerEvent } from "../../schemas/customers/events";
 import type { TillSession } from "../../schemas/till/session";
 import { assertDraftScope, claimDraft } from "../drafts/edit";
-import { toView } from "../drafts/queries";
+import { findDraft, toView } from "../drafts/queries";
 import { TillError } from "../error";
 import { checkSession } from "../session";
 import { readLookupCustomer } from "./queries";
@@ -157,6 +157,8 @@ const attach = defineCommand({
   async run(tx, _context, input: v.InferOutput<typeof attachCustomerInput>) {
     if (input.customerId && !(await readLookupCustomer(tx, input.scope.orgId, input.customerId)))
       throw new TillError("CUSTOMER_UNKNOWN", "Unknown customer");
+    // The customer may come before the first scan: with no basket yet, attaching opens one (revision 1).
+    if (!(await findDraft(tx, input.scope))) return openWith(tx, input);
     const found = await claimDraft(tx, input.scope, input.expectedRevision, input.at);
     await tx
       .update(saleDraft)
@@ -167,6 +169,26 @@ const attach = defineCommand({
   },
   audit: (input) => ({ customerId: input.customerId }),
 });
+
+async function openWith(tx: TillSqlite, input: v.InferOutput<typeof attachCustomerInput>) {
+  if (input.expectedRevision !== 0)
+    throw new TillError("REVISION_STALE", `Draft is not at revision ${input.expectedRevision}`);
+  if (!input.customerId) return toView(tx, input.scope, input.at);
+  const stamp = input.at.toISOString();
+  const [draft] = await tx
+    .insert(saleDraft)
+    .values({
+      ...input.scope,
+      id: v7(),
+      revision: 1,
+      totals: {},
+      customerId: input.customerId,
+      createdAt: stamp,
+      updatedAt: stamp,
+    })
+    .returning();
+  return toView(tx, input.scope, input.at, { draft: draft!, lines: [] });
+}
 
 /** Keeps the session beside the event, as a sale does, so its proof outlives the sign-in. */
 async function queue(tx: TillSqlite, { scope, session, at, event }: Queued) {

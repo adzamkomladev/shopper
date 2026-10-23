@@ -45,22 +45,31 @@ export async function ensureSaleCustomer(
     });
     return { id: created.id, created };
   }
-  let current = await find(tx, ctx.orgId, snapshot.id);
+  const current = await find(tx, ctx.orgId, snapshot.id);
   if (!current) {
     // The id exists but not here: only a forged sale carries another org's customer.
     if (valid.success)
       throw new SaleError("INVALID_REFERENCE", "Customer not found in this organisation");
     return { id: null, created: null };
   }
-  // Merges never loop, but a genuine sale must not hang or fail on a damaged chain: stop at the last good row.
+  return { id: (await mergeWinner(tx, ctx.orgId, current)).id, created: null };
+}
+
+/** The customer a merged-away one now lives on. Merges never loop, but a damaged chain stops at the last good row. */
+export async function mergeWinner(
+  tx: ShopperTransaction,
+  orgId: string,
+  start: Pick<Row, "id" | "mergedIntoId">,
+) {
+  let current = start;
   const seen = new Set([current.id]);
   while (current.mergedIntoId && !seen.has(current.mergedIntoId)) {
-    const next = await find(tx, ctx.orgId, current.mergedIntoId);
+    const next = await find(tx, orgId, current.mergedIntoId);
     if (!next) break;
     seen.add(next.id);
     current = next;
   }
-  return { id: current.id, created: null };
+  return current;
 }
 
 async function find(tx: ShopperTransaction, orgId: string, id: string) {

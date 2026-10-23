@@ -130,7 +130,6 @@ CREATE TABLE IF NOT EXISTS credit_entry (
   CONSTRAINT credit_entry_org_id_sale_id_sale_org_id_id_fk FOREIGN KEY (org_id, sale_id) REFERENCES sale(org_id, id),
   CONSTRAINT credit_entry_org_id_refund_id_refund_org_id_id_fk FOREIGN KEY (org_id, refund_id) REFERENCES refund(org_id, id),
   CONSTRAINT credit_entry_org_id_hold_id_account_hold_org_id_id_fk FOREIGN KEY (org_id, hold_id) REFERENCES account_hold(org_id, id),
-  CONSTRAINT credit_entry_org_id_shift_id_shift_org_id_id_fk FOREIGN KEY (org_id, shift_id) REFERENCES shift(org_id, id),
   CONSTRAINT credit_entry_org_id_actor_id_user_org_id_id_fk FOREIGN KEY (org_id, actor_id) REFERENCES "user"(org_id, id),
   CONSTRAINT credit_entry_kind CHECK (kind IN ('charge', 'payment', 'credit_note', 'interest', 'transfer')),
   CONSTRAINT credit_entry_sign CHECK (kind = 'transfer' OR (kind IN ('charge', 'interest') AND amount > 0)

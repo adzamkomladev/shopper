@@ -6,6 +6,7 @@
 // X and Z gain account:{sales, payments:{cash,momo}, refunds, points, pointsValue}; cash payments join expected cash.
 import { afterAll, afterEach, beforeAll, expect, test } from "vite-plus/test";
 import { v7 } from "uuid";
+import { sql } from "drizzle-orm";
 import { goldenWorld } from "../../../support/sales/golden/setup";
 import { portalOwner } from "../../../support/api/portal";
 import { registerSettings, startPrinter, type Printer } from "../../../support/hardware/host";
@@ -17,7 +18,7 @@ import { entries } from "../../../support/customers/ledger";
 import { addCreditEntry, folds } from "../../../support/customers/seed";
 import { paymentAudit, report, shiftOf, tillPayments } from "../../../support/customers/payment";
 import { ids } from "../../../support/till/sales";
-import { principal } from "../../../support/till/server";
+import { databases, principal } from "../../../support/till/server";
 
 let world: Awaited<ReturnType<typeof goldenWorld>>;
 let portal: ReturnType<typeof customerApi>;
@@ -74,6 +75,10 @@ test("an offline cash payment is kept at once, uploads after the pending sale, l
     { kind: "charge", amount: 500_000 },
     { kind: "payment", amount: -200_000, method: "cash", actor_id: principal.userId },
   ]);
+  // Linked to the till's shift at once, long before its Z reaches the server.
+  const { rows } = await databases().db.execute<{ shift_id: string }>(sql`
+    SELECT shift_id FROM credit_entry WHERE org_id = ${ids.org} AND id = ${reply.payment.id}`);
+  expect(rows).toEqual([{ shift_id: shiftId }]);
   expect((await tillPayments(counter!))[0]!.accepted_at).not.toBeNull();
   const [audit, ...rest] = await paymentAudit(customerId);
   expect(rest).toEqual([]);

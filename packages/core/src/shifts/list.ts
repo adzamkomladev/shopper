@@ -3,7 +3,7 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { branch, device, shift, shiftTender, user, type ShopperDatabase } from "@shopper/db-pg";
 import { add, money, type Money } from "@shopper/money";
-import { SHIFT_LIST_LIMIT, zReport } from "../schemas/till/shift";
+import { SHIFT_LIST_LIMIT, decodeZReport } from "../schemas/till/shift";
 
 /**
  * Closed shifts of the organisation, newest first, with who closed and approved them. `short` sums the
@@ -23,7 +23,7 @@ export async function readShift(db: ShopperDatabase, orgId: string, id: string) 
     .select({ report: shift.report })
     .from(shift)
     .where(and(eq(shift.orgId, orgId), eq(shift.id, id)));
-  const report = v.parse(zReport, saved!.report);
+  const report = decodeZReport(saved!.report);
   const ids = [
     report.openedBy,
     report.closedBy,

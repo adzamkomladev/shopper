@@ -4,7 +4,7 @@ import { canonicalJson, defineCommand } from "@shopper/audit";
 import { shift, shiftMovement, shiftTender, type ShopperDatabase } from "@shopper/db-pg";
 import { money } from "@shopper/money";
 import { sha256 } from "@shopper/utils";
-import { shiftClosedEvent, type ShiftClosedEvent } from "../schemas/till/shift";
+import { decodeShiftClosedEvent, type ShiftClosedEvent } from "../schemas/till/shift";
 import { SaleError } from "../sales/error";
 import type { UploadPrincipal } from "../sales/types";
 import { validateShiftAuthority } from "./authority";
@@ -24,7 +24,7 @@ export async function acceptShift(
   raw: unknown,
   proof: string,
 ) {
-  const event = v.parse(shiftClosedEvent, raw);
+  const event = decodeShiftClosedEvent(raw);
   const { report } = event.shift;
   return accept(
     db,

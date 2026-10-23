@@ -10,7 +10,7 @@ import {
   type TillDatabase,
   type TillSqlite,
 } from "@shopper/db-sqlite";
-import { refundEvent } from "../../schemas/till/refund";
+import { decodeRefundEvent } from "../../schemas/till/refund";
 import { saleSnapshot } from "../../schemas/till/sale";
 import { TillError } from "../error";
 import { findRegisterSettings } from "../register/settings";
@@ -115,7 +115,7 @@ export async function readShiftParts(tx: TillSqlite, found: typeof shift.$inferS
   const parts = {
     shift: found,
     sales: sales.map((row) => v.parse(saleSnapshot, row.payload)),
-    refunds: refunds.map((row) => v.parse(refundEvent, row.payload).refund),
+    refunds: refunds.map((row) => decodeRefundEvent(row.payload).refund),
     movements,
     payments,
   };

@@ -1,11 +1,12 @@
 import { and, eq } from "drizzle-orm";
 import * as v from "valibot";
 import { defineCommand } from "@shopper/audit";
-import { creditEntry, customer, shift, type ShopperTransaction } from "@shopper/db-pg";
+import { creditEntry, customer, type ShopperTransaction } from "@shopper/db-pg";
 import { money, sub } from "@shopper/money";
 import { creditNoteInput, limitInput, paymentInput } from "../../schemas/customers/credit";
 import { CustomerError } from "../error";
 import { readCustomerRow } from "../queries";
+import { mergeWinner } from "../sale";
 import { authorize } from "./authority";
 import type { Authority } from "../types";
 
@@ -21,9 +22,9 @@ type Paid = {
 };
 
 /**
- * Money paid onto the account; more than is owed becomes a deposit. A retry under the same id replays. From a till
- * (`till`) it needs a live `sale.create` session, and the entry is linked to the shift only if the server has it:
- * the shift's Z arrives when it closes, long after the money was taken.
+ * Money paid onto the account (see `payee`); more than is owed becomes a deposit. A retry under the same id replays. From a till
+ * (`till`) it needs a live `sale.create` session, and the entry keeps the till's shift id (no foreign key: the
+ * shift's Z arrives when it closes, long after the money was taken).
  */
 export const recordPayment = defineCommand({
   name: "customer.payment",
@@ -34,9 +35,10 @@ export const recordPayment = defineCommand({
       .from(creditEntry)
       .where(and(eq(creditEntry.orgId, ctx.orgId), eq(creditEntry.id, payment.id)));
     if (!saved) return undefined;
+    const payer = await payee(tx, ctx.orgId, input.id);
     if (
       saved.kind !== "payment" ||
-      saved.customerId !== input.id.toLowerCase() ||
+      saved.customerId !== payer.id ||
       saved.amount !== sub(money(0), payment.amount) ||
       saved.method !== payment.method
     )
@@ -48,7 +50,7 @@ export const recordPayment = defineCommand({
     const payment = v.parse(paymentInput, input.body);
     const { till } = input;
     if (till) await authorize(tx, ctx, till, till.occurredAt);
-    const current = await readCustomerRow(tx, ctx.orgId, input.id, true);
+    const current = await payee(tx, ctx.orgId, input.id);
     await tx.insert(creditEntry).values({
       id: payment.id,
       orgId: ctx.orgId,
@@ -56,7 +58,7 @@ export const recordPayment = defineCommand({
       kind: "payment",
       amount: sub(money(0), payment.amount),
       method: payment.method,
-      shiftId: till && (await knownShift(tx, ctx.orgId, till.shiftId)),
+      shiftId: till?.shiftId,
       actorId: ctx.actorId,
       occurredAt: till?.occurredAt ?? new Date(),
     });
@@ -71,13 +73,15 @@ export const recordPayment = defineCommand({
   details: (_input, output) => ({ entity: "customer", entityId: output.id }),
 });
 
-const knownShift = async (tx: ShopperTransaction, orgId: string, id: string) => {
-  const [found] = await tx
-    .select({ id: shift.id })
-    .from(shift)
-    .where(and(eq(shift.orgId, orgId), eq(shift.id, id)));
-  return found?.id ?? null;
-};
+/**
+ * Whose account a payment lowers, locked: a customer merged away resolves to the winner, and an archived one is still
+ * paid (it only lowers the balance). Only an id this org does not have is refused.
+ */
+async function payee(tx: ShopperTransaction, orgId: string, id: string) {
+  const found = await readCustomerRow(tx, orgId, id, true);
+  if (!found.mergedIntoId) return found;
+  return readCustomerRow(tx, orgId, (await mergeWinner(tx, orgId, found)).id, true);
+}
 
 /** The credit limit; above zero only for a KYC-verified customer. */
 export const setCreditLimit = defineCommand({

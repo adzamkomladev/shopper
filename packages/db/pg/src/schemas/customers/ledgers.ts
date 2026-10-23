@@ -15,7 +15,6 @@ import { tenant, moneyColumn } from "../base";
 import { user } from "../auth";
 import { sale } from "../sales";
 import { refund } from "../refunds";
-import { shift } from "../shifts";
 import { customer } from "./base";
 import { accountHold } from "./holds";
 
@@ -38,6 +37,7 @@ export const creditEntry = pgTable(
     refundId: uuid("refund_id"),
     holdId: uuid("hold_id"),
     method: text("method", { enum: paymentMethods }),
+    /** The till's shift, with no foreign key: the server's shift row only arrives with the Z. */
     shiftId: uuid("shift_id"),
     reason: text("reason"),
     /** The month an interest entry belongs to (YYYY-MM); one per customer. */
@@ -57,7 +57,6 @@ export const creditEntry = pgTable(
       columns: [t.orgId, t.holdId],
       foreignColumns: [accountHold.orgId, accountHold.id],
     }),
-    foreignKey({ columns: [t.orgId, t.shiftId], foreignColumns: [shift.orgId, shift.id] }),
     foreignKey({ columns: [t.orgId, t.actorId], foreignColumns: [user.orgId, user.id] }),
     check(
       "credit_entry_kind",

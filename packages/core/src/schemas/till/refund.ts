@@ -1,5 +1,6 @@
 import * as v from "valibot";
 import { money } from "@shopper/money";
+import { createEventDecoder } from "../events";
 import { tillId } from "./fields";
 import { saleTaxSnapshot, saleTotals } from "./sale";
 
@@ -46,18 +47,28 @@ export const refundSnapshot = v.strictObject({
   /** What the payout is: the gross less what went back to the account and to redeemed points, plus the rounding. */
   total: nonnegative,
   /** The part of the gross credited to the customer's account. */
-  accountCredit: v.optional(nonnegative, money(0)),
+  accountCredit: nonnegative,
   /** The redeemed points handed back, and what they were worth. */
-  pointsReturned: v.optional(v.pipe(v.number(), v.safeInteger(), v.minValue(0)), 0),
-  pointsValue: v.optional(nonnegative, money(0)),
+  pointsReturned: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
+  pointsValue: nonnegative,
   tender: refundTender,
 });
 export const refundEvent = v.strictObject({
-  v: v.literal(1),
+  v: v.literal(2),
   type: v.literal("refund.recorded"),
   refund: refundSnapshot,
 });
 export type RefundEvent = v.InferOutput<typeof refundEvent>;
 export type RefundSnapshot = v.InferOutput<typeof refundSnapshot>;
 
-export const decodeRefundEvent = (raw: unknown) => v.parse(refundEvent, raw);
+/** v1 had no account or points split: a v1 refund paid everything out in its tender. */
+export const decodeRefundEvent = createEventDecoder(2, (raw) => v.parse(refundEvent, raw), {
+  1: (raw) => {
+    const event = raw as { refund?: object };
+    return {
+      ...event,
+      v: 2,
+      refund: { accountCredit: 0, pointsReturned: 0, pointsValue: 0, ...event.refund },
+    };
+  },
+});

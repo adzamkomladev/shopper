@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import * as v from "valibot";
 import { canonicalJson, defineCommand } from "@shopper/audit";
 import { refund, refundLine, sale, stockMovement, type ShopperDatabase } from "@shopper/db-pg";
+import { sub } from "@shopper/money";
 import { sha256 } from "@shopper/utils";
 import { saleCustomer } from "../schemas/till/sale";
 import { decodeRefundEvent, type RefundEvent } from "../schemas/till/refund";
@@ -11,7 +12,7 @@ import { validateRefundAuthority } from "./authority";
 import { refundDocument } from "./document";
 import { validateRefund } from "./validate";
 import { checkReorder } from "../stock/reorder";
-import { allocateRefund, creditRefund, saleAccount } from "../customers/credit/refunds";
+import { creditRefund, saleAccount } from "../customers/credit/refunds";
 import { salePoints, settleRefundPoints } from "../customers/loyalty/ledger";
 import type { Queue } from "@shopper/ports";
 
@@ -96,11 +97,10 @@ const accept = defineCommand({
       throw new SaleError("INVALID_REFERENCE", "Original sale not found in this store");
     const account = await saleAccount(tx, ctx.orgId, original.id);
     const held = await salePoints(tx, ctx.orgId, original.id);
-    const share = allocateRefund(snapshot.totals.gross, account, {
-      redeemed: held.redeemed,
-      returned: held.returned,
+    const { share, excess } = await validateRefund(tx, ctx.orgId, original.payload, snapshot, {
+      account: sub(account.charged, account.credited),
+      points: held.redeemed ? held.redeemed.points - held.returned : 0,
     });
-    await validateRefund(tx, ctx.orgId, original.payload, snapshot, share);
     const receipt = await refundDocument(tx, snapshot, {
       receiptNumber: original.receiptNumber,
       customer: v.parse(saleCustomer, original.payload).customer,
@@ -144,7 +144,7 @@ const accept = defineCommand({
     });
     await settleRefundPoints(tx, ctx, {
       held,
-      gross: snapshot.totals.gross,
+      paid: sub(snapshot.totals.gross, share.pointsValue),
       returned: share.points,
       refundId: snapshot.id,
       saleId: original.id,
@@ -180,7 +180,7 @@ const accept = defineCommand({
       snapshot.branchId,
       snapshot.lines.map((line) => line.productId),
     );
-    return output(saved!);
+    return { ...output(saved!), excess };
   },
   audit: (input, result) => ({
     ...result,

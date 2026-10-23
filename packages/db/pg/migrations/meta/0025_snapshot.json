@@ -7593,15 +7593,6 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "credit_entry_org_id_shift_id_shift_org_id_id_fk": {
-          "name": "credit_entry_org_id_shift_id_shift_org_id_id_fk",
-          "tableFrom": "credit_entry",
-          "tableTo": "shift",
-          "columnsFrom": ["org_id", "shift_id"],
-          "columnsTo": ["org_id", "id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
         "credit_entry_org_id_actor_id_user_org_id_id_fk": {
           "name": "credit_entry_org_id_actor_id_user_org_id_id_fk",
           "tableFrom": "credit_entry",

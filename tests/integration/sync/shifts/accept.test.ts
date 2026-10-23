@@ -45,7 +45,7 @@ test("an accepted shift is stored with its tender rows, its movements and one au
     declaredCash: 1_036_000,
     anchorSeq: 7,
     anchorHash: "a".repeat(64),
-    eventVersion: 1,
+    eventVersion: 2, // stored as read: a v1 Z is upcast
     report: event.shift.report,
   });
   const tenders = await world.db

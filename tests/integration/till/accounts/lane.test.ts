@@ -1,8 +1,9 @@
 // The server side of drawer payments: POST /sync/accounts/payments {requestId, proof, payment:{v:1,
 // type:"account.payment", payment:{...}}} answers {requestId, accepted:{id,...}} or {requestId, rejected:{code,message}}.
 // It is idempotent by the payment id, needs sale.create on a live cashier session of this register, writes one
-// `customer.payment` audit row, and links the ledger entry to the shift only when the server already has that shift
-// (the Z arrives when the shift closes, long after the money was taken).
+// `customer.payment` audit row, and keeps the till's shift id on the ledger entry with no foreign key (the Z arrives
+// when the shift closes, long after the money was taken). Cash taken is never lost: a payment for a customer merged
+// away lands on the winner, one for an archived customer still lowers their balance.
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { v7 } from "uuid";
 import { goldenWorld } from "../../../support/sales/golden/setup";
@@ -68,7 +69,7 @@ test("a payment that cannot stand is rejected for good and writes nothing", asyn
   expect(await paymentAudit(customerId)).toEqual([]);
 });
 
-test("MoMo is recorded with its method and reference; the shift is linked only once the server has it", async () => {
+test("MoMo is recorded with its method and reference; the till's shift id is kept before the Z arrives", async () => {
   const customerId = await owed("0271770003");
   const session = await uploader();
   const unknown = v7();
@@ -79,7 +80,7 @@ test("MoMo is recorded with its method and reference; the shift is linked only o
   const { rows: before } = await databases().db.execute(
     sql`SELECT shift_id FROM credit_entry WHERE org_id = ${ids.org} AND customer_id = ${customerId}`,
   );
-  expect(before[0]!.shift_id).toBeNull();
+  expect(before[0]!.shift_id).toBe(unknown);
   expect((await paymentAudit(customerId))[0]!.payload).toMatchObject({
     method: "momo",
     reference: "MM-77",
@@ -96,6 +97,28 @@ test("MoMo is recorded with its method and reference; the shift is linked only o
     sql`SELECT shift_id FROM credit_entry WHERE org_id = ${ids.org} AND id = ${later.payment.payment.id}`,
   );
   expect(rows[0]!.shift_id).toBe(shiftId);
+});
+
+test("a payment for a merged-away customer lands on the winner; an archived customer's is still accepted", async () => {
+  const winner = await owed("0271770004");
+  const loser = await owed("0271770005");
+  const archived = await owed("0271770006");
+  await databases().db.execute(sql`
+    UPDATE customer SET merged_into_id = ${winner}, archived_at = now()
+    WHERE org_id = ${ids.org} AND id = ${loser}`);
+  await databases().db.execute(
+    sql`UPDATE customer SET archived_at = now() WHERE org_id = ${ids.org} AND id = ${archived}`,
+  );
+  const session = await uploader();
+  const toLoser = paymentEvent(session, v7(), { customerId: loser, amount: 7_000 });
+  expect((await postPayment(toLoser)).body).toMatchObject({
+    accepted: { id: toLoser.payment.payment.id, customerId: winner },
+  });
+  expect(await entries(loser)).toEqual([]);
+  expect((await folds(winner)).balance).toBe(-7_000);
+  const toArchived = paymentEvent(session, v7(), { customerId: archived, amount: 3_000 });
+  expect((await postPayment(toArchived)).body.accepted).toBeDefined();
+  expect((await folds(archived)).balance).toBe(-3_000);
 });
 
 test("a Z with account lines must still add up: cash payments belong in the expected cash", async () => {

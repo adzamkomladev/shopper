@@ -10,7 +10,7 @@ import {
 import { add, money } from "@shopper/money";
 import { paidOut } from "../../customers/credit/refunds";
 import { receiptDocument } from "../../schemas/receipts/document";
-import { refundEvent, type RefundSnapshot } from "../../schemas/till/refund";
+import { decodeRefundEvent, type RefundSnapshot } from "../../schemas/till/refund";
 import type { ServerSale } from "../../schemas/till/refunds";
 import { saleSnapshot } from "../../schemas/till/sale";
 import { tillProductBase } from "../../schemas/till/reference";
@@ -35,7 +35,7 @@ export async function refundsOf(tx: TillSqlite, orgId: string, saleId: string) {
     .from(refund)
     .where(and(eq(refund.orgId, orgId), eq(refund.originalSaleId, saleId)))
     .orderBy(refund.id);
-  return rows.map((row) => ({ row, snapshot: v.parse(refundEvent, row.payload).refund }));
+  return rows.map((row) => ({ row, snapshot: decodeRefundEvent(row.payload).refund }));
 }
 
 /** A sale made on this till, with the refunds and final-sale flags it is judged by. */
@@ -133,7 +133,7 @@ export async function readEligibility(tx: TillSqlite, scope: Scope, original: Or
 export async function returnedRows(tx: TillSqlite, scope: Scope, day?: string) {
   const rows = await tx.select().from(refund).where(eq(refund.orgId, scope.orgId));
   return rows.flatMap((row) => {
-    const snapshot = v.parse(refundEvent, row.payload).refund;
+    const snapshot = decodeRefundEvent(row.payload).refund;
     if (snapshot.branchId !== scope.branchId) return [];
     const occurredAt = refundTime(snapshot);
     if (day && !occurredAt.startsWith(day)) return [];

@@ -28,8 +28,8 @@ export function publicStatementRoutes(
     c.json(await readStatementByToken(database, linkSecret, c.req.param("token"))),
   );
   app.get("/public/statements/:token/pdf", async (c) => {
-    const statement = await readStatementByToken(database, linkSecret, c.req.param("token"));
     if (!renderer) return c.body(null, 503);
+    const statement = await readStatementByToken(database, linkSecret, c.req.param("token"));
     const { from, to } = statement.period;
     return c.body(new Uint8Array(await renderer.statement(statement as unknown as Json)), 200, {
       "content-type": "application/pdf",

@@ -5,6 +5,7 @@ import { sql } from "drizzle-orm";
 import { v7 } from "uuid";
 import { boxCache } from "@shopper/adapters-box";
 import { boxRenderer } from "@shopper/adapters-box/renderer";
+import { createApi } from "@shopper/api";
 import { serveRuntime } from "@shopper/api/runtime";
 import { signStatementToken } from "@shopper/core/customers";
 import { goldenWorld } from "../../../support/sales/golden/setup";
@@ -162,6 +163,43 @@ test("links need customer.manage; reading them needs customer.read; a foreign cu
   expect((await admin.revoke(customerId, v7())).status).toBe(404);
   expect((await admin.revoke(foreign, id)).status).toBe(404);
   expect((await linkRow(id)).revoked_at).toBeNull();
+});
+
+test("a period is at most 366 days: a longer link, send or statement is 400 and a year still works", async () => {
+  const customerId = await seeded("0271740008");
+  const long = { from: "2025-09-01", to: "2026-10-05" };
+  expect((await admin.link(customerId, long)).status).toBe(400);
+  expect((await admin.send(customerId, { channel: "sms", ...long })).status).toBe(400);
+  const query = (q: string) =>
+    owner.api.request(`/customers/${customerId}/statement?${q}`, {
+      headers: { cookie: owner.cookie },
+    });
+  expect((await query(`from=${long.from}&to=${long.to}`)).status).toBe(400);
+  expect((await query("from=2026-10-01&to=2027-10-01")).status).toBe(200);
+  expect((await admin.link(customerId, { from: "2026-10-01", to: "2027-10-01" })).status).toBe(201);
+});
+
+test("a PDF the renderer cannot make is a 503 and counts no view", async () => {
+  const { id, token } = await linked("0271740009");
+  const bare = createApi({
+    database: databases().db,
+    authentication: owner.auth,
+    linkSecret,
+    baseURL,
+  });
+  expect((await bare.request(`/public/statements/${token}/pdf`)).status).toBe(503);
+  expect((await linkRow(id)).view_count).toBe(0);
+});
+
+test("a link secret under 32 characters signs no statement token", async () => {
+  const payload = {
+    linkId: v7(),
+    orgId: ids.org,
+    customerId: v7(),
+    ...period,
+    exp: Date.now() + 60_000,
+  };
+  await expect(signStatementToken("too short", payload)).rejects.toThrow(/at least 32/);
 });
 
 test("the runtime serves the public route without a session and rate-limits it", async () => {

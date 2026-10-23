@@ -4,6 +4,7 @@ export type { OnboardingOptions } from "./types";
 import * as v from "valibot";
 import { v7 } from "uuid";
 import { buildInfo } from "@shopper/config";
+import { assertLinkSecret } from "@shopper/utils";
 import { and, desc, eq, like } from "drizzle-orm";
 import { registrationWorkflowStep } from "@shopper/db-pg";
 
@@ -26,7 +27,7 @@ import {
 } from "./commands";
 
 export function createOnboarding(options: OnboardingOptions) {
-  if (options.linkSecret.length < 32) throw new Error("Link secret must be at least 32 characters");
+  assertLinkSecret(options.linkSecret);
   const now = options.now ?? Date.now;
   const context = (id: string) => ({ orgId: id.toLowerCase(), appVersion: buildInfo.version });
   return {

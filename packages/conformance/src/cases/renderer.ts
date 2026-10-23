@@ -66,6 +66,7 @@ export function rendererConformance(
 }
 
 const A4_POINTS = 595.28;
+const A4_HEIGHT_POINTS = 841.89;
 
 // Only adapters whose fixture carries a statement are held to these.
 function statementConformance(
@@ -87,6 +88,20 @@ function statementConformance(
         .getPage(0)
         .getSize();
       assert.ok(tall.height > page.height, `${tall.height} is not taller than ${page.height}`);
+    });
+  });
+  test(`${name}: a long statement PDF breaks into A4-height pages`, async () => {
+    await withFixture(fixture, async ({ renderer, statement }) => {
+      if (!statement) return;
+      const long = structuredClone(statement) as { entries: unknown[] };
+      long.entries = Array.from({ length: 40 }, () => long.entries).flat();
+      const pdf = await PDFDocument.load(await renderer.statement(long as typeof statement));
+      assert.ok(pdf.getPageCount() > 1, `${pdf.getPageCount()} page`);
+      for (const page of pdf.getPages()) {
+        const size = page.getSize();
+        assert.ok(Math.abs(size.width - A4_POINTS) <= 0.5, `page width ${size.width} pt`);
+        assert.ok(size.height <= A4_HEIGHT_POINTS + 0.5, `page height ${size.height} pt`);
+      }
     });
   });
   test(`${name}: an invalid statement is rejected`, async () => {

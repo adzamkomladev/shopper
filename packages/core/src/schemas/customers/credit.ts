@@ -4,6 +4,7 @@ import { tillId } from "../till/fields";
 import { tillSession } from "../till/session";
 import { customerId } from "./inputs";
 import { loyaltyHold } from "./loyalty";
+import { inPeriod, periodMessage } from "./statements";
 
 const positive = v.pipe(v.number(), v.safeInteger(), v.minValue(1), v.transform(money));
 const day = v.pipe(v.string(), v.isoDate());
@@ -39,7 +40,7 @@ export const creditNoteInput = v.strictObject({
 /** Inclusive calendar days; Accra keeps UTC all year, so a day is a UTC day. */
 export const statementQuery = v.pipe(
   v.object({ from: day, to: day }),
-  v.check((q) => q.from <= q.to, "The statement must start before it ends"),
+  v.check((q) => inPeriod(q), periodMessage),
 );
 
 const reference = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(100));

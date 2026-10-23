@@ -8,7 +8,13 @@ import { statementDocument } from "@shopper/core/schemas";
 import { paper } from "@shopper/hardware";
 import { ReceiptView } from "@shopper/hardware/receipt";
 import { StatementView, STATEMENT_WIDTH } from "@shopper/hardware/statement";
-import { A4_POINTS, pngPage, pngPdf, receiptFonts } from "@shopper/hardware/render";
+import {
+  A4_HEIGHT_POINTS,
+  A4_POINTS,
+  pngPage,
+  pngPdf,
+  receiptFonts,
+} from "@shopper/hardware/render";
 import type { Renderer } from "@shopper/ports";
 import * as v from "valibot";
 
@@ -44,6 +50,7 @@ export function boxRenderer(): Renderer {
       return pngPage(
         await png(createElement(StatementView, { statement }), STATEMENT_WIDTH),
         A4_POINTS,
+        A4_HEIGHT_POINTS,
       );
     },
   };

@@ -173,3 +173,11 @@ retried SMS repeats the same code; only an HMAC digest is stored. An ID number i
 fingerprint before any command runs. Neither the number nor a code reaches an event, step output, audit row or log.
 The edge needs `KYC_FLOWS`, `ARKESEL_API_KEY`, `ARKESEL_SENDER` and `SHOPPER_LINK_SECRET`; without them the KYC
 case routes answer 503. Box timers are lost on restart (Rivet, day 36); PostgreSQL deadlines decide until then.
+
+## Notifications queue
+
+Low-stock alerts and statements share one notifications queue. Statements pick SMS or email per delivery; a
+low-stock alert is SMS only. On a box or Worker with only mail configured (no `ARKESEL_API_KEY`), a low-stock
+message cannot be sent, so it is retried and then dead-lettered by design: nothing falls back to email. Configure
+Arkesel wherever low-stock alerts are wanted. Statement PDFs are at most 366 days of entries and break into A4-height
+pages; a statement link signs only with a link secret of at least 32 characters.

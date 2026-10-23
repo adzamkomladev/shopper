@@ -1,7 +1,14 @@
 import { receiptDocument } from "@shopper/core/receipts";
 import { statementDocument } from "@shopper/core/schemas";
 import { paper } from "@shopper/hardware";
-import { A4_POINTS, pngPage, pngPdf, receiptHtml, statementHtml } from "@shopper/hardware/render";
+import {
+  A4_HEIGHT_POINTS,
+  A4_POINTS,
+  pngPage,
+  pngPdf,
+  receiptHtml,
+  statementHtml,
+} from "@shopper/hardware/render";
 import { STATEMENT_WIDTH } from "@shopper/hardware/statement";
 import type { Renderer } from "@shopper/ports";
 import * as v from "valibot";
@@ -37,7 +44,11 @@ export function cloudflareRenderer(browser: Browser): Renderer {
     },
     async statement(json) {
       const statement = v.parse(statementDocument, json);
-      return pngPage(await screenshot(statementHtml(statement), STATEMENT_WIDTH), A4_POINTS);
+      return pngPage(
+        await screenshot(statementHtml(statement), STATEMENT_WIDTH),
+        A4_POINTS,
+        A4_HEIGHT_POINTS,
+      );
     },
   };
 }

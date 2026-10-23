@@ -35,18 +35,27 @@ Commit `186dadc` fixed the regressions the full suite found after the tracks mer
 
 ## Deliberate breaks
 
-The plan names one break per slice. The commit history does not record the outcomes, so confirm each in the
-session log before relying on this table.
+Each break was made, its test watched fail, then restored.
 
-| Slice | Break                               | Test that must fail        |
-| ----- | ----------------------------------- | -------------------------- |
-| 3     | Drop the customer upsert            | `b2b`                      |
-| 4     | Drop `FOR UPDATE`                   | The two-hold race          |
-| 4     | Accept a credit tender with no hold | The forged-event case      |
-| 6     | Earn on the points-tendered amount  | `fold` shows 63, not 62    |
-| 7     | Post interest twice in a period     | The `interest` replay case |
-| 8     | Skip the token's org check          | The cross-org link case    |
-| 9     | Put the ID number in an event       | The secrets scan           |
+| Slice | Break                                            | Outcome                                                                                                                            |
+| ----- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Remove the `toCsv` formula guard                 | Two export tests red                                                                                                               |
+| 2     | Skip re-projection after a snapshot clear        | `pull` "keeps a customer whose upload is still pending" red                                                                        |
+| 3     | Drop the customer upsert in `acceptSale`         | `b2b` red                                                                                                                          |
+| 4     | Drop `FOR UPDATE` on hold create                 | Still green: `defineCommand` holds a per-org advisory lock. Red only with that lock also removed. The row lock is defence in depth |
+| 4     | Accept a credit tender with no hold              | The forged-event case red                                                                                                          |
+| 5     | Leave cash account payments out of expected cash | Expected-cash test red (2 000 000 vs 2 030 000)                                                                                    |
+| 6     | Earn on the points-tendered amount               | `fold` red at the intermediate check (123 vs 122)                                                                                  |
+| 7     | Post interest twice in a period                  | The `interest` replay case red                                                                                                     |
+| 8a    | Skip the token's org check                       | The cross-org link case red                                                                                                        |
+| 8b    | Drop the period unique key and the send replay   | The schedule re-run case red                                                                                                       |
+| 9     | Put the ID number in an event                    | `secrets` red (the strict event schema refuses it)                                                                                 |
+
+## Upgrade note: refund events
+
+`refund.recorded` is v2. A v1 refund (an old till build) of a sale paid on account or with points is
+rejected, because that till already paid the whole amount out in its own tenders. Update every till to the
+Day 17 build and reset till databases before trading, as `deployment.md` says.
 
 ## Screenshots
 

@@ -1,6 +1,7 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
-import { accountHold, creditEntry, customer, loyaltyEntry } from "@shopper/db-pg";
+import { accountHold, creditEntry, customer, kycCase, loyaltyEntry } from "@shopper/db-pg";
+import { HOLD_TTL } from "./credit/account";
 import { sub, money } from "@shopper/money";
 import { CustomerError } from "./error";
 import { publishCustomer } from "./feed";
@@ -12,7 +13,9 @@ type Merge = { winnerId: string; loserId: string; now: Date };
 /**
  * Folds the loser's account into the winner's: a transfer entry leaves the loser and an equal one
  * enters the winner on each ledger, so both folds are unchanged in total. The loser is archived
- * and points at the winner, and its held holds are released. Sales keep the loser's id.
+ * and points at the winner, its holds past their hour are released and its open KYC cases expire. Refused while the
+ * loser has a hold still counting: it may belong to a sale finished offline and not yet uploaded. Sales keep the
+ * loser's id.
  */
 export const mergeCustomers = defineCommand({
   name: "customer.merge",
@@ -31,6 +34,19 @@ export const mergeCustomers = defineCommand({
     const loser = locked.find((row) => row.id === input.loserId.toLowerCase())!;
     if (winner.archivedAt || loser.archivedAt)
       throw new CustomerError("MERGE_UNAVAILABLE", "Both customers must be active to merge");
+    const [open] = await tx
+      .select({ id: accountHold.id })
+      .from(accountHold)
+      .where(
+        and(
+          eq(accountHold.orgId, ctx.orgId),
+          eq(accountHold.customerId, loser.id),
+          eq(accountHold.status, "held"),
+          gt(accountHold.createdAt, sql`now() - ${HOLD_TTL}`),
+        ),
+      )
+      .limit(1);
+    if (open) throw new CustomerError("HOLDS_OPEN", "The customer has an open hold");
     const entry = { orgId: ctx.orgId, actorId: ctx.actorId, occurredAt: input.now };
     if (loser.balance !== 0)
       await tx.insert(creditEntry).values([
@@ -50,6 +66,16 @@ export const mergeCustomers = defineCommand({
           eq(accountHold.orgId, ctx.orgId),
           eq(accountHold.customerId, loser.id),
           eq(accountHold.status, "held"),
+        ),
+      );
+    await tx
+      .update(kycCase)
+      .set({ status: "expired", otpDigest: null, updatedAt: input.now })
+      .where(
+        and(
+          eq(kycCase.orgId, ctx.orgId),
+          eq(kycCase.customerId, loser.id),
+          inArray(kycCase.status, ["otp_sent", "id_needed", "review"]),
         ),
       );
     const [row] = await tx

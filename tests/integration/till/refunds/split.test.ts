@@ -87,3 +87,93 @@ test("two registers refunding one account sale offline are both accepted and nev
     WHERE org_id = ${ids.org} AND command = 'refund.accept' AND entity_id = ${second.refund.id}`);
   expect(audits).toEqual([{ excess: { account: 400_000, points: 0 } }]);
 });
+
+test("a refund of a sale whose customer was merged away credits the winner", async () => {
+  const loser = await verifiedCustomer(portal, 2_000_000, { phone: "0271794103" });
+  const winner = await verifiedCustomer(portal, 2_000_000, { phone: "0271794104" });
+  counter = await startCounter();
+  await counter.settle();
+  const sold = await customerSale(counter, loser, {
+    thousandths: 100_000,
+    credit: 800_000,
+    cash: 400_000,
+  });
+  await arrived(counter, sold.saleId);
+  expect((await portal.merge(winner, loser)).status).toBe(200);
+  const session = await uploader();
+  const event = refundEvent(
+    world,
+    sold.sale as SaleSnapshot,
+    [{ line: 0, before: 0, after: 50_000 }],
+    {},
+    { userId: principal.userId, sessionId: session.sessionId },
+  );
+  const gross = event.refund.totals.gross;
+  const onAccount = {
+    ...event,
+    v: 2,
+    refund: {
+      ...event.refund,
+      deviceTime: new Date().toISOString(),
+      cashRounding: money(0),
+      pointsReturned: 0,
+      pointsValue: money(0),
+      accountCredit: gross,
+      total: money(0),
+    },
+  };
+  expect((await postRefund(onAccount, session.proof)).body).toMatchObject({ accepted: {} });
+  expect((await entries(winner)).map((e) => [e.kind, e.amount])).toEqual([
+    ["transfer", 800_000],
+    ["credit_note", -600_000],
+  ]);
+  expect((await entries(loser)).map((e) => e.kind)).toEqual(["charge", "transfer"]);
+});
+
+// v1 tills predate account and points splits, so a v1 refund of an on-account sale is rejected rather than filled:
+// its till already paid the whole gross out, and crediting the account on top would pay the customer twice.
+test("a refund that pays an on-account sale out in its tender is rejected, v1 included", async () => {
+  const customerId = await verifiedCustomer(portal, 2_000_000, { phone: "0271794102" });
+  counter = await startCounter();
+  await counter.settle();
+  const sold = await customerSale(counter, customerId, {
+    thousandths: 100_000,
+    credit: 800_000,
+    cash: 400_000,
+  });
+  await arrived(counter, sold.saleId);
+  const session = await uploader();
+  const stated = (patch: { accountCredit: number; pointsValue: number; total: number }, v = 2) => {
+    const event = refundEvent(
+      world,
+      sold.sale as SaleSnapshot,
+      [{ line: 0, before: 0, after: 50_000 }],
+      {},
+      { userId: principal.userId, sessionId: session.sessionId },
+    );
+    const { refund } = event;
+    return {
+      ...event,
+      v,
+      refund: {
+        ...refund,
+        deviceTime: new Date().toISOString(),
+        cashRounding: money(0),
+        pointsReturned: 0,
+        ...patch,
+      },
+    };
+  };
+  const gross = stated({ accountCredit: 0, pointsValue: 0, total: 0 }).refund.totals.gross;
+  const cashOut = { accountCredit: 0, pointsValue: 0, total: gross };
+  const v1 = stated(cashOut, 1);
+  const { accountCredit: _a, pointsReturned: _p, pointsValue: _v, ...legacy } = v1.refund;
+  for (const event of [stated(cashOut), { ...v1, refund: legacy }])
+    expect((await postRefund(event, session.proof)).body.rejected).toMatchObject({
+      code: "INVALID_TOTALS",
+    });
+  const forged = stated({ accountCredit: gross - 1, pointsValue: 1, total: 0 });
+  expect((await postRefund(forged, session.proof)).body.rejected).toMatchObject({
+    code: "INVALID_TOTALS",
+  });
+});

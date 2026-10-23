@@ -28,7 +28,7 @@ export function useKycActions() {
       mutationFn: ({ id, body }: Step) => post(`/kyc/${id}/id`, body),
       onSuccess,
     }),
-    skipId: useMutation({ mutationFn: ({ id }: Step) => post(`/kyc/${id}/skip-id`), onSuccess }),
+    skipId: useMutation({ mutationFn: ({ id }: Step) => post(`/kyc/${id}/id/skip`), onSuccess }),
     decide: useMutation({
       mutationFn: ({ id, body }: Step) => post(`/kyc/${id}/decision`, body),
       onSuccess,

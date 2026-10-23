@@ -101,8 +101,8 @@ const accept = defineCommand({
     const account = await saleAccount(tx, ctx.orgId, original.id);
     const held = await salePoints(tx, ctx.orgId, original.id);
     const { share, excess } = await validateRefund(tx, ctx.orgId, original.payload, snapshot, {
-      account: sub(account.charged, account.credited),
-      points: held.redeemed ? held.redeemed.points - held.returned : 0,
+      account,
+      points: held,
     });
     const receipt = await refundDocument(tx, snapshot, {
       receiptNumber: original.receiptNumber,

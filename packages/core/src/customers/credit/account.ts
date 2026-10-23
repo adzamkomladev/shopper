@@ -6,6 +6,7 @@ import { SaleError } from "../../sales/error";
 import type { UploadPrincipal } from "../../sales/types";
 import type { Queryable } from "../../types";
 import { readCustomerRow } from "../queries";
+import { authorize } from "./authority";
 
 /** How long a held row counts against the customer; an older unconsumed hold still settles its sale. */
 export const HOLD_TTL = sql`interval '1 hour'`;
@@ -85,4 +86,25 @@ export async function tillActor(
       appVersion,
     },
   };
+}
+
+/** What a customer may spend, for a register whose cashier session proves `sale.create`. */
+export async function tillAccount(
+  db: ShopperDatabase,
+  principal: UploadPrincipal,
+  body: { orgId: string; sessionId: string },
+  proof: string,
+  appVersion: string,
+  id: string,
+) {
+  const actor = await tillActor(db, principal, body, proof, appVersion);
+  await db.transaction((tx) =>
+    authorize(tx, actor.context, {
+      principal,
+      sessionId: body.sessionId,
+      cashierId: actor.cashierId,
+      proofHash: actor.proofHash,
+    }),
+  );
+  return accountSummary(db, principal.orgId, id);
 }

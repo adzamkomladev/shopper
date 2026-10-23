@@ -10,6 +10,7 @@
 // Names carry a tag that is new on every run, so a reused server never collides.
 import { expect, type APIRequestContext, type Page } from "@playwright/test";
 import { Client } from "pg";
+import { fromDecimal } from "@shopper/money";
 import { v7 } from "uuid";
 import { E2E_DATABASE_URL } from "../../../tooling/database/e2e";
 import { post, shopHeaders, unique } from "../admin";
@@ -49,7 +50,7 @@ export const makeCustomer = (request: APIRequestContext, patch: Patch = {}) =>
     ...patch,
   });
 
-const units = (cedis: number) => Math.round(cedis * 10_000);
+const units = (cedis: number) => fromDecimal(String(cedis));
 
 async function withDatabase(
   request: APIRequestContext,

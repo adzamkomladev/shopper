@@ -580,9 +580,9 @@ Events carry only `{action}`. The instance id is the case id.
 
 **Settings:** `GET`/`PUT /settings/{loyalty,credit,statements,kyc}` and `/loyalty/tiers` (CRUD).
 
-**KYC:** `POST /kyc`, `/kyc/:id/{resend,verify,id,skip-id,decision}`, `GET /kyc`, `/kyc/:id`.
+**KYC:** `POST /kyc`, `/kyc/:id/{resend,verify,id,id/skip,decision}`, `GET /kyc`, `/kyc/:id`.
 
-**Till sync:** `POST /sync/customers` (created and updated events), `POST /sync/accounts/payments`, `GET /sync/customers/:id/account`, `POST /sync/customers/holds`, `/holds/:id/release`.
+**Till sync:** `POST /sync/customers` (created and updated events), `POST /sync/accounts/payments`, `POST /sync/customers/:id/account` (cashier session proof with `sale.create`), `POST /sync/customers/holds`, `/holds/:id/release`.
 
 **Other edits**
 
@@ -790,3 +790,7 @@ After approval, save this as a feedback memory.
 - An automated Ghana Card or identity provider check. Verification is manual by owner decision; a provider is one adapter file later.
 - The GRA E-VAT submission (Day 20 consumes `fiscalPayload`).
 - Box workflow timers that survive a restart (Day 36, Rivet). Until then the box relaunches workflows on boot.
+
+## Known limits
+
+- A merge moves the loser's balance and points as transfer entries dated at the merge. The winner then sees the loser's accrued interest as principal (so interest can accrue on it), the loser's credit terms restart from the merge date, and the merged points carry no earn date, so they never expire. Carrying per-entry dates across a merge is left for when merges with open balances prove common.

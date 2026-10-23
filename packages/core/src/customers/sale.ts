@@ -55,6 +55,12 @@ export async function ensureSaleCustomer(
   return { id: (await mergeWinner(tx, ctx.orgId, current)).id, created: null };
 }
 
+/** The id a customer's ledger entries go to now: their own, or the winner's once merged away. */
+export async function currentCustomerId(tx: ShopperTransaction, orgId: string, id: string) {
+  const start = await find(tx, orgId, id);
+  return start ? (await mergeWinner(tx, orgId, start)).id : id;
+}
+
 /** The customer a merged-away one now lives on. Merges never loop, but a damaged chain stops at the last good row. */
 export async function mergeWinner(
   tx: ShopperTransaction,

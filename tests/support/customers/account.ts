@@ -16,6 +16,8 @@ import { refreshApprovers } from "@shopper/core/till";
 import { pin } from "../till/approvers";
 import { serverSale } from "./sale";
 import type { startCounter } from "./till";
+import { ids } from "../till/sales";
+import { deviceId, deviceToken, devices, principal } from "../till/server";
 
 type Counter = Awaited<ReturnType<typeof startCounter>>;
 type Reply = Record<string, any>;
@@ -110,4 +112,17 @@ export async function withManager(counter: Counter) {
     },
   );
   return { approverId: manager, pin };
+}
+
+/** The body of a till's account read: a cashier session proof (default: a fresh fixture login) for `sale.create`. */
+export async function accountRead(session?: { sessionId: string; proof: string }) {
+  if (session)
+    return { proof: session.proof, session: { orgId: ids.org, sessionId: session.sessionId } };
+  const login = await devices.login({
+    deviceId,
+    deviceToken,
+    userId: principal.userId,
+    pin: "1357",
+  });
+  return { proof: login.token, session: { orgId: ids.org, sessionId: login.id } };
 }

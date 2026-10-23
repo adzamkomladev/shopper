@@ -156,6 +156,9 @@ test("a session without sale.create gets 403 and nothing is held; an unknown or 
   const keeper = await sessionOf(await memberWithPin("Stock Keeper", "inventory", "4455"), "4455");
   expect((await holds.create(keeper, customerId, 10_000)).status).toBe(403);
   expect(await holdRows(customerId)).toEqual([]);
+  // Reading what a customer may spend needs the same `sale.create` session proof.
+  expect((await holds.account(customerId, keeper)).status).toBe(403);
+  expect((await holds.account(customerId, { ...keeper, proof: "forged" })).status).toBe(401);
 
   const session = await uploader();
   expect((await holds.create(session, v7(), 10_000)).status).toBe(404);

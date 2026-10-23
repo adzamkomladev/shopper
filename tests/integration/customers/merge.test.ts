@@ -87,12 +87,18 @@ test("a merge moves both folds to the winner as transfer pairs and leaves the lo
   ]);
 });
 
-test("a merge releases the loser's held holds and keeps the winner's", async () => {
+test("a merge is refused while the loser has an open hold; past their hour they are released, the winner's kept", async () => {
   const { winner, loser } = await pair();
   await addHold(loser, "credit", 1_000, "held");
   await addHold(loser, "loyalty", 3, "held");
   await addHold(loser, "credit", 2_000, "consumed");
   await addHold(winner, "credit", 4_000, "held");
+  const refused = await admin.merge(winner, loser);
+  expect(refused.status).toBe(409);
+  expect(refused.body.code).toBe("HOLDS_OPEN");
+  await db().execute(
+    sql`UPDATE account_hold SET created_at = now() - interval '2 hours' WHERE customer_id = ${loser}`,
+  );
   expect((await admin.merge(winner, loser)).status).toBe(200);
   expect((await holdStatuses(loser)).sort()).toEqual(["consumed", "released", "released"]);
   expect(await holdStatuses(winner)).toEqual(["held"]);

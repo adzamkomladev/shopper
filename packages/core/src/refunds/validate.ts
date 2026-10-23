@@ -10,6 +10,7 @@ import {
 } from "@shopper/db-pg";
 import { add, money, mulRatio, sub, type Money } from "@shopper/money";
 import { refundShare } from "@shopper/tax";
+import { allocateRefund } from "../customers/credit/refunds";
 import { saleSnapshot } from "../schemas/till/sale";
 import type { RefundSnapshot } from "../schemas/till/refund";
 import { SaleError } from "../sales/error";
@@ -36,16 +37,21 @@ export async function refundedQuantities(
 
 /**
  * Every refunded line is a sold line of the locked sale, within the quantity left, and its tax is exactly
- * the pro-rata share of the sold snapshot; totals and the cash payout are then recomputed. Answers the split
- * to apply: the till's, clamped to what is `left` on the account and in redeemed points, and the excess cut.
+ * the pro-rata share of the sold snapshot; totals and the cash payout are then recomputed. The stated split may
+ * never fall below what the server state owes the account and redeemed points (a till cannot pay an on-account sale
+ * out in cash; a v1 refund, upcast to no split, is rejected for such a sale since its till already paid it all out).
+ * Answers the split to apply: the till's, clamped to what is left, and the excess cut.
  */
 export async function validateRefund(
   tx: ShopperTransaction,
   orgId: string,
   sold: unknown,
   snapshot: RefundSnapshot,
-  /** What the sale still has to give back: account charge not yet credited, redeemed points not yet returned. */
-  left: { account: Money; points: number },
+  /** The sale's account charge and what refunds credited; its redeemed points and those already returned. */
+  state: {
+    account: { charged: Money; credited: Money };
+    points: { redeemed: { points: number; value: Money } | null; returned: number };
+  },
 ) {
   const lines = new Map(v.parse(saleSnapshot, sold).lines.map((line) => [line.id, line]));
   const seen = new Set<string>();
@@ -92,7 +98,22 @@ export async function validateRefund(
   if (canonicalJson(totals) !== canonicalJson(snapshot.totals))
     throw new SaleError("INVALID_TOTALS", "Refund totals do not match its lines");
   await validatePayout(tx, orgId, snapshot);
-  return split(snapshot, left);
+  const { redeemed, returned } = state.points;
+  const expected = allocateRefund(snapshot.totals.gross, state.account, state.points);
+  const perPoint = redeemed ? mulRatio(redeemed.value, 1, redeemed.points) : money(0);
+  if (
+    snapshot.accountCredit < expected.account ||
+    snapshot.pointsReturned < expected.points ||
+    snapshot.pointsValue !== mulRatio(perPoint, snapshot.pointsReturned, 1)
+  )
+    throw new SaleError(
+      "INVALID_TOTALS",
+      "Refund split does not match the sale's account and points",
+    );
+  return split(snapshot, {
+    account: sub(state.account.charged, state.account.credited),
+    points: redeemed ? redeemed.points - returned : 0,
+  });
 }
 
 /**

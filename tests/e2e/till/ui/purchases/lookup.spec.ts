@@ -23,7 +23,7 @@ test("the tabs carry their counts and Returns lists refunds as negative totals",
   expect((await calls(page, "listPurchases")).at(-1)?.args[0]).toMatchObject({
     status: "returned",
   });
-  const row = page.getByRole("row", { name: /Return of #10481/ });
+  const row = page.getByRole("row", { name: /Credit note #10490 for #10481/ });
   await expect(row).toHaveCount(1);
   await expect(row.getByText("Returned", { exact: true })).toBeVisible();
   const total = row.getByRole("cell").last();
@@ -36,7 +36,7 @@ test("the tabs carry their counts and Returns lists refunds as negative totals",
 test("Enter on a Returns row opens the sale it returned", async ({ page }) => {
   await openPurchases(page);
   await tab(page, /^Returns/).click();
-  await page.getByRole("button", { name: /Return of #10481/ }).focus();
+  await page.getByRole("button", { name: /Credit note #10490 for #10481/ }).focus();
   await page.keyboard.press("Enter");
   expect(await lookups(page)).toEqual([["10481"]]);
   await expect(page.getByRole("heading", { name: "Purchase #10481" })).toBeVisible();

@@ -38,7 +38,7 @@ const row = (number: string, change: Partial<PurchaseSummary>): PurchaseSummary 
 export const rows: PurchaseSummary[] = [
   row("10490", {
     status: "returned",
-    receiptNumber: null,
+    receiptNumber: "10490",
     occurredAt: "2026-10-15T09:45:00.000Z",
     total: -350_000,
     refundOf: "10481",
@@ -208,7 +208,8 @@ export function matching(query: string, kind: PurchaseFilters["kind"]) {
   return rows.filter(
     (purchase) =>
       (kind === "all" || purchase.kinds.includes(kind)) &&
-      (!text || (purchase.receiptNumber ?? purchase.refundOf ?? "").includes(text)),
+      (!text ||
+        [purchase.receiptNumber, purchase.refundOf].some((reference) => reference?.includes(text))),
   );
 }
 

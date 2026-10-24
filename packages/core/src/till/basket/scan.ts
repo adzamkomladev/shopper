@@ -4,6 +4,7 @@ import { reference, type TillDatabase } from "@shopper/db-sqlite";
 import { money, mulRatio } from "@shopper/money";
 import { tillMapping, tillPrice, tillProductBase } from "../../schemas/till/reference";
 import { TillError } from "../error";
+import { readOrgSettings } from "../settings";
 import { lookupCode } from "../lookup/search";
 import { effectivePrice } from "../quotation";
 import type { ScanResult } from "../types";
@@ -117,6 +118,16 @@ async function price(
   value: number,
 ) {
   if (value === 0) throw new TillError("AMOUNT_INVALID", "Price label carries a zero amount");
+  // A label prints what the customer pays; with tax added on top of shelf prices its quantity is ambiguous.
+  // ponytail: refused outright; derive the quantity from the taxed unit price if exclusive shops need price labels.
+  const settings = await database.read(async (tx) =>
+    readOrgSettings(await tx.select().from(reference).where(eq(reference.orgId, input.orgId))),
+  );
+  if (settings.priceMode === "exclusive")
+    throw new TillError(
+      "PRICE_LABEL_EXCLUSIVE",
+      "Price labels need shelf prices that include tax. Use a weight label for this product.",
+    );
   const unit = effectivePrice(
     await readRows(
       database,

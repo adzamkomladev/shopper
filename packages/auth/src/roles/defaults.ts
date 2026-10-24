@@ -9,6 +9,7 @@ export const rolePermissions: Record<string, readonly string[]> = {
     "shift.read",
     "stock.read",
     "tax.read",
+    "tax.return",
     "report.read",
     "audit.read",
     "customer.read",

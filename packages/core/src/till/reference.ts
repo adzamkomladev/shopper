@@ -4,7 +4,7 @@ import { reference } from "@shopper/db-sqlite";
 import { tillReference } from "../schemas/till/reference";
 import { TillError } from "./error";
 import { projectProducts } from "./lookup/project";
-import { storeCashRounding } from "./settings";
+import { storeOrgSettings } from "./settings";
 
 export const provisionTillReference = defineCommand({
   name: "till.reference.provision",
@@ -31,7 +31,10 @@ export const provisionTillReference = defineCommand({
         count += 1;
       }
     }
-    await storeCashRounding(tx, context.orgId, data.cashRounding);
+    await storeOrgSettings(tx, context.orgId, {
+      cashRounding: data.cashRounding,
+      ...data.settings,
+    });
     await projectProducts(tx, context.orgId, data.products);
     return { count };
   },

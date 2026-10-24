@@ -121,7 +121,7 @@ test("push rejects oversized batches and bodies before accepting any event", asy
 
 test("event versions outside the supported shape are rejected without persistence", async () => {
   const captured = await recordSale();
-  for (const version of [0, 1, 2, 3, 6]) {
+  for (const version of [0, 1, 2, 3, 7]) {
     const unsupported = { ...captured.event, v: version };
     const response = await pushEvents(
       api,
@@ -178,6 +178,7 @@ test("server rejects tampered tax arithmetic and repriced captured snapshots", a
     on: line.tax.on,
     taxClass: line.tax.taxClass,
     priceMode: line.tax.priceMode,
+    registered: line.tax.registered,
     unitPrice: sub(line.tax.unitPrice, money(1_000)),
     quantityThousandths: line.tax.quantityThousandths,
     discount: line.tax.discount,

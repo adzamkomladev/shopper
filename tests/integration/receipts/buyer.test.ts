@@ -1,6 +1,6 @@
-// Receipt v3 `buyer: {name, tin} | null`: both renderers print the same block, and `fiscalPayload` is the pure seam Day 20 submits.
-//   fiscalPayload(receipt) -> { invoiceNumber, issuedAt, seller: {name, tin}, buyer: {name, tin} | null,
-//     lines: [{name, quantityThousandths, unitPrice, taxClass, gross}], totals: {net, nhil, getfund, covid, vat, total} }
+// Receipt `buyer: {name, tin} | null` (v3 on): both renderers print the same block, and `fiscalPayload` is the pure seam Day 20 submits.
+//   fiscalPayload(receipt) -> { type, invoiceNumber, originalInvoiceNumber, issuedAt, seller: {name, tin}, buyer: {name, tin} | null,
+//     lines: [{name, quantityThousandths, unitPrice, taxClass, gross, net}], totals: {net, nhil, getfund, covid, vat, total} }
 import { expect, test } from "vite-plus/test";
 import * as v from "valibot";
 import { fiscalPayload } from "@shopper/core/receipts";
@@ -61,7 +61,9 @@ test("the fiscal payload is the seller, the buyer, the lines and the totals of t
   const doc = invoice();
   const payload = fiscalPayload(doc);
   expect(payload).toMatchObject({
+    type: "invoice",
     invoiceNumber: doc.header.receiptNumber,
+    originalInvoiceNumber: null,
     issuedAt: doc.header.utcTime,
     seller: { name: doc.header.org, tin: doc.header.tin },
     buyer: { name: "Kofi Traders Ltd", tin: "C0012345678" },
@@ -81,6 +83,7 @@ test("the fiscal payload is the seller, the buyer, the lines and the totals of t
       unitPrice: line.unitPrice,
       taxClass: line.taxClass,
       gross: line.gross,
+      net: line.net,
     })),
   );
   expect(fiscalPayload({ ...doc, buyer: null }).buyer).toBeNull();

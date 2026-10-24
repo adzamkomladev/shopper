@@ -70,6 +70,7 @@ function quote(spec: Spec): { line: DraftLine; quote: QuoteLine } {
         on: "2026-10-15",
         taxClass: "standard",
         priceMode: "inclusive",
+        registered: true,
         quantityThousandths: quantity,
         unitPrice: spec.unitPrice,
         discount: money(0),

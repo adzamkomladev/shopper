@@ -226,6 +226,21 @@ Arkesel and Maileroo keys are the ones already configured. Without Arkesel the K
 `GET /public/statements/:token` (and `/pdf`) with no session, rate limited per client, answering 503 when the
 link secret is missing.
 
+
+## Tax (Day 18)
+
+Apply `0026_tax`: the org's `tin`, `vat_registered_from` and `price_mode`, the `vat_return` table, the refund's
+`credit_note_number` (unique per org) and the `org-setting` feed entity. Orgs that exist when it runs stay
+registered (a one-shot column default). The new `tax.return` permission is seeded with the roles; the accountant
+holds it.
+
+**Versions.** Sale event v6, refund v3, change feed and snapshot v5 and receipt v4 ship together, with upcasters on
+the server. A till on the old build cannot read a v5 feed: let every till upload its outbox, then update the tills
+with the release and reset their databases.
+
+**Reset dev data and till databases.** Run `vp run db:reset`, `db:migrate` and `db:seed`, and delete each till's
+SQLite database. Do not backfill. Each shop's owner enters the TIN in Tax → Settings before receipts print it.
+
 ## Browser Run (receipt rendering)
 
 `apps/edge` and `apps/portal` bind `BROWSER` (`bindings.browser({})`; compatibility date 2026-03-24 or later). Browser Run is available on every Workers account and needs nothing enabled in the dashboard. `quickAction` does not run in local dev; no local code path calls it yet, so the binding has no `dev: { remote: true }`. Add that (it requires a Cloudflare login) when a route starts rendering online-order PDFs. Tests use `tooling/browser/server.ts`, a Playwright Chromium stand-in (CI installs Chromium before `vp test --run`).

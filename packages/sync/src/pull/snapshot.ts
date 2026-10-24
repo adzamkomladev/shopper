@@ -8,7 +8,7 @@ import {
   projectCustomers,
   projectProducts,
   replayPendingCustomers,
-  storeCashRounding,
+  storeOrgSettings,
 } from "@shopper/core/till";
 
 /** Replaces the organisation's reference and lookup; `referenceVersion` is the wire version the server sent. */
@@ -36,7 +36,7 @@ export const applySnapshot = (now?: () => number) =>
         // The server's customers come first; what this till made or edited and has not uploaded goes back on top.
         await projectCustomers(tx, context.orgId, customers);
         await replayPendingCustomers(tx, context.orgId);
-        await storeCashRounding(tx, context.orgId, input.reference.cashRounding);
+        await storeOrgSettings(tx, context.orgId, input.reference.settings);
         let count = 0;
         for (const [entity, rows] of Object.entries(groups)) {
           for (const payload of rows) {

@@ -16,6 +16,7 @@ import { publicStatementRoutes } from "./routes/public/statements";
 import { kycRoutes } from "./routes/kyc";
 import { managementRoutes } from "./routes/management";
 import { systemRoutes } from "./routes/system";
+import { taxReportRoutes } from "./routes/tax/reports";
 import { taxRuleRoutes } from "./routes/tax/rules";
 import type { ApiEnvironment, ApiOptions } from "./types";
 
@@ -80,5 +81,10 @@ export function createApi(options: ApiOptions = {}) {
   if (options.database)
     app.route("/", settingsRoutes(options.database, options.authentication, options.notifications));
   if (options.database) app.route("/", kycRoutes(options));
+  if (options.database)
+    app.route(
+      "/",
+      taxReportRoutes(options.database, options.authentication, options.notifications),
+    );
   return app;
 }

@@ -3,7 +3,11 @@ import { branch, device, receiptBlock, type ShopperTransaction } from "@shopper/
 import type { SaleSnapshot } from "../schemas/till/sale";
 import { SaleError } from "./error";
 
-export async function validateReceipt(tx: ShopperTransaction, snapshot: SaleSnapshot) {
+/** A sale's receipt number, or a refund's credit-note number: it must come from the uploading register's blocks. */
+export async function validateReceipt(
+  tx: ShopperTransaction,
+  snapshot: Pick<SaleSnapshot, "orgId" | "deviceId" | "receiptNumber" | "receiptOverflow">,
+) {
   if (snapshot.receiptNumber === null) return;
   const [registered] = await tx
     .select({ deviceCode: device.code, branchCode: branch.code })

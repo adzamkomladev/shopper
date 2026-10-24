@@ -6,6 +6,7 @@ import { creditSettingsView } from "../../schemas/settings/credit";
 import { kycSettingsView } from "../../schemas/settings/kyc";
 import { loyaltySettingsView } from "../../schemas/settings/loyalty";
 import { statementSettingsView } from "../../schemas/settings/statements";
+import { taxSettingsView } from "../../schemas/tax/settings";
 import { currentShop } from "../../stores/shops";
 
 const schemas = {
@@ -13,6 +14,7 @@ const schemas = {
   credit: creditSettingsView,
   kyc: kycSettingsView,
   statements: statementSettingsView,
+  tax: taxSettingsView,
 } as const;
 type Name = keyof typeof schemas;
 

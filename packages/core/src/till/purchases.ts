@@ -35,9 +35,10 @@ export async function listPurchases(db: TillDatabase, raw: unknown) {
     const matching = rows.filter(
       (row) =>
         (input.kind === "all" || row.kinds.some((kind) => kind === input.kind)) &&
-        (row.receiptNumber ?? row.refundOf ?? row.id)
-          .toLowerCase()
-          .includes(input.query.toLowerCase()),
+        // A credit note is found by its own number or by the receipt it returns.
+        [row.receiptNumber, row.refundOf, row.id].some((reference) =>
+          reference?.toLowerCase().includes(input.query.toLowerCase()),
+        ),
     );
     const filtered = matching.filter(
       (row) => input.status === "all" || row.status === input.status,
@@ -233,7 +234,7 @@ async function purchases(
   const refunds = returned.map(({ row, snapshot, occurredAt, refundOf }) => ({
     id: row.id,
     status: "returned" as const,
-    receiptNumber: null,
+    receiptNumber: snapshot.creditNoteNumber,
     occurredAt,
     total: -Number(snapshot.total),
     kinds: [snapshot.tender.kind],

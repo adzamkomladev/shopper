@@ -2,7 +2,7 @@ import type { UploadPrincipal } from "./types";
 export type { UploadPrincipal } from "./types";
 import { and, desc, eq, lte } from "drizzle-orm";
 import { canonicalJson, type CommandContext } from "@shopper/audit";
-import { product, price, taxClass, taxRule, type ShopperTransaction } from "@shopper/db-pg";
+import { org, product, price, taxClass, taxRule, type ShopperTransaction } from "@shopper/db-pg";
 import { add, money } from "@shopper/money";
 import { expectedLine } from "./labels";
 import { hasGrant, overrideAuthority, sessionAuthority } from "./authority";
@@ -62,6 +62,11 @@ export async function validateReferences(
     .orderBy(desc(taxRule.effectiveFrom))
     .limit(1);
   if (!rule) throw new SaleError("INVALID_REFERENCE", "No dated tax rule for this sale");
+  const [seller] = await tx
+    .select({ vatRegisteredFrom: org.vatRegisteredFrom })
+    .from(org)
+    .where(eq(org.id, orgId));
+  const registered = seller!.vatRegisteredFrom !== null && seller!.vatRegisteredFrom <= on;
   const capturedRule = {
     id: rule.id,
     effectiveFrom: rule.effectiveFrom,
@@ -114,7 +119,10 @@ export async function validateReferences(
       (reference.price.validTo && reference.price.validTo <= time) ||
       !unitPriceMatches(line, reference.price.amount) ||
       line.tax.discount !== line.discount ||
-      line.tax.priceMode !== "inclusive" ||
+      line.tax.registered !== registered ||
+      // Either price mode is accepted (a till may quote before a mode change reaches it); a price label is the
+      // customer's gross, so it is always inclusive.
+      (line.label?.kind === "price" && line.tax.priceMode !== "inclusive") ||
       line.tax.taxClass !== reference.taxClass.code ||
       line.tax.on !== on ||
       canonicalJson(line.tax.rule) !== canonicalJson(capturedRule)

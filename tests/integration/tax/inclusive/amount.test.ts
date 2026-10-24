@@ -12,7 +12,13 @@ const covidRule = { ...oldRule, id: "019a0000-0000-7000-8000-0000000000ff", covi
 const rules = [oldRule, currentRule, covidRule];
 const classes: TaxClass[] = ["standard", "zero-rated", "exempt"];
 const on = "2026-01-02";
-const base = { rule: currentRule, on, taxClass: "standard", priceMode: "inclusive" } as const;
+const base = {
+  rule: currentRule,
+  on,
+  taxClass: "standard",
+  priceMode: "inclusive",
+  registered: true,
+} as const;
 const amount = (over: Partial<Parameters<typeof snapshotAmount>[0]> = {}) =>
   snapshotAmount({
     ...base,
@@ -30,6 +36,7 @@ test("the golden line gross yields the golden breakdown", () => {
     on: goldenSale.on,
     taxClass: "standard",
     priceMode: "inclusive",
+    registered: true,
     gross,
     unitPrice: goldenSale.unitPrice as Money,
     quantityThousandths: goldenSale.quantityThousandths,
@@ -59,6 +66,7 @@ test("snapshotLine equals snapshotAmount of the line gross across classes, rules
             on,
             taxClass,
             priceMode: "inclusive",
+            registered: true,
             unitPrice,
             quantityThousandths,
           } as const;

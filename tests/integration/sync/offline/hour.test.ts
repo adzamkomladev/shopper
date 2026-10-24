@@ -152,7 +152,7 @@ test("a till offline for one hour converges exactly after exhausting its receipt
     ...snapshot.reference.products,
     ...snapshot.reference.prices,
     ...snapshot.reference.taxRules,
-    { id: snapshot.orgId, cashRounding: snapshot.reference.cashRounding ?? "10p" },
+    snapshot.reference.settings,
   ];
   expect(refs.map((row) => row.payload).sort(byReferenceId)).toEqual(expected.sort(byReferenceId));
   expect(await tillCursor(till.database)).toBe(String(await head()));

@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import { canonicalJson } from "@shopper/audit";
 import type { saleDraftLine } from "@shopper/db-sqlite";
-import { add, money, mulRatio, sub } from "@shopper/money";
+import { add, money, mulQty, mulRatio, sub } from "@shopper/money";
 import { snapshotAmount, snapshotLine } from "@shopper/tax";
 import { saleTotals } from "../../schemas/till/sale";
 import { TillError } from "../error";
@@ -60,16 +60,17 @@ export function quoteDraftLine(refs: References, branchId: string, at: Date, lin
       overridePrice === null
         ? listed
         : { ...listed, tax: snapshotLine({ ...listed.tax, unitPrice: money(overridePrice) }) };
-    if (line.discount < 0 || line.discount > quote.tax.gross)
+    // The discount comes off the price before tax, in either price mode.
+    if (line.discount < 0 || line.discount > mulQty(quote.tax.unitPrice, quantityThousandths))
       throw new TillError("DISCOUNT_INVALID", "Discount exceeds line gross");
-    const tax = snapshotAmount({ ...quote.tax, gross: sub(quote.tax.gross, money(line.discount)) });
     return {
       ...quote,
-      tax: { ...tax, discount: money(line.discount) },
+      tax: snapshotLine({ ...quote.tax, discount: money(line.discount) }),
       ...(overridePrice === null ? {} : { listPrice: listed.tax.unitPrice }),
     };
   }
-  const { rule, on, taxClass, unitPrice } = listed.tax;
+  // A price label carries what the customer pays, so its tax is always extracted from that gross.
+  const { rule, on, taxClass, registered, unitPrice } = listed.tax;
   const gross = mulRatio(
     money(label.gross),
     quantityThousandths,
@@ -82,6 +83,7 @@ export function quoteDraftLine(refs: References, branchId: string, at: Date, lin
     on,
     taxClass,
     priceMode: "inclusive",
+    registered,
     unitPrice,
     quantityThousandths,
     gross: sub(gross, money(line.discount)),

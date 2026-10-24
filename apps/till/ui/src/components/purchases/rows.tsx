@@ -118,7 +118,7 @@ export function PurchaseRows({
   );
 }
 
-/** A Returns row has no receipt number of its own: it opens the sale it returned. */
+/** A Returns row is a credit note: it shows its own number and opens the sale it returned. */
 function PurchaseRow({
   purchase,
   actions,
@@ -139,7 +139,11 @@ function PurchaseRow({
         >
           <span className="font-semibold text-foreground">{accraTime(purchase.occurredAt)}</span>
           <span className="text-xs font-medium text-muted-foreground">
-            {refund ? `Return of #${refund}` : `#${reference}`}
+            {refund
+              ? purchase.receiptNumber
+                ? `Credit note #${purchase.receiptNumber} for #${refund}`
+                : `Return of #${refund}`
+              : `#${reference}`}
           </span>
         </Button>
       </TableCell>

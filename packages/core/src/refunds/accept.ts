@@ -7,6 +7,7 @@ import { sha256 } from "@shopper/utils";
 import { saleCustomer } from "../schemas/till/sale";
 import { decodeRefundEvent, type RefundEvent } from "../schemas/till/refund";
 import { SaleError } from "../sales/error";
+import { validateReceipt } from "../sales/receipts";
 import type { UploadPrincipal } from "../sales/types";
 import { validateRefundAuthority } from "./authority";
 import { refundDocument } from "./document";
@@ -100,6 +101,12 @@ const accept = defineCommand({
       throw new SaleError("INVALID_REFERENCE", "Original sale not found in this store");
     const account = await saleAccount(tx, ctx.orgId, original.id);
     const held = await salePoints(tx, ctx.orgId, original.id);
+    // A credit note takes its number from the register's blocks, overflow numbers included.
+    await validateReceipt(tx, {
+      ...snapshot,
+      receiptNumber: snapshot.creditNoteNumber,
+      receiptOverflow: snapshot.creditNoteNumber?.includes("-X") ?? false,
+    });
     const { share, excess } = await validateRefund(tx, ctx.orgId, original.payload, snapshot, {
       account,
       points: held,
@@ -120,6 +127,7 @@ const accept = defineCommand({
         sessionId: snapshot.sessionId,
         approverId: snapshot.approverId,
         originalSaleId: original.id,
+        creditNoteNumber: snapshot.creditNoteNumber,
         reason: snapshot.reason,
         tenderKind: snapshot.tender.kind,
         tenderReference: "reference" in snapshot.tender ? snapshot.tender.reference : null,

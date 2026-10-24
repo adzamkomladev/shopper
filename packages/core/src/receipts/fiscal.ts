@@ -5,16 +5,19 @@ import type { FiscalPayload } from "./types";
 export function fiscalPayload(receipt: ReceiptDocument): FiscalPayload {
   const { header, taxSummary } = receipt;
   return {
+    type: receipt.kind === "refund" ? "credit_note" : "invoice",
     invoiceNumber: header.receiptNumber,
+    originalInvoiceNumber: receipt.refundOf,
     issuedAt: header.utcTime,
     seller: { name: header.org, tin: header.tin },
     buyer: receipt.buyer,
-    lines: receipt.lines.map(({ name, quantityThousandths, unitPrice, taxClass, gross }) => ({
+    lines: receipt.lines.map(({ name, quantityThousandths, unitPrice, taxClass, gross, net }) => ({
       name,
       quantityThousandths,
       unitPrice,
       taxClass,
       gross,
+      net,
     })),
     totals: {
       net: taxSummary.net,

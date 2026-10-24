@@ -24,12 +24,34 @@ export async function runGolden(
   /** When the till rings it up; the golden day is 12:00. */
   at: Date = goldenAt,
 ) {
+  const event = await ringGolden(world, scenario, at);
+  if (!event) return null;
+  const response = await pushEvents(
+    api,
+    [event],
+    [{ sessionId: world.session.id, proof: world.session.proof }],
+  );
+  expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({
+    accepted: [{ localId: event.sale.localId, sequence: expect.any(String) }],
+    rejected: [],
+  });
+  return event.sale;
+}
+
+/** Rings the scenario up on the golden till and completes it; the sale event is returned unsent. */
+export async function ringGolden(
+  world: Awaited<ReturnType<typeof goldenWorld>>,
+  scenario: GoldenSale,
+  at: Date = goldenAt,
+) {
   const { local, scope, command, session, config } = world;
   await provisionTillReference(local, command, {
     products: [],
     prices: [],
     taxRules: [],
     cashRounding: scenario.rounding ?? "10p",
+    ...(scenario.settings ? { settings: scenario.settings } : {}),
   });
   let view = await readDraft(local, scope, { at });
   for (const line of scenario.lines) {
@@ -94,20 +116,9 @@ export async function runGolden(
         ...(tender.kind === "card" ? { approvalCode: "GOLD123", last4: "4242" } : {}),
       });
   }
-  const event = await completeDraftSale(local, config, session, {
+  return completeDraftSale(local, config, session, {
     scope,
     at,
     expectedRevision: view.draft?.revision ?? 0,
   });
-  const response = await pushEvents(
-    api,
-    [event],
-    [{ sessionId: session.id, proof: session.proof }],
-  );
-  expect(response.status).toBe(200);
-  expect(await response.json()).toMatchObject({
-    accepted: [{ localId: event.sale.localId, sequence: expect.any(String) }],
-    rejected: [],
-  });
-  return event.sale;
 }

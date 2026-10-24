@@ -30,6 +30,8 @@ export const refund = pgTable(
     sessionId: uuid("session_id").notNull(),
     approverId: uuid("approver_id"),
     originalSaleId: uuid("original_sale_id").notNull(),
+    /** The credit note's number from the register's block; null for refunds from before credit notes. */
+    creditNoteNumber: text("credit_note_number"),
     reason: text("reason").notNull(),
     tenderKind: text("tender_kind", { enum: tenderKinds }).notNull(),
     tenderReference: text("tender_reference"),
@@ -53,6 +55,7 @@ export const refund = pgTable(
   (t) => [
     unique().on(t.orgId, t.id),
     index("refund_sale").on(t.orgId, t.originalSaleId),
+    unique("refund_credit_note_unique").on(t.orgId, t.creditNoteNumber),
     foreignKey({ columns: [t.orgId, t.deviceId], foreignColumns: [device.orgId, device.id] }),
     foreignKey({ columns: [t.orgId, t.storeId], foreignColumns: [store.orgId, store.id] }),
     foreignKey({ columns: [t.orgId, t.branchId], foreignColumns: [branch.orgId, branch.id] }),

@@ -22,21 +22,24 @@ import { insertOpenShift } from "../../till/shifts";
 
 export const at = new Date("2026-10-15T12:00:00.000Z");
 
-export async function goldenWorld(options: { shift?: boolean } = {}) {
+/** `since` lets a suite sell before the golden day: the cashier session is valid from then. */
+export async function goldenWorld(options: { shift?: boolean; since?: string } = {}) {
+  const since = options.since ?? "2026-10-15T00:00:00.000Z";
+  const until = "2026-10-16T00:00:00.000Z";
   const { db, context } = databases();
   const host = await hostConfiguration(":memory:", ["http://localhost"]);
   if (!host.session) throw new Error("Golden till requires a cashier session");
   const permissions = await configure(
     db,
     { ...context, actorId: host.session.userId },
-    host.session.id,
+    { sessionId: host.session.id, since },
   );
   const session = {
     ...host.session,
     roleName: "admin",
     permissions,
-    issuedAt: "2026-10-15T00:00:00.000Z",
-    expiresAt: "2026-10-16T00:00:00.000Z",
+    issuedAt: since,
+    expiresAt: until,
   };
   const scope = {
     orgId: host.identity.orgId,
@@ -77,7 +80,7 @@ export async function goldenWorld(options: { shift?: boolean } = {}) {
 
 const configure = defineCommand({
   name: "golden.test.configure",
-  async run(tx, ctx, sessionId: string) {
+  async run(tx, ctx, input: { sessionId: string; since: string }) {
     if (!ctx.actorId) throw new Error("Golden fixture needs a cashier");
     const [admin] = await tx
       .select()
@@ -106,10 +109,10 @@ const configure = defineCommand({
         roleId: admin.id,
         permissions,
         roleName: "admin",
-        issuedAt: new Date("2026-10-15T00:00:00.000Z"),
+        issuedAt: new Date(input.since),
         expiresAt: new Date("2026-10-16T00:00:00.000Z"),
       })
-      .where(eq(cashierSession.id, sessionId));
+      .where(eq(cashierSession.id, input.sessionId));
     const classes = await tx.select().from(taxClass).where(eq(taxClass.orgId, ctx.orgId));
     await tx.delete(taxRule).where(eq(taxRule.orgId, ctx.orgId));
     await tx.insert(taxRule).values(goldenReferences.taxRules);

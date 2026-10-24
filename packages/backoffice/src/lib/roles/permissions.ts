@@ -19,7 +19,8 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   "product.write": "Change products",
   "product.propose": "Propose product changes",
   "tax.read": "View tax rules",
-  "tax.write": "Change tax rules",
+  "tax.write": "Change tax settings and rules",
+  "tax.return": "File VAT returns",
   "report.read": "View reports",
   "audit.read": "View audit log",
   "user.read": "View users",
@@ -64,7 +65,10 @@ export const PERMISSION_GROUPS: readonly { name: string; codes: readonly Permiss
     name: "Products and stock",
     codes: ["product.read", "product.write", "product.propose", "stock.read", "stock.write"],
   },
-  { name: "Tax, reports and audit", codes: ["tax.read", "tax.write", "report.read", "audit.read"] },
+  {
+    name: "Tax, reports and audit",
+    codes: ["tax.read", "tax.write", "tax.return", "report.read", "audit.read"],
+  },
   { name: "People", codes: ["user.read", "user.write", "role.read", "role.write"] },
   {
     name: "Stores and branches",

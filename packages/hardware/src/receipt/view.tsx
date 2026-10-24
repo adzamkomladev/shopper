@@ -1,6 +1,8 @@
 import type { ReceiptDocument } from "@shopper/core/receipts";
 import {
+  beforeTax,
   clip,
+  documentTitle,
   ghs,
   qrCaption,
   qrPayload,
@@ -27,7 +29,7 @@ export function ReceiptView({
   paperMm: PaperMm;
   reprint: boolean;
 }) {
-  const { header, taxSummary } = receipt;
+  const { header } = receipt;
   const bold = { fontWeight: 700 } as const;
   const refund = receipt.kind === "refund";
   return (
@@ -49,12 +51,18 @@ export function ReceiptView({
       {reprint ? <Center style={{ ...bold, margin: "8px 0" }}>*** REPRINT ***</Center> : null}
       {refund ? (
         <Center style={{ ...bold, fontSize: 30, lineHeight: "40px", margin: "8px 0" }}>
-          REFUND
+          CREDIT NOTE
         </Center>
-      ) : null}
+      ) : (
+        <Center style={bold}>{documentTitle(receipt)}</Center>
+      )}
       <Rule />
-      {refund ? <Center>{`Refund of ${receipt.refundOf ?? "an earlier sale"}`}</Center> : null}
-      {header.receiptNumber ? <Row left="Receipt" right={header.receiptNumber} /> : null}
+      {refund ? (
+        <Center>{`Credit note for ${receipt.refundOf ?? "an earlier sale"}`}</Center>
+      ) : null}
+      {header.receiptNumber ? (
+        <Row left={refund ? "Credit note" : "Receipt"} right={header.receiptNumber} />
+      ) : null}
       <Row left="Date" right={header.accraTime} />
       <Row left="Cashier" right={header.cashier} />
       {receipt.buyer ? (
@@ -72,10 +80,16 @@ export function ReceiptView({
             left={`${quantity(line.quantityThousandths)} × ${ghs(line.unitPrice)}`}
             right={ghs(line.gross)}
           />
+          {receipt.buyer && line.net !== null ? (
+            <Row
+              left={beforeTax({ ...line, net: line.net })[0]}
+              right={beforeTax({ ...line, net: line.net })[1]}
+            />
+          ) : null}
         </Stack>
       ))}
       <Rule />
-      {taxRows(taxSummary).map(([label, amount]) => (
+      {taxRows(receipt).map(([label, amount]) => (
         <Row key={label} left={label} right={ghs(amount)} />
       ))}
       <Rule />

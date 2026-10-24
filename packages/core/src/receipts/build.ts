@@ -41,7 +41,7 @@ export function buildRefundReceipt(
 ): ReceiptDocument {
   const { tender } = refund;
   return {
-    ...common(refund, refund.lines, refund.totals, null, reference),
+    ...common(refund, refund.lines, refund.totals, refund.creditNoteNumber, reference),
     kind: "refund",
     refundOf: original.receiptNumber,
     // A credit note to a VAT buyer needs the buyer's TIN too.
@@ -91,12 +91,14 @@ function common(
       .filter((line) => line.tax.taxClass === taxClass)
       .reduce((total, line) => add(total, line.tax.base), money(0));
   const at = new Date(source.deviceTime).valueOf() - source.clockOffsetMs;
+  // Every line of one sale is dated the same day, so they agree on whether the shop was registered.
+  const vatInvoice = lines.every((line) => line.tax.registered);
   return {
-    v: 3 as const,
+    v: 4 as const,
     saleId: source.id,
     header: {
       org: reference.orgName ?? source.orgId,
-      tin: reference.tin ?? null,
+      tin: vatInvoice ? (reference.tin ?? null) : null,
       branch: reference.branchName ?? source.branchId,
       address: reference.address ?? null,
       device: reference.deviceName ?? source.deviceId,
@@ -105,6 +107,7 @@ function common(
       utcTime: new Date(at).toISOString(),
       accraTime: accra.format(new Date(at)).replace(",", ""),
       timeZone: "Africa/Accra" as const,
+      vatInvoice,
     },
     lines: lines.map((line) => ({
       name: line.name,
@@ -113,6 +116,7 @@ function common(
       unitPrice: line.tax.unitPrice,
       discount: line.tax.discount,
       gross: line.tax.gross,
+      net: line.tax.base,
       taxClass: line.tax.taxClass,
     })),
     taxSummary: {

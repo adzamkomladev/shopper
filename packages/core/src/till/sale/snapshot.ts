@@ -70,7 +70,7 @@ export function snapshotLines(quoted: Quoted["lines"], drafted: Drafted["lines"]
 /** The sale.recorded event the outbox uploads and the till keeps. */
 export function buildSaleEvent(p: Parts) {
   return v.parse(saleEvent, {
-    v: 5,
+    v: 6,
     type: "sale.recorded",
     sale: {
       id: p.id,

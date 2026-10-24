@@ -16,6 +16,7 @@ export const permissionNames = [
   "product.propose",
   "tax.read",
   "tax.write",
+  "tax.return",
   "report.read",
   "audit.read",
   "user.read",

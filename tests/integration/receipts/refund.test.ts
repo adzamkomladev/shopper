@@ -9,14 +9,14 @@ import { goldenReceipt, goldenRefundReceipt } from "../../support/hardware/recei
 const sale = goldenReceipt();
 const options = { paperMm: 80 as const, reprint: false };
 
-test("the document marks a sale as a sale and a refund as a refund of the original receipt", () => {
-  expect(sale).toMatchObject({ v: 3, kind: "sale", refundOf: null });
+test("the document marks a sale as a sale and a refund as a numbered credit note for the original receipt", () => {
+  expect(sale).toMatchObject({ v: 4, kind: "sale", refundOf: null });
   const refund = goldenRefundReceipt();
   expect(refund).toMatchObject({
-    v: 3,
+    v: 4,
     kind: "refund",
     refundOf: "BR1-T1-000001",
-    header: { receiptNumber: null },
+    header: { receiptNumber: "BR1-T1-000002" },
     paid: 0,
     change: 0,
     tenders: [{ kind: "cash" }],
@@ -46,18 +46,18 @@ test("a refund of a sale to a VAT buyer carries the buyer, and a refund of a wal
   });
 });
 
-test("the HTML shows REFUND, the original receipt and the payout in place of paid and change", () => {
+test("the HTML shows CREDIT NOTE, the original receipt and the payout in place of paid and change", () => {
   const html = receiptHtml(goldenRefundReceipt({ kind: "card", reference: "CARD-77" }), options);
-  expect(html).toContain("REFUND");
-  expect(html).toContain("Refund of BR1-T1-000001");
+  expect(html).toContain("CREDIT NOTE");
+  expect(html).toContain("Credit note for BR1-T1-000001");
   expect(html).toContain("Refunded (Card CARD-77)");
   expect(html).not.toContain("Change");
   const cash = receiptHtml(goldenRefundReceipt(), options);
   expect(cash).toContain("Refunded (Cash)");
-  expect(receiptHtml(sale, options)).not.toContain("REFUND");
+  expect(receiptHtml(sale, options)).not.toContain("CREDIT NOTE");
 });
 
-test("the ESC/POS receipt prints REFUND, the original receipt and the payout line", () => {
+test("the ESC/POS receipt prints CREDIT NOTE, the original receipt and the payout line", () => {
   const refund = goldenRefundReceipt({ kind: "momo", reference: "MOMO-12" });
   const bytes = encodeReceipt(refund, {
     profile: printerProfiles.epson,
@@ -66,8 +66,8 @@ test("the ESC/POS receipt prints REFUND, the original receipt and the payout lin
     openDrawer: false,
   });
   const { text } = decodeEscPos(bytes);
-  expect(text).toContain("REFUND");
-  expect(text).toContain("Refund of BR1-T1-000001");
+  expect(text).toContain("CREDIT NOTE");
+  expect(text).toContain("Credit note for BR1-T1-000001");
   expect(text.some((line) => line.startsWith("Refunded (MoMo MOMO-12)"))).toBe(true);
   expect(text.some((line) => line.endsWith(`GHS ${toDecimal(refund.total)}`))).toBe(true);
   expect(text.some((line) => line.startsWith("Change"))).toBe(false);

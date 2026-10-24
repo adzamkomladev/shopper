@@ -31,6 +31,7 @@ export function refundShare<T extends Omit<TaxSnapshot, "roundingAdjustment">>(
     on: original.on,
     taxClass: original.taxClass,
     priceMode: original.priceMode,
+    registered: original.registered,
     unitPrice: original.unitPrice,
     quantityThousandths: after - before,
     roundingAdjustment: sub(

@@ -25,6 +25,7 @@ export class TillError extends Error {
       | "counter"
       | "PRODUCT_UNKNOWN"
       | "PRICE_MISSING"
+      | "PRICE_LABEL_EXCLUSIVE"
       | "TAX_RULE_MISSING"
       | "QUANTITY_INVALID"
       | "CHECKSUM_INVALID"

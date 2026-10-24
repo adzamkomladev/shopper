@@ -13,6 +13,7 @@ const orgId = context.orgId;
 const customerCodes = ["customer.manage", "customer.read", "customer.write", "kyc.approve"];
 let fixture: Awaited<ReturnType<typeof postgresFixture>>;
 let migration: string;
+let later: string;
 let userId: string;
 const q = <T extends Record<string, unknown>>(text: string, values: unknown[] = []) =>
   fixture.client.query<T>(text, values).then((result) => result.rows);
@@ -22,6 +23,10 @@ beforeAll(async () => {
   const db = drizzle(fixture.client, { schema });
   await migrateDatabase(db);
   migration = (await readFile(new URL("0025_customers.sql", dir), "utf8")).replaceAll(
+    "--> statement-breakpoint",
+    "",
+  );
+  later = (await readFile(new URL("0026_tax.sql", dir), "utf8")).replaceAll(
     "--> statement-breakpoint",
     "",
   );
@@ -72,6 +77,8 @@ test("migration 0025 is journalled at idx 25 and replaying it twice changes noth
   const granted = await grants();
   await fixture.client.query(migration);
   await fixture.client.query(migration);
+  // A later migration widens the feed's entity list again; replaying it restores the schema.
+  await fixture.client.query(later);
   expect(await catalog()).toEqual(before);
   expect(await grants()).toEqual(granted);
 });

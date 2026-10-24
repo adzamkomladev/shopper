@@ -5,6 +5,7 @@ export {
   customerUpsert,
   deleted,
   mappingUpsert,
+  orgSettingUpsert,
   priceUpsert,
   productUpsert,
   taxRuleUpsert,

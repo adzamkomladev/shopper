@@ -158,7 +158,7 @@ export async function startAtHead(database: TillDatabase) {
   const cursor = String(await head());
   await database.transaction((tx) =>
     tx.run(sql`INSERT INTO till_state (id, org_id, device_id, pull_cursor, reference_version)
-      VALUES (${v7()}, ${context.orgId}, ${deviceId}, ${cursor}, 4)
+      VALUES (${v7()}, ${context.orgId}, ${deviceId}, ${cursor}, 5)
       ON CONFLICT(org_id, device_id) DO UPDATE SET pull_cursor = excluded.pull_cursor,
         reference_version = excluded.reference_version`),
   );

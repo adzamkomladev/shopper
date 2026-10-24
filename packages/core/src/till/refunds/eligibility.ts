@@ -71,8 +71,8 @@ export function buildRefund(
   request: Request,
   stamp: Stamp,
   rounding: "none" | "10p",
-  /** Fixed ids, when the event was already sent to the server under them. */
-  ids: { id?: string; lineIds?: string[] } = {},
+  /** Fixed ids and credit-note number, when the event was already sent to the server under them. */
+  ids: { id?: string; lineIds?: string[]; creditNoteNumber?: string } = {},
 ): RefundSnapshot {
   const seen = new Set<string>();
   const lines = request.lines.map(({ lineId, quantityThousandths }, index) => {
@@ -127,6 +127,7 @@ export function buildRefund(
     ...stamp,
     id: ids.id ?? v7(),
     originalSaleId: original.sale.id,
+    creditNoteNumber: ids.creditNoteNumber ?? null,
     reason: request.reason,
     approverId: request.approverId,
     lines,

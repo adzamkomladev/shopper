@@ -23,6 +23,7 @@ export async function receiptNames(
     .where(and(eq(user.orgId, snapshot.orgId), eq(user.id, snapshot.cashierId)));
   return {
     orgName: organisation?.name,
+    tin: organisation?.tin,
     branchName: location?.name,
     deviceName: register?.name,
     cashierName: cashier?.name,

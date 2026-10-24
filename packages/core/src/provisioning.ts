@@ -1,6 +1,6 @@
 import { defineCommand } from "@shopper/audit";
 import { org, shopperMeta, taxClass, taxRule } from "@shopper/db-pg";
-import { ghana2026 } from "@shopper/tax";
+import { ghana2026, registeredSince } from "@shopper/tax";
 
 export const provisionOrg = defineCommand({
   name: "org.provision",
@@ -15,7 +15,13 @@ export const provisionOrg = defineCommand({
   ) {
     await tx
       .insert(org)
-      .values({ id: context.orgId, name: input.name, slug: input.slug?.trim().toLowerCase() });
+      // A new shop starts VAT-registered; its TIN and real registration date are set in the tax settings.
+      .values({
+        id: context.orgId,
+        name: input.name,
+        slug: input.slug?.trim().toLowerCase(),
+        vatRegisteredFrom: registeredSince,
+      });
     await tx.insert(taxClass).values([
       { orgId: context.orgId, code: "standard", name: "Standard" },
       { orgId: context.orgId, code: "zero-rated", name: "Zero-rated" },

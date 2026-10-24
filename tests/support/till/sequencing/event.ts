@@ -19,7 +19,7 @@ export async function createSaleEvent(appVersion: string, orgId: string, storeId
   };
   const deviceTime = "2025-12-31T23:30:00.000Z";
   const event = v.parse(saleEvent, {
-    v: 5,
+    v: 6,
     type: "sale.recorded",
     sale: {
       id: ids.localId,
@@ -50,6 +50,7 @@ export async function createSaleEvent(appVersion: string, orgId: string, storeId
             on: goldenSale.on,
             taxClass: "standard",
             priceMode: "inclusive",
+            registered: true,
             quantityThousandths: goldenSale.quantityThousandths,
             unitPrice: goldenSale.unitPrice,
             discount: 0,

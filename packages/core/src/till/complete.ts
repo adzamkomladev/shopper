@@ -150,6 +150,7 @@ export async function finishDraftSale(
     contentHash: await sha256(canonicalJson(event.sale)),
     receipt: buildReceipt(event.sale, {
       ...config.receiptReference,
+      tin: refs.tin ?? config.receiptReference?.tin,
       ...(names && { branchName: names.value.storeName, deviceName: names.value.registerName }),
       tenderPhones: Object.fromEntries(tenders.flatMap((t) => (t.phone ? [[t.id, t.phone]] : []))),
     }),

@@ -57,7 +57,7 @@ test("a partial cash refund records, returns stock, kicks the drawer and uploads
   const id = reply.refund.id as string;
 
   const jobs = await printer!.waitForJobs(2);
-  expect(jobs[1]!.page).toContain("REFUND");
+  expect(jobs[1]!.page).toContain("CREDIT NOTE");
   expect(jobs[1]!.kicks).toBe(1);
 
   const movements = await register!.fixture.database.read((tx) => tx.select().from(stockMovement));

@@ -4,6 +4,7 @@ import {
   boolean,
   check,
   customType,
+  date,
   foreignKey,
   integer,
   jsonb,
@@ -30,6 +31,7 @@ const times = () => ({
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 export const cashRoundingModes = ["none", "10p"] as const;
+export const priceModes = ["inclusive", "exclusive"] as const;
 export const statementSchedules = ["off", "monthly"] as const;
 export const org = pgTable(
   "org",
@@ -49,6 +51,12 @@ export const org = pgTable(
       .notNull()
       .default("full"),
     cashRounding: text("cash_rounding", { enum: cashRoundingModes }).notNull().default("10p"),
+    /** The business TIN printed on VAT invoices; the tax settings require it while the org is VAT-registered. */
+    tin: text("tin"),
+    /** The first day sales carry VAT and levies; null means the org is not VAT-registered. */
+    vatRegisteredFrom: date("vat_registered_from"),
+    /** Whether shelf prices include tax (the default) or tax is added on top. */
+    priceMode: text("price_mode", { enum: priceModes }).notNull().default("inclusive"),
     loyaltyEnabled: boolean("loyalty_enabled").notNull().default(false),
     /** Points earned per 10 000 bps of a sale's value, and what one point is worth. */
     loyaltyEarnBps: integer("loyalty_earn_bps").notNull().default(0),
@@ -85,6 +93,7 @@ export const org = pgTable(
     unique().on(t.slug),
     check("org_mode", sql`${t.mode} IN ('full', 'relay')`),
     check("org_cash_rounding", sql`${t.cashRounding} IN ('none', '10p')`),
+    check("org_price_mode", sql`${t.priceMode} IN ('inclusive', 'exclusive')`),
     check(
       "org_loyalty",
       sql`${t.loyaltyEarnBps} BETWEEN 0 AND 10000 AND ${t.loyaltyPointValue} >= 0 AND ${t.loyaltyExpiryDays} >= 0 AND ${t.tierNoticeDays} >= 0 AND (NOT ${t.loyaltyEnabled} OR ${t.loyaltyPointValue} > 0)`,

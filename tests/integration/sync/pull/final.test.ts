@@ -75,6 +75,6 @@ test("a till on reference version 2 takes a snapshot that carries finalSale and 
   await referenceVersion(2);
   await worker.trigger();
   expect(await tillAuditCommands(till.database)).toContain("till.sync.snapshot");
-  expect(await referenceVersion()).toBe(4);
+  expect(await referenceVersion()).toBe(5);
   expect(await finalSaleOf(final.id)).toMatchObject({ finalSale: true });
 });

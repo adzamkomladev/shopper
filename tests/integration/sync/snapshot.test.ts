@@ -127,7 +127,7 @@ test("the gzip blob key includes tenant, store and version and the same snapshot
   expect(first.headers.get("content-encoding")).toBe("gzip");
   const data = await first.json();
   expect(await (await snapshot()).json()).toEqual(data);
-  expect(writes).toEqual([`snapshots/${context.orgId}/${storeId}/v4/${await head()}.json.gz`]);
+  expect(writes).toEqual([`snapshots/${context.orgId}/${storeId}/v5/${await head()}.json.gz`]);
   const stored = await blobs.get(context.orgId, writes[0]!);
   expect(Array.from(stored!.slice(0, 2))).toEqual([31, 139]);
 });
@@ -171,8 +171,10 @@ test("snapshot access rejects foreign credentials and incompatible protocols", a
 
 test("a new till receives the organisation's cash rounding, 10p by default", async () => {
   await start();
-  const data = (await (await snapshot()).json()) as { reference: { cashRounding: string } };
-  expect(data.reference.cashRounding).toBe("10p");
+  const data = (await (await snapshot()).json()) as {
+    reference: { settings: { cashRounding: string } };
+  };
+  expect(data.reference.settings.cashRounding).toBe("10p");
   const refs = await till!.database.read((tx) => readQuoteReference(tx, context.orgId));
   expect(refs.cashRounding).toBe("10p");
 });

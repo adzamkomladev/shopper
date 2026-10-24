@@ -1,3 +1,4 @@
+import type { TaxSettings } from "../schemas/tax/settings";
 import type { BaseUnit, customer, price, taxRule } from "@shopper/db-pg";
 import type { Change } from "./record";
 import { mappingView } from "../catalogue/mappings/queries";
@@ -52,22 +53,20 @@ export function priceUpsert(row: typeof price.$inferSelect): Change {
   };
 }
 
+/** A rule in the shape tills receive and the back office lists. */
+export const taxRulePayload = (row: typeof taxRule.$inferSelect) => ({
+  id: row.id,
+  orgId: row.orgId,
+  effectiveFrom: row.effectiveFrom,
+  vatBps: row.vatBps,
+  nhilBps: row.nhilBps,
+  getfundBps: row.getfundBps,
+  covidBps: row.covidBps,
+  source: row.source,
+});
+
 export function taxRuleUpsert(row: typeof taxRule.$inferSelect): Change {
-  return {
-    entity: "tax-rule",
-    entityId: row.id,
-    op: "upsert",
-    payload: {
-      id: row.id,
-      orgId: row.orgId,
-      effectiveFrom: row.effectiveFrom,
-      vatBps: row.vatBps,
-      nhilBps: row.nhilBps,
-      getfundBps: row.getfundBps,
-      covidBps: row.covidBps,
-      source: row.source,
-    },
-  };
+  return { entity: "tax-rule", entityId: row.id, op: "upsert", payload: taxRulePayload(row) };
 }
 
 /** What a till needs to recognise a customer; the ledgers, the limit and the email stay on the server. */
@@ -96,6 +95,14 @@ export const mappingUpsert = (row: ReturnType<typeof mappingView>): Change => ({
   entityId: row.id,
   op: "upsert",
   payload: row,
+});
+
+/** The org's settings a till needs offline: one row per org, keyed by the org id. */
+export const orgSettingUpsert = (orgId: string, settings: TaxSettings): Change => ({
+  entity: "org-setting",
+  entityId: orgId,
+  op: "upsert",
+  payload: { id: orgId, ...settings },
 });
 
 export const deleted = (entity: Change["entity"], id: string): Change => ({

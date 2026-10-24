@@ -34,8 +34,8 @@ test("the Customer column names who each sale was rung up to", async ({ page }) 
   await expect(named).toContainText("Ama Mensah");
   await expect(named.getByText("AM", { exact: true })).toBeVisible();
   await expect(list.getByRole("row", { name: /[AP]M #10481/ })).toContainText("Walk-in customer");
-  // A return is not a sale of its own, so it names nobody.
-  const returned = list.getByRole("row", { name: /Return of #10481/ });
+  // A credit note is not a sale of its own, so it names nobody.
+  const returned = list.getByRole("row", { name: /Credit note #10490 for #10481/ });
   await expect(returned).not.toContainText("Walk-in customer");
   await expect(returned).toContainText("—");
   await expectNoSeriousAxe(page);

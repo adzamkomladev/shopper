@@ -37,7 +37,12 @@ export async function buildSnapshot(
         .from(storeChange)
         .where(and(eq(storeChange.orgId, scope.orgId), eq(storeChange.storeId, scope.storeId)));
       const [settings] = await tx
-        .select({ cashRounding: org.cashRounding })
+        .select({
+          cashRounding: org.cashRounding,
+          priceMode: org.priceMode,
+          vatRegisteredFrom: org.vatRegisteredFrom,
+          tin: org.tin,
+        })
         .from(org)
         .where(eq(org.id, scope.orgId));
       const products = await tx
@@ -100,7 +105,7 @@ export async function buildSnapshot(
           taxRules: taxes.map((row) => taxRuleUpsert(row).payload),
           barcodeMappings: await listBarcodeMappings(tx, scope.orgId),
           customers: customers.map((row) => customerUpsert(row).payload),
-          cashRounding: settings!.cashRounding, // the store row read above belongs to this org
+          settings: { id: scope.orgId, ...settings! }, // the store row read above belongs to this org
         },
       };
     },

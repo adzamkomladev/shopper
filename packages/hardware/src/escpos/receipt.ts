@@ -1,6 +1,8 @@
 import type { ReceiptDocument } from "@shopper/core/receipts";
 import {
+  beforeTax,
   clip,
+  documentTitle,
   ghs,
   qrCaption,
   qrPayload,
@@ -27,7 +29,7 @@ export function encodeReceipt(receipt: ReceiptDocument, options: EncodeOptions):
     );
   };
   const center = (value: string) => printer.align("center").text(fit(value));
-  const { header, taxSummary } = receipt;
+  const { header } = receipt;
   const refund = receipt.kind === "refund";
 
   printer.init();
@@ -40,11 +42,12 @@ export function encodeReceipt(receipt: ReceiptDocument, options: EncodeOptions):
   if (header.address) center(header.address);
   if (options.reprint) printer.bold(true).text("*** REPRINT ***").bold(false);
   if (refund) {
-    printer.bold(true).size(2, 2).text("REFUND").size(1, 1).bold(false);
-    center(`Refund of ${receipt.refundOf ?? "an earlier sale"}`);
-  }
+    printer.bold(true).size(2, 2).text("CREDIT NOTE").size(1, 1).bold(false);
+    center(`Credit note for ${receipt.refundOf ?? "an earlier sale"}`);
+  } else printer.bold(true).text(documentTitle(receipt)).bold(false);
   printer.align("left");
-  if (header.receiptNumber) printer.text(row("Receipt", header.receiptNumber));
+  if (header.receiptNumber)
+    printer.text(row(refund ? "Credit note" : "Receipt", header.receiptNumber));
   printer.text(row("Date", header.accraTime));
   printer.text(row("Cashier", header.cashier));
   if (receipt.buyer)
@@ -61,10 +64,12 @@ export function encodeReceipt(receipt: ReceiptDocument, options: EncodeOptions):
     printer.text(
       row(`  ${quantity(line.quantityThousandths)} x ${ghs(line.unitPrice)}`, ghs(line.gross)),
     );
+    if (receipt.buyer && line.net !== null)
+      printer.text(row(...beforeTax({ ...line, net: line.net })));
   }
   printer.text("-".repeat(cols));
 
-  for (const [label, amount] of taxRows(taxSummary)) printer.text(row(label, ghs(amount)));
+  for (const [label, amount] of taxRows(receipt)) printer.text(row(label, ghs(amount)));
   printer.text("-".repeat(cols));
 
   printer

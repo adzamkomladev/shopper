@@ -79,6 +79,10 @@
     "./tax": {
       "types": "./src/tax/index.ts",
       "default": "./src/tax/index.ts"
+    },
+    "./fiscal": {
+      "types": "./src/fiscal/index.ts",
+      "default": "./src/fiscal/index.ts"
     }
   },
   "scripts": {

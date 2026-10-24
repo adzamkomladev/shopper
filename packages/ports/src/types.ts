@@ -118,3 +118,24 @@ export interface Renderer {
   // Renders a customer statement document as a PDF: one A4-wide page, as tall as the entries need.
   statement(statement: Json): Promise<Uint8Array>;
 }
+
+/** One VAT invoice or credit note for the GRA SDC; the invoice number makes a resubmission idempotent. */
+export type SdcSubmission = { invoiceNumber: string; payload: Json };
+export type SdcResult =
+  | {
+      status: "accepted";
+      sdcId: string;
+      counter: number;
+      signature: string;
+      qr: string;
+      signedAt: string;
+    }
+  | { status: "rejected"; code: string; message: string };
+export interface Sdc {
+  // A rejection is final. An unreachable SDC or a server error throws SdcUnavailable, which the lane retries.
+  submit(submission: SdcSubmission): Promise<SdcResult>;
+}
+export interface Lane {
+  // One ordered lane per store. Enqueueing a document twice submits it once.
+  enqueue(orgId: string, storeId: string, docId: string): Promise<void>;
+}

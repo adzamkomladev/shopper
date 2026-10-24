@@ -10,3 +10,4 @@ export { objectStorage, readBlobBody, type ObjectStorageOptions } from "./storag
 export type { BlobUrlOptions } from "./storage/types";
 
 export { BlobUploadUnavailable } from "./storage/errors";
+export { SdcUnavailable } from "./fiscal";

@@ -149,3 +149,13 @@ test("registration dated tomorrow leaves today untaxed and taxes tomorrow's quot
   });
   expect(tomorrow.tax).toMatchObject({ registered: true, vat: 15_000, gross: 120_000 });
 });
+
+test("an exclusive till refuses a price label, whose printed amount already includes tax", async () => {
+  await serverSettings({ priceMode: "exclusive" });
+  await expect(
+    ringGolden(
+      world,
+      sale([{ product: "labelled", code: "2200002001007" }], 20_000, { priceMode: "exclusive" }),
+    ),
+  ).rejects.toMatchObject({ code: "PRICE_LABEL_EXCLUSIVE" });
+});

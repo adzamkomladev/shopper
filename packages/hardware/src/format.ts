@@ -1,7 +1,16 @@
 import type { ReceiptDocument } from "@shopper/core/receipts";
-import { toDecimal, type Money } from "@shopper/money";
+import { mulRatio, toDecimal, type Money } from "@shopper/money";
 
 export const ghs = (amount: Money) => `GHS ${toDecimal(amount)}`;
+
+/** A VAT buyer's line before tax: "qty x net unit price", and the net line total. */
+export function beforeTax(line: ReceiptDocument["lines"][number] & { net: Money }) {
+  const unit = mulRatio(line.net, 1000, line.quantityThousandths);
+  return [
+    `Before tax ${quantity(line.quantityThousandths)} x ${ghs(unit)}`,
+    ghs(line.net),
+  ] as const;
+}
 
 /** Integer thousandths as a trimmed decimal: 1500 → "1.5", 2000 → "2". */
 export function quantity(thousandths: number) {

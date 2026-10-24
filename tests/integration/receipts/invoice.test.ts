@@ -6,6 +6,7 @@ import { receiptHtml } from "@shopper/hardware/render";
 import type { ReceiptDocument } from "@shopper/core/receipts";
 import { decodeEscPos } from "../../support/hardware/escpos";
 import { goldenReceipt } from "../../support/hardware/receipt";
+import { money, toDecimal } from "@shopper/money";
 
 const options = { paperMm: 80 as const, reprint: false };
 const thermal = (doc: ReceiptDocument) =>
@@ -31,6 +32,8 @@ test("an invoice to a VAT buyer shows each line before tax", () => {
   const doc = { ...goldenReceipt(), buyer: { name: "Kofi Traders Ltd", tin: "C0012345678" } };
   const text = thermal(doc);
   expect(text.match(/Before tax/g)).toHaveLength(doc.lines.length);
+  // Each line shows its quantity at its unit price before tax; one unit's is the line's net.
+  expect(text).toContain(`Before tax 1 x GHS ${toDecimal(money(doc.lines[0]!.net!))}`);
   expect(receiptHtml(doc, options).match(/Before tax/g)).toHaveLength(doc.lines.length);
   // The amount before tax plus the line's tax is its gross: the receipt's net total is the lines' nets.
   expect(doc.lines.reduce((sum, line) => sum + line.net!, 0)).toBe(doc.taxSummary.net);

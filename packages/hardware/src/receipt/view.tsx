@@ -1,5 +1,6 @@
 import type { ReceiptDocument } from "@shopper/core/receipts";
 import {
+  beforeTax,
   clip,
   documentTitle,
   ghs,
@@ -80,7 +81,10 @@ export function ReceiptView({
             right={ghs(line.gross)}
           />
           {receipt.buyer && line.net !== null ? (
-            <Row left="Before tax" right={ghs(line.net)} />
+            <Row
+              left={beforeTax({ ...line, net: line.net })[0]}
+              right={beforeTax({ ...line, net: line.net })[1]}
+            />
           ) : null}
         </Stack>
       ))}

@@ -1,5 +1,6 @@
 import type { ReceiptDocument } from "@shopper/core/receipts";
 import {
+  beforeTax,
   clip,
   documentTitle,
   ghs,
@@ -63,7 +64,8 @@ export function encodeReceipt(receipt: ReceiptDocument, options: EncodeOptions):
     printer.text(
       row(`  ${quantity(line.quantityThousandths)} x ${ghs(line.unitPrice)}`, ghs(line.gross)),
     );
-    if (receipt.buyer && line.net !== null) printer.text(row("  Before tax", ghs(line.net)));
+    if (receipt.buyer && line.net !== null)
+      printer.text(row(...beforeTax({ ...line, net: line.net })));
   }
   printer.text("-".repeat(cols));
 

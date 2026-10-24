@@ -64,12 +64,12 @@ test("a created product feeds v2 with its barcodes, leading zeros and pack quant
   const rows = await w.rows("product");
   expect(rows).toHaveLength(w.stores.length);
   for (const row of rows) {
-    expect(row).toMatchObject({ entity_id: created.id, op: "upsert", v: 4 });
+    expect(row).toMatchObject({ entity_id: created.id, op: "upsert", v: 5 });
     expect(barcodesOf(row)).toEqual(byCode(codes));
   }
   const bare = await createProduct(feed.db, w.context, draft());
   for (const row of await w.latest(bare.id)) expect(row.payload).toMatchObject({ barcodes: [] });
-  for (const row of await feed.changes(w.orgId)) expect(row.v, row.entity).toBe(4);
+  for (const row of await feed.changes(w.orgId)) expect(row.v, row.entity).toBe(5);
 });
 
 test("updating a product keeps its barcodes in the new row", async () => {
@@ -78,7 +78,7 @@ test("updating a product keeps its barcodes in the new row", async () => {
   const created = await createProduct(feed.db, w.context, draft(codes));
   await updateProduct(feed.db, w.context, { id: created.id, data: { name: "Renamed" } });
   const [row] = await w.latest(created.id);
-  expect(row).toMatchObject({ seq: "2", v: 4, payload: { name: "Renamed" } });
+  expect(row).toMatchObject({ seq: "2", v: 5, payload: { name: "Renamed" } });
   expect(barcodesOf(row!)).toEqual(codes);
 });
 
@@ -92,7 +92,7 @@ test("adding and removing a barcode each feed a fresh v2 product row to every st
   });
   expect(await w.count("product")).toBe(3 * w.stores.length);
   for (const row of await w.latest(created.id)) {
-    expect(row).toMatchObject({ op: "upsert", v: 4 });
+    expect(row).toMatchObject({ op: "upsert", v: 5 });
     expect(barcodesOf(row)).toEqual([
       { code: "0042", quantityThousandths: 1000 },
       { code: "0099", quantityThousandths: 6000 },
@@ -127,7 +127,7 @@ test("an import that only adds a barcode or corrects a pack quantity still feeds
   expect(await w.count("product"), "barcode-only change").toBe(2 * w.stores.length);
   expect(await w.count("price"), "same price, no price row").toBe(prices);
   for (const row of await w.latest(id)) {
-    expect(row.v).toBe(4);
+    expect(row.v).toBe(5);
     expect(barcodesOf(row).map((b) => b.code)).toEqual([single, extra, pack].sort());
   }
 
@@ -143,7 +143,7 @@ test("archiving feeds the product with archivedAt and the barcodes it had", asyn
   const created = await createProduct(feed.db, w.context, draft(codes));
   await archiveProduct(feed.db, w.context, { id: created.id });
   for (const row of await w.latest(created.id)) {
-    expect(row).toMatchObject({ seq: "2", op: "upsert", v: 4 });
+    expect(row).toMatchObject({ seq: "2", op: "upsert", v: 5 });
     expect(row.payload).toMatchObject({ archivedAt: expect.any(String) });
     expect(barcodesOf(row)).toEqual(codes);
   }
@@ -168,9 +168,9 @@ test("mapping create, update and delete feed v4 barcode-mapping rows to every st
   for (const storeId of w.stores) {
     const rows = await feed.changes(w.orgId, { storeId, entity: "barcode-mapping" });
     expect(rows.map((row) => [row.op, row.v])).toEqual([
-      ["upsert", 4],
-      ["upsert", 4],
-      ["delete", 4],
+      ["upsert", 5],
+      ["upsert", 5],
+      ["delete", 5],
     ]);
     expect(rows[0]!.payload).toMatchObject(layout);
     expect(rows[1]!.payload).toMatchObject({ unit: "kg", decimals: 3 });

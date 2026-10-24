@@ -6,4 +6,6 @@ export type GoldenSale = {
   held?: boolean;
   voided?: boolean;
   rounding?: "none" | "10p";
+  /** The till's tax settings; the golden till is inclusive and VAT-registered from the statutory start. */
+  settings?: { priceMode?: "inclusive" | "exclusive"; vatRegisteredFrom?: string | null };
 };

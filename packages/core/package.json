@@ -75,6 +75,10 @@
     "./customers": {
       "types": "./src/customers/index.ts",
       "default": "./src/customers/index.ts"
+    },
+    "./tax": {
+      "types": "./src/tax/index.ts",
+      "default": "./src/tax/index.ts"
     }
   },
   "scripts": {

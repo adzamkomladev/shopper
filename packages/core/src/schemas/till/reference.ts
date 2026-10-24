@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import { tillId } from "./fields";
-import { taxClassSchema, taxRuleSchema } from "@shopper/tax";
+import { dateSchema, taxClassSchema, taxRuleSchema } from "@shopper/tax";
 import { money } from "@shopper/money";
 import { createEventDecoder } from "../events";
 import { mappingInput } from "../catalogue/mappings";
@@ -11,8 +11,18 @@ import { customerId, customerKindSchema, tinSchema } from "../customers/inputs";
 const timestamp = v.pipe(v.string(), v.isoTimestamp());
 export const cashRoundingSchema = v.picklist(["none", "10p"]);
 export type CashRounding = v.InferOutput<typeof cashRoundingSchema>;
-/** Organisation settings a till needs offline; stored as one reference row whose id is the org id. */
-export const tillOrgSetting = v.strictObject({ id: tillId, cashRounding: cashRoundingSchema });
+/**
+ * Organisation settings a till needs offline; stored as one reference row whose id is the org id. Rows a till saved
+ * before v5 held only the rounding: they default to an inclusive price list, VAT-registered from the statutory start.
+ */
+export const tillOrgSetting = v.strictObject({
+  id: tillId,
+  cashRounding: cashRoundingSchema,
+  priceMode: v.optional(v.picklist(["inclusive", "exclusive"]), "inclusive"),
+  vatRegisteredFrom: v.optional(v.nullable(dateSchema), "2026-01-01"),
+  tin: v.optional(v.nullable(tinSchema), null),
+});
+export type TillOrgSetting = v.InferOutput<typeof tillOrgSetting>;
 const cashRounding = v.optional(cashRoundingSchema, "10p");
 const productFields = {
   id: tillId,
@@ -82,14 +92,13 @@ export const tillReference = v.strictObject({
   barcodeMappings: v.optional(v.array(tillMapping), []),
   cashRounding,
 });
-const tillReferenceV4 = v.strictObject({
+const tillReferenceV5 = v.strictObject({
   products: v.array(tillProduct),
   prices: v.array(tillPrice),
   taxRules: v.array(tillTaxRule),
   barcodeMappings: v.array(tillMapping),
   customers: v.array(tillCustomer),
-  // Snapshots cached before the setting existed omit it.
-  cashRounding,
+  settings: tillOrgSetting,
 });
 
 const payloads = {
@@ -98,15 +107,16 @@ const payloads = {
   "tax-rule": tillTaxRule,
   "barcode-mapping": tillMapping,
   customer: tillCustomer,
+  "org-setting": tillOrgSetting,
 };
 const remove = v.object({ id: tillId });
-const changeV4 = v.pipe(
+const changeV5 = v.pipe(
   v.looseObject({
     seq: sequenceSchema,
     entityId: v.string(),
     entity: v.picklist(Object.keys(payloads) as (keyof typeof payloads)[]),
     op: v.picklist(["upsert", "delete"]),
-    v: v.literal(4),
+    v: v.literal(5),
   }),
   v.rawTransform(({ dataset, addIssue, NEVER }) => {
     const change = dataset.value;
@@ -117,20 +127,20 @@ const changeV4 = v.pipe(
     return NEVER;
   }),
 );
-const snapshotV4 = v.object({
-  v: v.literal(4),
+const snapshotV5 = v.object({
+  v: v.literal(5),
   orgId: tillId,
   storeId: tillId,
   cursor: sequenceSchema,
-  reference: tillReferenceV4,
+  reference: tillReferenceV5,
 });
-export type ReferenceChange = v.InferOutput<typeof changeV4>;
-export type ReferenceSnapshot = v.InferOutput<typeof snapshotV4>;
+export type ReferenceChange = v.InferOutput<typeof changeV5>;
+export type ReferenceSnapshot = v.InferOutput<typeof snapshotV5>;
 
 type Raw = Record<string, unknown>;
 export const decodeReferenceChange = createEventDecoder<ReferenceChange>(
-  4,
-  (raw) => v.parse(changeV4, raw),
+  5,
+  (raw) => v.parse(changeV5, raw),
   {
     1: (raw) => {
       const change = raw as Raw & { entity: unknown; op: unknown; payload: Raw };
@@ -143,11 +153,13 @@ export const decodeReferenceChange = createEventDecoder<ReferenceChange>(
     },
     2: (raw) => ({ ...(raw as Raw), v: 3 }),
     3: (raw) => ({ ...(raw as Raw), v: 4 }),
+    // v5 only added the org-setting entity.
+    4: (raw) => ({ ...(raw as Raw), v: 5 }),
   },
 );
 export const decodeSnapshot = createEventDecoder<ReferenceSnapshot>(
-  4,
-  (raw) => v.parse(snapshotV4, raw),
+  5,
+  (raw) => v.parse(snapshotV5, raw),
   {
     1: (raw) => {
       const snapshot = raw as Raw & { reference: { products: Raw[] } };
@@ -167,6 +179,16 @@ export const decodeSnapshot = createEventDecoder<ReferenceSnapshot>(
     3: (raw) => {
       const snapshot = raw as Raw & { reference: Raw };
       return { ...snapshot, v: 4, reference: { ...snapshot.reference, customers: [] } };
+    },
+    // v5 carries all the org's till settings; a v4 snapshot had only the rounding (omitted before it existed).
+    4: (raw) => {
+      const snapshot = raw as Raw & { orgId: string; reference: Raw & { cashRounding?: unknown } };
+      const { cashRounding = "10p", ...reference } = snapshot.reference;
+      return {
+        ...snapshot,
+        v: 5,
+        reference: { ...reference, settings: { id: snapshot.orgId, cashRounding } },
+      };
     },
   },
 );

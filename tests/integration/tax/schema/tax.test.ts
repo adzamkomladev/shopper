@@ -56,12 +56,12 @@ test("current schema migrates twice, uses tenant UUIDv7 keys, and preserves bigi
     "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name",
   );
   expect(tables.rows.map((row) => row.table_name).join(" ")).toBe(
-    "account account_hold asset audit_log barcode_mapping branch cashier_pin cashier_session category credit_entry customer device device_credential device_enrollment enrollment_attempt invitation kyc_case loyalty_entry loyalty_tier member org payment permission price product product_barcode product_import receipt_block refund refund_line registration_audit_log registration_request registration_workflow_run registration_workflow_step reorder_point role role_permission sale sale_line sale_tender session shift shift_movement shift_tender shopper_meta statement_delivery statement_link stock_alert stock_document stock_movement stock_take stock_take_line store store_change supplier tax_class tax_rule tier_notice user verification workflow_run workflow_step",
+    "account account_hold asset audit_log barcode_mapping branch cashier_pin cashier_session category credit_entry customer device device_credential device_enrollment enrollment_attempt invitation kyc_case loyalty_entry loyalty_tier member org payment permission price product product_barcode product_import receipt_block refund refund_line registration_audit_log registration_request registration_workflow_run registration_workflow_step reorder_point role role_permission sale sale_line sale_tender session shift shift_movement shift_tender shopper_meta statement_delivery statement_link stock_alert stock_document stock_movement stock_take stock_take_line store store_change supplier tax_class tax_rule tier_notice user vat_return verification workflow_run workflow_step",
   );
   const columns = await fixture.client.query<{ table_name: string }>(
     "SELECT table_name FROM information_schema.columns WHERE table_schema = 'public' AND column_name = 'org_id'",
   );
-  expect(columns.rowCount).toBe(62);
+  expect(columns.rowCount).toBe(63);
   // Pre-shop registration rows reference their request; every customer table keeps an org FK.
   const orgForeignKeys = await fixture.client.query<{ table_name: string; target: string }>(
     `SELECT c.conrelid::regclass::text AS table_name, c.confrelid::regclass::text AS target

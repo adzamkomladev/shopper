@@ -15,7 +15,13 @@ export const provisionOrg = defineCommand({
   ) {
     await tx
       .insert(org)
-      .values({ id: context.orgId, name: input.name, slug: input.slug?.trim().toLowerCase() });
+      // A new shop starts VAT-registered from the statutory start; its TIN is asked for in the tax settings.
+      .values({
+        id: context.orgId,
+        name: input.name,
+        slug: input.slug?.trim().toLowerCase(),
+        vatRegisteredFrom: ghana2026.effectiveFrom,
+      });
     await tx.insert(taxClass).values([
       { orgId: context.orgId, code: "standard", name: "Standard" },
       { orgId: context.orgId, code: "zero-rated", name: "Zero-rated" },

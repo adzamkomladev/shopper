@@ -183,6 +183,13 @@
       "when": 1792231200009,
       "tag": "0025_customers",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1792231200010,
+      "tag": "0026_tax",
+      "breakpoints": true
     }
   ]
 }

@@ -12,3 +12,4 @@ export * from "./stock";
 export * from "./refunds";
 export * from "./shifts";
 export * from "./customers";
+export * from "./tax";

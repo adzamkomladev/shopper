@@ -1,3 +1,4 @@
+import type { TaxSettings } from "../schemas/tax/settings";
 import type { BaseUnit, customer, price, taxRule } from "@shopper/db-pg";
 import type { Change } from "./record";
 import { mappingView } from "../catalogue/mappings/queries";
@@ -96,6 +97,14 @@ export const mappingUpsert = (row: ReturnType<typeof mappingView>): Change => ({
   entityId: row.id,
   op: "upsert",
   payload: row,
+});
+
+/** The org's settings a till needs offline: one row per org, keyed by the org id. */
+export const orgSettingUpsert = (orgId: string, settings: TaxSettings): Change => ({
+  entity: "org-setting",
+  entityId: orgId,
+  op: "upsert",
+  payload: { id: orgId, ...settings },
 });
 
 export const deleted = (entity: Change["entity"], id: string): Change => ({

@@ -77,7 +77,7 @@ test("the snapshot is v4 and every active product carries its barcodes", async (
   await archiveProduct(feed.db, context, { id: gone.id });
 
   const snapshot = await snapshotOf(world);
-  expect(snapshot).toMatchObject({ v: 4, orgId: world.orgId, storeId: world.stores[0] });
+  expect(snapshot).toMatchObject({ v: 5, orgId: world.orgId, storeId: world.stores[0] });
   const products = new Map(snapshot.reference.products.map((row) => [row.id, row]));
   expect([...products.keys()].sort()).toEqual([packed.id, bare.id].sort());
   expect(

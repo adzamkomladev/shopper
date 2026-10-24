@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import * as v from "valibot";
 import { acceptRefund, lookupSale, RefundError } from "@shopper/core/refunds";
-import type { Queue } from "@shopper/ports";
+import type { Lane, Queue } from "@shopper/ports";
+import { enqueueFiscal } from "./fiscal";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { createDeviceService } from "@shopper/auth/devices";
 import { refundUpload, saleLookup } from "../schemas/sync/refunds";
@@ -14,6 +15,7 @@ export function createRefundRoutes(options: {
   database: ShopperDatabase;
   devices: ReturnType<typeof createDeviceService>;
   notifications?: Queue;
+  lane?: Lane;
   now?: () => number;
 }) {
   const app = new Hono();
@@ -22,7 +24,7 @@ export function createRefundRoutes(options: {
     if (!principal) return c.json({ error: "Invalid device credential" }, 401);
     const data = v.parse(refundUpload, await c.req.json());
     try {
-      const accepted = await acceptRefund(
+      const { fiscalDocId, ...accepted } = await acceptRefund(
         options.database,
         principal,
         data.refund,
@@ -30,6 +32,7 @@ export function createRefundRoutes(options: {
         options.now,
         options.notifications,
       );
+      await enqueueFiscal(options.lane, principal, fiscalDocId);
       return c.json({ requestId: data.requestId, accepted });
     } catch (error) {
       // 23505: two uploads of one id raced past the replay check.

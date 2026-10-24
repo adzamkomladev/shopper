@@ -64,6 +64,7 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
       blobs: options.blobs,
       live: options.live,
       notifications: options.notifications,
+      lane: options.lane,
     }).fetch(request);
   }
   const linkOptions =
@@ -159,6 +160,7 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     invitations,
     blobs: options.blobs,
     notifications: options.notifications,
+    lane: options.lane,
     linkSecret: options.linkSecret,
     baseURL: options.baseURL,
     kyc: options.kyc,

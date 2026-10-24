@@ -37,6 +37,7 @@ export function createApi(options: ApiOptions = {}) {
         sequencer: options.sequencer,
         blobs: options.blobs,
         notifications: options.notifications,
+        lane: options.lane,
       }),
     );
   if (options.onboarding) app.route("/", onboardingRoutes(options.onboarding));

@@ -91,6 +91,14 @@ export const tillReference = v.strictObject({
   taxRules: v.array(tillTaxRule),
   barcodeMappings: v.optional(v.array(tillMapping), []),
   cashRounding,
+  /** Provisioning may also give the tax settings; left out, the till is inclusive and VAT-registered. */
+  settings: v.optional(
+    v.strictObject({
+      priceMode: tillOrgSetting.entries.priceMode,
+      vatRegisteredFrom: tillOrgSetting.entries.vatRegisteredFrom,
+      tin: tillOrgSetting.entries.tin,
+    }),
+  ),
 });
 const tillReferenceV5 = v.strictObject({
   products: v.array(tillProduct),

@@ -16,6 +16,7 @@ test("v1 ingest rejects discounts that the trusted v1 producer cannot issue", as
     on: line.tax.on,
     taxClass: line.tax.taxClass,
     priceMode: line.tax.priceMode,
+    registered: line.tax.registered,
     unitPrice: line.tax.unitPrice,
     quantityThousandths: line.tax.quantityThousandths,
     discount: money(1_000),

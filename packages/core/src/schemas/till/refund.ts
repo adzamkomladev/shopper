@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { money } from "@shopper/money";
 import { createEventDecoder } from "../events";
 import { tillId } from "./fields";
-import { saleTaxSnapshot, saleTotals } from "./sale";
+import { registeredLines, saleTaxSnapshot, saleTotals } from "./sale";
 
 const nonnegative = v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.transform(money));
 export const refundTender = v.variant("kind", [
@@ -54,15 +54,15 @@ export const refundSnapshot = v.strictObject({
   tender: refundTender,
 });
 export const refundEvent = v.strictObject({
-  v: v.literal(2),
+  v: v.literal(3),
   type: v.literal("refund.recorded"),
   refund: refundSnapshot,
 });
 export type RefundEvent = v.InferOutput<typeof refundEvent>;
 export type RefundSnapshot = v.InferOutput<typeof refundSnapshot>;
 
-/** v1 had no account or points split: a v1 refund paid everything out in its tender. */
-export const decodeRefundEvent = createEventDecoder(2, (raw) => v.parse(refundEvent, raw), {
+/** v1 had no account or points split: a v1 refund paid everything out in its tender. v2 lines had no registration flag. */
+export const decodeRefundEvent = createEventDecoder(3, (raw) => v.parse(refundEvent, raw), {
   1: (raw) => {
     const event = raw as { refund?: object };
     return {
@@ -70,5 +70,9 @@ export const decodeRefundEvent = createEventDecoder(2, (raw) => v.parse(refundEv
       v: 2,
       refund: { accountCredit: 0, pointsReturned: 0, pointsValue: 0, ...event.refund },
     };
+  },
+  2: (raw) => {
+    const event = raw as { refund: { lines?: unknown[] } };
+    return { ...event, v: 3, refund: registeredLines(event.refund) };
   },
 });

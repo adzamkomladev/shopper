@@ -21,9 +21,6 @@ export async function storeOrgSettings(
     });
 }
 
-export const storeCashRounding = (tx: TillSqlite, orgId: string, cashRounding: CashRounding) =>
-  storeOrgSettings(tx, orgId, { cashRounding });
-
 /** The org's settings from its reference rows; a till that never received them uses the defaults. */
 export function readOrgSettings(
   rows: { entity: string; payload: unknown }[],

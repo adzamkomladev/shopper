@@ -1,4 +1,4 @@
-import { priceModeSchema, quantitySchema } from "./schemas/snapshot";
+import { priceModeSchema, quantitySchema, registeredSchema } from "./schemas/snapshot";
 
 export type { TaxSnapshot } from "./types";
 import * as v from "valibot";
@@ -16,6 +16,8 @@ type Input = {
   on: string;
   taxClass: TaxClass;
   priceMode: "inclusive" | "exclusive";
+  /** Whether the seller was VAT-registered on `on`; an unregistered seller charges no VAT or levies. */
+  registered: boolean;
   unitPrice: Money;
   quantityThousandths: number;
 };
@@ -48,8 +50,11 @@ function breakdown(input: Input, taxable: Money, discount: Money) {
   if (rule.effectiveFrom > on) throw new RangeError("Tax rule is not yet effective");
   v.parse(priceModeSchema, input.priceMode);
   v.parse(quantitySchema, input.quantityThousandths);
+  const registered = v.parse(registeredSchema, input.registered);
   const rates =
-    taxClass === "standard" ? rule : { vatBps: 0, nhilBps: 0, getfundBps: 0, covidBps: 0 };
+    taxClass === "standard" && registered
+      ? rule
+      : { vatBps: 0, nhilBps: 0, getfundBps: 0, covidBps: 0 };
   const sum = rates.vatBps + rates.nhilBps + rates.getfundBps + rates.covidBps;
   const base = input.priceMode === "inclusive" ? mulRatio(taxable, 10_000, 10_000 + sum) : taxable;
   const vat = mulRate(base, rates.vatBps);
@@ -63,6 +68,7 @@ function breakdown(input: Input, taxable: Money, discount: Money) {
     on,
     taxClass,
     priceMode: input.priceMode,
+    registered,
     quantityThousandths: input.quantityThousandths,
     unitPrice: input.unitPrice,
     discount,

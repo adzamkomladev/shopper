@@ -165,17 +165,12 @@ test("seeded dated rules are selected through the tenant API and drive exact tax
   const api = createApi({ database: db, resolveOrgId: async () => context.orgId });
   const get = (date: string) => api.request(`/tax-rules?on=${date}`);
   expect((await get("2025-12-31")).status).toBe(404);
-  expect((await get("2026-02-30")).status).toBe(400);
-  expect((await get("invalid")).status).toBe(400);
-  expect((await get("0000-01-01")).status).toBe(400);
-  expect((await createApi({ database: db }).request("/tax-rules?on=2026-01-01")).status).toBe(401);
-  expect(
-    (
-      await createApi({ resolveOrgId: async () => context.orgId }).request(
-        "/tax-rules?on=2026-01-01",
-      )
-    ).status,
-  ).toBe(503);
+  for (const bad of ["2026-02-30", "invalid", "0000-01-01"])
+    expect((await get(bad)).status).toBe(400);
+  const lookup = (options: Parameters<typeof createApi>[0]) =>
+    createApi(options).request("/tax-rules?on=2026-01-01");
+  expect((await lookup({ database: db })).status).toBe(401);
+  expect((await lookup({ resolveOrgId: async () => context.orgId })).status).toBe(503);
   const response = await get("2026-01-01");
   expect(response.status).toBe(200);
   const rule = await response.json();
@@ -192,6 +187,7 @@ test("seeded dated rules are selected through the tenant API and drive exact tax
     on: "2026-01-01",
     taxClass: "standard",
     priceMode: "inclusive",
+    registered: true,
     unitPrice: fromDecimal("120"),
     quantityThousandths: 1000,
   });
@@ -210,6 +206,7 @@ test("seeded dated rules are selected through the tenant API and drive exact tax
         on: "2026-10-05",
         taxClass,
         priceMode,
+        registered: true,
         unitPrice: fromDecimal("0.0003"),
         quantityThousandths: 1500,
         discount: money(1),

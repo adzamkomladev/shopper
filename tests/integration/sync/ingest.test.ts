@@ -178,6 +178,7 @@ test("server rejects tampered tax arithmetic and repriced captured snapshots", a
     on: line.tax.on,
     taxClass: line.tax.taxClass,
     priceMode: line.tax.priceMode,
+    registered: line.tax.registered,
     unitPrice: sub(line.tax.unitPrice, money(1_000)),
     quantityThousandths: line.tax.quantityThousandths,
     discount: line.tax.discount,

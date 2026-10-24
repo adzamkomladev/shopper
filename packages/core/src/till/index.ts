@@ -1,7 +1,7 @@
 export { recordLocalSale } from "./record";
 export type { DraftView, PrintOutcome, QuoteLine, ScanResult, TillConfig } from "./types";
 export { provisionTillReference } from "./reference";
-export { readOrgSettings, storeCashRounding, storeOrgSettings } from "./settings";
+export { readOrgSettings, storeOrgSettings } from "./settings";
 export { TillError } from "./error";
 
 export { issueReceiptBlocks } from "./receipts/blocks";

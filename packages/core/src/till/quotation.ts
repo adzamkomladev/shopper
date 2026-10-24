@@ -4,7 +4,7 @@ import { reference, type TillDatabase, type TillSqlite } from "@shopper/db-sqlit
 import { snapshotLine } from "@shopper/tax";
 import { tillPrice, tillProductBase, tillTaxRule } from "../schemas/till/reference";
 import { TillError } from "./error";
-import { readCashRounding } from "./settings";
+import { readOrgSettings } from "./settings";
 
 type Price = v.InferOutput<typeof tillPrice>;
 type Quote = { branchId: string; productId: string; quantityThousandths: number; at: Date };
@@ -19,11 +19,14 @@ export async function readQuoteReference(tx: TillSqlite, orgId: string) {
   const rows = await tx.select().from(reference).where(eq(reference.orgId, orgId));
   const payloads = <T>(entity: string, schema: v.GenericSchema<unknown, T>) =>
     rows.filter((row) => row.entity === entity).map((row) => v.parse(schema, row.payload));
+  const settings = readOrgSettings(rows);
   return {
     products: payloads("product", tillProductBase),
     prices: payloads("price", tillPrice),
     rules: payloads("tax-rule", tillTaxRule),
-    cashRounding: readCashRounding(rows),
+    cashRounding: settings.cashRounding,
+    priceMode: settings.priceMode,
+    vatRegisteredFrom: settings.vatRegisteredFrom,
   };
 }
 
@@ -54,7 +57,8 @@ export function quoteFrom(refs: Awaited<ReturnType<typeof readQuoteReference>>, 
       rule,
       on,
       taxClass: product.taxClass,
-      priceMode: "inclusive",
+      priceMode: refs.priceMode,
+      registered: refs.vatRegisteredFrom !== null && refs.vatRegisteredFrom <= on,
       unitPrice: price.amount,
       quantityThousandths: input.quantityThousandths,
     }),

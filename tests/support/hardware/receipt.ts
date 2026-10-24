@@ -95,6 +95,7 @@ function goldenSale(lineNames = saleLines) {
       on: "2025-06-15",
       taxClass: "standard",
       priceMode: "inclusive",
+      registered: true,
       unitPrice: money(25000),
       quantityThousandths: 1000,
       discount: money(0),

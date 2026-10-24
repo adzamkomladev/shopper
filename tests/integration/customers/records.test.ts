@@ -190,11 +190,11 @@ test("customer.read and customer.write are data: cashier reads and writes, accou
   expect((await accountant.read(input.id)).body.name).toBe("Gate Check 2");
 });
 
-test("the org has 36 permissions; only customer.read and customer.write are allowed on the till", async () => {
+test("the org has 37 permissions; only customer.read and customer.write are allowed on the till", async () => {
   const { rows } = await db().execute<{ code: string; till_allowed: boolean }>(
     sql`SELECT code, till_allowed FROM permission WHERE org_id = ${ids.org} ORDER BY code`,
   );
-  expect(rows).toHaveLength(36);
+  expect(rows).toHaveLength(37);
   const customerCodes = rows.filter((r) => /^(customer\.|kyc\.)/.test(r.code));
   expect(customerCodes).toEqual([
     { code: "customer.manage", till_allowed: false },

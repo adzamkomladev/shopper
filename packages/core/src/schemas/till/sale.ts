@@ -22,6 +22,8 @@ export const saleTaxSnapshot = v.strictObject({
   on: dateSchema,
   taxClass: taxClassSchema,
   priceMode: v.picklist(["inclusive", "exclusive"]),
+  /** False when the shop was not VAT-registered on the sale date: the line then carries no VAT or levies. */
+  registered: v.boolean(),
   quantityThousandths: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
   unitPrice: nonnegative,
   discount: nonnegative,
@@ -114,7 +116,7 @@ export const saleSnapshot = v.strictObject({
 /** Just the buyer of a stored sale: what a refund needs, without the rest of the payload parsing. */
 export const saleCustomer = v.object({ customer: saleSnapshot.entries.customer });
 export const saleEvent = v.strictObject({
-  v: v.literal(5),
+  v: v.literal(6),
   type: v.literal("sale.recorded"),
   sale: saleSnapshot,
 });
@@ -132,7 +134,20 @@ export const recordSaleInput = v.strictObject({
 export type SaleEvent = v.InferOutput<typeof saleEvent>;
 export type SaleSnapshot = v.InferOutput<typeof saleSnapshot>;
 
-/** v4 had no customer: a stored v4 sale reads as a walk-in. */
-export const decodeSaleEvent = createEventDecoder(5, (raw) => v.parse(saleEvent, raw), {
+/** Every line of a sale or refund event from before registration was dated was taxed as a registered shop's. */
+export const registeredLines = <T extends { lines?: unknown[] }>(body: T) => ({
+  ...body,
+  lines: (body.lines ?? []).map((line) => {
+    const { tax, ...rest } = line as { tax: object };
+    return { ...rest, tax: { registered: true, ...tax } };
+  }),
+});
+
+/** v4 had no customer: a stored v4 sale reads as a walk-in. v5 lines had no registration flag. */
+export const decodeSaleEvent = createEventDecoder(6, (raw) => v.parse(saleEvent, raw), {
   4: (raw) => ({ ...(raw as object), v: 5 }),
+  5: (raw) => {
+    const event = raw as { sale: { lines?: unknown[] } };
+    return { ...event, v: 6, sale: registeredLines(event.sale) };
+  },
 });

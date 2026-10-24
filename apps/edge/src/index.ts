@@ -1,5 +1,5 @@
 export { default } from "./worker";
-export { StoreHub, StoreSequencer } from "@shopper/adapters-cf/coordination";
+export { FiscalLane, StoreHub, StoreSequencer } from "@shopper/adapters-cf/coordination";
 export {
   PriceChangeWorkflow,
   AuthWorkflow,

@@ -3,6 +3,7 @@ import type { cloudflareRenderer } from "../renderer";
 import type { cloudflareLauncher, cloudflareLoopLauncher } from "../launcher";
 import type { cloudflareLive } from "../live";
 import type { cloudflareSequencer } from "../sequencer";
+import type { cloudflareLane } from "../lane";
 
 export interface AuthEnvironment {
   SHOPPER_S3_ENDPOINT?: string;
@@ -24,6 +25,9 @@ export interface AuthEnvironment {
   ARKESEL_API_KEY?: string;
   ARKESEL_SENDER?: string;
   ARKESEL_BASE_URL?: string;
+  /** The GRA SDC; without both, VAT documents wait as pending and no lane runs. */
+  SHOPPER_SDC_URL?: string;
+  SHOPPER_SDC_KEY?: string;
 }
 
 export interface CloudflareRuntimeEnvironment extends AuthEnvironment {
@@ -42,4 +46,5 @@ export interface CloudflareRuntimeEnvironment extends AuthEnvironment {
   KYC_FLOWS?: Parameters<typeof cloudflareLauncher>[0];
   ACCOUNT_FLOWS?: Parameters<typeof cloudflareLoopLauncher>[0];
   STATEMENT_FLOWS?: Parameters<typeof cloudflareLoopLauncher>[0];
+  FISCAL_LANE?: Parameters<typeof cloudflareLane>[0];
 }

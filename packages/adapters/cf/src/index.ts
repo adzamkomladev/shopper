@@ -10,3 +10,4 @@ export { cloudflarePortal, cloudflarePortalContext } from "./portal";
 export { cloudflareRuntime } from "./runtime";
 export type { AuthEnvironment, CloudflareRuntimeEnvironment } from "./runtime/types";
 export { cloudflareDeliver, cloudflareNotifications, cloudflareQueue } from "./queue";
+export { cloudflareLane } from "./lane";

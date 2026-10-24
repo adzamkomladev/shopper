@@ -65,6 +65,7 @@ export default defineConfig(({ mode }) => {
         NOTIFICATIONS: bindings.queue({ name: `shopper-notifications-${stage}` }),
         STORE_SEQUENCER: bindings.durableObject({ worker: name, exportName: "StoreSequencer" }),
         STORE_HUB: bindings.durableObject({ worker: name, exportName: "StoreHub" }),
+        FISCAL_LANE: bindings.durableObject({ worker: name, exportName: "FiscalLane" }),
         PRICE_CHANGE: bindings.workflow({
           name: workflow("price-change"),
           worker: name,
@@ -110,6 +111,7 @@ export default defineConfig(({ mode }) => {
       exports: {
         StoreSequencer: exports.durableObject({ storage: "sqlite" }),
         StoreHub: exports.durableObject({ storage: "sqlite" }),
+        FiscalLane: exports.durableObject({ storage: "sqlite" }),
         PriceChangeWorkflow: exports.workflow({ name: workflow("price-change") }),
         AuthWorkflow: exports.workflow({ name: workflow("auth-flow") }),
         MomoPaymentWorkflow: exports.workflow({ name: workflow("momo-payment") }),

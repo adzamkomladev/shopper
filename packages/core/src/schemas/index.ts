@@ -29,3 +29,4 @@ export * from "./customers/statements";
 export * from "./customers/accounts";
 export * from "./tax/settings";
 export * from "./tax/rules";
+export * from "./tax/returns";

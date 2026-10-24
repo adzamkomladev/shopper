@@ -10,13 +10,14 @@ import {
 } from "@shopper/core/till";
 import type { XReport, ZReport } from "@shopper/core/schemas";
 import {
+  encodeAccountPayment,
   encodeReceipt,
   encodeShiftReport,
   encodeTestPage,
   printerProfiles,
 } from "@shopper/hardware";
 import { printerDrawer } from "@shopper/hardware/network";
-import type { ReceiptPrinter } from "@shopper/hardware";
+import type { AccountPaymentSlip, ReceiptPrinter } from "@shopper/hardware";
 import type { Renderer } from "@shopper/ports";
 import type { PrinterStatus } from "@shopper/sync/bridge";
 import type { TillDatabase } from "@shopper/db-sqlite";
@@ -226,6 +227,16 @@ export function createHostReceipts(options: {
             profile: printerProfiles[current.printer.model],
             paperMm: current.paperMm,
             names,
+          }),
+        ),
+      ),
+    /** The slip for money paid onto an account; cash also opens the drawer. */
+    printAccountPayment: (slip: AccountPaymentSlip) =>
+      job("receipt", (printer, current) =>
+        printer.print(
+          encodeAccountPayment(slip, {
+            profile: printerProfiles[current.printer.model],
+            paperMm: current.paperMm,
           }),
         ),
       ),

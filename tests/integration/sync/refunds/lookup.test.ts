@@ -39,7 +39,7 @@ test("another register's sale is found by receipt with refunded quantities and f
   expect(await response.json()).toMatchObject({
     sale: { id: sale.id, receiptNumber: sale.receiptNumber },
     occurredAt: expect.any(String),
-    receipt: { v: 2, saleId: sale.id },
+    receipt: { v: 3, saleId: sale.id },
     refunded: { [sale.lines[0]!.id]: 1_000 },
     finalSale: { [products.standard.id]: false, [products.zero.id]: true },
   });

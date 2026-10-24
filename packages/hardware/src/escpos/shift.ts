@@ -1,5 +1,5 @@
 import type { XReport, ZReport } from "@shopper/core/schemas";
-import { money, mulRatio, sub, toDecimal } from "@shopper/money";
+import { add, money, mulRatio, sub, toDecimal } from "@shopper/money";
 import { ghs, tenderLabel } from "../format";
 import { paper } from "../profiles";
 import type { PaperMm, PrinterProfile } from "../types";
@@ -72,10 +72,22 @@ export function encodeShiftReport(report: XReport | ZReport, options: Options): 
   }
   rule();
 
+  const { account } = report;
+  printer.text(row("On-account sales", ghs(money(account.sales))));
+  printer.text(
+    row("Account payments", ghs(add(money(account.payments.cash), money(account.payments.momo)))),
+  );
+  printer.text(row("  Cash", ghs(money(account.payments.cash))));
+  printer.text(row("  MoMo", ghs(money(account.payments.momo))));
+  printer.text(row("Refunds to accounts", ghs(money(account.refunds))));
+  printer.text(row(`Points redeemed (${account.points})`, ghs(money(account.pointsValue))));
+  rule();
+
   const { cash } = report;
   printer.text(row("Float", ghs(money(cash.float))));
   printer.text(row("Cash sales", ghs(money(cash.sales))));
   printer.text(row("Cash refunds", ghs(sub(money(0), money(cash.refunds)))));
+  printer.text(row("Cash on accounts", ghs(money(report.account.payments.cash))));
   printer.text(row("Drops", ghs(sub(money(0), money(cash.drops)))));
   printer
     .bold(true)

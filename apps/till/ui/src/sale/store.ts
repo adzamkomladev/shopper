@@ -11,6 +11,8 @@ import {
 import { canSyncNow } from "../connection/sync";
 import type { ConnectionSnapshot } from "../connection/types";
 import { sendReprint } from "../purchases/reprint";
+import { accountActions } from "./accounts";
+import { customerActions } from "./customers";
 import { createSaleOperations } from "./operations";
 import { asked, mirrorJob, trackPrint, unknownIfPending } from "./print";
 import { fresh } from "./initial";
@@ -95,6 +97,8 @@ export const saleActions: SaleActions = {
     void operations.runDraft(() => ({ type: "sale.resume", draftId, expectedRevision })),
   voidSale: operations.voidSale,
   priceLine: operations.priceLine,
+  ...customerActions(operations.runDraft),
+  ...accountActions(operations.runDraft),
   loadApprovers: (permission) => void operations.loadApprovers(permission),
   newSale: () => void operations.newSale(),
   newSaleWith: (input) => void operations.newSale().then(() => enqueue({ type: "add", ...input })),

@@ -15,6 +15,7 @@ import { CancelInvitationDialog } from "../../components/users/cancel/dialog";
 import { ChangeRoleForm } from "../../components/users/change/role/form";
 import { InvitationsTable, cancelButtonId } from "../../components/users/invitations/table";
 import { InviteForm } from "../../components/users/invite/form";
+import { KycStartSheet } from "../../components/kyc/start";
 import { MembersTable } from "../../components/users/members/table";
 import {
   invitationsQuery,
@@ -47,13 +48,15 @@ export function UsersScreen() {
   const addRef = useRef<HTMLButtonElement>(null);
   const invite = usePanel(addRef);
   const roleChange = usePanel<UserView>(addRef);
+  const verification = usePanel<UserView>(addRef);
   const link = usePanel<Revealed>(addRef);
   const cancellation = usePanel<InvitationView>(addRef);
   const reissue = useReissue((revealed) => link.show(revealed));
   const canWriteRoles = held.includes("role.write");
   const canAssign = canWriteRoles && roleList.data !== undefined && grantableRoles.length > 0;
   const canInvite = canAssign && held.includes("user.write");
-  const noPanelOpen = !invite.open && !roleChange.open && !link.open && !cancellation.open;
+  const noPanelOpen =
+    !invite.open && !roleChange.open && !verification.open && !link.open && !cancellation.open;
   const shortcuts = useShortcuts({ I: () => canInvite && noPanelOpen && invite.show() });
   // A replaced invitation is history that only repeats the one that replaced it.
   const invitations = allInvitations.filter((invitation) => invitation.status !== "replaced");
@@ -99,6 +102,9 @@ export function UsersScreen() {
         <h2 className="text-lg font-semibold">Members</h2>
         <MembersTable
           members={members}
+          onVerify={
+            canAssign ? (member) => verification.show(member, editButtonId(member.id)) : undefined
+          }
           onChangeRole={
             canAssign ? (member) => roleChange.show(member, editButtonId(member.id)) : undefined
           }
@@ -159,6 +165,12 @@ export function UsersScreen() {
           />
         )}
       </FormSheet>
+      <KycStartSheet
+        open={verification.open}
+        onOpenChange={verification.setOpen}
+        restoreFocus={verification.restoreFocus}
+        subject={verification.value && { kind: "member", id: verification.value.id }}
+      />
       <SetupLinkDialog
         revealed={link.value}
         open={link.open}

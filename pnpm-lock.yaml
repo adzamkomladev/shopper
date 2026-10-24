@@ -244,6 +244,9 @@ importers:
 
   apps/box:
     dependencies:
+      '@resvg/resvg-wasm':
+        specifier: 2.6.2
+        version: 2.6.2
       '@shopper/adapters-box':
         specifier: workspace:*
         version: link:../../packages/adapters/box
@@ -265,6 +268,9 @@ importers:
       hono:
         specifier: 4.13.13
         version: 4.13.13
+      satori:
+        specifier: 0.33.5
+        version: 0.33.5
 
   apps/edge:
     dependencies:
@@ -654,6 +660,9 @@ importers:
       '@shopper/db-pg':
         specifier: workspace:*
         version: link:../db/pg
+      '@shopper/money':
+        specifier: workspace:*
+        version: link:../money
       '@shopper/ports':
         specifier: workspace:*
         version: link:../ports
@@ -808,6 +817,9 @@ importers:
       '@shopper/money':
         specifier: workspace:*
         version: link:../money
+      '@shopper/utils':
+        specifier: workspace:*
+        version: link:../utils
       pdf-lib:
         specifier: 1.17.1
         version: 1.17.1
@@ -1041,6 +1053,9 @@ importers:
       '@shopper/edge':
         specifier: workspace:*
         version: link:../../../apps/edge
+      '@shopper/money':
+        specifier: workspace:*
+        version: link:../../../packages/money
       '@shopper/ports':
         specifier: workspace:*
         version: link:../../../packages/ports

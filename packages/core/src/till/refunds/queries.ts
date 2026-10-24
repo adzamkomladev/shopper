@@ -8,8 +8,9 @@ import {
   type TillSqlite,
 } from "@shopper/db-sqlite";
 import { add, money } from "@shopper/money";
+import { paidOut } from "../../customers/credit/refunds";
 import { receiptDocument } from "../../schemas/receipts/document";
-import { refundEvent, type RefundSnapshot } from "../../schemas/till/refund";
+import { decodeRefundEvent, type RefundSnapshot } from "../../schemas/till/refund";
 import type { ServerSale } from "../../schemas/till/refunds";
 import { saleSnapshot } from "../../schemas/till/sale";
 import { tillProductBase } from "../../schemas/till/reference";
@@ -34,7 +35,7 @@ export async function refundsOf(tx: TillSqlite, orgId: string, saleId: string) {
     .from(refund)
     .where(and(eq(refund.orgId, orgId), eq(refund.originalSaleId, saleId)))
     .orderBy(refund.id);
-  return rows.map((row) => ({ row, snapshot: v.parse(refundEvent, row.payload).refund }));
+  return rows.map((row) => ({ row, snapshot: decodeRefundEvent(row.payload).refund }));
 }
 
 /** A sale made on this till, with the refunds and final-sale flags it is judged by. */
@@ -57,11 +58,15 @@ export async function loadLocalOriginal(
   const sale = v.parse(saleSnapshot, row.payload);
   const refunded: Record<string, number> = {};
   let cashRefunded = money(0);
+  let accountCredited = money(0);
+  let pointsReturned = 0;
   for (const { snapshot } of await refundsOf(tx, scope.orgId, saleId)) {
     for (const line of snapshot.lines)
       refunded[line.originalLineId] =
         (refunded[line.originalLineId] ?? 0) + line.tax.quantityThousandths;
-    if (snapshot.tender.kind === "cash") cashRefunded = add(cashRefunded, snapshot.totals.gross);
+    if (snapshot.tender.kind === "cash") cashRefunded = add(cashRefunded, paidOut(snapshot));
+    accountCredited = add(accountCredited, snapshot.accountCredit);
+    pointsReturned += snapshot.pointsReturned;
   }
   const products = await tx.select().from(reference).where(eq(reference.entity, "product"));
   const finalSale = Object.fromEntries(
@@ -77,6 +82,8 @@ export async function loadLocalOriginal(
     receipt: row.receipt ? v.parse(receiptDocument, row.receipt) : null,
     refunded,
     cashRefunded,
+    accountCredited,
+    pointsReturned,
     finalSale,
   };
 }
@@ -126,7 +133,7 @@ export async function readEligibility(tx: TillSqlite, scope: Scope, original: Or
 export async function returnedRows(tx: TillSqlite, scope: Scope, day?: string) {
   const rows = await tx.select().from(refund).where(eq(refund.orgId, scope.orgId));
   return rows.flatMap((row) => {
-    const snapshot = v.parse(refundEvent, row.payload).refund;
+    const snapshot = decodeRefundEvent(row.payload).refund;
     if (snapshot.branchId !== scope.branchId) return [];
     const occurredAt = refundTime(snapshot);
     if (day && !occurredAt.startsWith(day)) return [];
@@ -138,6 +145,13 @@ export async function returnedRows(tx: TillSqlite, scope: Scope, day?: string) {
 
 export const refundTime = (snapshot: RefundSnapshot) =>
   new Date(Date.parse(snapshot.deviceTime) - snapshot.clockOffsetMs).toISOString();
+
+/** What a purchases row says by default: not a return, nothing refunded, and no customer to name (null is a walk-in sale). */
+export const plainRow = {
+  refundOf: null as string | null,
+  refunded: "none" as "none" | "partial" | "full",
+  customer: undefined as { id: string; name: string } | null | undefined,
+};
 
 /** How much of a sale has gone back, from the refunds this till made of it. */
 export function returnedState(
@@ -170,6 +184,7 @@ export function serverPurchase(found: ServerSale, view: ReturnType<typeof eligib
     refundOf: null,
     refunded:
       back === 0 ? ("none" as const) : back >= sold ? ("full" as const) : ("partial" as const),
+    customer: sale.customer && { id: sale.customer.id, name: sale.customer.name },
     sale,
     receipt: found.receipt,
     draft: null,

@@ -1,9 +1,12 @@
 import { useRef, useState } from "react";
-import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useSaleControls } from "../../hooks/sale/controls";
+import { useCustomerControls } from "../../hooks/sale/customer/controls";
 import { usePriceOverride } from "../../hooks/sale/price";
+import { useSaleShortcuts } from "../../hooks/sale/shortcuts";
 import { useScanField } from "../../hooks/scanner";
 import { CartPanel } from "../../components/sale/cart/panel";
+import { CustomerChip } from "../../components/sale/customer/chip";
+import { CustomerDialog } from "../../components/sale/customer/dialog";
 import { Lines } from "../../components/sale/lines";
 import { SaleHeader } from "../../components/sale/header";
 import { ShortcutHints } from "../../components/sale/hints";
@@ -59,6 +62,7 @@ export function SaleScreen({
   // On the completion view a scan or keyed code starts a new sale only with "clear cart after a sale" on.
   const startsOnScan = snapshot.receipt !== null && !!snapshot.register?.clearCartAfterSale;
   const controls = useSaleControls(snapshot, actions);
+  const customer = useCustomerControls(snapshot, actions);
   const locked = host !== "connected" || failure !== null;
   const rows = rowsOf(view);
   const selected = selectedRow(rows, selectedId);
@@ -164,31 +168,23 @@ export function SaleScreen({
   }
 
   // The held-sales dialog keeps its own F11 (void) and Escape, so the screen's keys wait behind it.
-  const registerShortcuts = useShortcuts(
-    screenActive && !snapshot.receipt && !controls.heldOpen
-      ? {
-          F2: focusScan,
-          F3: () => listRef.current?.focus(),
-          F4: startEdit,
-          "Alt+O": price.ask,
-          F6: controls.hold,
-          F7: controls.showHeld,
-          F11: controls.askVoid,
-          "Mod+Enter": checkout,
-          "Alt+C": backToCart,
-          F8: () => sync.canSync && actions.syncNow(),
-          F9: actions.reconnect,
-          F10: onRegister,
-          Escape: escape,
-        }
-      : {},
-  );
-  // With the scan field disabled nothing else takes focus, so the screen holds it for its keys.
-  const shortcuts = (node: HTMLElement | null) => {
-    const cleanup = registerShortcuts(node);
-    if (node && document.activeElement === document.body) node.focus();
-    return cleanup;
-  };
+  const keysLive = screenActive && !snapshot.receipt && !controls.heldOpen && !customer.mode;
+  const shortcuts = useSaleShortcuts(keysLive, {
+    ...customer.keys,
+    F2: focusScan,
+    F3: () => listRef.current?.focus(),
+    F4: startEdit,
+    "Alt+O": price.ask,
+    F6: controls.hold,
+    F7: controls.showHeld,
+    F11: controls.askVoid,
+    "Mod+Enter": checkout,
+    "Alt+C": backToCart,
+    F8: () => sync.canSync && actions.syncNow(),
+    F9: actions.reconnect,
+    F10: onRegister,
+    Escape: escape,
+  });
 
   return (
     <main
@@ -200,7 +196,7 @@ export function SaleScreen({
       <SaleHeader host={host} onRegister={onRegister} onSyncNow={actions.syncNow} sync={sync} />
       <SaleBanners actions={actions} describedBy={bannerId} rows={rows} snapshot={snapshot} />
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 overflow-y-auto lg:grid-cols-12 lg:overflow-hidden">
-        <section aria-label="Add items" className="flex min-h-0 flex-col gap-4 lg:col-span-7">
+        <section aria-label="Add items" className="flex flex-col gap-4 lg:col-span-7 lg:min-h-0">
           <ScanEntry
             activeIndex={searching && matches.length > 0 ? active : null}
             describedBy={locked ? bannerId : undefined}
@@ -228,7 +224,7 @@ export function SaleScreen({
               />
             </div>
           ) : (
-            <SaleTiles controls={controls} onScan={focusScan} />
+            <SaleTiles controls={controls} customer={customer} onScan={focusScan} />
           )}
         </section>
         <div className="flex min-h-0 flex-col gap-3 lg:col-span-5">
@@ -240,6 +236,7 @@ export function SaleScreen({
           <CartPanel
             canCheckout={!busyOrLocked && rows.length > 0}
             canClear={!busyOrLocked && controls.hasDraft}
+            customer={<CustomerChip controls={customer} />}
             count={view?.draft?.lines.length ?? 0}
             disabled={busyOrLocked}
             editing={selected !== undefined && editingId === selected.lineId}
@@ -289,6 +286,7 @@ export function SaleScreen({
           />
         </div>
       </div>
+      <CustomerDialog actions={actions} controls={customer} onReturnFocus={focusScan} />
       <ShortcutHints />
     </main>
   );

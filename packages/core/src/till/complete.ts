@@ -17,13 +17,13 @@ import {
   type TillDatabase,
   type TillSqlite,
 } from "@shopper/db-sqlite";
-import { add, money } from "@shopper/money";
 import { sha256 } from "@shopper/utils";
-import { saleEvent } from "../schemas/till/sale";
 import { tillSession } from "../schemas/till/session";
 import { tillConfiguration } from "../schemas/till/config";
 import { editDraftInput } from "../schemas/till/drafts";
 import { buildReceipt } from "../receipts/build";
+import { readLookupCustomer } from "./customers/queries";
+import { buildSaleEvent, snapshotLines } from "./sale/snapshot";
 import { assertDraftScope, claimDraft } from "./drafts/edit";
 import { quoteDraft } from "./drafts/quote";
 import { readQuoteReference } from "./quotation";
@@ -81,35 +81,7 @@ export async function finishDraftSale(
   if (!found.lines.length) throw new TillError("DRAFT_UNKNOWN", "Cannot complete an empty sale");
   const refs = await readQuoteReference(tx, scope.orgId);
   const quote = quoteDraft(refs, scope.branchId, at, found.lines, found.draft.totals);
-  const lines = quote.lines.map((line) => {
-    if (line.error) throw new TillError(line.error, "Cannot complete an unquotable sale line");
-    const source = found.lines.find((l) => l.id === line.lineId);
-    if (!source) throw new TillError("LINE_UNKNOWN", "Quoted line no longer exists");
-    const { lineId, listPrice, ...quoted } = line;
-    return {
-      ...quoted,
-      id: lineId,
-      discount: money(source.discount),
-      override:
-        listPrice === undefined
-          ? null
-          : {
-              listPrice,
-              reason: source.overrideReason ?? "",
-              approverId: source.overrideApproverId,
-            },
-      label:
-        source.label?.kind === "price"
-          ? {
-              kind: "price",
-              code: source.label.code,
-              originalPriceId: source.label.originalPriceId,
-            }
-          : source.label
-            ? { kind: "weight", code: source.label.code }
-            : null,
-    };
-  });
+  const lines = snapshotLines(quote.lines, found.lines);
   if (found.lines.some((l) => l.discount > 0)) checkSession(session, config, "sale.discount", at);
   const draftTenders = await tx
     .select()
@@ -126,38 +98,22 @@ export async function finishDraftSale(
     throw new TillError("TENDER_INSUFFICIENT", "Tender does not cover the balance");
   const receipt = await assignReceipt(tx, scope.orgId, scope.deviceId, config.receiptCodes);
   const id = v7();
-  const event = v.parse(saleEvent, {
-    v: 4,
-    type: "sale.recorded",
-    sale: {
-      id,
-      localId: id,
-      orgId: scope.orgId,
-      deviceId: scope.deviceId,
-      storeId: config.storeId,
-      branchId: scope.branchId,
-      cashierId: scope.cashierId,
-      sessionId: session.id,
-      appVersion: config.appVersion,
-      deviceTime: deviceTime.toISOString(),
-      ...receipt,
-      clockOffsetMs: deviceTime.valueOf() - at.valueOf(),
-      lines,
-      totals: quote.totals,
-      cashRounding: settlement.roundingLine,
-      total: settlement.total,
-      change: settlement.change,
-      paid: add(settlement.cash, settlement.nonCash),
-      tenders: tenders.map((t) => ({
-        id: t.id,
-        kind: t.kind,
-        amount: t.amount,
-        ...(t.reference ? { reference: t.reference } : {}),
-        ...(t.approvalCode ? { approvalCode: t.approvalCode } : {}),
-        ...(t.last4 ? { last4: t.last4 } : {}),
-        ...(t.network ? { network: t.network } : {}),
-      })),
-    },
+  const customer = found.draft.customerId
+    ? await readLookupCustomer(tx, scope.orgId, found.draft.customerId)
+    : null;
+  const event = buildSaleEvent({
+    id,
+    scope,
+    config,
+    sessionId: session.id,
+    deviceTime,
+    at,
+    receipt,
+    lines,
+    totals: quote.totals,
+    settlement,
+    tenders,
+    customer,
   });
   const [savedSession] = await tx.select().from(hostSession).where(eq(hostSession.id, session.id));
   if (savedSession && canonicalJson(savedSession) !== canonicalJson(session))

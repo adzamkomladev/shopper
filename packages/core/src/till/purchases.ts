@@ -19,6 +19,7 @@ import { paymentSale } from "./tenders/consumption";
 import { receiptDelivery } from "./register/receipts";
 import {
   loadLocalOriginal,
+  plainRow,
   readEligibility,
   refundsOf,
   refundView,
@@ -56,6 +57,7 @@ export async function listPurchases(db: TillDatabase, raw: unknown) {
           kinds: row.kinds,
           refundOf: row.refundOf,
           refunded: row.refunded,
+          customer: row.customer,
         })),
       total: filtered.length,
       page: input.page,
@@ -80,8 +82,6 @@ export async function readPurchase(db: TillDatabase, raw: unknown) {
     };
   });
 }
-
-const plain = { refundOf: null as string | null, refunded: "none" as "none" | "partial" | "full" };
 
 async function purchases(
   tx: TillSqlite,
@@ -123,8 +123,9 @@ async function purchases(
         sale,
         receipt: row.receipt ? v.parse(receiptDocument, row.receipt) : null,
         draft: null,
-        ...plain,
+        ...plainRow,
         refunded: returnedState(sale, returns),
+        customer: sale.customer && { id: sale.customer.id, name: sale.customer.name },
       },
     ];
   });
@@ -165,7 +166,7 @@ async function purchases(
       sale: null,
       receipt: null,
       draft: view,
-      ...plain,
+      ...plainRow,
     });
   }
   const intents = await tx
@@ -226,7 +227,7 @@ async function purchases(
       receipt: null,
       draft: null,
       payment,
-      ...plain,
+      ...plainRow,
     });
   }
   const refunds = returned.map(({ row, snapshot, occurredAt, refundOf }) => ({
@@ -239,7 +240,7 @@ async function purchases(
     sale: null,
     receipt: null,
     draft: null,
-    ...plain,
+    ...plainRow,
     refundOf,
   }));
   return [...completed, ...pending, ...orphans, ...refunds].sort((a, b) =>

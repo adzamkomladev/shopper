@@ -2,7 +2,9 @@ import * as v from "valibot";
 import { buildInfo } from "@shopper/config";
 import { recordLocalSale, searchCatalogue, TillError } from "@shopper/core/till";
 import type { BridgeMessage, BridgeRequest } from "@shopper/sync/bridge";
+import { createAccounts } from "./accounts";
 import { createBasket } from "./basket";
+import { createCustomers } from "./customers";
 import { createRefunds } from "./refunds";
 import { createShifts } from "./shifts";
 import type { Host } from "./types";
@@ -30,9 +32,11 @@ export function createDispatch(host: Host) {
       };
     },
   };
-  const { basket, receiptFor } = createBasket(host, localConfig);
+  const accounts = createAccounts(host);
+  const { basket, receiptFor } = createBasket(host, localConfig, accounts.release);
   const refunds = createRefunds(host, localConfig);
   const shifts = createShifts(host, localConfig);
+  const customers = createCustomers(host);
   return async function dispatch(request: BridgeRequest, trusted: boolean): Promise<BridgeMessage> {
     try {
       switch (request.type) {
@@ -103,6 +107,15 @@ export function createDispatch(host: Host) {
         case "shift.close":
         case "shift.print":
           return await shifts(request);
+        case "customer.find":
+        case "customer.create":
+        case "customer.update":
+        case "customer.attach":
+          return await customers(request);
+        case "customer.account":
+        case "tender.account":
+        case "account.payment":
+          return await accounts.accounts(request);
         case "approvers.list":
           return {
             id: request.id,

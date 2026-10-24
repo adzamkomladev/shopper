@@ -1,5 +1,6 @@
 import type { ReceiptDocument } from "@shopper/core/receipts";
 import {
+  clip,
   ghs,
   qrCaption,
   qrPayload,
@@ -16,7 +17,7 @@ import { ascii, escpos } from "./encoder";
 export function encodeReceipt(receipt: ReceiptDocument, options: EncodeOptions): Uint8Array {
   const { cols } = paper[options.paperMm];
   const printer = escpos(options.profile, options.paperMm);
-  const fit = (value: string) => ascii(value).slice(0, cols);
+  const fit = (value: string) => clip(ascii(value), cols);
   const row = (left: string, right: string) => {
     const end = ascii(right).slice(0, cols - 2);
     return (
@@ -46,6 +47,13 @@ export function encodeReceipt(receipt: ReceiptDocument, options: EncodeOptions):
   if (header.receiptNumber) printer.text(row("Receipt", header.receiptNumber));
   printer.text(row("Date", header.accraTime));
   printer.text(row("Cashier", header.cashier));
+  if (receipt.buyer)
+    printer
+      .bold(true)
+      .text("Buyer")
+      .bold(false)
+      .text(fit(receipt.buyer.name))
+      .text(fit(`TIN ${receipt.buyer.tin}`));
   printer.text("-".repeat(cols));
 
   for (const line of receipt.lines) {

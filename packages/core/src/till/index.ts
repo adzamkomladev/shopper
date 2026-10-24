@@ -8,7 +8,21 @@ export { issueReceiptBlocks } from "./receipts/blocks";
 export { readReceiptStatus } from "./receipts/assign";
 
 export { projectProducts, unprojectProducts, clearProjection } from "./lookup/project";
-export type { CatalogueMatch, ProjectedProduct } from "./lookup/types";
+export type { CatalogueMatch, ProjectedCustomer, ProjectedProduct } from "./lookup/types";
+export { projectCustomers, removeCustomers, replayPendingCustomers } from "./lookup/customers";
+export { attachDraftCustomer, createTillCustomer, updateTillCustomer } from "./customers/commands";
+export { findCustomers } from "./customers/queries";
+export { recordAccountPayment } from "./accounts/payment";
+export {
+  markAccountPaymentAccepted,
+  markAccountPaymentFailed,
+  markAccountPaymentRejected,
+} from "./accounts/uploads";
+export {
+  markCustomerAccepted,
+  markCustomerFailed,
+  markCustomerRejected,
+} from "./customers/uploads";
 export { searchCatalogue, lookupCode } from "./lookup/search";
 
 export { quoteLine, readQuoteReference } from "./quotation";
@@ -18,7 +32,7 @@ export { hostTime, validateSession } from "./session";
 export { readDraft } from "./drafts/queries";
 export { addToDraft, setDraftQuantity, removeDraftLine } from "./drafts/commands";
 export { settle } from "./tenders/settle";
-export { addDraftTender, removeDraftTender } from "./tenders/commands";
+export { addDraftAccountTender, addDraftTender, removeDraftTender } from "./tenders/commands";
 export { completeDraftSale } from "./complete";
 export { holdDraftSale, resumeDraftSale, voidDraftSale, listHeldDraftSales } from "./drafts/status";
 export { setDraftDiscount } from "./drafts/discount";

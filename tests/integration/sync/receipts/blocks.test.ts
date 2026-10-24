@@ -36,7 +36,7 @@ test("offline overflow is flagged and normal sequential numbers arrive after han
   const fixture = await createPushFixture();
   try {
     const first = await fixture.recordSale();
-    expect(first.event.v).toBe(4);
+    expect(first.event.v).toBe(5);
     expect(first.event.sale.receiptOverflow).toBe(true);
     const worker = createPushWorker(fixture.workerOptions);
     fixture.worker = worker;

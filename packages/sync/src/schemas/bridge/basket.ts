@@ -2,6 +2,7 @@ import * as v from "valibot";
 import { uuidV7Schema } from "@shopper/ports";
 import { saleTaxSnapshot, saleTotals } from "@shopper/core/schemas";
 import { approval } from "./approvals";
+import { basketCustomer } from "./customers";
 
 const id = uuidV7Schema;
 const text = v.pipe(v.string(), v.minLength(1));
@@ -145,7 +146,7 @@ export const draftView = v.strictObject({
           orgId: id,
           draftId: id,
           position: revision,
-          kind: v.picklist(["cash", "momo", "card"]),
+          kind: v.picklist(["cash", "momo", "card", "credit", "loyalty"]),
           amount: v.number(),
           reference: v.nullable(v.string()),
           approvalCode: v.nullable(v.string()),
@@ -154,6 +155,7 @@ export const draftView = v.strictObject({
           network: v.nullable(v.string()),
           status: v.picklist(["applied", "pending", "otp", "confirmed", "failed", "expired"]),
           createdAt: stamp,
+          points: v.optional(v.nullable(v.number())),
         }),
       ),
       revision: v.pipe(revision, v.minValue(1)),
@@ -178,6 +180,7 @@ export const draftView = v.strictObject({
     }),
   ),
   cashRounding: v.optional(v.picklist(["none", "10p"])),
+  customer: v.optional(v.nullable(basketCustomer)),
   settlementError: v.optional(v.string()),
   settlement: v.optional(
     v.strictObject({

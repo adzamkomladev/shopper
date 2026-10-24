@@ -43,6 +43,8 @@ export const report = {
   returns: { count: 0, amount: 0 },
   products: 128,
   discountedSales: 2,
+  customers: 5,
+  returningCustomers: 3,
 };
 export const emptyReport = {
   ...report,
@@ -52,6 +54,8 @@ export const emptyReport = {
   topProducts: [],
   products: 0,
   discountedSales: 0,
+  customers: 0,
+  returningCustomers: 0,
 };
 
 export const catalogue = [

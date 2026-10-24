@@ -9,6 +9,8 @@ import type {
   PurchaseSummary,
 } from "@shopper/sync/bridge";
 import type { HostConnection } from "../connection/types";
+import type { AccountActions } from "./account/types";
+import type { CustomerActions } from "./customer/types";
 
 export type { EligibilityView, PurchaseDetails, PurchaseSummary };
 export type PurchaseCounts = PurchaseList["counts"];
@@ -79,7 +81,7 @@ export type MomoInput = {
 export type PurchaseFilters = {
   status: "all" | "completed" | "returned" | "voided" | "pending";
   query: string;
-  kind: "all" | TenderKind;
+  kind: "all" | TenderKind | "credit" | "loyalty";
   page: number;
   pageSize: number;
 };
@@ -177,38 +179,39 @@ export type SaleSnapshot = {
 };
 
 export type AddInput = { code: string } | { productId: string };
-export type SaleActions = {
-  search: (query: string) => void;
-  add: (input: AddInput) => void;
-  setQuantity: (lineId: string, quantityThousandths: number) => void;
-  removeLine: (lineId: string) => void;
-  addTender: (input: TenderInput) => void;
-  charge: (input: TenderInput) => void;
-  complete: () => void;
-  removeTender: (tenderId: string) => void;
-  startMomo: (input: MomoInput) => void;
-  submitMomoOtp: (input: { reference: string; otp: string }) => void;
-  hold: (name?: string) => void;
-  listHeld: () => void;
-  resume: (draftId: string, expectedRevision: number) => void;
-  /** Resolves with the outcome so a dialog can stay open on a wrong PIN. */
-  voidSale: (
-    reason: string,
-    draftId?: string,
-    expectedRevision?: number,
-    approval?: Approval,
-  ) => Promise<SaleOutcome>;
-  priceLine: (input: PriceInput) => Promise<SaleOutcome>;
-  loadApprovers: (permission: ApprovalPermission) => void;
-  newSale: () => void;
-  /** Starts a new sale from the completion view with the scanned item already in it. */
-  newSaleWith: (input: AddInput) => void;
-  /** Prints (or reprints) the receipt of a completed sale. */
-  print: (saleId: string) => Promise<ReprintFeedback>;
-  dismissFeedback: () => void;
-  syncNow: () => void;
-  reconnect: () => void;
-};
+export type SaleActions = CustomerActions &
+  AccountActions & {
+    search: (query: string) => void;
+    add: (input: AddInput) => void;
+    setQuantity: (lineId: string, quantityThousandths: number) => void;
+    removeLine: (lineId: string) => void;
+    addTender: (input: TenderInput) => void;
+    charge: (input: TenderInput) => void;
+    complete: () => void;
+    removeTender: (tenderId: string) => void;
+    startMomo: (input: MomoInput) => void;
+    submitMomoOtp: (input: { reference: string; otp: string }) => void;
+    hold: (name?: string) => void;
+    listHeld: () => void;
+    resume: (draftId: string, expectedRevision: number) => void;
+    /** Resolves with the outcome so a dialog can stay open on a wrong PIN. */
+    voidSale: (
+      reason: string,
+      draftId?: string,
+      expectedRevision?: number,
+      approval?: Approval,
+    ) => Promise<SaleOutcome>;
+    priceLine: (input: PriceInput) => Promise<SaleOutcome>;
+    loadApprovers: (permission: ApprovalPermission) => void;
+    newSale: () => void;
+    /** Starts a new sale from the completion view with the scanned item already in it. */
+    newSaleWith: (input: AddInput) => void;
+    /** Prints (or reprints) the receipt of a completed sale. */
+    print: (saleId: string) => Promise<ReprintFeedback>;
+    dismissFeedback: () => void;
+    syncNow: () => void;
+    reconnect: () => void;
+  };
 
 export type PurchaseActions = {
   list: (filters: PurchaseFilters) => void;

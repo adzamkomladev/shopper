@@ -31,7 +31,13 @@ export function registerSettings(port: number | null, overrides: Record<string, 
 
 /** A real till host reached through the browser WebSocket bridge. `permissions` are added to the cashier session; `upstream` is the server it syncs with (unreachable by default). */
 export async function startRegister(
-  options: { permissions?: readonly string[]; upstream?: string; shift?: boolean } = {},
+  options: {
+    permissions?: readonly string[];
+    /** Permissions the cashier session lacks, as when the role does not hold them. */
+    without?: readonly string[];
+    upstream?: string;
+    shift?: boolean;
+  } = {},
 ) {
   const fixture = await createHostFixture({
     freshSession: true,
@@ -43,7 +49,12 @@ export async function startRegister(
   const permissions = options.permissions ?? ["register.settings"];
   const host = await fixture.start({
     ...fixture.config,
-    session: { ...session, permissions: [...new Set([...session.permissions, ...permissions])] },
+    session: {
+      ...session,
+      permissions: [...new Set([...session.permissions, ...permissions])].filter(
+        (code) => !options.without?.includes(code),
+      ),
+    },
     receiptReference: {
       branchName: "Osu branch",
       cashierName: "Ama Mensah",

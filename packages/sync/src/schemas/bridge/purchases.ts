@@ -21,11 +21,13 @@ export const purchaseSummary = v.strictObject({
   receiptNumber: v.nullable(v.string()),
   occurredAt: v.pipe(v.string(), v.isoTimestamp()),
   total: v.number(),
-  kinds: v.array(v.picklist(["cash", "momo", "card"])),
+  kinds: v.array(v.picklist(["cash", "momo", "card", "credit", "loyalty"])),
   /** A Returns row: the receipt number of the sale it returned. Its total is negative. */
   refundOf: v.nullable(v.string()),
   /** How much of a completed sale has gone back. */
   refunded: v.picklist(["none", "partial", "full"]),
+  /** Who the sale was rung up to. Null for a walk-in; absent for rows the register builds without a sale. */
+  customer: v.optional(v.nullable(v.strictObject({ id, name: v.string() }))),
 });
 export const receiptDelivery = v.strictObject({
   printedAt: v.nullable(v.string()),

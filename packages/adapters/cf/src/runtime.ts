@@ -4,6 +4,7 @@ import { cloudflareResponse } from "./response";
 import { cloudflareLive } from "./live";
 import { cloudflareRealtime } from "./realtime";
 import { cloudflareQueue } from "./queue";
+import { cloudflareRenderer } from "./renderer";
 import { NOTIFICATION_RETRY } from "@shopper/ports";
 import { cloudflareDatabase } from "./database";
 import { cloudflareLauncher } from "./launcher";
@@ -49,6 +50,7 @@ export async function cloudflareRuntime(
           receiptsObjectStorage: s3(env, env.SHOPPER_S3_RECEIPTS_BUCKET),
         })
       ).blobs,
+      renderer: env.BROWSER ? cloudflareRenderer(env.BROWSER) : undefined,
       secret: env.SHOPPER_AUTH_SECRET,
       baseURL: env.SHOPPER_AUTH_URL,
       bootstrapToken: env.SHOPPER_BOOTSTRAP_TOKEN,
@@ -60,6 +62,10 @@ export async function cloudflareRuntime(
           : undefined,
       paystackSecret: env.PAYSTACK_SECRET_KEY,
       authFlows: env.AUTH_FLOWS ? cloudflareLauncher(env.AUTH_FLOWS) : undefined,
+      kyc:
+        env.KYC_FLOWS && env.ARKESEL_API_KEY && env.ARKESEL_SENDER
+          ? cloudflareLauncher(env.KYC_FLOWS)
+          : undefined,
       linkSecret: env.SHOPPER_LINK_SECRET,
       publicOnboarding: true,
     });

@@ -171,6 +171,8 @@ export async function startTillHost(
     uploadStock: () => worker.uploadStock(),
     uploadRefunds: () => worker.uploadRefunds(),
     uploadShifts: () => worker.uploadShifts(),
+    uploadCustomers: () => worker.uploadCustomers(),
+    uploadAccountPayments: () => worker.uploadAccountPayments(),
     close: () => void close(),
   };
   const dispatch = createDispatch(host);

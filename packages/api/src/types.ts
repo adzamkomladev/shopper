@@ -5,7 +5,7 @@ import type {
   createInvitations,
 } from "@shopper/auth";
 import type { ShopperDatabase } from "@shopper/db-pg";
-import type { Blobs, Queue, Realtime, Sequencer, WorkflowLauncher } from "@shopper/ports";
+import type { Blobs, Queue, Realtime, Renderer, Sequencer, WorkflowLauncher } from "@shopper/ports";
 import type { Cache } from "@shopper/ports";
 import type { LiveUpgrade } from "./sync/live";
 
@@ -16,6 +16,11 @@ export interface ApiAuthentication {
   handler?: (request: Request) => Promise<Response>;
 }
 export type ApiEnvironment = { Variables: { principal: ApiPrincipal } };
+/** What signs a customer's statement link and where the portal opens it. */
+export interface StatementLinks {
+  secret: string;
+  baseUrl: string;
+}
 
 export interface ApiOptions {
   authentication?: ApiAuthentication;
@@ -24,6 +29,10 @@ export interface ApiOptions {
   blobs?: Blobs;
   realtime?: Realtime;
   notifications?: Queue;
+  /** Signs statement links and KYC codes; public statement reads, link creation and KYC need it. */
+  linkSecret?: string;
+  baseURL?: string;
+  renderer?: Renderer;
   devices?: ReturnType<typeof createDeviceService>;
   // Populated by the authenticated session adapter; never derive this from request parameters.
   resolveOrgId?: (request: Request) => Promise<string | null>;
@@ -32,6 +41,7 @@ export interface ApiOptions {
   priceChange?: WorkflowLauncher;
   onboarding?: ReturnType<typeof createOnboarding>;
   invitations?: ReturnType<typeof createInvitations>;
+  kyc?: WorkflowLauncher;
 }
 
 export interface RuntimeOptions {
@@ -41,6 +51,7 @@ export interface RuntimeOptions {
   live?: LiveUpgrade;
   realtime?: Realtime;
   notifications?: Queue;
+  renderer?: Renderer;
   cache: Cache;
   secret: string;
   baseURL: string;
@@ -51,6 +62,7 @@ export interface RuntimeOptions {
   paystackSecret?: string;
   priceChange?: WorkflowLauncher;
   authFlows?: WorkflowLauncher;
+  kyc?: WorkflowLauncher;
   linkSecret?: string;
   publicOnboarding?: boolean;
 }

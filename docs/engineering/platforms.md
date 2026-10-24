@@ -158,3 +158,49 @@ A healthy idle socket also pulls every five minutes to repair lost nudges. These
 transport delivery; business processes still use Workflows.
 
 Direct browser asset uploads are managed by `@shopper/assets` and use presigned PUT to R2/RustFS. Imports, till receipt PDFs (`receipts/` keys, own bucket) and generated snapshots have separate policies; no upload bytes pass through Hono. Blobs supports bounded reads for integrity validation immediately before processing. Server-generated objects retain the existing R2/filesystem paths; an unavailable S3 upload store fails rather than proxying bytes. See [assets.md](assets.md).
+
+## KYC workflow
+
+`KycWorkflow` is the cloud shell behind `KYC_FLOWS` (`shopper-kyc-<stage>`); `boxKycFlows` is the on-prem
+launcher on `memoryWorkflow`. Both run `runKyc` from `@shopper/auth/kyc`, one instance per case (instance
+id = case id, `workflow_run.type` = `kyc`). `cloudflareFlow` (`adapters/cf/src/workflows/flow.ts`) is the one
+adapter from a Cloudflare `step` to the `Workflow` port; the momo, auth and KYC shells all use it.
+
+Events carry only `{action}` and only wake the flow: it reads the `kyc_case` row, so a lost event or timer is
+caught up at the next deadline, and a late answer is refused from the row's deadlines (OTP 10 minutes, at most 3
+sends, 5 attempts, a 7-day decision window). The OTP is derived from the link secret and the send number, so a
+retried SMS repeats the same code; only an HMAC digest is stored. An ID number is reduced to a mask and an HMAC
+fingerprint before any command runs. Neither the number nor a code reaches an event, step output, audit row or log.
+The edge needs `KYC_FLOWS`, `ARKESEL_API_KEY`, `ARKESEL_SENDER` and `SHOPPER_LINK_SECRET`; without them the KYC
+case routes answer 503. Box timers are lost on restart (Rivet, day 36); PostgreSQL deadlines decide until then.
+
+## Account and statement workflows (Day 17)
+
+Three workflows now share `cloudflareFlow`, the one adapter from a Cloudflare `step` to the `Workflow` port (momo,
+auth, KYC, account and statements all use it; a shell is about 20 lines):
+
+| Workflow                     | Instance id | Binding (`<stage>`)          | Runs                                  |
+| ---------------------------- | ----------- | ---------------------------- | ------------------------------------- |
+| KYC (`runKyc`)               | case id     | `shopper-kyc-<stage>`        | OTP, ID step, decision, expiry        |
+| Account (`runAccount`)       | customer id | `shopper-account-<stage>`    | interest, points expiry, tier notices |
+| Statements (`runStatements`) | org id      | `shopper-statements-<stage>` | the monthly run and its fan-out       |
+
+Each writes its own table and a `workflow_run` row in the same transaction as the step. Events carry only
+`{action}` and wake the flow; it re-reads PostgreSQL, so a lost event or timer is caught up at the next deadline.
+The account flow sleeps to `nextDue`, the statements flow to the org's run day using an interruptible
+`waitFor("wake", timeout)`, which a settings change wakes. Statement delivery and tier notices run on the existing
+notifications queue consumer (`apps/edge`); no new Durable Object, queue or port.
+
+On the box the three run on `memoryWorkflow`. Its timers die with the process, so the box **relaunches on boot**
+every account with anything due, every org with a monthly schedule (starting from the last period sent, so a missed
+run day runs once) and every open KYC case. `ponytail:` Rivet takes over the timers on Day 36.
+
+The edge needs `KYC_FLOWS`, `ACCOUNT_FLOWS` and `STATEMENT_FLOWS`; without them the routes that start a flow answer 503. The portal Worker serves the public `/statement/*` page from the prerendered shell.
+
+## Notifications queue
+
+Low-stock alerts and statements share one notifications queue. Statements pick SMS or email per delivery; a
+low-stock alert is SMS only. On a box or Worker with only mail configured (no `ARKESEL_API_KEY`), a low-stock
+message cannot be sent, so it is retried and then dead-lettered by design: nothing falls back to email. Configure
+Arkesel wherever low-stock alerts are wanted. Statement PDFs are at most 366 days of entries and break into A4-height
+pages; a statement link signs only with a link secret of at least 32 characters.

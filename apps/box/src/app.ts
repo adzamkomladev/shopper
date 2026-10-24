@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { buildInfo } from "@shopper/config";
 import { createPaystack } from "@shopper/core/payments/paystack";
+import { deliverNotification } from "@shopper/core/notifications";
 import { createArkesel } from "@shopper/core/sms/arkesel";
-import { deliverStockAlert } from "@shopper/core/stock";
 import { createMaileroo } from "@shopper/auth";
 import type { BoxBindings } from "./types";
 import {
@@ -15,9 +15,13 @@ import {
   boxPriceChange,
   boxRealtime,
   boxAuthFlows,
+  boxKycFlows,
+  boxAccountFlows,
+  boxStatementFlows,
   boxMomoPayment,
   boxQueue,
 } from "@shopper/adapters-box";
+import { boxRenderer } from "@shopper/adapters-box/renderer";
 import { NOTIFICATION_RETRY } from "@shopper/ports";
 import { isPublicRequest, publicApi, runtimeUnavailable, serveRuntime } from "@shopper/api/runtime";
 export function createBoxApp(environment: Record<string, string | undefined> = process.env) {
@@ -25,9 +29,13 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
   let workflowPool: ReturnType<typeof boxPool> | undefined;
   let cache: ReturnType<typeof boxCache> | undefined;
   let authFlows: ReturnType<typeof boxAuthFlows> | undefined;
+  let kycFlows: ReturnType<typeof boxKycFlows> | undefined;
   let momoPayment: ReturnType<typeof boxMomoPayment> | undefined;
   let priceChange: ReturnType<typeof boxPriceChange> | undefined;
   let notifications: ReturnType<typeof boxQueue> | undefined;
+  let accountFlows: ReturnType<typeof boxAccountFlows> | undefined;
+  let statementFlows: ReturnType<typeof boxStatementFlows> | undefined;
+  const renderer = boxRenderer();
   return new Hono<{ Bindings: BoxBindings }>().all("*", async (context) => {
     const request = context.req.raw;
     if (isPublicRequest(request)) return publicApi.fetch(request);
@@ -82,20 +90,72 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
           baseUrl: environment.PAYSTACK_BASE_URL,
         }),
       });
-    if (environment.ARKESEL_API_KEY) {
-      const sms = createArkesel({
-        apiKey: environment.ARKESEL_API_KEY,
-        sender: environment.ARKESEL_SENDER ?? "Shopper",
-        baseUrl: environment.ARKESEL_BASE_URL || undefined,
+    const sms = environment.ARKESEL_API_KEY
+      ? createArkesel({
+          apiKey: environment.ARKESEL_API_KEY,
+          sender: environment.ARKESEL_SENDER ?? "Shopper",
+          baseUrl: environment.ARKESEL_BASE_URL || undefined,
+        })
+      : undefined;
+    const mail =
+      environment.MAILEROO_API_KEY && environment.MAILEROO_FROM
+        ? createMaileroo({
+            apiKey: environment.MAILEROO_API_KEY,
+            from: environment.MAILEROO_FROM,
+            endpoint: environment.MAILEROO_ENDPOINT,
+          })
+        : undefined;
+    // Alerts, statements, tier notices and account wakes share one queue; a channel it lacks retries.
+    notifications ??= boxQueue(NOTIFICATION_RETRY, (delivery) =>
+      deliverNotification(
+        {
+          db: workflowDatabase,
+          appVersion: buildInfo.version,
+          sms,
+          mail,
+          renderer,
+          linkSecret: environment.SHOPPER_LINK_SECRET,
+          baseUrl: SHOPPER_AUTH_URL,
+          accounts: accountFlows,
+          statements: statementFlows,
+          queue: notifications,
+        },
+        delivery,
+      ),
+    );
+    if (!statementFlows) {
+      statementFlows = boxStatementFlows({
+        withDatabase: (run) => run(workflowDatabase),
+        appVersion: buildInfo.version,
+        queue: notifications,
       });
-      notifications ??= boxQueue(NOTIFICATION_RETRY, (delivery) =>
-        deliverStockAlert(workflowDatabase, sms, delivery, buildInfo.version),
-      );
+      // On boot every monthly statement schedule starts again and runs a run day it missed.
+      statementFlows
+        .relaunch()
+        .catch((error: unknown) => console.error({ event: "statement.relaunch_failed", error }));
     }
+    if (!accountFlows) {
+      accountFlows = boxAccountFlows({
+        withDatabase: (run) => run(workflowDatabase),
+        appVersion: buildInfo.version,
+        queue: notifications,
+      });
+      // On boot every account with a ledger looks for its next due moment again.
+      accountFlows
+        .relaunch()
+        .catch((error: unknown) => console.error({ event: "account.relaunch_failed", error }));
+    }
+    if (sms && environment.SHOPPER_LINK_SECRET)
+      kycFlows ??= boxKycFlows({
+        withDatabase: (run) => run(workflowDatabase),
+        sms,
+        linkSecret: environment.SHOPPER_LINK_SECRET,
+      });
     try {
       return await serveRuntime(request, {
         database: connection.db,
         notifications,
+        renderer,
         sequencer: boxSequencer(connection.db),
         cache: cache.cache,
         realtime,
@@ -120,6 +180,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
         momoPayment,
         paystackSecret: environment.PAYSTACK_SECRET_KEY,
         authFlows,
+        kyc: kycFlows,
         linkSecret: environment.SHOPPER_LINK_SECRET,
       });
     } finally {

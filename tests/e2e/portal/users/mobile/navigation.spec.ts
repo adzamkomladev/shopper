@@ -10,7 +10,7 @@ test("main navigation stays on screen and keyboard reachable at phone and tablet
   await expect(page.getByRole("heading", { name: "Users", level: 1 })).toBeVisible();
   const navigation = page.getByRole("navigation", { name: "Main" });
   const links = navigation.getByRole("link");
-  await expect(links).toHaveCount(10);
+  await expect(links).toHaveCount(11);
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(390);

@@ -1,4 +1,4 @@
-import type { BaseUnit, price, taxRule } from "@shopper/db-pg";
+import type { BaseUnit, customer, price, taxRule } from "@shopper/db-pg";
 import type { Change } from "./record";
 import { mappingView } from "../catalogue/mappings/queries";
 import type { ProductBarcode } from "./types";
@@ -66,6 +66,27 @@ export function taxRuleUpsert(row: typeof taxRule.$inferSelect): Change {
       getfundBps: row.getfundBps,
       covidBps: row.covidBps,
       source: row.source,
+    },
+  };
+}
+
+/** What a till needs to recognise a customer; the ledgers, the limit and the email stay on the server. */
+export function customerUpsert(row: typeof customer.$inferSelect): Change {
+  return {
+    entity: "customer",
+    entityId: row.id,
+    op: "upsert",
+    payload: {
+      id: row.id,
+      orgId: row.orgId,
+      name: row.name,
+      phone: row.phone,
+      kind: row.kind,
+      businessName: row.businessName,
+      tin: row.tin,
+      version: row.version,
+      archivedAt: row.archivedAt ? iso(row.archivedAt) : null,
+      mergedIntoId: row.mergedIntoId,
     },
   };
 }

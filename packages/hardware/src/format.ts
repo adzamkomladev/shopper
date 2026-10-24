@@ -13,7 +13,13 @@ export function quantity(thousandths: number) {
 
 type Tender = ReceiptDocument["tenders"][number];
 
-export const tenderLabel = { cash: "Cash", card: "Card", momo: "MoMo" } as const;
+export const tenderLabel = {
+  cash: "Cash",
+  card: "Card",
+  momo: "MoMo",
+  credit: "On account",
+  loyalty: "Points",
+} as const;
 
 export const tenderDetail = (tender: Tender) =>
   tender.approvalCode ?? tender.reference ?? tender.phone;
@@ -41,3 +47,6 @@ export function refundedLabel(tender: Tender) {
   const reference = tender.reference ? ` ${tender.reference}` : "";
   return `Refunded (${tenderLabel[tender.kind]}${reference})`;
 }
+
+/** A line cut to the paper's columns; both renderers print a long name the same way. */
+export const clip = (value: string, cols: number) => value.slice(0, cols);

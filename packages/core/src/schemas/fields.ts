@@ -34,3 +34,6 @@ export const timestamp = v.pipe(
   v.transform((value) => new Date(value)),
   v.check((date) => !Number.isNaN(date.getTime()), "Invalid timestamp"),
 );
+
+/** A number as typed at a till: spaces and dashes are dropped before the usual check. */
+export const compactPhone = (phone: string) => phone.replace(/[\s-]/g, "");

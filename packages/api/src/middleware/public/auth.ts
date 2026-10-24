@@ -1,7 +1,12 @@
 const attempts = new Map<string, { startedAt: number; count: number }>();
 
 // shortcut: isolate-local budget, replace with the distributed RateLimiter when its platform shells ship.
-export function allowPublicAuth(clientIP: string | undefined, operation: string, now = Date.now()) {
+export function allowPublicAuth(
+  clientIP: string | undefined,
+  operation: string,
+  now = Date.now(),
+  limit = 3,
+) {
   if (!clientIP) return false;
   const key = `${clientIP}:${operation}`;
   let current = attempts.get(key);
@@ -14,7 +19,7 @@ export function allowPublicAuth(clientIP: string | undefined, operation: string,
     current = { startedAt: now, count: 0 };
     attempts.set(key, current);
   }
-  if (current.count >= 3) return false;
+  if (current.count >= limit) return false;
   current.count += 1;
   return true;
 }

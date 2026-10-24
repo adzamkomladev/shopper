@@ -179,6 +179,6 @@ test("the CSV lists totals, tenders and top products with cedi amounts to 2 dp",
     expect(csv).toContain("Discounts,0.10");
     expect(csv).toContain("cash,3.70");
     expect(csv).toContain("card,2.50");
-    expect(csv.some((row) => /^"?[^,]+"?,4.000,4.70$/.test(row))).toBe(true);
+    expect(csv.some((row) => /^"?[^,]+"?,4,4.70$/.test(row))).toBe(true);
   });
 });

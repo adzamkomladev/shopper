@@ -115,4 +115,6 @@ export interface Renderer {
     options: { paperMm: 58 | 80; reprint: boolean },
     format: RenderFormat,
   ): Promise<Uint8Array>;
+  // Renders a customer statement document as a PDF: one A4-wide page, as tall as the entries need.
+  statement(statement: Json): Promise<Uint8Array>;
 }

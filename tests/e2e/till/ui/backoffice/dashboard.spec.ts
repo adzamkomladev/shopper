@@ -15,6 +15,18 @@ import {
 
 const panel = (page: import("@playwright/test").Page) =>
   page.locator('[data-slot="register-dashboard"]');
+const expectTile = async (
+  tiles: import("@playwright/test").Locator,
+  name: string,
+  value: string,
+  caption: string,
+) => {
+  const tile = tiles.locator('[data-slot="card"]').filter({
+    has: tiles.page().getByRole("heading", { name, exact: true }),
+  });
+  await expect(tile).toContainText(value);
+  await expect(tile).toContainText(caption);
+};
 const current = (page: import("@playwright/test").Page) =>
   page.getByRole("tablist", { name: "Register sections" }).locator('[aria-selected="true"]');
 
@@ -33,6 +45,8 @@ for (const size of sizes) {
     await expect(tiles.getByText("128", { exact: true })).toBeVisible();
     await expect(tiles.getByRole("heading", { name: "Discounted sales" })).toBeVisible();
     await expect(tiles.getByText("GH₵ 2.00 off")).toBeVisible();
+    await expectTile(tiles, "Customers", "5", "bought in this range");
+    await expectTile(tiles, "Returning customers", "3", "bought here before");
     await expect(tiles.getByLabel("From")).toHaveValue(today);
     await expect(tiles.getByLabel("To")).toHaveValue(today);
     await expect(tiles.getByRole("button", { name: "Download" })).toBeVisible();
@@ -161,6 +175,8 @@ test("a day with no sales says so and still shows zero tiles", async ({ page }) 
   await openShell(page, "Dashboard");
   await expect(panel(page).getByText(/No sales on these days yet/)).toBeVisible();
   await expect(panel(page).getByText("GH₵ 0.00", { exact: true }).first()).toBeVisible();
+  await expectTile(panel(page), "Customers", "0", "bought in this range");
+  await expectTile(panel(page), "Returning customers", "0", "bought here before");
   await expectNoSeriousAxe(page);
   await shoot(page, "dashboard-empty");
 });

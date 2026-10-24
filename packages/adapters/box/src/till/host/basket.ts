@@ -29,8 +29,15 @@ import { error } from "./transport";
 
 type LocalConfig = Parameters<typeof completeDraftSale>[1];
 
-/** The signed-in cashier's basket and purchase requests. */
-export function createBasket(host: Host, localConfig: LocalConfig) {
+/**
+ * The signed-in cashier's basket and purchase requests. `release` frees the server holds of account tenders that
+ * leave the basket, best effort.
+ */
+export function createBasket(
+  host: Host,
+  localConfig: LocalConfig,
+  release: (holdIds: string[]) => Promise<void>,
+) {
   const { database, config, payments } = host;
   const identity = config.identity;
   async function receiptFor(saleId: string) {
@@ -92,6 +99,18 @@ export function createBasket(host: Host, localConfig: LocalConfig) {
         kind: "held",
         views: await listHeldDraftSales(database, scope, { at }),
       };
+    // Account tenders leaving the basket give their server hold back once the change is saved.
+    const removing = request.type === "tender.remove" ? request.tenderId : undefined;
+    const leaving =
+      type === "tender.remove" || type === "sale.void"
+        ? ((await readDraft(database, scope, { at })).draft?.tenders ?? [])
+            .filter(
+              (t) =>
+                (t.kind === "credit" || t.kind === "loyalty") &&
+                (type === "sale.void" || t.id === removing),
+            )
+            .map((t) => t.id)
+        : [];
     let view;
     switch (type) {
       case "readDraft":
@@ -136,6 +155,7 @@ export function createBasket(host: Host, localConfig: LocalConfig) {
         });
         break;
     }
+    if (leaving.length) await release(leaving);
     if (type !== "readDraft") host.peripherals.basket(view);
     return { id, type: "result", kind: "draft", view };
   }

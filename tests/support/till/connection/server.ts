@@ -150,6 +150,8 @@ export async function createConnectionServer(state: string, grants: readonly str
     };
     return {
       api,
+      /** The server's own database, for tests that seed or read rows the API does not expose. */
+      database: db,
       identity,
       appVersion: seed.appVersion,
       productId: sales.ids.product,

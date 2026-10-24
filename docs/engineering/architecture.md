@@ -248,4 +248,64 @@ Host and a same-origin Origin on writes; it canonicalises the path, keeps the up
 forwards `/auth`, `/sync` or `/cashiers`, and strips cookies and CORS headers. Stock counts and receiving
 are queued in till SQLite and uploaded to `POST /sync/stock` only after the sale backlog drains.
 
+### Customers on the till (Day 17)
+
+Customers reach tills as `customer` rows of the change feed and snapshot (both v4; v3 upcasts, a v3 snapshot has no
+customers) and land in `customer_lookup`: name, phone, kind, business name, TIN and the version read. The limit, the
+ledgers and the email never leave the server. Archived and merged customers drop out of the lookup. Quick-create and
+edit work offline: the lookup changes at once and a `customer.created` or `customer.updated` v1 event is queued in
+`customer_upload`, uploaded to `POST /sync/customers` on the document lane after the sale backlog drains. The server
+audits `customer.till.create` / `customer.till.update` (the session needs `customer.write`). An update that names the
+version the server holds applies whole; otherwise each field takes the later writer by the time the cashier acted,
+read from the audit history after that version, and both versions go in the audit. A conflict is never a rejection,
+so it never blocks the queue. The reply carries the customer as it now stands, which replaces the lookup row; a
+snapshot rebuild and every pull put the edits still waiting back on top.
+
+### Credit, loyalty and statements (Day 17)
+
+A customer's account is two append-only ledgers, `credit_entry` and `loyalty_entry`. Triggers reject any update or
+delete, and there is no balance column anywhere: every balance, statement and ageing bucket is a fold (`SUM`, or a
+running `SUM() OVER` for a statement). A positive credit balance means the customer owes; below zero is a
+**deposit**, which can be spent on account even with no limit. A limit above 0 needs the customer to be
+KYC-verified. Available credit is `limit - balance - held`.
+
+- **Holds.** Credit and points are online only. The till takes an `account_hold` (id = the till tender id) under
+  `FOR UPDATE` on the customer before the sale completes. It counts for one hour (expiry is a predicate in the
+  fold), is released by removing the tender or voiding, and a basket holding one cannot be parked. `acceptSale`
+  consumes the hold into a `charge` or `redeem` entry and refuses an account tender only when its hold is missing,
+  which means a forged sale. A rejected sale would block the push queue, so nothing else is refused.
+- **Account payments** at the drawer are an `account.payment` v1 document (till `account_payment`), uploaded on its
+  own lane after the sales and the customer upload, to `POST /sync/accounts/payments`. They only lower what is
+  owed, so they work offline. The ledger entry links the shift only once the server has its Z; the audit row always
+  names it.
+- **Refunds** go to the account first (a credit note, up to what the sale charged), then back as points, then to
+  the original tenders. The refund event states the split (`accountCredit`, `pointsReturned`, `pointsValue`) and the
+  server checks it against its own working. The earn is reversed at the rate and point value its entry stored.
+- **Loyalty** is per org and off by default. Earn is `floor((total - points tendered) * rate / point value)`, at
+  the tier rate (trailing 365-day spend, worked out at earn time, never stored). Expiry is FIFO by earn lot as
+  `expire` entries. A points transfer writes a pair of `transfer` entries in one command.
+- **Merge** writes `transfer` entries out of the loser and into the winner on both ledgers, sets `merged_into_id`
+  and `archived_at` on the loser, and releases its holds and open KYC cases. Sales keep their id; `acceptSale`
+  follows a merged id to its winner (bounded, never throws). Archive is refused while the balance, points or a hold
+  is open.
+- **Time-based posting** (interest, points expiry, tier downgrade notices) is the `customer-account` Workflow, one
+  instance per customer (id = customer id). `nextDue(customer)` is pure; the flow sleeps to it, posts idempotently
+  (interest is unique per customer and period, and a missed period is caught up), and ends when nothing is due.
+  Earn, charge, settings, merge and archive start or wake it. No cron, no polling.
+- **Statements.** `statement.send` writes a `statement_delivery` row (unique on customer, period, channel) and
+  enqueues it. The notifications consumer renders the PDF through the Renderer port and sends it through Maileroo
+  (PDF attached) or Arkesel (a summary). `statement.link` signs `{linkId, orgId, customerId, from, to, exp}` with
+  the link secret (30 days, revocable). The public page reads it with no session, counts views on the link row, and
+  answers a bad, expired or revoked token with 404 and no detail. The `statement-schedule` Workflow (instance id =
+  org id) sleeps to the next run day in Accra and fans out one message per customer.
+- **KYC** lives in `@shopper/auth/kyc` because it changes roles: phone OTP, an optional manual ID check, manager
+  approval. An ID number is stored only masked plus an HMAC fingerprint and never reaches an event, step, log or
+  audit row.
+
+**Versions bumped in Day 17:** sale event v5 (carries the customer; v4 upcasts with none), change feed and snapshot
+v4 (v3 upcasts), receipt v3 (a `buyer` block and the credit and loyalty tender kinds; v2 upcasts), refund v2 (the
+account and points split) and shift Z v2 (on-account sales, account payments, refunds credited, points redeemed).
+New at v1: `customer.created`, `customer.updated`, `account.payment` and the queue messages `statement.send`,
+`statement.schedule` and `statement.scheduled`. `KNOWN_VERSION` on the pull side is 4.
+
 The owner approved this architecture on 14 October 2026. This cleanup documents it; it does not implement new management hosts, billing, backup services or Electron. TanStack Start remains the customer-shop SSR framework; management keeps the existing Router SPA.

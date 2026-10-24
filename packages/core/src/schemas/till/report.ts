@@ -33,6 +33,9 @@ export const registerReportSchema = v.strictObject({
   returns: v.strictObject({ count, amount }),
   products: count,
   discountedSales: count,
+  /** Distinct customers on the range's sales, and those of them who had bought on this register before it. */
+  customers: count,
+  returningCustomers: count,
 });
 
 export type RegisterReport = v.InferOutput<typeof registerReportSchema>;

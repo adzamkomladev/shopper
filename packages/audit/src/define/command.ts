@@ -1,7 +1,6 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import * as v from "valibot";
 import type { Envelope } from "@shopper/ports";
-import { v7 } from "uuid";
 import {
   auditLog,
   registrationAuditLog,
@@ -12,8 +11,9 @@ import {
   type ShopperDatabase,
   type ShopperTransaction,
 } from "@shopper/db-pg";
-import { GENESIS_HASH, hashEntry, canonicalJson, redact, type AuditEntry } from "../chain";
+import { canonicalJson } from "../chain";
 import { contextSchema, registrationContextSchema } from "../schemas/command/context";
+import { appendAudit } from "./append";
 import { collectEnvelopes, collectStoreChanges } from "../notifications";
 import type { AuditDetails, CommandContext, WorkflowCheckpoint } from "../types";
 
@@ -121,44 +121,14 @@ export function defineCommand<Input, Output>(definition: {
           output,
         });
       }
-      const [last] = await tx
-        .select()
-        .from(audit)
-        .where(and(eq(audit.orgId, context.orgId), sql`${audit.chainSeq} IS NOT NULL`))
-        .orderBy(desc(audit.chainSeq))
-        .limit(1);
-      const details = definition.details?.(input, output);
-      const [{ time }] = (
-        await tx.execute<{ time: string }>(sql`SELECT clock_timestamp()::text AS time`)
-      ).rows;
-      const entry: AuditEntry = {
-        id: v7(),
-        orgId: context.orgId,
-        actorId: context.actorId ?? null,
-        role: context.role ?? null,
-        deviceId: context.deviceId ?? null,
-        branchId: context.branchId ?? null,
-        approverId: context.approverId ?? null,
-        reason: context.reason ?? null,
-        deviceTime: context.deviceTime ?? null,
-        entity: details?.entity ?? null,
-        entityId: details?.entityId?.toLowerCase() ?? null,
-        before: redact(details?.before ?? null),
-        after: redact(details?.after ?? null),
-        appVersion: context.appVersion,
+      await appendAudit(tx, audit, context, {
         command: definition.name,
-        payload: redact({
+        details: definition.details?.(input, output),
+        payload: {
           ...definition.audit(input, output),
           ...(checkpoint ? { workflow: checkpoint } : {}),
-        }) as Record<string, unknown>,
-        chainSeq: (last?.chainSeq ?? 0) + 1,
-        prevHash: last?.hash ?? GENESIS_HASH,
-        hash: null,
-        createdAt: new Date(time!),
-        updatedAt: new Date(time!),
-      };
-      entry.hash = await hashEntry(entry);
-      await tx.insert(audit).values(entry);
+        },
+      });
       return output;
     });
     for (const [storeId, sequence] of heads) {

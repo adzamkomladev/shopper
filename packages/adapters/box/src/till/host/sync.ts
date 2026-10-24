@@ -4,6 +4,8 @@ import {
   createLiveWorker,
   createPullWorker,
   createPushWorker,
+  createAccountPaymentUploadWorker,
+  createCustomerUploadWorker,
   createRefundUploadWorker,
   createShiftUploadWorker,
   createReceiptUploadWorker,
@@ -74,6 +76,20 @@ export function createHostSync(
     config: { ...options.config, protocol: buildInfo.syncProtocol },
     onChange: notify,
   });
+  const accountPayments = createAccountPaymentUploadWorker({
+    ...options,
+    config: { ...options.config, protocol: buildInfo.syncProtocol },
+    onChange: notify,
+  });
+  const customers = createCustomerUploadWorker({
+    ...options,
+    config: { ...options.config, protocol: buildInfo.syncProtocol },
+    // A payment waits for its customer's upload, so each customer that lands may free one.
+    onChange() {
+      notify();
+      void accountPayments.trigger();
+    },
+  });
   const push = createPushWorker({
     ...options,
     onStatus: notify,
@@ -83,6 +99,8 @@ export function createHostSync(
       void stock.trigger();
       void refunds.trigger();
       void shifts.trigger();
+      void customers.trigger();
+      void accountPayments.trigger();
     },
   });
   return {
@@ -134,6 +152,8 @@ export function createHostSync(
       void stock.trigger();
       void refunds.trigger();
       void shifts.trigger();
+      void customers.trigger();
+      void accountPayments.trigger();
     },
     async trigger() {
       await push.trigger();
@@ -142,6 +162,8 @@ export function createHostSync(
       await stock.trigger(true);
       await refunds.trigger(true);
       await shifts.trigger(true);
+      await customers.trigger(true);
+      await accountPayments.trigger(true);
     },
     /** Uploads any acknowledged receipt PDFs that are still pending. */
     uploadReceipts: () => uploads.trigger(),
@@ -151,6 +173,10 @@ export function createHostSync(
     uploadRefunds: () => refunds.trigger(),
     /** Uploads closed shifts' Z reports once the sale backlog has drained. */
     uploadShifts: () => shifts.trigger(),
+    /** Uploads customers made and edited here once the sale backlog has drained. */
+    uploadCustomers: () => customers.trigger(),
+    /** Uploads payments taken on accounts at the drawer once the sale backlog has drained. */
+    uploadAccountPayments: () => accountPayments.trigger(),
     async stop() {
       await Promise.all([
         live.stop(),
@@ -160,6 +186,8 @@ export function createHostSync(
         stock.stop(),
         refunds.stop(),
         shifts.stop(),
+        customers.stop(),
+        accountPayments.stop(),
       ]);
     },
   };

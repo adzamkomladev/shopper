@@ -24,6 +24,10 @@
       "types": "./src/receipt/view.tsx",
       "default": "./src/receipt/view.tsx"
     },
+    "./statement": {
+      "types": "./src/statement/view.tsx",
+      "default": "./src/statement/view.tsx"
+    },
     "./render": {
       "types": "./src/render/index.ts",
       "default": "./src/render/index.ts"
@@ -39,6 +43,7 @@
   "dependencies": {
     "@shopper/core": "workspace:*",
     "@shopper/money": "workspace:*",
+    "@shopper/utils": "workspace:*",
     "pdf-lib": "1.17.1",
     "qrcode-generator": "2.0.4",
     "react": "19.3.0",

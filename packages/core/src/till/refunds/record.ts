@@ -157,7 +157,7 @@ async function plan(tx: TillSqlite, { config, session, data, time }: Prepared) {
   const names = await findRegisterSettings(tx, config);
   const rounding = readCashRounding(await tx.select().from(reference));
   const event = {
-    v: 1 as const,
+    v: 2 as const,
     type: "refund.recorded" as const,
     refund: buildRefund(
       original,
@@ -179,7 +179,7 @@ async function plan(tx: TillSqlite, { config, session, data, time }: Prepared) {
   };
   const receipt = buildRefundReceipt(
     event.refund,
-    { receiptNumber: original.sale.receiptNumber },
+    { receiptNumber: original.sale.receiptNumber, customer: original.sale.customer },
     {
       ...config.receiptReference,
       ...(names && { branchName: names.value.storeName, deviceName: names.value.registerName }),
@@ -195,5 +195,7 @@ const fromServer = (found: NonNullable<Input["original"]>): Original => ({
   receipt: found.receipt,
   refunded: found.refunded,
   cashRefunded: found.cashRefunded,
+  accountCredited: found.accountCredited,
+  pointsReturned: found.pointsReturned,
   finalSale: found.finalSale,
 });

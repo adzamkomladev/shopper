@@ -43,7 +43,7 @@ test("creating a mapping returns it, lists it, and writes one audit row and one 
   expect(rows).toHaveLength(2);
   expect(rows.map((r) => r.store_id).sort()).toEqual([...w.stores].sort());
   for (const row of rows)
-    expect(row).toMatchObject({ entity, entity_id: created.id, op: "upsert", v: 3 });
+    expect(row).toMatchObject({ entity, entity_id: created.id, op: "upsert", v: 4 });
   expect(rows[0]!.payload).toMatchObject(weight());
 });
 

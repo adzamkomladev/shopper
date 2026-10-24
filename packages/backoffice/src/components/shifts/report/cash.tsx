@@ -5,7 +5,7 @@ import { denominationLabel, deduction } from "../../../lib/shifts/format";
 
 const cedis = (amount: number) => formatGHS(money(amount));
 
-function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+export function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div
       className={`flex justify-between gap-4 ${strong ? "border-t pt-3 text-base font-bold" : ""}`}
@@ -16,13 +16,14 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
   );
 }
 
-/** The drawer's arithmetic: float plus cash kept, less refunds and drops. */
-export function CashBox({ cash }: { cash: XReport["cash"] }) {
+/** The drawer's arithmetic: float plus cash kept and cash paid onto accounts, less refunds and drops. */
+export function CashBox({ cash, accountCash }: { cash: XReport["cash"]; accountCash: number }) {
   return (
     <dl className="grid gap-2 p-4 text-sm">
       <Row label="Float" value={cedis(cash.float)} />
       <Row label="Cash sales" value={cedis(cash.sales)} />
       <Row label="Cash refunds" value={deduction(cash.refunds)} />
+      <Row label="Cash on accounts" value={cedis(accountCash)} />
       <Row label="Drops" value={deduction(cash.drops)} />
       <Row label="Expected in drawer" strong value={cedis(cash.expected)} />
     </dl>

@@ -8,7 +8,10 @@ export async function openSale(page: Page, scenario: string) {
 }
 
 /** Previous purchases and Settings live in the Menu drawer, not in the tabs. */
-export async function openFromMenu(page: Page, item: "Previous purchases" | "Settings") {
+export async function openFromMenu(
+  page: Page,
+  item: "Previous purchases" | "Settings" | "Take account payment",
+) {
   await page.getByRole("button", { name: /^Menu/ }).click();
   await page
     .getByRole("dialog", { name: "Menu" })

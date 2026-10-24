@@ -69,12 +69,12 @@ test("a product's finalSale flag follows every change to the till reference", as
   expect(await finalSaleOf(final.id)).toMatchObject({ finalSale: false });
 });
 
-test("a till on reference version 2 takes a snapshot that carries finalSale and ends at version 3", async () => {
+test("a till on reference version 2 takes a snapshot that carries finalSale and ends at version 4", async () => {
   await start();
   const final = await createProduct(databases().db, owner, draft(true));
   await referenceVersion(2);
   await worker.trigger();
   expect(await tillAuditCommands(till.database)).toContain("till.sync.snapshot");
-  expect(await referenceVersion()).toBe(3);
+  expect(await referenceVersion()).toBe(4);
   expect(await finalSaleOf(final.id)).toMatchObject({ finalSale: true });
 });

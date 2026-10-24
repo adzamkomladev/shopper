@@ -1,5 +1,6 @@
 import type { ReceiptDocument } from "@shopper/core/receipts";
 import {
+  clip,
   ghs,
   qrCaption,
   qrPayload,
@@ -56,6 +57,13 @@ export function ReceiptView({
       {header.receiptNumber ? <Row left="Receipt" right={header.receiptNumber} /> : null}
       <Row left="Date" right={header.accraTime} />
       <Row left="Cashier" right={header.cashier} />
+      {receipt.buyer ? (
+        <Stack>
+          <div style={{ display: "flex", ...bold }}>Buyer</div>
+          <div style={{ display: "flex" }}>{clip(receipt.buyer.name, paper[paperMm].cols)}</div>
+          <div style={{ display: "flex" }}>{`TIN ${receipt.buyer.tin}`}</div>
+        </Stack>
+      ) : null}
       <Rule />
       {receipt.lines.map((line, index) => (
         <Stack key={`${line.name}-${index}`}>

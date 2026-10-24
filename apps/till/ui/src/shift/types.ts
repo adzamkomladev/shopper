@@ -62,4 +62,4 @@ export type ShiftActions = {
 /** The notes and coins as typed, one text per face; blanks and zeros are left out when it is parsed. */
 export type CountText = Record<string, string>;
 export type CloseStep = "count" | "totals";
-export type ShiftDialog = "open" | "drop" | "nosale";
+export type ShiftDialog = "open" | "drop" | "nosale" | "payment";

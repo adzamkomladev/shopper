@@ -199,6 +199,23 @@ See [windows-handoff.md](../plans/day13/windows-handoff.md) for what is verified
 - `runGolden` takes an optional `at` so one golden sale can be dated (the ledger test sells at 14:30).
 - Portal e2e use `ownProducts()` (`tests/support/admin/stock.ts`) so specs never shift the seed's stock.
 
+### Customers, credit and loyalty (Day 17)
+
+- Customers: `addCustomer`, `addCreditEntry`, `addLoyaltyEntry`, `addHold`, `folds` and `holdStatuses` in
+  `tests/support/customers/seed.ts` write ledgers directly; `customerApi`, `loyaltyApi` and `statementApi` call the
+  API as a member of a portal owner. `creditHolds`, `verifiedCustomer`, `secondDevice` and `creditSaleEvent`
+  (`credit.ts`) build holds and v5 sales; `startCounter`, `uploader`, `created` and `updated` (`till.ts`) drive the
+  till-side customer upload; `setOrg`, `pointsAt`, `saleAt` and a recording `queue()` (`due.ts`) date the account
+  workflow; `setOrgSettings` and `shoot` serve the portal e2e specs.
+- KYC: `tests/support/kyc/world.ts` signs in as each role, reads the OTP from the Arkesel fake (`otpFor`), and
+  scans every store for ID and OTP secrets (`storedText`). It runs the workflow on its own pool.
+- Fakes at the network edge: Arkesel is `tooling/arkesel/server.ts`; Maileroo is
+  `tests/support/workflows/maileroo.ts` (strict email schema, recorded requests, a held response). Both start in
+  the Playwright config and the portal server fixtures.
+- A deliberate break per slice is part of the loop; see `docs/plans/day17/verification.md`.
+- Portal e2e specs for the Customers area, KYC and settings share one browser worker: run the portal project under
+  `flock` when several sessions use the box.
+
 ## Commands
 
 ```sh

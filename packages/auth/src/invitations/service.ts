@@ -2,6 +2,7 @@ import * as v from "valibot";
 import { v7 } from "uuid";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { buildInfo } from "@shopper/config";
+import { assertLinkSecret } from "@shopper/utils";
 import { invitation, org, workflowStep } from "@shopper/db-pg";
 import { uuidV7Schema } from "@shopper/ports";
 import { signalAuthCompletion } from "../flows/completion";
@@ -14,7 +15,7 @@ import { acceptInvitation, cancelInvitation, issueInvitation } from "./commands"
 import { invitationFor, invitationPreview, invitationView } from "./records";
 
 export function createInvitations(options: OnboardingOptions) {
-  if (options.linkSecret.length < 32) throw new Error("Link secret must be at least 32 characters");
+  assertLinkSecret(options.linkSecret);
   const now = options.now ?? Date.now;
   const context = (principal: AuthPrincipal) => ({
     orgId: principal.orgId,

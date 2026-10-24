@@ -1,7 +1,10 @@
 import { and, eq } from "drizzle-orm";
+import * as v from "valibot";
 import { canonicalJson, defineCommand } from "@shopper/audit";
 import { refund, refundLine, sale, stockMovement, type ShopperDatabase } from "@shopper/db-pg";
+import { sub } from "@shopper/money";
 import { sha256 } from "@shopper/utils";
+import { saleCustomer } from "../schemas/till/sale";
 import { decodeRefundEvent, type RefundEvent } from "../schemas/till/refund";
 import { SaleError } from "../sales/error";
 import type { UploadPrincipal } from "../sales/types";
@@ -9,6 +12,8 @@ import { validateRefundAuthority } from "./authority";
 import { refundDocument } from "./document";
 import { validateRefund } from "./validate";
 import { checkReorder } from "../stock/reorder";
+import { creditRefund, saleAccount } from "../customers/credit/refunds";
+import { salePoints, settleRefundPoints } from "../customers/loyalty/ledger";
 import type { Queue } from "@shopper/ports";
 
 type Input = {
@@ -32,7 +37,9 @@ export async function acceptRefund(
   const occurredAt = new Date(
     Math.min(now(), new Date(snapshot.deviceTime).valueOf() - snapshot.clockOffsetMs),
   );
-  return accept(
+  // The excess is review data kept in the audit row; a replay cannot rebuild it, so the
+  // response carries only what both can.
+  const saved = await accept(
     db,
     {
       orgId: principal.orgId,
@@ -51,6 +58,7 @@ export async function acceptRefund(
       contentHash: await sha256(canonicalJson(snapshot)),
     },
   );
+  return { id: saved.id, occurredAt: saved.occurredAt, total: saved.total };
 }
 
 const accept = defineCommand({
@@ -90,8 +98,16 @@ const accept = defineCommand({
       .for("update");
     if (!original || original.storeId !== input.principal.storeId)
       throw new SaleError("INVALID_REFERENCE", "Original sale not found in this store");
-    await validateRefund(tx, ctx.orgId, original.payload, snapshot);
-    const receipt = await refundDocument(tx, snapshot, original.receiptNumber);
+    const account = await saleAccount(tx, ctx.orgId, original.id);
+    const held = await salePoints(tx, ctx.orgId, original.id);
+    const { share, excess } = await validateRefund(tx, ctx.orgId, original.payload, snapshot, {
+      account,
+      points: held,
+    });
+    const receipt = await refundDocument(tx, snapshot, {
+      receiptNumber: original.receiptNumber,
+      customer: v.parse(saleCustomer, original.payload).customer,
+    });
     const [saved] = await tx
       .insert(refund)
       .values({
@@ -110,6 +126,8 @@ const accept = defineCommand({
         gross: snapshot.totals.gross,
         cashRounding: snapshot.cashRounding,
         total: snapshot.total,
+        accountCredit: share.account,
+        pointsReturned: share.points,
         appVersion: snapshot.appVersion,
         eventVersion: input.event.v,
         deviceTime: new Date(snapshot.deviceTime),
@@ -119,6 +137,23 @@ const accept = defineCommand({
         contentHash: input.contentHash,
       })
       .returning();
+    await creditRefund(tx, ctx, {
+      customerId: account.customerId,
+      share: share.account,
+      refundId: snapshot.id,
+      reason: snapshot.reason,
+      actorId: snapshot.cashierId,
+      occurredAt: input.occurredAt,
+    });
+    await settleRefundPoints(tx, ctx, {
+      held,
+      paid: sub(snapshot.totals.gross, share.pointsValue),
+      returned: share.points,
+      refundId: snapshot.id,
+      saleId: original.id,
+      actorId: snapshot.cashierId,
+      occurredAt: input.occurredAt,
+    });
     await tx.insert(refundLine).values(
       snapshot.lines.map((line) => ({
         id: line.id,
@@ -148,7 +183,7 @@ const accept = defineCommand({
       snapshot.branchId,
       snapshot.lines.map((line) => line.productId),
     );
-    return output(saved!);
+    return { ...output(saved!), excess };
   },
   audit: (input, result) => ({
     ...result,

@@ -33,7 +33,7 @@ export function redact(value: unknown): unknown {
     return Object.fromEntries(
       Object.entries(value).map(([key, item]) => [
         key,
-        /(^|_)(pin|passwords?|secrets?|tokens?|credentials?|authorization|cookies?|api_key|private_key|signing_key|access_key|session_key)(_|$)/i.test(
+        /(^|_)(pin|passwords?|secrets?|tokens?|credentials?|authorization|cookies?|api_key|private_key|signing_key|access_key|session_key|otp|id_number|card_number)(_|$)/i.test(
           key.replace(/([a-z])([A-Z])/g, "$1_$2"),
         )
           ? "[REDACTED]"

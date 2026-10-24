@@ -3,7 +3,13 @@ import { eq } from "drizzle-orm";
 import { v7 } from "uuid";
 import { defineCommand } from "@shopper/audit/sqlite";
 import { reference, tillState } from "@shopper/db-sqlite";
-import { clearProjection, projectProducts, storeCashRounding } from "@shopper/core/till";
+import {
+  clearProjection,
+  projectCustomers,
+  projectProducts,
+  replayPendingCustomers,
+  storeCashRounding,
+} from "@shopper/core/till";
 
 /** Replaces the organisation's reference and lookup; `referenceVersion` is the wire version the server sent. */
 export const applySnapshot = (now?: () => number) =>
@@ -18,7 +24,8 @@ export const applySnapshot = (now?: () => number) =>
           "tax-rule": input.reference.taxRules,
           "barcode-mapping": input.reference.barcodeMappings,
         };
-        for (const rows of Object.values(groups))
+        const { customers } = input.reference;
+        for (const rows of [...Object.values(groups), customers])
           if (rows.some((row) => "orgId" in row && row.orgId !== context.orgId))
             throw new Error("Reference outside tenant scope");
         await tx.delete(reference).where(eq(reference.orgId, context.orgId));
@@ -26,6 +33,9 @@ export const applySnapshot = (now?: () => number) =>
         const products = input.reference.products.filter((product) => !product.archivedAt);
         await projectProducts(tx, context.orgId, products);
         groups.product = products;
+        // The server's customers come first; what this till made or edited and has not uploaded goes back on top.
+        await projectCustomers(tx, context.orgId, customers);
+        await replayPendingCustomers(tx, context.orgId);
         await storeCashRounding(tx, context.orgId, input.reference.cashRounding);
         let count = 0;
         for (const [entity, rows] of Object.entries(groups)) {

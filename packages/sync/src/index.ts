@@ -8,6 +8,8 @@ export { createReceiptUploadWorker } from "./uploads/receipts";
 export { createStockUploadWorker } from "./uploads/stock";
 export { createRefundUploadWorker } from "./uploads/refunds";
 export { createShiftUploadWorker } from "./uploads/shifts";
+export { createCustomerUploadWorker } from "./uploads/customers";
+export { createAccountPaymentUploadWorker } from "./uploads/accounts";
 export type { ReceiptUploadOptions, StockUploadOptions } from "./uploads/types";
 export { refreshApprovers } from "./pull/approvers";
 export { createPushTransport } from "./push/http";

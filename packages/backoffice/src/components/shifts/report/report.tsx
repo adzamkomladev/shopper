@@ -1,6 +1,7 @@
 import type { XReport, ZReport } from "@shopper/core/schemas";
 import { anchorGroups, sameShopDay, shiftTime } from "../../../lib/shifts/format";
 import { ReportSection } from "../../register/report/section";
+import { AccountLines } from "./account";
 import { CashBox, CountedCash } from "./cash";
 import { Cashiers, Movements } from "./movements";
 import { ShiftTiles } from "./tiles";
@@ -50,7 +51,10 @@ export function ShiftReport({
           <TendersTable report={report} />
         </ReportSection>
         <ReportSection empty={null} title="Cash in the drawer">
-          <CashBox cash={report.cash} />
+          <CashBox accountCash={report.account.payments.cash} cash={report.cash} />
+        </ReportSection>
+        <ReportSection empty={null} title="Customer accounts">
+          <AccountLines account={report.account} />
         </ReportSection>
         {z && (
           <ReportSection empty={null} title="Counted cash">

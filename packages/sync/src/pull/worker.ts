@@ -115,10 +115,13 @@ export function createPullWorker(options: PullOptions) {
     const changes = decodeOrHalt(() => parsed.changes.map(decodeReferenceChange), cursor);
     if (!changes) return undefined;
     const data = { ...parsed, changes };
-    // Upcast v1 products lost their barcodes, so a page of them lowers the till's reference version.
+    // Products older than v3 lost fields in the upcast (barcodes, final sale), so a page of them lowers the till's
+    // reference version and the next run takes a snapshot. v3 products are whole: v4 only added customers.
     const referenceVersion = Math.min(
       KNOWN_VERSION,
-      ...parsed.changes.filter((c) => c.entity === "product" && c.op === "upsert").map((c) => c.v),
+      ...parsed.changes
+        .filter((c) => c.entity === "product" && c.op === "upsert" && c.v < 3)
+        .map((c) => c.v),
     );
     if (!ordered(cursor, data)) {
       publish({ state: "incompatible", cursor });

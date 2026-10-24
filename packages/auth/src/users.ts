@@ -1,8 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { hashPassword } from "better-auth/crypto";
 import * as v from "valibot";
-import { defineCommand } from "@shopper/audit";
-import { account, member, role, user } from "@shopper/db-pg";
+import { defineCommand, type CommandContext } from "@shopper/audit";
+import { account, member, role, user, type ShopperTransaction } from "@shopper/db-pg";
 import { assignRoleInput, registerUserInput } from "./schemas/users";
 import { assertCanGrantRole, assertHasPermission, AdministrationError } from "./roles/service";
 
@@ -11,57 +11,68 @@ export const assignMemberRole = defineCommand({
   async run(tx, context, rawInput: unknown) {
     const input = v.parse(assignRoleInput, rawInput);
     await assertHasPermission(tx, context, "role.write");
-    const [targetUser] = await tx
-      .select({ id: user.id })
-      .from(user)
-      .where(and(eq(user.orgId, context.orgId), eq(user.id, input.userId)))
-      .limit(1);
-    const [targetRole] = await tx
-      .select({ id: role.id, name: role.name, protectedOwner: role.protectedOwner })
-      .from(role)
-      .where(and(eq(role.orgId, context.orgId), eq(role.id, input.roleId)))
-      .limit(1);
-    if (!targetUser || !targetRole)
-      throw new AdministrationError("User or role not found in this organization", 404);
-    await assertCanGrantRole(tx, context, targetRole.id);
-    const [previous] = await tx
-      .select({ roleId: member.roleId, protectedOwner: role.protectedOwner })
-      .from(member)
-      .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
-      .where(and(eq(member.orgId, context.orgId), eq(member.userId, input.userId)));
-    if (previous?.protectedOwner && !targetRole.protectedOwner) {
-      const owners = await tx
-        .select({ id: member.id })
-        .from(member)
-        .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
-        .where(and(eq(member.orgId, context.orgId), eq(role.protectedOwner, true)));
-      if (owners.length <= 1)
-        throw new AdministrationError("The last owner cannot be demoted", 409);
-    }
-    const [assigned] = await tx
-      .insert(member)
-      .values({
-        orgId: context.orgId,
-        organizationId: context.orgId,
-        userId: input.userId,
-        role: targetRole.protectedOwner ? "owner" : "member",
-        roleId: input.roleId,
-      })
-      .onConflictDoUpdate({
-        target: [member.orgId, member.organizationId, member.userId],
-        set: { role: targetRole.protectedOwner ? "owner" : "member", roleId: input.roleId },
-      })
-      .returning({ id: member.id });
-    return {
-      memberId: assigned!.id,
-      userId: input.userId,
-      roleId: targetRole.id,
-      roleName: targetRole.name,
-    };
+    return grantMemberRole(tx, context, input);
   },
   audit: (input, output) => ({ userId: output.userId, roleId: output.roleId }),
   details: (_input, output) => ({ entity: "member", entityId: output.memberId, after: output }),
 });
+
+/**
+ * Gives a member a role inside the caller's command: the role must exist, the actor must hold every
+ * permission it carries, and the last owner stays an owner. Shared by role assignment and KYC approval.
+ */
+export async function grantMemberRole(
+  tx: ShopperTransaction,
+  context: CommandContext,
+  input: v.InferOutput<typeof assignRoleInput>,
+) {
+  const [targetUser] = await tx
+    .select({ id: user.id })
+    .from(user)
+    .where(and(eq(user.orgId, context.orgId), eq(user.id, input.userId)))
+    .limit(1);
+  const [targetRole] = await tx
+    .select({ id: role.id, name: role.name, protectedOwner: role.protectedOwner })
+    .from(role)
+    .where(and(eq(role.orgId, context.orgId), eq(role.id, input.roleId)))
+    .limit(1);
+  if (!targetUser || !targetRole)
+    throw new AdministrationError("User or role not found in this organization", 404);
+  await assertCanGrantRole(tx, context, targetRole.id);
+  const [previous] = await tx
+    .select({ roleId: member.roleId, protectedOwner: role.protectedOwner })
+    .from(member)
+    .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
+    .where(and(eq(member.orgId, context.orgId), eq(member.userId, input.userId)));
+  if (previous?.protectedOwner && !targetRole.protectedOwner) {
+    const owners = await tx
+      .select({ id: member.id })
+      .from(member)
+      .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
+      .where(and(eq(member.orgId, context.orgId), eq(role.protectedOwner, true)));
+    if (owners.length <= 1) throw new AdministrationError("The last owner cannot be demoted", 409);
+  }
+  const [assigned] = await tx
+    .insert(member)
+    .values({
+      orgId: context.orgId,
+      organizationId: context.orgId,
+      userId: input.userId,
+      role: targetRole.protectedOwner ? "owner" : "member",
+      roleId: input.roleId,
+    })
+    .onConflictDoUpdate({
+      target: [member.orgId, member.organizationId, member.userId],
+      set: { role: targetRole.protectedOwner ? "owner" : "member", roleId: input.roleId },
+    })
+    .returning({ id: member.id });
+  return {
+    memberId: assigned!.id,
+    userId: input.userId,
+    roleId: targetRole.id,
+    roleName: targetRole.name,
+  };
+}
 
 export const registerOrganizationUser = defineCommand({
   name: "auth.user.register",

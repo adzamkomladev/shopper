@@ -10,6 +10,7 @@ import {
   ShieldCheckIcon,
   StoreIcon,
   UploadIcon,
+  UserRoundIcon,
   UsersIcon,
 } from "lucide-react";
 
@@ -31,6 +32,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     icon: WarehouseIcon,
     permission: "stock.read",
     also: ["/suppliers"],
+  },
+  {
+    to: "/customers",
+    label: "Customers",
+    icon: UserRoundIcon,
+    permission: "customer.read",
+    also: ["/kyc", "/settings"],
   },
   { to: "/barcodes", label: "Barcodes", icon: ScanBarcodeIcon, permission: "product.read" },
   { to: "/imports", label: "Import", icon: UploadIcon },

@@ -8,6 +8,7 @@ import {
   type TillSqlite,
 } from "@shopper/db-sqlite";
 import { readDraftInput, type DraftScope } from "../../schemas/till/drafts";
+import { readLookupCustomer } from "../customers/queries";
 import { readQuoteReference } from "../quotation";
 import { TillError } from "../error";
 import { settle } from "../tenders/settle";
@@ -48,10 +49,16 @@ export async function toView(tx: TillSqlite, scope: DraftScope, at: Date, found?
     settlementError = error.message;
   }
   if (!found)
-    return { cashRounding: refs.cashRounding, draft: null, quote: { ...quote, changed: false } };
+    return {
+      cashRounding: refs.cashRounding,
+      draft: null,
+      customer: null,
+      quote: { ...quote, changed: false },
+    };
   const { draft, lines } = found;
   return {
     cashRounding: refs.cashRounding,
+    customer: draft.customerId ? await readLookupCustomer(tx, scope.orgId, draft.customerId) : null,
     settlement,
     ...(settlementError ? { settlementError } : {}),
     draft: {

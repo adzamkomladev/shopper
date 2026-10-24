@@ -1,4 +1,5 @@
 import * as v from "valibot";
+import { createEventDecoder } from "../events";
 import { tillId } from "./fields";
 import { cashCounts, countedCash, type CashCounts } from "./shifts";
 
@@ -8,6 +9,26 @@ const timestamp = v.pipe(v.string(), v.isoTimestamp());
 const tender = v.picklist(["cash", "card", "momo"]);
 
 const variance = v.strictObject({ tender, expected: amount, declared: amount, variance: amount });
+
+/**
+ * What happened on customers' accounts in the shift: sales put on account, money paid onto accounts at the drawer by
+ * method (the cash part is inside the expected cash), refunds credited back to accounts, and points redeemed. A Z from
+ * a till that predates these lines (a v1 `shift.closed`, or a Z stored before them) reads as all zero.
+ */
+export const accountLines = v.strictObject({
+  sales: amount,
+  payments: v.strictObject({ cash: amount, momo: amount }),
+  refunds: amount,
+  points: count,
+  pointsValue: amount,
+});
+const noAccount = {
+  sales: 0,
+  payments: { cash: 0, momo: 0 },
+  refunds: 0,
+  points: 0,
+  pointsValue: 0,
+};
 
 /** The X report: a shift's takings so far, read while it is open; printing it closes nothing. */
 export const xReport = v.strictObject({
@@ -24,6 +45,7 @@ export const xReport = v.strictObject({
   sales: v.strictObject({ count, gross: amount, tax: amount }),
   refunds: v.strictObject({ count, total: amount }),
   tenders: v.array(v.strictObject({ tender, sales: amount, refunds: amount, expected: amount })),
+  account: accountLines,
   cash: v.strictObject({
     float: amount,
     sales: amount,
@@ -77,10 +99,30 @@ export const shiftReport = v.variant("kind", [xReport, zReport]);
 export type ShiftReport = v.InferOutput<typeof shiftReport>;
 /** The one upload of a shift: its Z, and the session that closed it (which proves the close). */
 export const shiftClosedEvent = v.strictObject({
-  v: v.literal(1),
+  v: v.literal(2),
   type: v.literal("shift.closed"),
   shift: v.strictObject({ orgId: tillId, sessionId: tillId, report: zReport }),
 });
 export type ShiftClosedEvent = v.InferOutput<typeof shiftClosedEvent>;
+
+/** A stored X or Z: one kept before the account lines reads them as all zero. */
+const withAccount = (report: unknown) => ({ account: noAccount, ...(report as object) });
+export const decodeZReport = (raw: unknown) => v.parse(zReport, withAccount(raw));
+
+/** v1 Zs had no account lines. */
+export const decodeShiftClosedEvent = createEventDecoder(
+  2,
+  (raw) => v.parse(shiftClosedEvent, raw),
+  {
+    1: (raw) => {
+      const event = raw as { shift?: { report?: unknown } };
+      return {
+        ...event,
+        v: 2,
+        shift: { ...event.shift, report: withAccount(event.shift?.report) },
+      };
+    },
+  },
+);
 export type XReport = v.InferOutput<typeof xReport>;
 export type ZReport = v.InferOutput<typeof zReport>;

@@ -1,7 +1,20 @@
-import { afterEach, expect, test } from "vite-plus/test";
+import { afterEach, describe, expect, test } from "vite-plus/test";
+import { eq } from "drizzle-orm";
+import * as v from "valibot";
+import { sale } from "@shopper/db-pg";
 import { createPushWorker } from "@shopper/sync";
-import { decodeSaleEvent } from "@shopper/core/schemas";
+import { acceptSale } from "@shopper/core/sales";
+import {
+  decodeRefundEvent,
+  decodeSaleEvent,
+  decodeShiftClosedEvent,
+  receiptDocument,
+} from "@shopper/core/schemas";
+import { refundEvent } from "../../support/sales/refunds";
+import { shiftEvent } from "../../support/sales/shifts";
+import { goldenReceipt } from "../../support/hardware/receipt";
 import { createPushFixture, type PushFixture } from "../../support/till/push";
+import { databases, deviceId, recordSale } from "../../support/till/server";
 
 let fixture: PushFixture | undefined;
 afterEach(async () => {
@@ -49,4 +62,76 @@ test("sale decoding rejects pre-tender events without upcasting", async () => {
   const recorded = await fixture.recordSale();
   for (const v of [1, 2]) expect(() => decodeSaleEvent({ ...recorded.event, v })).toThrow();
   expect(decodeSaleEvent(recorded.event)).toEqual(recorded.event);
+});
+
+test("A v4 sale event is upcast to v5 and accepted", async () => {
+  const { event, proof } = await recordSale();
+  const { customer: _customer, ...legacy } = event.sale as Record<string, unknown>;
+  const v4 = { ...event, v: 4, sale: legacy };
+  expect(decodeSaleEvent(v4)).toEqual({ ...event, v: 5, sale: { ...event.sale, customer: null } });
+
+  const { db, context } = databases();
+  const principal = {
+    orgId: context.orgId,
+    deviceId,
+    branchId: event.sale.branchId,
+    storeId: event.sale.storeId,
+  };
+  await acceptSale(db, principal, v4, proof);
+  const [saved] = await db.select().from(sale).where(eq(sale.id, event.sale.id));
+  expect(saved).toMatchObject({ eventVersion: 5, customerId: null });
+});
+
+test("A stored v2 receipt reads as v3 with no buyer", () => {
+  const { v: _v, buyer: _buyer, ...rest } = goldenReceipt();
+  const parsed = v.parse(receiptDocument, { v: 2, ...rest });
+  expect(parsed).toMatchObject({ v: 3, kind: "sale", buyer: null });
+  expect(parsed).toEqual(goldenReceipt());
+});
+
+describe("refund and Z versions", () => {
+  // Decoding needs only well-formed ids, not a seeded world.
+  const id = "019a0000-0000-7000-8000-000000000001";
+  const world = {
+    session: { userId: id, id },
+    config: { appVersion: "0.0.0-test", storeId: id },
+    scope: { orgId: id, branchId: id, deviceId: id },
+  } as any;
+
+  test("a v1 refund reads as v2 that credited nothing to an account or points; v2 needs the split", async () => {
+    fixture = await createPushFixture();
+    const sold = (await fixture.recordSale()).event.sale;
+    const old = refundEvent(world, sold, [{ line: 0, before: 0, after: 1_000 }]);
+    expect(old.v).toBe(1);
+    const read = decodeRefundEvent(old);
+    expect(read).toEqual({
+      ...old,
+      v: 2,
+      refund: { ...old.refund, accountCredit: 0, pointsReturned: 0, pointsValue: 0 },
+    });
+    expect(decodeRefundEvent(read)).toEqual(read);
+    expect(() => decodeRefundEvent({ ...old, v: 2 })).toThrow();
+    expect(() => decodeRefundEvent({ ...read, v: 3 })).toThrow();
+  });
+
+  test("a v1 Z with no account lines reads as v2 with all-zero account lines; v2 needs them", async () => {
+    const old = shiftEvent(world);
+    expect(old.v).toBe(1);
+    expect("account" in old.shift.report).toBe(false);
+    const read = decodeShiftClosedEvent(old);
+    const account = {
+      sales: 0,
+      payments: { cash: 0, momo: 0 },
+      refunds: 0,
+      points: 0,
+      pointsValue: 0,
+    };
+    expect(read).toEqual({
+      ...old,
+      v: 2,
+      shift: { ...old.shift, report: { ...old.shift.report, account } },
+    });
+    expect(decodeShiftClosedEvent(read)).toEqual(read);
+    expect(() => decodeShiftClosedEvent({ ...old, v: 2 })).toThrow();
+  });
 });

@@ -9,6 +9,7 @@ export {
   mulRatio,
   roundCash,
   sub,
+  unitsOf,
 } from "./arithmetic";
 export {
   formatGHS,

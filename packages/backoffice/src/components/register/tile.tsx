@@ -31,5 +31,5 @@ export function Tile({
 }
 
 export function TileSkeleton() {
-  return <Skeleton className="h-35 rounded-2xl" />;
+  return <Skeleton className="h-32.5 rounded-2xl" />;
 }

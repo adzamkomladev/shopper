@@ -1,16 +1,11 @@
 import { cn } from "cn";
 import { Badge } from "@shopper/ui/components/badge";
 import { Button } from "@shopper/ui/components/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@shopper/ui/components/table/primitive";
+import { Table, TableBody, TableCell, TableRow } from "@shopper/ui/components/table/primitive";
 import type { PurchaseActions, PurchaseSummary, PurchasesSnapshot } from "../../sale/types";
 import { accraTime, formatSigned, statusLabel, tenderLabel } from "../../purchases/format";
+import { PurchaseCustomer } from "./customer";
+import { PurchaseHead } from "./head";
 import { FindOnServer, LookupAlert } from "./lookup";
 import { PurchaseSkeleton } from "./skeleton";
 
@@ -87,22 +82,7 @@ export function PurchaseRows({
       >
         <div className="min-h-0 flex-1 overflow-auto">
           <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="px-4 text-xs font-semibold text-muted-foreground">
-                  Time / receipt
-                </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground">
-                  Payment
-                </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground">
-                  Status
-                </TableHead>
-                <TableHead className="px-4 text-right text-xs font-semibold text-muted-foreground">
-                  Total
-                </TableHead>
-              </TableRow>
-            </TableHeader>
+            <PurchaseHead />
             <TableBody>
               {purchases.map((purchase) => (
                 <PurchaseRow actions={actions} key={purchase.id} purchase={purchase} />
@@ -162,6 +142,9 @@ function PurchaseRow({
             {refund ? `Return of #${refund}` : `#${reference}`}
           </span>
         </Button>
+      </TableCell>
+      <TableCell className="hidden max-w-48 sm:table-cell">
+        <PurchaseCustomer customer={purchase.customer} />
       </TableCell>
       <TableCell className="hidden sm:table-cell">
         {purchase.kinds.map(tenderLabel).join(" + ") || "—"}

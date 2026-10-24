@@ -82,11 +82,14 @@ test("The edge queue handler texts a raised alert", async () => {
   expect(result.explicitAcks).toEqual(["alert"]);
   expect(result.retryMessages).toEqual([]);
 
-  const sent = (await (await fetch(`${bindings.ARKESEL_BASE_URL}/test/requests`)).json()) as {
-    sender: string;
-    message: string;
-    recipients: string[];
-  }[];
+  // The fake is shared with the other suites' texts (the KYC codes), so only this branch's phone counts.
+  const sent = (
+    (await (await fetch(`${bindings.ARKESEL_BASE_URL}/test/requests`)).json()) as {
+      sender: string;
+      message: string;
+      recipients: string[];
+    }[]
+  ).filter((request) => request.recipients.includes("233241234567"));
   expect(sent).toEqual([
     {
       sender: "Shopper",

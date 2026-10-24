@@ -10,6 +10,11 @@ import { validateReceipt } from "./receipts";
 import { SaleError } from "./error";
 import { validateTenders } from "./tenders";
 import { saleDocument } from "./document";
+import { ensureSaleCustomer } from "../customers/sale";
+import { publishCustomer } from "../customers/feed";
+import { consumeHolds } from "../customers/credit/holds";
+import { earnPoints } from "../customers/loyalty/ledger";
+import { wakeAccount } from "../customers/accounts/wake";
 import { checkReorder } from "../stock/reorder";
 import type { Queue } from "@shopper/ports";
 
@@ -75,7 +80,14 @@ const accept = defineCommand({
     );
     if (saved.contentHash !== input.contentHash)
       throw new SaleError("CONFLICT", "Sale identity already has different content");
-    return { output: { localId: saved.localId, occurredAt: saved.occurredAt.toISOString() } };
+    return {
+      output: {
+        localId: saved.localId,
+        occurredAt: saved.occurredAt.toISOString(),
+        customerId: saved.customerId,
+        customerCreated: false,
+      },
+    };
   },
   async run(tx, ctx, input) {
     const snapshot = input.event.sale;
@@ -83,6 +95,7 @@ const accept = defineCommand({
     await validateReferences(tx, ctx.orgId, snapshot, input.occurredAt);
     await validateReceipt(tx, snapshot);
     const tenders = await validateTenders(tx, snapshot);
+    const buyer = await ensureSaleCustomer(tx, ctx, snapshot);
     const [saved] = await tx
       .insert(sale)
       .values({
@@ -95,6 +108,7 @@ const accept = defineCommand({
         cashierId: snapshot.cashierId,
         sessionId: snapshot.sessionId,
         appVersion: snapshot.appVersion,
+        customerId: buyer.id,
         eventVersion: input.event.v,
         deviceTime: new Date(snapshot.deviceTime),
         occurredAt: input.occurredAt,
@@ -110,6 +124,7 @@ const accept = defineCommand({
       .onConflictDoNothing({ target: [sale.deviceId, sale.localId] })
       .returning();
     if (!saved) throw new SaleError("CONFLICT", "Sale identity already exists");
+    await consumeHolds(tx, ctx, snapshot, input.occurredAt);
     await tx.insert(saleLine).values(
       snapshot.lines.map((line) => ({
         id: line.id,
@@ -140,7 +155,21 @@ const accept = defineCommand({
       snapshot.branchId,
       snapshot.lines.map((line) => line.productId),
     );
-    return { localId: saved.localId, occurredAt: saved.occurredAt.toISOString() };
+    const earned = await earnPoints(tx, ctx, {
+      snapshot,
+      customerId: buyer.id,
+      occurredAt: input.occurredAt,
+    });
+    if (buyer.created) await publishCustomer(tx, ctx.orgId, buyer.created);
+    // Its charge or earn may bring the account's next interest, expiry or tier notice forward.
+    if (buyer.id) wakeAccount(tx, ctx.orgId, buyer.id);
+    return {
+      localId: saved.localId,
+      occurredAt: saved.occurredAt.toISOString(),
+      customerId: buyer.id,
+      customerCreated: Boolean(buyer.created),
+      ...(earned ? { pointsEarned: earned } : {}),
+    };
   },
   audit: (input, output) => ({ ...output, ...overrideAudit(input.event.sale) }),
   details: (_input, output) => ({ entity: "sale", entityId: output.localId }),

@@ -26,6 +26,7 @@ export function goldenReceipt(lineNames = saleLines) {
 /** The refund receipt of one unit of the golden sale's first line, paid back as `tender`. */
 export function goldenRefundReceipt(
   tender: { kind: "cash" } | { kind: "card" | "momo"; reference: string } = { kind: "cash" },
+  customer: Parameters<typeof buildRefundReceipt>[1]["customer"] = null,
 ) {
   const sale = goldenSale();
   const original = sale.lines[0]!;
@@ -65,11 +66,14 @@ export function goldenRefundReceipt(
     },
     cashRounding: 0,
     total: tax.gross,
+    accountCredit: 0,
+    pointsReturned: 0,
+    pointsValue: 0,
     tender,
   });
   return v.parse(
     receiptDocument,
-    buildRefundReceipt(refund, { receiptNumber: sale.receiptNumber }, reference),
+    buildRefundReceipt(refund, { receiptNumber: sale.receiptNumber, customer }, reference),
   );
 }
 

@@ -9,9 +9,11 @@ type Props = {
   members: UserView[];
   /** Only members who may change roles get the button. */
   onChangeRole?: (member: UserView) => void;
+  /** Starts a role check for the member; only members who may assign roles get it. */
+  onVerify?: (member: UserView) => void;
 };
 
-export function MembersTable({ members, onChangeRole }: Props) {
+export function MembersTable({ members, onChangeRole, onVerify }: Props) {
   const columns: DataTableColumn<UserView>[] = [
     {
       id: "name",
@@ -39,7 +41,17 @@ export function MembersTable({ members, onChangeRole }: Props) {
       id: "actions",
       header: () => <span className="sr-only">Actions</span>,
       cell: ({ row }) => (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          {onVerify && (
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label={`Verify identity of ${row.original.name}`}
+              onClick={() => onVerify(row.original)}
+            >
+              Verify identity
+            </Button>
+          )}
           <Button
             id={editButtonId(row.original.id)}
             variant="outline"

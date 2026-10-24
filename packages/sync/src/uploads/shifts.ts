@@ -1,4 +1,5 @@
 import { and, asc, eq, isNull, lte, or } from "drizzle-orm";
+import { decodeZReport } from "@shopper/core/schemas";
 import { markShiftAccepted, markShiftFailed, markShiftRejected } from "@shopper/core/till";
 import { hostSession, shift } from "@shopper/db-sqlite";
 import { createDocumentUploadWorker } from "./documents";
@@ -30,9 +31,14 @@ export function createShiftUploadWorker(options: StockUploadOptions) {
       requestId: row.id,
       proof,
       shift: {
-        v: 1,
+        v: 2,
         type: "shift.closed",
-        shift: { orgId: row.orgId, sessionId: row.closedSessionId, report: row.report },
+        // A Z stored before the account lines uploads them as zero.
+        shift: {
+          orgId: row.orgId,
+          sessionId: row.closedSessionId,
+          report: decodeZReport(row.report),
+        },
       },
     }),
     accept: markShiftAccepted,

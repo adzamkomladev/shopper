@@ -112,6 +112,14 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function tenderName(kind: "cash" | "momo" | "card") {
-  return kind === "momo" ? "Mobile money" : kind === "cash" ? "Cash" : "Card";
+const tenderNames = {
+  cash: "Cash",
+  momo: "Mobile money",
+  card: "Card",
+  credit: "On account",
+  loyalty: "Points",
+} as const;
+
+function tenderName(kind: keyof typeof tenderNames) {
+  return tenderNames[kind];
 }

@@ -25,3 +25,14 @@ export const takeSheetSearch = v.object({
   uncounted: v.optional(v.literal(true)),
   review: v.optional(v.literal(true)),
 });
+
+/** The customer list: a search, and either the customers who owe, business customers only or the archived ones. */
+export const customersSearch = v.object({
+  q: v.optional(v.string()),
+  segment: v.optional(v.picklist(["account", "business", "archived"])),
+});
+
+/** A customer's page: Purchases unless another tab is chosen. */
+export const customerSearch = v.object({
+  tab: v.optional(v.picklist(["statement", "points"])),
+});

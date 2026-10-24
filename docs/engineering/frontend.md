@@ -68,7 +68,9 @@ If none of these fit, stop and ask. Do not work around the guard with a custom w
 - Back-office screens live in `@shopper/backoffice` and must run in the portal **and** Electron:
   no Node APIs, no direct `window.electron`. Use the bridge contract. The Inventory area's tabs
   (Stock, Records, Stock takes, Valuation, Suppliers) live in `components/inventory/tabs.tsx`, each
-  shown only to members holding its permission.
+  shown only to members holding its permission. The Customers area's tabs live in
+  `components/customers/tabs.tsx` the same way. A loader that fetches only for members who hold a
+  permission uses `whenHeld` (`routes/held.ts`).
 
 ## Design system
 
@@ -106,6 +108,31 @@ If none of these fit, stop and ask. Do not work around the guard with a custom w
   another shop's data.
 - Shop time is UTC (Ghana is GMT all year). Read and show dates through `lib/shop-time.ts`, never in
   the browser's zone.
+
+## The Customers area (Day 17)
+
+`@shopper/backoffice` has one Customers area with four tabs, all drawn by `components/customers/tabs.tsx`
+(`CustomersPage`): **Customers** (`/customers`), **Ageing** (`/customers/ageing`), **Identity checks** (`/kyc`,
+needs `kyc.approve`) and **Loyalty** (`/settings/loyalty`, needs `customer.manage`). A tab shows only to members
+who hold its permission, and the page heading names the tab. The top nav item "Customers" stays highlighted on
+`/kyc` and `/settings/*`. The other settings pages (Credit, Statements, Identity checks) are reached from the
+`SettingsLinks` row at the head of every settings page.
+
+- **Customer detail** (`/customers/$id`): summary cards, then Purchases, Statement and Points tabs. Keys: E edit,
+  P payment, C credit note, L limit (verified customers only), K verify identity (opens `KycStartSheet` with the
+  customer as the subject), M merge, T transfer points, Alt+A archive. The Users screen offers "Verify identity" on
+  a member (a role check) to members who may assign roles.
+- **Every dialog and sheet** is a `usePanel` pair that returns focus to the button that opened it. Writes are
+  disabled offline with an `OfflineNote`; a member who can look but not act sees a `ReadOnlyNote`.
+- **Public statement page** (`/statement/$token`) never shows the nav or asks for a sign-in; it is phone-first and
+  has a not-found state that says nothing about why a link failed.
+- **Till:** the customer dialog (Alt+U add customer, Alt+I create invoice, Alt+E edit, Alt+R remove), the basket
+  chip, the On account (Alt+5) and Points (Alt+6) tenders, and Take account payment (Alt+A). Account tenders are
+  disabled offline ("Needs a connection"); drawer cash payments still work. The purchases tender filter offers
+  On account and Points.
+- **Figma** has frames only for Checkout, Till dashboard, Purchases and Payment. The portal customer, statement,
+  ageing, merge, loyalty, KYC and settings screens and the till dialogs follow the Inventory area patterns, the
+  purchases table and the shift report styles.
 
 ## UX rules
 

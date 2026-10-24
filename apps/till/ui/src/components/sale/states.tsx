@@ -172,7 +172,7 @@ export function SaleBanners({
 
 export function EmptyBasket() {
   return (
-    <Empty className="flex-1">
+    <Empty className="flex-1 md:p-6">
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <ScanLine aria-hidden="true" />

@@ -13,5 +13,5 @@ flows. `/health`, `/about`, and `/` remain available without authentication setu
 Configure `SHOPPER_LINK_SECRET` (a dedicated secret of at least 32 characters),
 `MAILEROO_API_KEY` and `MAILEROO_FROM` for verified registration and invitations.
 `ARKESEL_API_KEY` (secret), `ARKESEL_SENDER` (text binding) and the optional `ARKESEL_BASE_URL` let the
-Worker's `queue()` export text low-stock alerts to a branch's alert phones. `AUTH_FLOWS` runs the shared `AuthWorkflow`. `MAILEROO_ENDPOINT` is an optional trusted
+Worker's `queue()` export text low-stock alerts to a branch's alert phones. `AUTH_FLOWS` runs the shared `AuthWorkflow`. `KYC_FLOWS` runs `KycWorkflow`, which texts KYC codes through the same Arkesel settings. `MAILEROO_ENDPOINT` is an optional trusted
 configuration override for network integration testing; production uses Maileroo's v2 API.

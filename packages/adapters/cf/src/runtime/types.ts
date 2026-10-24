@@ -1,5 +1,6 @@
 import type { cloudflareQueue } from "../queue";
-import type { cloudflareLauncher } from "../launcher";
+import type { cloudflareRenderer } from "../renderer";
+import type { cloudflareLauncher, cloudflareLoopLauncher } from "../launcher";
 import type { cloudflareLive } from "../live";
 import type { cloudflareSequencer } from "../sequencer";
 
@@ -37,4 +38,8 @@ export interface CloudflareRuntimeEnvironment extends AuthEnvironment {
   NOTIFICATIONS?: Parameters<typeof cloudflareQueue>[0];
   MOMO_PAYMENT?: Parameters<typeof cloudflareLauncher>[0];
   AUTH_FLOWS?: Parameters<typeof cloudflareLauncher>[0];
+  BROWSER?: Parameters<typeof cloudflareRenderer>[0];
+  KYC_FLOWS?: Parameters<typeof cloudflareLauncher>[0];
+  ACCOUNT_FLOWS?: Parameters<typeof cloudflareLoopLauncher>[0];
+  STATEMENT_FLOWS?: Parameters<typeof cloudflareLoopLauncher>[0];
 }

@@ -1,3 +1,5 @@
+import type { storeChangeEntities } from "@shopper/db-pg";
+
 export type PullPage =
   | { snapshot: true; head: string }
   | {
@@ -16,7 +18,7 @@ export type PullPage =
     };
 
 export type Change = {
-  entity: "product" | "price" | "tax-rule" | "barcode-mapping";
+  entity: (typeof storeChangeEntities)[number];
   entityId: string;
   op: "upsert" | "delete";
   payload: unknown;

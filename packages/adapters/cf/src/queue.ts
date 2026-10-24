@@ -1,8 +1,11 @@
+import { createMaileroo } from "@shopper/auth";
 import { buildInfo } from "@shopper/config";
+import { deliverNotification } from "@shopper/core/notifications";
 import { createArkesel } from "@shopper/core/sms/arkesel";
-import { deliverStockAlert } from "@shopper/core/stock";
 import { messageBody, NOTIFICATION_RETRY, retryDelay } from "@shopper/ports";
 import { cloudflareDatabase } from "./database";
+import { cloudflareRenderer } from "./renderer";
+import { cloudflareLoopLauncher } from "./launcher";
 import type { CloudflareRuntimeEnvironment } from "./runtime/types";
 import type { Envelope, Queue, QueueHandler, RetryPolicy } from "@shopper/ports";
 
@@ -54,26 +57,64 @@ export async function cloudflareDeliver(
   );
 }
 
-/** The edge Worker's `queue()` shell: low-stock alerts become SMS through Arkesel. */
+/**
+ * The edge Worker's `queue()` shell: low-stock alerts become SMS through Arkesel, and statements go out by SMS,
+ * or by email with the PDF rendered through Browser Run.
+ */
 export async function cloudflareNotifications(
   batch: MessageBatch<string>,
   env: Pick<
     CloudflareRuntimeEnvironment,
-    "HYPERDRIVE" | "ARKESEL_API_KEY" | "ARKESEL_SENDER" | "ARKESEL_BASE_URL"
+    | "HYPERDRIVE"
+    | "ARKESEL_API_KEY"
+    | "ARKESEL_SENDER"
+    | "ARKESEL_BASE_URL"
+    | "MAILEROO_API_KEY"
+    | "MAILEROO_FROM"
+    | "MAILEROO_ENDPOINT"
+    | "SHOPPER_LINK_SECRET"
+    | "SHOPPER_AUTH_URL"
+    | "BROWSER"
+    | "ACCOUNT_FLOWS"
+    | "STATEMENT_FLOWS"
+    | "NOTIFICATIONS"
   >,
 ): Promise<void> {
-  // Without a key every message retries and dead-letters, so a missing secret is never silent.
-  if (!env.ARKESEL_API_KEY || !env.ARKESEL_SENDER) return batch.retryAll();
+  const sms =
+    env.ARKESEL_API_KEY && env.ARKESEL_SENDER
+      ? createArkesel({
+          apiKey: env.ARKESEL_API_KEY,
+          sender: env.ARKESEL_SENDER,
+          baseUrl: env.ARKESEL_BASE_URL || undefined,
+        })
+      : undefined;
+  const mail =
+    env.MAILEROO_API_KEY && env.MAILEROO_FROM
+      ? createMaileroo({
+          apiKey: env.MAILEROO_API_KEY,
+          from: env.MAILEROO_FROM,
+          endpoint: env.MAILEROO_ENDPOINT || undefined,
+        })
+      : undefined;
   const connection = await cloudflareDatabase(env.HYPERDRIVE.connectionString);
   try {
-    const sms = createArkesel({
-      apiKey: env.ARKESEL_API_KEY,
-      sender: env.ARKESEL_SENDER,
-      baseUrl: env.ARKESEL_BASE_URL || undefined,
-    });
+    const deps = {
+      db: connection.db,
+      appVersion: buildInfo.version,
+      sms,
+      mail,
+      renderer: env.BROWSER ? cloudflareRenderer(env.BROWSER) : undefined,
+      linkSecret: env.SHOPPER_LINK_SECRET,
+      baseUrl: env.SHOPPER_AUTH_URL,
+      accounts: env.ACCOUNT_FLOWS ? cloudflareLoopLauncher(env.ACCOUNT_FLOWS, "wake") : undefined,
+      statements: env.STATEMENT_FLOWS
+        ? cloudflareLoopLauncher(env.STATEMENT_FLOWS, "wake")
+        : undefined,
+      queue: env.NOTIFICATIONS ? cloudflareQueue(env.NOTIFICATIONS, NOTIFICATION_RETRY) : undefined,
+    };
     await cloudflareDeliver(
       batch,
-      (delivery) => deliverStockAlert(connection.db, sms, delivery, buildInfo.version),
+      (delivery) => deliverNotification(deps, delivery),
       NOTIFICATION_RETRY,
     );
   } finally {

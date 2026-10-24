@@ -43,6 +43,13 @@ export const xReport: XReport = {
     { tender: "card", sales: 300_000, refunds: 0, expected: 300_000 },
     { tender: "momo", sales: 120_000, refunds: 0, expected: 120_000 },
   ],
+  account: {
+    sales: 80_000,
+    payments: { cash: 0, momo: 50_000 },
+    refunds: 0,
+    points: 0,
+    pointsValue: 0,
+  },
   cash: {
     float: 2_000_000,
     sales: 1_500_000,

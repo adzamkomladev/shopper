@@ -13,12 +13,14 @@
     "dev": "vp run build && bun --watch dist/index.js"
   },
   "dependencies": {
+    "@resvg/resvg-wasm": "2.6.2",
     "@shopper/adapters-box": "workspace:*",
     "@shopper/api": "workspace:*",
     "@shopper/auth": "workspace:*",
     "@shopper/config": "workspace:*",
     "@shopper/core": "workspace:*",
     "@shopper/ports": "workspace:*",
-    "hono": "4.13.13"
+    "hono": "4.13.13",
+    "satori": "0.33.5"
   }
 }

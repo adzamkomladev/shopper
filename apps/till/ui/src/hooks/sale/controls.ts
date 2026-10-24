@@ -7,7 +7,8 @@ export function useSaleControls(snapshot: SaleSnapshot, actions: SaleActions): S
   const [heldOpen, setHeldOpen] = useState(false);
   const [voidOpen, setVoidOpen] = useState(false);
   const [notice, setNotice] = useState("");
-  const hasDraft = snapshot.view?.draft != null;
+  // A basket holding only a customer has nothing to hold or clear yet.
+  const hasDraft = (snapshot.view?.draft?.lines.length ?? 0) > 0;
   const locked = snapshot.host !== "connected" || snapshot.failure !== null || snapshot.busy;
   // Cash or card already taken means only a manager can undo the sale, whatever the cashier may do.
   const voidApproval =

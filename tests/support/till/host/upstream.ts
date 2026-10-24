@@ -136,10 +136,11 @@ async function proxy(
     const value = incoming.rawHeaders[index + 1];
     if (name && value) headers.append(name, value);
   }
-  if (path === "/sync/push" && !isAvailable()) {
+  // Offline, pushes and the online-only account reads and holds lose their connection.
+  if ((path === "/sync/push" || pathname.startsWith("/sync/customers/")) && !isAvailable()) {
     const request = { path, request: parse(body) };
     requests.push(request);
-    onPush(request);
+    if (path === "/sync/push") onPush(request);
     outgoing.destroy();
     return;
   }

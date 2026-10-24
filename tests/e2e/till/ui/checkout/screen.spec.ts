@@ -48,9 +48,10 @@ for (const size of sizes) {
       await expect(page.getByRole("button", { name: "Clear cart" })).toBeDisabled();
       await expect(page.getByRole("button", { name: "Hold sale" })).toBeDisabled();
       await expect(page.getByRole("button", { name: "Scan product" })).toBeEnabled();
-      // Modules that are not built have no tile.
-      for (const missing of ["Add customer", "Create invoice", "Arrange delivery"])
-        await expect(page.getByRole("button", { name: missing })).toHaveCount(0);
+      // The customer tiles are there; modules that are not built have no tile.
+      for (const present of ["Add customer", "Create invoice"])
+        await expect(page.getByRole("button", { name: present })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Arrange delivery" })).toHaveCount(0);
       await expectFits(page, size.width);
       await expectNoSeriousAxe(page);
       await shoot(page, `empty-${size.name}`);
@@ -173,6 +174,8 @@ test("every shortcut on a tile is shown and reaches the same action", async ({ p
     ["Scan product", "F2"],
     ["Hold sale", "F6"],
     ["Held sales", "F7"],
+    ["Add customer", "Alt+U"],
+    ["Create invoice", "Alt+I"],
   ] as const) {
     const tile = tiles.getByRole("button", { name });
     await expect(tile).toHaveAttribute("aria-keyshortcuts", key);

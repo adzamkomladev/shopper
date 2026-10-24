@@ -2,7 +2,8 @@ import * as v from "valibot";
 import { count, eq } from "drizzle-orm";
 import { localSale, productLookup, refund, type TillDatabase } from "@shopper/db-sqlite";
 import { add, money, sub, toDecimal, type Money } from "@shopper/money";
-import { refundEvent } from "../schemas/till/refund";
+import { formatQuantity, toCsv } from "@shopper/utils";
+import { decodeRefundEvent } from "../schemas/till/refund";
 import { saleSnapshot } from "../schemas/till/sale";
 import {
   registerReportInput,
@@ -40,10 +41,16 @@ export async function registerReport(db: TillDatabase, raw: unknown): Promise<Re
     net: money(0),
   };
   let discountedSales = 0;
+  // Each customer's first sale on this register, so one in the range with an earlier sale is returning.
+  const firstSale = new Map<string, number>();
+  const buyers = new Set<string>();
   for (const row of rows) {
     const sale = v.parse(saleSnapshot, row.payload);
     const at = Date.parse(sale.deviceTime) - sale.clockOffsetMs;
+    if (sale.customer)
+      firstSale.set(sale.customer.id, Math.min(at, firstSale.get(sale.customer.id) ?? at));
     if (at < start || at >= end) continue;
+    if (sale.customer) buyers.add(sale.customer.id);
     const tax = [sale.totals.vat, sale.totals.nhil, sale.totals.getfund, sale.totals.covid].reduce(
       add,
       money(0),
@@ -76,7 +83,7 @@ export async function registerReport(db: TillDatabase, raw: unknown): Promise<Re
   }
   let returns = { count: 0, amount: money(0) };
   for (const row of refunds) {
-    const made = v.parse(refundEvent, row.payload).refund;
+    const made = decodeRefundEvent(row.payload).refund;
     const at = Date.parse(made.deviceTime) - made.clockOffsetMs;
     if (at >= start && at < end)
       returns = { count: returns.count + 1, amount: add(returns.amount, made.total) };
@@ -93,28 +100,31 @@ export async function registerReport(db: TillDatabase, raw: unknown): Promise<Re
     returns,
     products,
     discountedSales,
+    customers: buyers.size,
+    returningCustomers: [...buyers].filter((id) => firstSale.get(id)! < start).length,
   });
 }
 
 /** The report as CSV: totals, tenders, then top products, money in cedis to 2 dp. */
 export function registerReportCsv(report: RegisterReport): string {
   const cedis = (n: number) => toDecimal(money(n));
-  const cell = (s: string) => (/[",\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s);
   const { totals } = report;
-  return [
-    `Register report,${report.from} to ${report.to}`,
-    `Total sales,${cedis(totals.sales)}`,
-    `Transactions,${totals.transactions}`,
-    `Tax,${cedis(totals.tax)}`,
-    `Discounts,${cedis(totals.discounts)}`,
-    `Net sales,${cedis(totals.net)}`,
-    "",
-    "Tender,Amount",
-    ...report.tenders.map((t) => `${t.method},${cedis(t.amount)}`),
-    "",
-    "Product,Quantity,Amount",
-    ...report.topProducts.map(
-      (p) => `${cell(p.name)},${(p.quantityThousandths / 1000).toFixed(3)},${cedis(p.amount)}`,
-    ),
-  ].join("\n");
+  return toCsv([
+    ["Register report", `${report.from} to ${report.to}`],
+    ["Total sales", cedis(totals.sales)],
+    ["Transactions", String(totals.transactions)],
+    ["Tax", cedis(totals.tax)],
+    ["Discounts", cedis(totals.discounts)],
+    ["Net sales", cedis(totals.net)],
+    [],
+    ["Tender", "Amount"],
+    ...report.tenders.map((t) => [t.method, cedis(t.amount)]),
+    [],
+    ["Product", "Quantity", "Amount"],
+    ...report.topProducts.map((p) => [
+      p.name,
+      formatQuantity(p.quantityThousandths, "-"),
+      cedis(p.amount),
+    ]),
+  ]);
 }

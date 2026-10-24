@@ -61,6 +61,54 @@ export function rendererConformance(
       await assert.rejects(renderer.receipt({ v: 1 }, { paperMm: 80, reprint: false }, "png"));
     });
   });
+
+  statementConformance(name, test, fixture);
+}
+
+const A4_POINTS = 595.28;
+const A4_HEIGHT_POINTS = 841.89;
+
+// Only adapters whose fixture carries a statement are held to these.
+function statementConformance(
+  name: string,
+  test: ConformanceTest,
+  fixture: () => Promise<RendererFixture>,
+) {
+  test(`${name}: a statement PDF is one A4-wide page that grows with its entries`, async () => {
+    await withFixture(fixture, async ({ renderer, statement }) => {
+      if (!statement) return;
+      const pdf = await renderer.statement(statement);
+      assert.equal(Buffer.from(pdf.subarray(0, 5)).toString("latin1"), "%PDF-");
+      const page = (await PDFDocument.load(pdf)).getPage(0).getSize();
+      assert.ok(Math.abs(page.width - A4_POINTS) <= 0.5, `page width ${page.width} pt`);
+
+      const longer = structuredClone(statement) as { entries: unknown[] };
+      longer.entries = [...longer.entries, ...longer.entries, ...longer.entries];
+      const tall = (await PDFDocument.load(await renderer.statement(longer as typeof statement)))
+        .getPage(0)
+        .getSize();
+      assert.ok(tall.height > page.height, `${tall.height} is not taller than ${page.height}`);
+    });
+  });
+  test(`${name}: a long statement PDF breaks into A4-height pages`, async () => {
+    await withFixture(fixture, async ({ renderer, statement }) => {
+      if (!statement) return;
+      const long = structuredClone(statement) as { entries: unknown[] };
+      long.entries = Array.from({ length: 40 }, () => long.entries).flat();
+      const pdf = await PDFDocument.load(await renderer.statement(long as typeof statement));
+      assert.ok(pdf.getPageCount() > 1, `${pdf.getPageCount()} page`);
+      for (const page of pdf.getPages()) {
+        const size = page.getSize();
+        assert.ok(Math.abs(size.width - A4_POINTS) <= 0.5, `page width ${size.width} pt`);
+        assert.ok(size.height <= A4_HEIGHT_POINTS + 0.5, `page height ${size.height} pt`);
+      }
+    });
+  });
+  test(`${name}: an invalid statement is rejected`, async () => {
+    await withFixture(fixture, async ({ renderer, statement }) => {
+      if (statement) await assert.rejects(renderer.statement({ v: 1 }));
+    });
+  });
 }
 
 async function withFixture(

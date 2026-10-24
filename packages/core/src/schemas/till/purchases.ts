@@ -4,7 +4,7 @@ import { tillId } from "./fields";
 export const purchaseFilters = {
   status: v.optional(v.picklist(["all", "completed", "returned", "voided", "pending"]), "all"),
   query: v.optional(v.pipe(v.string(), v.maxLength(100)), ""),
-  kind: v.optional(v.picklist(["all", "cash", "momo", "card"]), "all"),
+  kind: v.optional(v.picklist(["all", "cash", "momo", "card", "credit", "loyalty"]), "all"),
   page: v.optional(v.pipe(v.number(), v.safeInteger(), v.minValue(1)), 1),
   pageSize: v.optional(v.pipe(v.number(), v.safeInteger(), v.minValue(1), v.maxValue(100)), 20),
 };

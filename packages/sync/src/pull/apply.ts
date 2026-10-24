@@ -5,14 +5,22 @@ import { and, eq, sql } from "drizzle-orm";
 import { v7 } from "uuid";
 import { defineCommand } from "@shopper/audit/sqlite";
 import { reference, tillState } from "@shopper/db-sqlite";
-import { projectProducts, unprojectProducts, type ProjectedProduct } from "@shopper/core/till";
+import {
+  projectCustomers,
+  projectProducts,
+  removeCustomers,
+  unprojectProducts,
+  type ProjectedCustomer,
+  type ProjectedProduct,
+} from "@shopper/core/till";
 
 /** The only change version this till understands; a page holding any other halts the pull. */
 export { KNOWN_VERSION } from "../schemas/pull/apply";
 
 /**
  * Applies one whole page and moves the cursor in a single audited transaction, keeping the lookup in step.
- * `referenceVersion` is the lowest wire version of the page's product rows: it can only lower the till's version.
+ * `referenceVersion` is the lowest wire version of the page's product rows that lost data in an upcast: it can only
+ * lower the till's version.
  */
 export const applyPage = (now?: () => number) =>
   defineCommand<Page & { referenceVersion: number }, { count: number }>(
@@ -20,6 +28,12 @@ export const applyPage = (now?: () => number) =>
       name: "till.sync.pull",
       async run(tx, context, input) {
         for (const change of input.changes) {
+          if (change.entity === "customer") {
+            // Customers live in the lookup alone; there is no reference row to keep in step.
+            if (change.op === "delete") await removeCustomers(tx, context.orgId, [change.entityId]);
+            else await projectCustomers(tx, context.orgId, [change.payload as ProjectedCustomer]);
+            continue;
+          }
           const key = and(
             eq(reference.orgId, context.orgId),
             eq(reference.entity, change.entity),

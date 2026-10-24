@@ -21,7 +21,7 @@ export type DraftLabel =
     };
 
 export const draftStatuses = ["open", "held", "voided"] as const;
-export const draftTenderKinds = ["cash", "momo", "card"] as const;
+export const draftTenderKinds = ["cash", "momo", "card", "credit", "loyalty"] as const;
 export const draftTenderStatuses = [
   "applied",
   "pending",
@@ -41,6 +41,8 @@ export const saleDraft = sqliteTable(
     cashierId: text("cashier_id").notNull(),
     status: text("status", { enum: draftStatuses }).notNull().default("open"),
     name: text("name"),
+    /** The customer attached to the basket, from `customer_lookup`. */
+    customerId: text("customer_id"),
     revision: integer("revision").notNull(),
     totals: text("totals", { mode: "json" }).$type<Record<string, number>>().notNull(),
     createdAt: text("created_at").notNull(),
@@ -100,6 +102,8 @@ export const saleDraftTender = sqliteTable(
     network: text("network"),
     status: text("status", { enum: draftTenderStatuses }).notNull(),
     createdAt: text("created_at").notNull(),
+    /** The points a loyalty tender spends. */
+    points: integer("points"),
   },
   (t) => [
     unique().on(t.draftId, t.position),

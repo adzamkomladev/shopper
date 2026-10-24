@@ -14,3 +14,5 @@ export * from "./schemas/till/shifts";
 export * from "./schemas/till/payments";
 export * from "./schemas/till/settings";
 export * from "./schemas/till/receipts";
+export * from "./schemas/till/customers";
+export * from "./schemas/till/accounts";

@@ -86,6 +86,20 @@ till-ui 5184. It builds and starts the box with Bun, so Bun must be installed. S
 
 Before you push, run: `vp check && vp run guard && vp test --run`.
 
+## Statements, SMS and email locally (Day 17)
+
+Statements and the KYC code go out through two fakes, so nothing real is sent in development or CI.
+
+- **Arkesel** (SMS): `tooling/arkesel/server.ts` speaks the v2 send contract (`api-key` header, `{status:
+  "success"}`), records every request and has `failNext(n)`. Point `ARKESEL_BASE_URL` at it.
+- **Maileroo** (email): `tests/support/workflows/maileroo.ts` validates the strict send schema (including the PDF
+  attachment), records requests and can hold a response. Point the Maileroo base URL at it.
+- **Public statement URL.** A customer's link is `<portal origin>/statement/<token>`: no sign-in, a phone-first page
+  with a PDF download, and 404 for a bad, expired or revoked token. Create one from a customer's Statement tab
+  (Copy link), or `POST /customers/:id/statement-links`. The token is signed with `SHOPPER_LINK_SECRET`, so a link
+  from one environment does not open in another.
+- **Schedule.** Statements on a schedule are set under Settings > Statements; on the box the flow relaunches on boot.
+
 ## The `tooling/` folder
 
 Tooling is anything that makes development faster or safer and never ships: `guard.ts`, database

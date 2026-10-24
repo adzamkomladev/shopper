@@ -18,6 +18,8 @@ type Props = {
   count: number;
   totals: SaleTotals | undefined;
   hidden: boolean;
+  /** The customer chip, above the controls, when the sale has one. */
+  customer?: ReactNode;
   price: ReturnType<typeof usePriceOverride>;
   approvers: ApproverState;
   onReturnFocus: () => void;
@@ -41,6 +43,7 @@ export function CartPanel({
   count,
   totals,
   hidden,
+  customer,
   price,
   approvers,
   onReturnFocus,
@@ -57,6 +60,7 @@ export function CartPanel({
       className="@container flex min-h-152 min-w-0 flex-1 flex-col gap-4 rounded-panel border bg-card p-4 shadow-sm lg:min-h-0"
       hidden={hidden}
     >
+      {customer}
       <CartControls
         canClear={canClear}
         disabled={disabled}

@@ -308,4 +308,36 @@ account and points split) and shift Z v2 (on-account sales, account payments, re
 New at v1: `customer.created`, `customer.updated`, `account.payment` and the queue messages `statement.send`,
 `statement.schedule` and `statement.scheduled`. `KNOWN_VERSION` on the pull side is 4.
 
+## Tax (Day 18)
+
+- **Settings** live on `org`: `tin`, `vat_registered_from` (null means not registered), `price_mode`
+  (`inclusive` by default, or `exclusive`) and `cash_rounding`. `tax.read` reads them and `tax.write` (super admin)
+  changes them. A change goes to every store as one `org-setting` feed row, keyed by the org id, which the till keeps
+  as its settings row. A shop that never gave a registration date counts as registered since `registeredSince`
+  (2000-01-01, `@shopper/tax`).
+- **The engine** quotes in the org's price mode. Every line's tax snapshot records `registered`: before the
+  registration date, or with none, every rate is zero. The server accepts either price mode when the arithmetic
+  holds (a till may quote before a mode change reaches it), but the line's `registered` must match the org on the
+  sale date. Price labels are the customer's gross, so they are always inclusive. A discount comes off the price
+  before tax in both modes.
+- **Dated rules.** `GET /tax/rules` lists them; `POST`, `PATCH` and `DELETE /tax/rules[/:id]` need `tax.write`. A
+  rule starts after today in Accra and can change only until it starts, so no sale already made falls under a new
+  rate. Each change is audited and sent to every store. `GET /tax-rules?on=` stays as the published lookup.
+- **Credit notes.** A refund takes its own number from the register's receipt block. For a refund the server must
+  accept first, the host reserves the number (`refund.credit_note.reserve`, audited) before it posts, so the posted
+  and recorded events match; an offline refund takes it when it is recorded. The server checks the number belongs to
+  the uploading register (`validateReceipt`) and keeps it unique per org. The fiscal payload says `invoice` or
+  `credit_note` and names the original invoice.
+- **Reports** fold the stored snapshots in PostgreSQL (`core/tax/reports/fold.ts`): a sale line on its tax date, a
+  credit-note line on the Accra day it was made. `GET /tax/summary` groups by day or month, branch and class.
+  `GET /tax/returns/:period` is the month's worksheet (lines a shop sold while not registered are left out);
+  `PUT .../input` records the input tax claimed (`tax.return`, granted to accountants); `.../export.xlsx` is the
+  workbook (SheetJS) with the return, sales by class and the credit notes. The shared runtime routes `/tax/*`
+  behind the session.
+
+**Versions bumped in Day 18:** sale event v6 (each line's tax has `registered`; v5 upcasts as registered), refund
+v3 (`creditNoteNumber`, and `registered` on its lines; v2 upcasts with none), change feed and snapshot v5 (the
+`org-setting` entity; a v4 snapshot's rounding becomes the settings) and receipt v4 (`header.vatInvoice` and each
+line's `net`; v3 upcasts as a registered shop's, with no nets). `KNOWN_VERSION` on the pull side is 5.
+
 The owner approved this architecture on 14 October 2026. This cleanup documents it; it does not implement new management hosts, billing, backup services or Electron. TanStack Start remains the customer-shop SSR framework; management keeps the existing Router SPA.

@@ -186,3 +186,22 @@ Run `vp check` (and `vp check --fix` for formatting and lint autofixes) after ev
 
 - Migration `0026_tax`. Reset dev data and the till databases: feed v5, receipt v4, and the sale and refund versions change.
 - No new secrets, DOs or Workflows. Feed and receipt changes go to both adapters through the shared core.
+
+---
+
+## Changes made while building (24 Oct)
+
+- **Registration default.** A shop that never gave a registration date counts as registered since `2000-01-01`
+  (`registeredSince` in `@shopper/tax`), not the statutory 2026 start. Fixtures dated 2025 would otherwise have
+  sold untaxed. There is no DB constraint that a registered org has a TIN: provisioning cannot know it, so the tax
+  settings command requires it, and receipts print no TIN until the owner enters one.
+- **`tax.return`.** Filing the input tax needs its own permission (accountant, admin, super admin), because
+  `tax.write` is super-admin only and the accountant files the return.
+- **Routes.** The rule editor is `/tax/rules[/:id]` (the guard wants nested paths); `/tax-rules?on=` stays as the
+  published lookup. The shared runtime had to route `/tax/*` behind the session.
+- **`store.cash_rounding_step`** stays. It is unused at sale time, but removing it means rewriting the money
+  round-trip schema test. That is a follow-up.
+- **Receipt kind** stays `"sale" | "refund"`; a refund prints as CREDIT NOTE with its own number in
+  `header.receiptNumber`.
+- **The worksheet test** uses one branch (the golden world has one register), and its month boundary is
+  30 Sep / 1 Oct, because the server dates no sale after its own clock.

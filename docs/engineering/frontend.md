@@ -134,6 +134,16 @@ who hold its permission, and the page heading names the tab. The top nav item "C
   ageing, merge, loyalty, KYC and settings screens and the till dialogs follow the Inventory area patterns, the
   purchases table and the shift report styles.
 
+## The Tax area (Day 18)
+
+`/tax` is one area with four tabs drawn by `components/tax/tabs.tsx` (`TaxPage`), all behind `tax.read`: **Summary**
+(`/tax`, a range of shop dates grouped by day or month), **VAT return** (`/tax/returns?period=YYYY-MM`, last month by
+default; E exports the workbook), **Rates** (`/tax/rules`; N schedules new rates, and scheduled rows can be edited or
+removed, all for `tax.write`) and **Settings** (`/tax/settings`, read-only without `tax.write`). The input tax on the
+VAT return is entered by members with `tax.return`. The Rates tab follows the clock (`useNow`), so a scheduled rule
+moves into force at midnight without a reload. Figma has no tax frames: the screens follow the Settings and Inventory
+patterns.
+
 ## UX rules
 
 - **Every screen has every state designed:** empty (with the next action), loading (a skeleton sized

@@ -5,7 +5,7 @@ import { taxRule, type ShopperTransaction } from "@shopper/db-pg";
 import { ManagementError } from "../management";
 import { affectedStores, recordChanges } from "../changes/record";
 import { deleted, taxRulePayload, taxRuleUpsert } from "../changes/project";
-import { scheduledRule } from "../schemas/tax/rules";
+import { taxRuleInput } from "../schemas/tax/rules";
 import { ghanaDate } from "../till/quotation";
 import type { Queryable } from "../types";
 
@@ -23,7 +23,7 @@ export async function listTaxRules(db: Queryable, orgId: string) {
 export const createTaxRule = defineCommand({
   name: "tax.rule.create",
   async run(tx, ctx, input: { body: unknown; now?: Date }) {
-    const body = v.parse(scheduledRule(ghanaDate(input.now ?? new Date())), input.body);
+    const body = scheduled(input.body, input.now);
     const [row] = await tx
       .insert(taxRule)
       .values({ orgId: ctx.orgId, ...body })
@@ -38,7 +38,7 @@ export const createTaxRule = defineCommand({
 export const updateTaxRule = defineCommand({
   name: "tax.rule.update",
   async run(tx, ctx, input: { id: string; body: unknown; now?: Date }) {
-    const body = v.parse(scheduledRule(ghanaDate(input.now ?? new Date())), input.body);
+    const body = scheduled(input.body, input.now);
     const before = await notStarted(tx, ctx.orgId, input.id, input.now);
     const [row] = await tx
       .update(taxRule)
@@ -73,6 +73,14 @@ export const deleteTaxRule = defineCommand({
   audit: (_input, output) => ({ ...output }),
   details: (input, output) => ({ entity: "tax_rule", entityId: input.id, before: output.before }),
 });
+
+/** The rule in the body; it must start after today in Accra, so no sale already made falls under it. */
+function scheduled(body: unknown, now = new Date()) {
+  const rule = v.parse(taxRuleInput, body);
+  if (rule.effectiveFrom <= ghanaDate(now))
+    throw new ManagementError("A rule must start after today", 400);
+  return rule;
+}
 
 async function notStarted(tx: ShopperTransaction, orgId: string, id: string, now = new Date()) {
   const [row] = await tx

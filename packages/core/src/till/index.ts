@@ -25,7 +25,7 @@ export {
 } from "./customers/uploads";
 export { searchCatalogue, lookupCode } from "./lookup/search";
 
-export { quoteLine, readQuoteReference } from "./quotation";
+export { ghanaDate, quoteLine, readQuoteReference } from "./quotation";
 export { resolveScan } from "./basket/scan";
 
 export { hostTime, validateSession } from "./session";

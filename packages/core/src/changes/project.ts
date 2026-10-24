@@ -53,22 +53,20 @@ export function priceUpsert(row: typeof price.$inferSelect): Change {
   };
 }
 
+/** A rule in the shape tills receive and the back office lists. */
+export const taxRulePayload = (row: typeof taxRule.$inferSelect) => ({
+  id: row.id,
+  orgId: row.orgId,
+  effectiveFrom: row.effectiveFrom,
+  vatBps: row.vatBps,
+  nhilBps: row.nhilBps,
+  getfundBps: row.getfundBps,
+  covidBps: row.covidBps,
+  source: row.source,
+});
+
 export function taxRuleUpsert(row: typeof taxRule.$inferSelect): Change {
-  return {
-    entity: "tax-rule",
-    entityId: row.id,
-    op: "upsert",
-    payload: {
-      id: row.id,
-      orgId: row.orgId,
-      effectiveFrom: row.effectiveFrom,
-      vatBps: row.vatBps,
-      nhilBps: row.nhilBps,
-      getfundBps: row.getfundBps,
-      covidBps: row.covidBps,
-      source: row.source,
-    },
-  };
+  return { entity: "tax-rule", entityId: row.id, op: "upsert", payload: taxRulePayload(row) };
 }
 
 /** What a till needs to recognise a customer; the ledgers, the limit and the email stay on the server. */

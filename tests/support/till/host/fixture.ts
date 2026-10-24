@@ -18,7 +18,7 @@ export async function createHostFixture(
 ) {
   const directory = await mkdtemp(join(tmpdir(), "shopper-till-host-"));
   const sqlitePath = join(directory, "till.sqlite");
-  const database = openTillDatabase(sqlitePath);
+  const database = waitingOnHost(openTillDatabase(sqlitePath));
   let config: Awaited<ReturnType<typeof hostConfiguration>>;
   try {
     await renewTillEnrollment();
@@ -70,5 +70,27 @@ export async function createHostFixture(
         }
       }
     },
+  };
+}
+
+/** The host process writes to the same file in the background; the fixture's own connection waits for it. */
+function waitingOnHost(database: ReturnType<typeof openTillDatabase>): typeof database {
+  async function retry<T>(operation: () => Promise<T>): Promise<T> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        const busy = JSON.stringify(error, Object.getOwnPropertyNames(error)).includes(
+          "SQLITE_BUSY",
+        );
+        if (!busy || attempt >= 40) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+    }
+  }
+  return {
+    ...database,
+    read: (fn) => retry(() => database.read(fn)),
+    transaction: (fn) => retry(() => database.transaction(fn)),
   };
 }

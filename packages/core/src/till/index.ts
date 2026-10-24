@@ -66,7 +66,12 @@ export {
 export { failStaffSignIn, readStaff, readStoredSession, signInStaff, signOutStaff } from "./staff";
 export { approve, authorize, LOCK_MS, MAX_FAILURES } from "./approvals";
 export { readApprovers, refreshApprovers } from "./approvers";
-export { recordRefund, planRefund, readRefundEligibility } from "./refunds/record";
+export {
+  planRefund,
+  readRefundEligibility,
+  recordRefund,
+  reserveCreditNote,
+} from "./refunds/record";
 export { findSaleByReceipt, serverPurchase } from "./refunds/queries";
 export { markRefundAccepted, markRefundFailed, markRefundRejected } from "./refunds/uploads";
 export { currentShift, shiftSummary } from "./shifts/queries";

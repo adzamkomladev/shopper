@@ -24,8 +24,14 @@ export const tenderLabel = {
 export const tenderDetail = (tender: Tender) =>
   tender.approvalCode ?? tender.reference ?? tender.phone;
 
-/** Tax rows in print order; the COVID levy appears only when charged. */
-export function taxRows({ net, nhil, getfund, covid, vat }: ReceiptDocument["taxSummary"]) {
+/** A shop that is VAT-registered issues VAT invoices; any other sale is a plain receipt. */
+export const documentTitle = (receipt: ReceiptDocument) =>
+  receipt.header.vatInvoice ? "VAT INVOICE" : "RECEIPT";
+
+/** Tax rows in print order; the COVID levy appears only when charged, and a plain receipt carries none. */
+export function taxRows(receipt: ReceiptDocument) {
+  if (!receipt.header.vatInvoice) return [];
+  const { net, nhil, getfund, covid, vat } = receipt.taxSummary;
   const rows: [string, Money][] = [
     ["Net", net],
     ["NHIL", nhil],

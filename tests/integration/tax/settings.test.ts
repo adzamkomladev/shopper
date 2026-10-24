@@ -25,12 +25,12 @@ const audits = async () =>
     (row) => row.command === "tax.settings.set",
   );
 
-test("a new org is VAT-registered from the statutory start, inclusive, rounding cash to 10p, with no TIN yet", async () => {
+test("a new org is VAT-registered, inclusive, rounding cash to 10p, with no TIN yet", async () => {
   const { status, body } = await read("accountant");
   expect(status).toBe(200);
   expect(body).toEqual({
     tin: null,
-    vatRegisteredFrom: "2026-01-01",
+    vatRegisteredFrom: "2000-01-01",
     priceMode: "inclusive",
     cashRounding: "10p",
   });

@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { money } from "@shopper/money";
 import { createEventDecoder } from "../events";
 import { tillId } from "./fields";
-import { registeredLines, saleTaxSnapshot, saleTotals } from "./sale";
+import { receiptNumberSchema, registeredLines, saleTaxSnapshot, saleTotals } from "./sale";
 
 const nonnegative = v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.transform(money));
 export const refundTender = v.variant("kind", [
@@ -24,6 +24,8 @@ export const refundSnapshot = v.strictObject({
   deviceTime: v.pipe(v.string(), v.isoTimestamp()),
   clockOffsetMs: v.pipe(v.number(), v.safeInteger()),
   originalSaleId: tillId,
+  /** The credit note's own number, from the same block as the register's receipts; null before credit notes. */
+  creditNoteNumber: v.nullable(receiptNumberSchema),
   reason: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(500)),
   /** The manager who approved the refund; null when no manager approval was required. */
   approverId: v.nullable(tillId),
@@ -61,7 +63,10 @@ export const refundEvent = v.strictObject({
 export type RefundEvent = v.InferOutput<typeof refundEvent>;
 export type RefundSnapshot = v.InferOutput<typeof refundSnapshot>;
 
-/** v1 had no account or points split: a v1 refund paid everything out in its tender. v2 lines had no registration flag. */
+/**
+ * v1 had no account or points split: a v1 refund paid everything out in its tender. v2 had no registration flag on
+ * its lines and no credit-note number.
+ */
 export const decodeRefundEvent = createEventDecoder(3, (raw) => v.parse(refundEvent, raw), {
   1: (raw) => {
     const event = raw as { refund?: object };
@@ -73,6 +78,6 @@ export const decodeRefundEvent = createEventDecoder(3, (raw) => v.parse(refundEv
   },
   2: (raw) => {
     const event = raw as { refund: { lines?: unknown[] } };
-    return { ...event, v: 3, refund: registeredLines(event.refund) };
+    return { ...event, v: 3, refund: { creditNoteNumber: null, ...registeredLines(event.refund) } };
   },
 });

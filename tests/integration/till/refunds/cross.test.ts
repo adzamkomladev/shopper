@@ -90,7 +90,7 @@ test("another register's sale is refunded online and the server accepts before t
     .where(eq(serverRefund.id, reply.refund.id));
   expect(saved).toBeDefined();
   const jobs = await printer!.waitForJobs(1);
-  expect(jobs[0]!.page).toContain("REFUND");
+  expect(jobs[0]!.page).toContain("CREDIT NOTE");
   expect(jobs[0]!.kicks).toBe(1);
 });
 

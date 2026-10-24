@@ -70,9 +70,11 @@ const saleSnapshotBase = v.strictObject({
   ),
   totals: saleTotals,
 });
+/** A receipt or credit-note number from the register's block: branch, register, then the running number. */
+export const receiptNumberSchema = v.pipe(v.string(), v.regex(/^BR[0-9]+-T[0-9]+-X?[0-9]{6,}$/));
 export const saleSnapshot = v.strictObject({
   ...saleSnapshotBase.entries,
-  receiptNumber: v.nullable(v.pipe(v.string(), v.regex(/^BR[0-9]+-T[0-9]+-X?[0-9]{6,}$/))),
+  receiptNumber: v.nullable(receiptNumberSchema),
   receiptOverflow: v.boolean(),
   clockOffsetMs: v.pipe(v.number(), v.safeInteger()),
   cashRounding: amount,

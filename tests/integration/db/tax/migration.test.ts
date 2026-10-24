@@ -48,7 +48,7 @@ test("migration 0026 is journalled at idx 26 and replaying it twice changes noth
   expect(await catalog()).toEqual(before);
 });
 
-test("a new org is registered from the statutory start, and a replay leaves an unregistered org alone", async () => {
+test("a new org is registered, and a replay leaves an unregistered org alone", async () => {
   const org = async () =>
     (
       await q<{ vat_registered_from: string | null; price_mode: string }>(
@@ -56,7 +56,7 @@ test("a new org is registered from the statutory start, and a replay leaves an u
         [context.orgId],
       )
     )[0]!;
-  expect(await org()).toEqual({ vat_registered_from: "2026-01-01", price_mode: "inclusive" });
+  expect(await org()).toEqual({ vat_registered_from: "2000-01-01", price_mode: "inclusive" });
   await q("UPDATE org SET vat_registered_from = NULL WHERE id = $1", [context.orgId]);
   await fixture.client.query(migration);
   expect((await org()).vat_registered_from).toBeNull();

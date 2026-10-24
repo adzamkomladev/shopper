@@ -3,7 +3,7 @@ import { money } from "@shopper/money";
 import { receiptDocument } from "../receipts/document";
 import { tillId } from "./fields";
 import { refundTender } from "./refund";
-import { saleSnapshot } from "./sale";
+import { receiptNumberSchema, saleSnapshot } from "./sale";
 
 const quantity = v.number();
 
@@ -43,6 +43,8 @@ const request = {
   /** Fixed ids, when the refund was already sent to the server under them. */
   id: v.optional(tillId),
   lineIds: v.optional(v.array(tillId)),
+  /** The credit-note number reserved before the refund was sent to the server. */
+  creditNoteNumber: v.optional(receiptNumberSchema),
 };
 export const planRefundInput = v.strictObject(request);
 export const recordRefundInput = v.strictObject({

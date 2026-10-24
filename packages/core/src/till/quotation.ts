@@ -27,6 +27,7 @@ export async function readQuoteReference(tx: TillSqlite, orgId: string) {
     cashRounding: settings.cashRounding,
     priceMode: settings.priceMode,
     vatRegisteredFrom: settings.vatRegisteredFrom,
+    tin: settings.tin,
   };
 }
 

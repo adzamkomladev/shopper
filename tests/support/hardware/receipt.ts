@@ -19,8 +19,8 @@ const reference = {
 };
 
 /** A cash + card split with change, priced under the prior (NHIL/GETFund) rule so every tax row is non-zero. */
-export function goldenReceipt(lineNames = saleLines) {
-  return v.parse(receiptDocument, buildReceipt(goldenSale(lineNames), reference));
+export function goldenReceipt(lineNames = saleLines, registered = true) {
+  return v.parse(receiptDocument, buildReceipt(goldenSale(lineNames, registered), reference));
 }
 
 /** The refund receipt of one unit of the golden sale's first line, paid back as `tender`. */
@@ -43,6 +43,7 @@ export function goldenRefundReceipt(
     deviceTime: "2025-06-16T09:00:00.000Z",
     clockOffsetMs: 0,
     originalSaleId: sale.id,
+    creditNoteNumber: "BR1-T1-000002",
     reason: "Customer returned goods",
     approverId: null,
     lines: [
@@ -77,7 +78,7 @@ export function goldenRefundReceipt(
   );
 }
 
-function goldenSale(lineNames = saleLines) {
+function goldenSale(lineNames = saleLines, registered = true) {
   const rule = references.taxRules[0];
   if (!rule) throw new Error("Prior tax rule fixture missing");
   const lines = lineNames.map((name) => ({
@@ -95,7 +96,7 @@ function goldenSale(lineNames = saleLines) {
       on: "2025-06-15",
       taxClass: "standard",
       priceMode: "inclusive",
-      registered: true,
+      registered,
       unitPrice: money(25000),
       quantityThousandths: 1000,
       discount: money(0),

@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import { tillId } from "./fields";
-import { dateSchema, taxClassSchema, taxRuleSchema } from "@shopper/tax";
+import { dateSchema, registeredSince, taxClassSchema, taxRuleSchema } from "@shopper/tax";
 import { money } from "@shopper/money";
 import { createEventDecoder } from "../events";
 import { mappingInput } from "../catalogue/mappings";
@@ -13,13 +13,13 @@ export const cashRoundingSchema = v.picklist(["none", "10p"]);
 export type CashRounding = v.InferOutput<typeof cashRoundingSchema>;
 /**
  * Organisation settings a till needs offline; stored as one reference row whose id is the org id. Rows a till saved
- * before v5 held only the rounding: they default to an inclusive price list, VAT-registered from the statutory start.
+ * before v5 held only the rounding: they default to an inclusive price list and a VAT-registered shop.
  */
 export const tillOrgSetting = v.strictObject({
   id: tillId,
   cashRounding: cashRoundingSchema,
   priceMode: v.optional(v.picklist(["inclusive", "exclusive"]), "inclusive"),
-  vatRegisteredFrom: v.optional(v.nullable(dateSchema), "2026-01-01"),
+  vatRegisteredFrom: v.optional(v.nullable(dateSchema), registeredSince),
   tin: v.optional(v.nullable(tinSchema), null),
 });
 export type TillOrgSetting = v.InferOutput<typeof tillOrgSetting>;

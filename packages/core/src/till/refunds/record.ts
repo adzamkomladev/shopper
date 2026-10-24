@@ -16,7 +16,8 @@ import { tillSession, type TillSession } from "../../schemas/till/session";
 import { authorize } from "../approvals";
 import { TillError } from "../error";
 import { findRegisterSettings } from "../register/settings";
-import { readCashRounding } from "../settings";
+import { readOrgSettings } from "../settings";
+import { assignReceipt } from "../receipts/assign";
 import { checkSession, hostTime } from "../session";
 import { requireOpenShift } from "../shifts/queries";
 import { buildRefund, eligibility } from "./eligibility";
@@ -86,9 +87,49 @@ async function prepare<S extends v.GenericSchema>(
   return { config, session, data, time: await hostTime(db, config, data.at) } satisfies Prepared;
 }
 
+/**
+ * Takes the next number of the register's block for a credit note that goes to the server before it is recorded, so
+ * the event the server accepts and the one recorded here carry the same number.
+ */
+export async function reserveCreditNote(db: TillDatabase, rawConfig: unknown, rawSession: unknown) {
+  const config = v.parse(tillConfiguration, rawConfig);
+  const session = v.parse(tillSession, rawSession);
+  return reserve(
+    db,
+    {
+      orgId: config.orgId,
+      deviceId: config.deviceId,
+      branchId: config.branchId,
+      actorId: session.userId,
+      role: session.roleName,
+      appVersion: config.appVersion,
+    },
+    config,
+  );
+}
+
+const reserve = defineCommand({
+  name: "refund.credit_note.reserve",
+  run: async (tx, context, config: Config) =>
+    (await assignReceipt(tx, context.orgId, config.deviceId, config.receiptCodes)).receiptNumber,
+  audit: (_input, creditNoteNumber) => ({ creditNoteNumber }),
+});
+
 const record = defineCommand({
   name: "refund.record",
-  async run(tx, context, prepared: Prepared) {
+  async run(tx, context, unnumbered: Prepared) {
+    // An offline refund takes its credit-note number now, in the transaction that records it.
+    const creditNoteNumber =
+      unnumbered.data.creditNoteNumber ??
+      (
+        await assignReceipt(
+          tx,
+          context.orgId,
+          unnumbered.config.deviceId,
+          unnumbered.config.receiptCodes,
+        )
+      ).receiptNumber;
+    const prepared = { ...unnumbered, data: { ...unnumbered.data, creditNoteNumber } };
     const { event, receipt, original, approverId, shiftId } = await plan(tx, prepared);
     context.approverId = approverId ?? undefined;
     const { config, session, data, time } = prepared;
@@ -155,7 +196,7 @@ async function plan(tx: TillSqlite, { config, session, data, time }: Prepared) {
     authorize(session, config, "refund.request", time, data.approverId, view.approvalRequired) ??
     null;
   const names = await findRegisterSettings(tx, config);
-  const rounding = readCashRounding(await tx.select().from(reference));
+  const settings = readOrgSettings(await tx.select().from(reference));
   const event = {
     v: 3 as const,
     type: "refund.recorded" as const,
@@ -173,8 +214,8 @@ async function plan(tx: TillSqlite, { config, session, data, time }: Prepared) {
         deviceTime: data.at.toISOString(),
         clockOffsetMs: data.at.valueOf() - time.valueOf(),
       },
-      rounding,
-      { id: data.id, lineIds: data.lineIds },
+      settings.cashRounding,
+      { id: data.id, lineIds: data.lineIds, creditNoteNumber: data.creditNoteNumber },
     ),
   };
   const receipt = buildRefundReceipt(
@@ -182,6 +223,7 @@ async function plan(tx: TillSqlite, { config, session, data, time }: Prepared) {
     { receiptNumber: original.sale.receiptNumber, customer: original.sale.customer },
     {
       ...config.receiptReference,
+      tin: settings.tin ?? config.receiptReference?.tin,
       ...(names && { branchName: names.value.storeName, deviceName: names.value.registerName }),
     },
   );

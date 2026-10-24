@@ -5,6 +5,7 @@ import {
   findSaleByReceipt,
   hostTime,
   planRefund,
+  reserveCreditNote,
   readPurchase,
   readRefundEligibility,
   recordRefund,
@@ -27,6 +28,7 @@ type ReplayAttempt = Pick<Recording, "lines" | "reason" | "tender"> & {
   approverId: string | undefined;
   id?: string;
   lineIds?: string[];
+  creditNoteNumber?: string;
 };
 type LocalConfig = Parameters<typeof recordRefund>[1];
 
@@ -151,8 +153,17 @@ export function createRefunds(host: Host, localConfig: LocalConfig) {
     let recorded;
     if (original) {
       // The drawer opens only for a refund the server has accepted.
-      const { event } = await planRefund(database, localConfig, session, input);
-      const fixed = { ...input, id: event.refund.id, lineIds: event.refund.lines.map((l) => l.id) };
+      const numbered = {
+        ...input,
+        creditNoteNumber:
+          input.creditNoteNumber ?? (await reserveCreditNote(database, localConfig, session)),
+      };
+      const { event } = await planRefund(database, localConfig, session, numbered);
+      const fixed = {
+        ...numbered,
+        id: event.refund.id,
+        lineIds: event.refund.lines.map((l) => l.id),
+      };
       try {
         await post(event, session.proof);
       } catch (error) {

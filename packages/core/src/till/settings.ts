@@ -1,4 +1,5 @@
 import * as v from "valibot";
+import { registeredSince } from "@shopper/tax";
 import { reference, type TillSqlite } from "@shopper/db-sqlite";
 import { tillOrgSetting, type CashRounding, type TillOrgSetting } from "../schemas/till/reference";
 
@@ -30,7 +31,7 @@ export function readOrgSettings(
   return {
     cashRounding: DEFAULT_CASH_ROUNDING,
     priceMode: "inclusive",
-    vatRegisteredFrom: "2026-01-01",
+    vatRegisteredFrom: registeredSince,
     tin: null,
   };
 }

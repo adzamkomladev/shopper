@@ -170,7 +170,7 @@ test("a v4 snapshot's rounding becomes the v5 settings, with the pre-v5 tax defa
     id: orgId,
     cashRounding: "none",
     priceMode: "inclusive",
-    vatRegisteredFrom: "2026-01-01",
+    vatRegisteredFrom: "2000-01-01",
     tin: null,
   });
   expect(decodeSnapshot(snapshot(4, base)).reference.settings.cashRounding).toBe("10p");

@@ -1,8 +1,8 @@
 ALTER TABLE org ADD COLUMN IF NOT EXISTS tin text;
 --> statement-breakpoint
--- Orgs from before this migration taxed every sale, so the one-shot default keeps them registered from the
--- statutory start; the default is dropped at once and new orgs get their date from provisioning.
-ALTER TABLE org ADD COLUMN IF NOT EXISTS vat_registered_from date DEFAULT DATE '2026-01-01';
+-- Orgs from before this migration taxed every sale, so the one-shot default keeps them registered (since
+-- registeredSince in @shopper/tax); the default is dropped at once and new orgs get their date from provisioning.
+ALTER TABLE org ADD COLUMN IF NOT EXISTS vat_registered_from date DEFAULT DATE '2000-01-01';
 --> statement-breakpoint
 ALTER TABLE org ALTER COLUMN vat_registered_from DROP DEFAULT;
 --> statement-breakpoint
@@ -31,3 +31,9 @@ CREATE TABLE IF NOT EXISTS vat_return (
 ALTER TABLE store_change DROP CONSTRAINT IF EXISTS store_change_entity;
 --> statement-breakpoint
 ALTER TABLE store_change ADD CONSTRAINT store_change_entity CHECK (entity IN ('product', 'price', 'tax-rule', 'barcode-mapping', 'customer', 'org-setting'));
+--> statement-breakpoint
+ALTER TABLE refund ADD COLUMN IF NOT EXISTS credit_note_number text;
+--> statement-breakpoint
+ALTER TABLE refund DROP CONSTRAINT IF EXISTS refund_credit_note_unique;
+--> statement-breakpoint
+ALTER TABLE refund ADD CONSTRAINT refund_credit_note_unique UNIQUE (org_id, credit_note_number);

@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, notInArray } from "drizzle-orm";
+import { and, asc, eq, inArray, lt, notInArray } from "drizzle-orm";
 import { fiscalDoc, type ShopperDatabase } from "@shopper/db-pg";
 
 /** How long a lane waits before trying its head again: 30s, doubling, at most an hour. */
@@ -35,6 +35,32 @@ export async function strandedFiscalDocs(
     ready: rows.filter((row) => row.createdAt < before).map((row) => row.id),
     later: rows.some((row) => row.createdAt >= before),
   };
+}
+
+/**
+ * A store's oldest document still waiting for the SDC that was made before `before`. A till's pull hands it to the
+ * store's lane, whose drain adopts every other stranded one, so an enqueue lost after an acknowledged upload is
+ * recovered within a pull interval instead of waiting for the store's next sale.
+ */
+export async function oldestStrandedFiscalDoc(
+  db: ShopperDatabase,
+  scope: { orgId: string; storeId: string },
+  before: Date,
+) {
+  const [row] = await db
+    .select({ id: fiscalDoc.id })
+    .from(fiscalDoc)
+    .where(
+      and(
+        eq(fiscalDoc.orgId, scope.orgId),
+        eq(fiscalDoc.storeId, scope.storeId),
+        inArray(fiscalDoc.status, ["pending", "submitted"]),
+        lt(fiscalDoc.createdAt, before),
+      ),
+    )
+    .orderBy(asc(fiscalDoc.createdAt), asc(fiscalDoc.id))
+    .limit(1);
+  return row?.id ?? null;
 }
 
 /** Every store with documents still waiting for the SDC; a box starts their lanes at boot. */

@@ -50,8 +50,8 @@ detail; a signature that arrives while a provisional PDF renders (now stored sta
 download links expiring on an open page (refetched every 4 minutes); a document read failure leaving the sheet
 loading forever (now an error with Try again).
 
-The whole-branch review raised two more, kept as known limits (both rare, and fixing either adds a mechanism; see
-the PR): a till so far behind (over 50,000 changes) that it pulls a snapshot misses the signatures in the skipped
-feed, so its older receipts stay provisional on that till (the signature stays in PostgreSQL and on the portal); and
-a document whose enqueue failed waits for the store's next enqueue, which sweeps stranded documents, rather than a
-timer (a periodic sweep is the upgrade if that matters).
+The whole-branch review raised two more, both fixed after the first push: a till far enough behind (over 50,000
+changes) to take a snapshot skipped the feed rows carrying its signatures (it now fetches them for its provisional
+receipts and applies them with the snapshot: `till/fiscal/receipt.test.ts`); and a document whose enqueue failed
+waited for the store's next sale (every till pull now hands the store's oldest stranded document back to its lane,
+with no cron: `fiscal/stranded.test.ts`). Each test went red with its fix removed.

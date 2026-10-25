@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, ilike, inArray, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, inArray, lt, or, sql } from "drizzle-orm";
 import * as v from "valibot";
 import { branch, fiscalArchive, fiscalDoc, store, type ShopperDatabase } from "@shopper/db-pg";
 import type { Blobs } from "@shopper/ports";
@@ -9,6 +9,7 @@ import {
   fiscalSegments,
 } from "../schemas/fiscal/queries";
 import { FiscalError } from "./error";
+import { fiscalSigned } from "../changes/project";
 
 /** Newest first; an org's dashboard shows the latest documents, searching finds older ones. */
 const LIMIT = 200;
@@ -134,4 +135,42 @@ export async function listFiscalArchives(
 function reasonOf(doc: typeof fiscalDoc.$inferSelect) {
   if (doc.status === "rejected") return `${doc.rejectionCode}: ${doc.rejectionMessage}`;
   return doc.status === "accepted" ? null : doc.lastError;
+}
+
+/**
+ * The signatures of a store's accepted documents for these sales and credit notes, in the feed's shape. A till that
+ * caught up through a snapshot skipped the feed rows that carried them, so it asks for those of its provisional
+ * receipts.
+ */
+export async function fiscalSignatures(
+  db: ShopperDatabase,
+  scope: { orgId: string; storeId: string },
+  ids: { saleIds: string[]; refundIds: string[] },
+) {
+  if (!ids.saleIds.length && !ids.refundIds.length) return [];
+  const rows = await db
+    .select()
+    .from(fiscalDoc)
+    .where(
+      and(
+        eq(fiscalDoc.orgId, scope.orgId),
+        eq(fiscalDoc.storeId, scope.storeId),
+        eq(fiscalDoc.status, "accepted"),
+        or(
+          ids.saleIds.length ? inArray(fiscalDoc.saleId, ids.saleIds) : undefined,
+          ids.refundIds.length ? inArray(fiscalDoc.refundId, ids.refundIds) : undefined,
+        ),
+      ),
+    );
+  return rows.map(
+    (doc) =>
+      fiscalSigned({
+        ...doc,
+        sdcId: doc.sdcId!,
+        sdcCounter: doc.sdcCounter!,
+        signature: doc.signature!,
+        qr: doc.qr!,
+        signedAt: doc.signedAt!,
+      }).payload,
+  );
 }

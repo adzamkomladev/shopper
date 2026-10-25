@@ -1,4 +1,4 @@
-import { and, eq, isNotNull } from "drizzle-orm";
+import { and, eq, isNotNull, sql } from "drizzle-orm";
 import * as v from "valibot";
 import { localSale, receiptOutput, refund, type TillSqlite } from "@shopper/db-sqlite";
 import { receiptDocument } from "../../schemas/receipts/document";
@@ -34,4 +34,23 @@ export async function signLocalReceipt(tx: TillSqlite, orgId: string, signed: Ti
       .update(receiptOutput)
       .set({ pdfStale: true })
       .where(and(eq(receiptOutput.saleId, signed.saleId), isNotNull(receiptOutput.pdf)));
+}
+
+/** The sales and credit notes this till still holds as provisional VAT receipts, waiting for their signature. */
+export async function unsignedLocalReceipts(tx: TillSqlite, orgId: string) {
+  const unsigned = (table: typeof localSale | typeof refund) =>
+    tx
+      .select({ id: table.id })
+      .from(table)
+      .where(
+        and(
+          eq(table.orgId, orgId),
+          sql`json_extract(${table.receipt}, '$.header.vatInvoice') = 1`,
+          sql`json_extract(${table.receipt}, '$.fiscal') IS NULL`,
+        ),
+      );
+  return {
+    saleIds: (await unsigned(localSale)).map((row) => row.id),
+    refundIds: (await unsigned(refund)).map((row) => row.id),
+  };
 }

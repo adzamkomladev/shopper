@@ -8,15 +8,21 @@ import {
   projectCustomers,
   projectProducts,
   replayPendingCustomers,
+  signLocalReceipt,
   storeOrgSettings,
 } from "@shopper/core/till";
+import type { TillFiscalSignature } from "@shopper/core/schemas";
 
 /** Replaces the organisation's reference and lookup; `referenceVersion` is the wire version the server sent. */
 export const applySnapshot = (now?: () => number) =>
   defineCommand(
     {
       name: "till.sync.snapshot",
-      async run(tx, context, input: Snapshot & { referenceVersion: number }) {
+      async run(
+        tx,
+        context,
+        input: Snapshot & { referenceVersion: number; signatures?: TillFiscalSignature[] },
+      ) {
         if (input.orgId !== context.orgId) throw new Error("Snapshot outside tenant scope");
         const groups = {
           product: input.reference.products,
@@ -46,6 +52,9 @@ export const applySnapshot = (now?: () => number) =>
             count++;
           }
         }
+        // Signatures the skipped feed carried, fetched before this transaction so a failure applies nothing.
+        for (const signed of input.signatures ?? [])
+          await signLocalReceipt(tx, context.orgId, signed);
         await tx
           .insert(tillState)
           .values({

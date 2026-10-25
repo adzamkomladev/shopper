@@ -360,14 +360,18 @@ Fiscalisation never blocks a sale. The till prints at once; the server sends the
   doubling, at most an hour) before anything behind it, so a store's documents reach the SDC in receipt order. After
   ten failures the head is dead-lettered and the lane moves on; the dashboard's Retry (`tax.write`) puts it back at
   the end. When a lane drains it adopts its store's stranded documents (an enqueue lost after the commit) that are
-  over a minute old, and looks again a minute later if younger ones exist. Cloud: the `FiscalLane` Durable Object
+  over a minute old, and looks again a minute later if younger ones exist. An idle lane has no timer, so every till
+  pull (at least every five minutes) hands the store's oldest stranded document to the lane (`sweepStrandedFiscal`);
+  re-enqueueing a queued document is a no-op that keeps a failing head's backoff. No cron. Cloud: the `FiscalLane` Durable Object
   (queue in its SQLite, an alarm drains it, a drain mutex keeps a forced alarm from racing a real one). Box: the
   in-process `boxLane`, rebuilt from PostgreSQL by `relaunch` at boot (Rivet actors replace it on Day 36). Both pass
   `laneConformance`. Without `SHOPPER_SDC_URL` and `SHOPPER_SDC_KEY` no lane is wired and documents wait as pending.
 - **Receipts.** Receipt v5 adds `fiscal` (null until signed). A VAT invoice prints at once as PROVISIONAL with no QR;
   a signed one prints the SDC's QR and `E-VAT <sdcId> #<counter>`; a plain receipt prints neither. The till applies
   the `fiscal-doc` change to the receipt it holds (`signLocalReceipt`), so a reprint is the definitive receipt, and
-  marks a rendered PDF stale; after the pull the host renders the definitive PDF and uploads it again. The server
+  marks a rendered PDF stale. A till that catches up through a snapshot skips those feed rows, so before applying it
+  the till posts its provisional receipts to `POST /sync/snapshot/signatures` (pages of 500) and applies the
+  signatures in the snapshot's transaction; a failed request applies nothing. After the pull the host renders the definitive PDF and uploads it again. The server
   replaces the bytes under the same receipt asset: `asset.verified_sha256` records which bytes were checked, so the
   same PDF stays final and another digest supersedes it.
 - **Archive.** `FiscalArchiveWorkflow` (instance `fiscal-archive_<orgId>_<storeId>_<YYYYMMDDHH>`) sleeps until five

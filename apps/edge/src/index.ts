@@ -8,4 +8,5 @@ export {
   AccountWorkflow,
   StatementWorkflow,
   FiscalArchiveWorkflow,
+  AuditAnchorWorkflow,
 } from "@shopper/adapters-cf/workflows";

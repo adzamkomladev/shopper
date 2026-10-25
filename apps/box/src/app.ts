@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { buildInfo } from "@shopper/config";
 import { createPaystack } from "@shopper/core/payments/paystack";
 import { deliverNotification } from "@shopper/core/notifications";
+import { runWatchdog } from "@shopper/core/audit";
 import { createArkesel } from "@shopper/core/sms/arkesel";
 import { createSdc } from "@shopper/core/fiscal";
 import { createMaileroo } from "@shopper/auth";
@@ -23,6 +24,8 @@ import {
   boxQueue,
   boxLane,
   boxFiscalArchive,
+  boxAuditAnchors,
+  boxWatchdog,
 } from "@shopper/adapters-box";
 import { boxRenderer } from "@shopper/adapters-box/renderer";
 import { NOTIFICATION_RETRY } from "@shopper/ports";
@@ -39,6 +42,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
   let accountFlows: ReturnType<typeof boxAccountFlows> | undefined;
   let statementFlows: ReturnType<typeof boxStatementFlows> | undefined;
   let lane: ReturnType<typeof boxLane> | undefined;
+  let watchdog: ReturnType<typeof boxWatchdog> | undefined;
   const renderer = boxRenderer();
   return new Hono<{ Bindings: BoxBindings }>().all("*", async (context) => {
     const request = context.req.raw;
@@ -157,6 +161,15 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
       accountFlows
         .relaunch()
         .catch((error: unknown) => console.error({ event: "account.relaunch_failed", error }));
+    }
+    if (!watchdog) {
+      const anchors = boxAuditAnchors({ database: workflowDatabase, queue: notifications });
+      watchdog = boxWatchdog((at) =>
+        runWatchdog(
+          { withDatabase: (run) => run(workflowDatabase), anchors: anchors.launcher },
+          at,
+        ),
+      );
     }
     if (!lane && environment.SHOPPER_SDC_URL && environment.SHOPPER_SDC_KEY) {
       const archive = boxFiscalArchive({ database: workflowDatabase, blobs: await blobs() });

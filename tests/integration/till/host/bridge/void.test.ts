@@ -3,7 +3,7 @@
 import { afterEach, expect, it } from "vite-plus/test";
 import { verifyChain, type AuditEntry } from "@shopper/audit";
 import { tillAudit } from "@shopper/db-sqlite";
-import { pin } from "../../../../support/till/approvers";
+import { auditText, pin } from "../../../../support/till/approvers";
 import { manager, startWithManager } from "../../../../support/till/host/approvals";
 
 let fixture: Awaited<ReturnType<typeof startWithManager>>["fixture"] | undefined;
@@ -59,6 +59,6 @@ it("the manager's PIN voids it and the audit names the cashier and the manager",
     actorId: fixture!.config.session!.userId,
     approverId: manager,
   });
-  expect(JSON.stringify(rows)).not.toContain(pin);
+  expect(auditText(rows)).not.toContain(pin);
   expect(await verifyChain(rows as AuditEntry[])).toMatchObject({ valid: true });
 });

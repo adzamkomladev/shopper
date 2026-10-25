@@ -95,6 +95,11 @@ export const auditLog = pgTable(
     foreignKey({ columns: [t.orgId, t.approverId], foreignColumns: [user.orgId, user.id] }),
     foreignKey({ columns: [t.orgId, t.deviceId], foreignColumns: [device.orgId, device.id] }),
     foreignKey({ columns: [t.orgId, t.branchId], foreignColumns: [branch.orgId, branch.id] }),
+    index("audit_log_viewer").on(t.orgId, t.id),
+    index("audit_log_entity").on(t.orgId, t.entity, t.entityId),
+    index("audit_log_actor").on(t.orgId, t.actorId),
+    index("audit_log_device").on(t.orgId, t.deviceId),
+    index("audit_log_command").on(t.orgId, t.command),
     check(
       "audit_chain_shape",
       sql`(${t.hash} IS NULL AND ${t.prevHash} IS NULL AND ${t.chainSeq} IS NULL) OR (${t.hash} IS NOT NULL AND ${t.prevHash} IS NOT NULL AND ${t.chainSeq} IS NOT NULL AND ${t.hash} ~ '^[0-9a-f]{64}$' AND ${t.prevHash} ~ '^[0-9a-f]{64}$' AND ${t.chainSeq} > 0)`,

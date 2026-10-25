@@ -20,6 +20,10 @@
       "types": "./src/orgs.ts",
       "default": "./src/orgs.ts"
     },
+    "./audit": {
+      "types": "./src/audit/index.ts",
+      "default": "./src/audit/index.ts"
+    },
     "./catalogue": {
       "types": "./src/catalogue/index.ts",
       "default": "./src/catalogue/index.ts"

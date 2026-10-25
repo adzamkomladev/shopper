@@ -141,7 +141,7 @@ test("a failure after the index was updated rolls back the page, the index and t
   expect(worker!.getStatus().state).toBe("offline");
   expect(await tillStateRow(till.database)).toMatchObject({
     pull_cursor: "5",
-    reference_version: 5,
+    reference_version: 6,
   });
   expect(await referenceNames(till.database)).toEqual(["Alpha", "Bravo"]);
   expect(await search("alpha")).toEqual(["Alpha"]);

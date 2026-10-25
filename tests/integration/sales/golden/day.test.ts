@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { asc, eq } from "drizzle-orm";
 import { verifyChain, type AuditEntry } from "@shopper/audit";
-import { sale, saleTender, stockMovement, auditLog } from "@shopper/db-pg";
+import { v7 } from "uuid";
+import { sale, saleTender, stockMovement, auditLog, deviceAudit } from "@shopper/db-pg";
+import { verifyStream } from "@shopper/core/audit";
 import { localSale, outbox, saleDraft, tillAudit } from "@shopper/db-sqlite";
 import { add, money, toDecimal } from "@shopper/money";
 import { tradingDay } from "../../../fixtures/sales/golden/day";
@@ -17,6 +19,8 @@ import {
 } from "../../../fixtures/sales/golden/expected";
 import { goldenWorld } from "../../../support/sales/golden/setup";
 import { runGolden } from "../../../support/sales/golden/run";
+import { api, deviceId } from "../../../support/till/server";
+import { syncHeaders } from "../../../support/till/requests";
 
 let world: Awaited<ReturnType<typeof goldenWorld>>;
 const day = fields.map(() => money(0));
@@ -105,4 +109,46 @@ test("golden trading day totals reconcile on both databases with intact audit ch
   expect(localAudit.filter((row) => row.command === "sale.complete")).toHaveLength(20);
   expect(await verifyChain(serverAudit as AuditEntry[])).toMatchObject({ valid: true });
   expect(await verifyChain(localAudit as AuditEntry[])).toMatchObject({ valid: true });
+});
+
+test("every command the golden day ran produced an audit row, and the till chain uploads intact", async () => {
+  const serverAudit = await world.db
+    .select()
+    .from(auditLog)
+    .where(eq(auditLog.orgId, world.scope.orgId));
+  const localAudit = await world.local.read((tx) => tx.select().from(tillAudit));
+  const named = (rows: { command: string; entityId: string | null }[], command: string) =>
+    new Set(rows.filter((row) => row.command === command).map((row) => row.entityId));
+  // Server: each accepted sale is named by its own sale.accept row, by its till-local id.
+  const accepted = named(serverAudit, "sale.accept");
+  const sales = await world.db.select().from(sale);
+  expect(sales.map((row) => accepted.has(row.localId))).toEqual(sales.map(() => true));
+  // Till: each completed sale and each draft the day opened is named by the command that made it.
+  const completed = named(localAudit, "sale.complete");
+  const local = await world.local.read((tx) => tx.select().from(localSale));
+  expect(local.map((row) => completed.has(row.id))).toEqual(local.map(() => true));
+  const drafted = named(localAudit, "till.draft.add");
+  const drafts = await world.local.read((tx) => tx.select().from(saleDraft));
+  expect(drafts.map((row) => drafted.has(row.id))).toEqual(drafts.map(() => true));
+  // The till chain reaches the server row for row and verifies there as the register's stream.
+  const chain = [...localAudit].sort((a, b) => a.chainSeq! - b.chainSeq!);
+  for (let from = 0; from < chain.length; from += 200) {
+    const response = await api.request("/sync/audit", {
+      method: "POST",
+      headers: syncHeaders(),
+      body: JSON.stringify({ requestId: v7(), entries: chain.slice(from, from + 200) }),
+    });
+    expect(await response.json()).toMatchObject({ accepted: { head: expect.any(Object) } });
+  }
+  const stored = await world.db
+    .select()
+    .from(deviceAudit)
+    .where(eq(deviceAudit.streamId, deviceId))
+    .orderBy(asc(deviceAudit.chainSeq));
+  expect(stored.map((row) => row.hash)).toEqual(chain.map((row) => row.hash));
+  expect(await verifyStream(world.db, world.scope.orgId, deviceId)).toMatchObject({
+    valid: true,
+    count: chain.length,
+  });
+  expect(await verifyStream(world.db, world.scope.orgId, "org")).toMatchObject({ valid: true });
 });

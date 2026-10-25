@@ -17,20 +17,23 @@ import { auditFields } from "./workflows";
 /**
  * A till's own audit chain as it uploaded it, row for row: the till hashed these, so the server stores them verbatim
  * (no actor or branch keys, which must never make a valid chain unstorable) and only appends after the stored head.
+ * `stream_id` is the uploading register; the hashed `device_id` is whatever the till recorded, possibly null.
  */
 export const deviceAudit = pgTable(
   "device_audit",
   {
     ...tenant(),
     ...auditFields(),
-    deviceId: uuid("device_id").notNull(),
+    // Stored as the till recorded it; a till entity id is not always a UUID.
+    entityId: text("entity_id"),
+    streamId: uuid("stream_id").notNull(),
     chainSeq: bigint("chain_seq", { mode: "number" }).notNull(),
     prevHash: text("prev_hash").notNull(),
     hash: text("hash").notNull(),
   },
   (t) => [
-    unique().on(t.orgId, t.deviceId, t.chainSeq),
-    foreignKey({ columns: [t.orgId, t.deviceId], foreignColumns: [device.orgId, device.id] }),
+    unique().on(t.orgId, t.streamId, t.chainSeq),
+    foreignKey({ columns: [t.orgId, t.streamId], foreignColumns: [device.orgId, device.id] }),
     check(
       "device_audit_chain_shape",
       sql`${t.hash} ~ '^[0-9a-f]{64}$' AND ${t.prevHash} ~ '^[0-9a-f]{64}$' AND ${t.chainSeq} > 0`,

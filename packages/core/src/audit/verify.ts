@@ -85,7 +85,7 @@ function page(db: Queryable, orgId: string, stream: string, after: number, limit
     .where(
       and(
         eq(deviceAudit.orgId, orgId),
-        eq(deviceAudit.deviceId, stream),
+        eq(deviceAudit.streamId, stream),
         gt(deviceAudit.chainSeq, after),
       ),
     )

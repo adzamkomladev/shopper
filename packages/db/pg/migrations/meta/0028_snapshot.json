@@ -1,5 +1,5 @@
 {
-  "id": "9875a255-b85f-4d7c-8944-0f0e3754db85",
+  "id": "2ad006c9-ca6f-4520-a366-3c2b20d76237",
   "prevId": "216b3164-15f6-4727-ae5c-25689b17a928",
   "version": "7",
   "dialect": "postgresql",
@@ -9560,7 +9560,7 @@
           "name": "device_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "branch_id": {
           "name": "branch_id",
@@ -9576,7 +9576,7 @@
         },
         "entity_id": {
           "name": "entity_id",
-          "type": "uuid",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -9643,6 +9643,12 @@
         "payload": {
           "name": "payload",
           "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stream_id": {
+          "name": "stream_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         }
@@ -9749,11 +9755,11 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "device_audit_org_id_device_id_device_org_id_id_fk": {
-          "name": "device_audit_org_id_device_id_device_org_id_id_fk",
+        "device_audit_org_id_stream_id_device_org_id_id_fk": {
+          "name": "device_audit_org_id_stream_id_device_org_id_id_fk",
           "tableFrom": "device_audit",
           "tableTo": "device",
-          "columnsFrom": ["org_id", "device_id"],
+          "columnsFrom": ["org_id", "stream_id"],
           "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -9761,10 +9767,10 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "device_audit_org_id_device_id_chain_seq_unique": {
-          "name": "device_audit_org_id_device_id_chain_seq_unique",
+        "device_audit_org_id_stream_id_chain_seq_unique": {
+          "name": "device_audit_org_id_stream_id_chain_seq_unique",
           "nullsNotDistinct": false,
-          "columns": ["org_id", "device_id", "chain_seq"]
+          "columns": ["org_id", "stream_id", "chain_seq"]
         }
       },
       "policies": {},

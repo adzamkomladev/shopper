@@ -19,10 +19,10 @@ CREATE TABLE IF NOT EXISTS device_audit (
   updated_at timestamptz NOT NULL DEFAULT now(),
   command text NOT NULL,
   role text,
-  device_id uuid NOT NULL,
+  device_id uuid,
   branch_id uuid,
   entity text,
-  entity_id uuid,
+  entity_id text,
   before jsonb,
   after jsonb,
   reason text,
@@ -34,9 +34,10 @@ CREATE TABLE IF NOT EXISTS device_audit (
   actor_id uuid,
   app_version text NOT NULL,
   payload jsonb NOT NULL,
+  stream_id uuid NOT NULL,
   CONSTRAINT device_audit_org_id_org_id_fk FOREIGN KEY (org_id) REFERENCES org(id),
-  CONSTRAINT device_audit_org_id_device_id_device_org_id_id_fk FOREIGN KEY (org_id, device_id) REFERENCES device(org_id, id),
-  CONSTRAINT device_audit_org_id_device_id_chain_seq_unique UNIQUE (org_id, device_id, chain_seq),
+  CONSTRAINT device_audit_org_id_stream_id_device_org_id_id_fk FOREIGN KEY (org_id, stream_id) REFERENCES device(org_id, id),
+  CONSTRAINT device_audit_org_id_stream_id_chain_seq_unique UNIQUE (org_id, stream_id, chain_seq),
   CONSTRAINT device_audit_chain_shape CHECK (hash ~ '^[0-9a-f]{64}$' AND prev_hash ~ '^[0-9a-f]{64}$' AND chain_seq > 0)
 );
 --> statement-breakpoint

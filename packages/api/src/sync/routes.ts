@@ -13,6 +13,7 @@ import type { ShopperDatabase } from "@shopper/db-pg";
 import type { Blobs, Lane, Queue, Sequencer } from "@shopper/ports";
 import type { createDeviceService } from "@shopper/auth/devices";
 import { createApproverRoutes } from "./approvers";
+import { createAuditRoutes } from "./audit";
 import { createAccountRoutes } from "./accounts";
 import { createCustomerRoutes } from "./customers";
 import { createReceiptRoutes } from "./receipts";
@@ -62,6 +63,7 @@ export function createSyncRoutes(options: {
   app.route("/", createCustomerRoutes(options));
   app.route("/", createAccountRoutes(options));
   app.route("/", createApproverRoutes(options));
+  app.route("/", createAuditRoutes(options));
   app.post("/sync/handshake", async (c) => {
     const principal = await options.devices.resolveUploadPrincipal(c.req.raw);
     if (!principal) return c.json({ error: "Invalid device credential" }, 401);

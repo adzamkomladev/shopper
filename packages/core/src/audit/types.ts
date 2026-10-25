@@ -9,3 +9,8 @@ export type StreamVerification =
       seq: number | null;
       reason: Extract<ChainVerification, { valid: false }>["reason"];
     };
+
+/** What `POST /sync/audit` answers: the stream's head, or a refusal the till keeps for good. */
+export type DeviceAuditOutcome =
+  | { accepted: { head: { seq: number; hash: string } }; from?: number }
+  | { rejected: { code: string; message: string } };

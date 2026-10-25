@@ -11,7 +11,7 @@ Branch `day20-audit`, from `main` at `8d146a8`. One commit per slice.
 | 5     | Shifts carry a Z cross-check and an anchor check, computed at read time              | `ae7f125` |
 | 6–7   | Portal Audit log and Integrity tabs, shift badges, product History link              | `94ff8f8` |
 
-Slice 8 (docs, schema pins, this file) is the last commit.
+Slice 8 (docs, schema pins, this file) and the whole-branch review fixes (`681ed59`) close the branch.
 
 ## Notion tests
 
@@ -52,6 +52,10 @@ its wrapped height (68 / 108 / 148 px). Loaded and skeleton boxes agree at all f
 Codex (`gpt-6.1-sol`) reviewed each slice. Fixed: the Cloudflare runtime closed the DB before a streamed CSV
 finished (now closed after the body ends); the Z cross-check compares tax and account figures too; focus fell to
 the document when a linked entry had no row. Kept as a known limit: shift membership by the register's clock.
+
+The whole-branch review raised two more, both fixed with a test that went red first: a second till override
+recorded the list price as its before (`till/basket/drafts/override.test.ts`), and a register whose uploaded rows
+were all deleted dropped out of the streams list, so Verify all skipped it (`audit/tamper.test.ts`).
 
 ## Known limits
 

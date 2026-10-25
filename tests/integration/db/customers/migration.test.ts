@@ -26,10 +26,13 @@ beforeAll(async () => {
     "--> statement-breakpoint",
     "",
   );
-  later = (await readFile(new URL("0026_tax.sql", dir), "utf8")).replaceAll(
-    "--> statement-breakpoint",
-    "",
-  );
+  later = (
+    await Promise.all(
+      ["0026_tax.sql", "0027_fiscal.sql"].map((f) => readFile(new URL(f, dir), "utf8")),
+    )
+  )
+    .join("\n")
+    .replaceAll("--> statement-breakpoint", "");
   await provisionOrg(db, context, { name: "Customer tenant" });
   userId = v7();
   await db.insert(schema.user).values({ id: userId, orgId, email: "c@x.test", name: "Cashier" });
@@ -77,7 +80,7 @@ test("migration 0025 is journalled at idx 25 and replaying it twice changes noth
   const granted = await grants();
   await fixture.client.query(migration);
   await fixture.client.query(migration);
-  // A later migration widens the feed's entity list again; replaying it restores the schema.
+  // Later migrations widen the feed's entity list again; replaying them restores the schema.
   await fixture.client.query(later);
   expect(await catalog()).toEqual(before);
   expect(await grants()).toEqual(granted);

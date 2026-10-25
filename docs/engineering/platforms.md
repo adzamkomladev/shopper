@@ -104,7 +104,9 @@ Before using a Cloudflare product that is not in this table, load the `cloudflar
   business key (for example `store-day_<orgId>_<storeId>_<date>`; Cloudflare instance ids allow only letters, digits, `-` and `_`), so both engines address the same
   thing.
 - **Exactly five coordination classes**: StoreSequencer, StoreHub, FiscalLane, StockHold, RateLimiter.
-  Ask before adding a sixth. Each exists as a DO and as a Rivet actor.
+  Ask before adding a sixth. Each exists as a DO and as a Rivet actor. FiscalLane is built (Day 19): the DO keeps
+  each store's queue in its SQLite and drains it with alarms; the box twin is the in-process `boxLane` until the
+  Rivet actor lands on Day 36. Both pass `laneConformance`.
 - **Never poll and never put business logic on a cron tick.** A wait on people, partners or time is a
   workflow `sleepUntil` or `waitFor`.
 - **Cache port: never read after write in the same request.** It is not a source of truth.

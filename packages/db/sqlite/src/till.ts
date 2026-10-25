@@ -245,4 +245,6 @@ export const tillMigrations: string[] = [
   customers,
   accountTenders,
   accountPayments,
+  // A signature that arrives after the receipt PDF rendered marks it to render and upload again.
+  "ALTER TABLE receipt_output ADD COLUMN pdf_stale INTEGER NOT NULL DEFAULT 0;",
 ];

@@ -94,7 +94,7 @@ function common(
   // Every line of one sale is dated the same day, so they agree on whether the shop was registered.
   const vatInvoice = lines.every((line) => line.tax.registered);
   return {
-    v: 4 as const,
+    v: 5 as const,
     saleId: source.id,
     header: {
       org: reference.orgName ?? source.orgId,
@@ -132,6 +132,8 @@ function common(
     discountTotal,
     gross: totals.gross,
     footer: reference.footer ?? "Thank you for shopping with us",
+    // A VAT invoice is provisional until the SDC signs it; the signature is added when it arrives.
+    fiscal: null,
   };
 }
 

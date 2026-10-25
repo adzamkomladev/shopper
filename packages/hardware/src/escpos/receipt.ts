@@ -4,8 +4,7 @@ import {
   clip,
   documentTitle,
   ghs,
-  qrCaption,
-  qrPayload,
+  fiscalMark,
   quantity,
   refundedLabel,
   taxRows,
@@ -88,9 +87,10 @@ export function encodeReceipt(receipt: ReceiptDocument, options: EncodeOptions):
   if (!refund) printer.text(row("Change", ghs(receipt.change)));
   printer.feed(1);
 
-  if (!refund) {
-    printer.align("center").qr(qrPayload(receipt));
-    center(qrCaption);
+  const mark = fiscalMark(receipt);
+  if (mark) {
+    if (mark.qr) printer.align("center").qr(mark.qr);
+    center(mark.caption);
     printer.feed(1);
   }
   center(receipt.footer);

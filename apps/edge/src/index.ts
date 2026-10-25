@@ -7,4 +7,5 @@ export {
   KycWorkflow,
   AccountWorkflow,
   StatementWorkflow,
+  FiscalArchiveWorkflow,
 } from "@shopper/adapters-cf/workflows";

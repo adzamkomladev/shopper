@@ -9,11 +9,13 @@ import {
 } from "@shopper/core/fiscal";
 import { scopedKey, type Lane } from "@shopper/ports";
 import { cloudflareDatabase } from "./database";
+import { cloudflareLauncher } from "./launcher";
 
 interface LaneEnvironment {
   HYPERDRIVE: Hyperdrive;
   SHOPPER_SDC_URL?: string;
   SHOPPER_SDC_KEY?: string;
+  FISCAL_ARCHIVE?: Parameters<typeof cloudflareLauncher>[0];
 }
 
 /** Documents a lane submits per alarm before it yields and sets the next one. */
@@ -70,6 +72,7 @@ export class FiscalLane extends DurableObject<LaneEnvironment> {
     if (!scope || !this.env.SHOPPER_SDC_URL || !this.env.SHOPPER_SDC_KEY) return;
     const sdc = createSdc({ url: this.env.SHOPPER_SDC_URL, apiKey: this.env.SHOPPER_SDC_KEY });
     const context = { orgId: scope.org_id, appVersion: buildInfo.version };
+    const archive = this.env.FISCAL_ARCHIVE && cloudflareLauncher(this.env.FISCAL_ARCHIVE);
     let connection: Awaited<ReturnType<typeof cloudflareDatabase>> | undefined;
     try {
       connection = await cloudflareDatabase(this.env.HYPERDRIVE.connectionString);
@@ -91,7 +94,13 @@ export class FiscalLane extends DurableObject<LaneEnvironment> {
           if (stranded.later) await this.ctx.storage.setAlarm(Date.now() + STRANDED_AFTER_MS);
           return;
         }
-        const outcome = await submitFiscalDoc(connection.db, context, sdc, head.doc_id);
+        const outcome = await submitFiscalDoc(
+          connection.db,
+          context,
+          sdc,
+          head.doc_id,
+          archive || undefined,
+        );
         if (outcome === "retry") {
           const attempts = scope.attempts + 1;
           sql.exec("UPDATE scope SET attempts = ?", attempts);

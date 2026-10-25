@@ -1,4 +1,4 @@
-export { affectedStores, recordChanges, type Change } from "./record";
+export { affectedStores, recordChanges, FEED_VERSION, type Change } from "./record";
 export { loadBarcodes } from "./barcodes";
 export type { ProductBarcode } from "./types";
 export {

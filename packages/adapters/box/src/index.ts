@@ -13,3 +13,4 @@ export { boxKycFlows } from "./workflows/kyc";
 export { boxAccountFlows } from "./workflows/account";
 export { boxStatementFlows } from "./workflows/statements";
 export { boxLane } from "./lane";
+export { boxFiscalArchive } from "./workflows/fiscal";

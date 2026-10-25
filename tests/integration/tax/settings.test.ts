@@ -89,7 +89,7 @@ test("saving stores the settings, audits the change and sends one org-setting ro
     );
   expect(feed).toHaveLength(1);
   const change = decodeReferenceChange({ ...feed[0]!, seq: feed[0]!.seq.toString() });
-  expect(change).toMatchObject({ v: 5, op: "upsert", entityId: context.orgId });
+  expect(change).toMatchObject({ v: 6, op: "upsert", entityId: context.orgId });
   expect(change.payload).toEqual({ id: context.orgId, ...valid });
 
   // An unregistered shop has no TIN to give.

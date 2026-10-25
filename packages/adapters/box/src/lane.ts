@@ -1,5 +1,5 @@
 import type { ShopperDatabase } from "@shopper/db-pg";
-import type { Lane, Sdc } from "@shopper/ports";
+import type { Lane, Sdc, WorkflowLauncher } from "@shopper/ports";
 import {
   laneBackoff,
   strandedFiscalDocs,
@@ -24,6 +24,8 @@ export function boxLane(deps: {
   db: ShopperDatabase;
   sdc: Sdc;
   appVersion: string;
+  /** Starts the hourly archive bundle of each accepted document. */
+  archive?: WorkflowLauncher;
   now?: () => number;
 }) {
   const now = deps.now ?? Date.now;
@@ -62,6 +64,7 @@ export function boxLane(deps: {
         { orgId: store.orgId, appVersion: deps.appVersion },
         deps.sdc,
         head,
+        deps.archive,
       ).catch((error: unknown) => {
         // The database itself failed; the head stays first and is tried again later.
         console.error({ event: "fiscal.lane_failed", orgId: store.orgId, docId: head, error });

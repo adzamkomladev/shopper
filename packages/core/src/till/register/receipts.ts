@@ -1,7 +1,7 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { sha256 } from "@shopper/utils";
 import { defineCommand, type CommandContext } from "@shopper/audit/sqlite";
-import { receiptOutput, type TillDatabase, type TillSqlite } from "@shopper/db-sqlite";
+import { localSale, receiptOutput, type TillDatabase, type TillSqlite } from "@shopper/db-sqlite";
 import type { PrintOutcome } from "../types";
 
 type Print = { saleId: string; error: string | null; at: Date };
@@ -61,16 +61,32 @@ function printCommand(name: string, reprints: 0 | 1) {
 export async function storeReceiptPdf(
   db: TillDatabase,
   context: CommandContext,
-  input: { saleId: string; pdf: Uint8Array },
+  /** `signed`: whether the receipt that was rendered carried the SDC's signature. */
+  input: { saleId: string; pdf: Uint8Array; signed: boolean },
 ) {
   const stored = { pdf: Buffer.from(input.pdf), pdfSha256: await sha256(input.pdf) };
-  return store(db, context, { saleId: input.saleId, ...stored });
+  return store(db, context, { saleId: input.saleId, signed: input.signed, ...stored });
 }
 
 const store = defineCommand({
   name: "receipt.pdf.store",
-  async run(tx, context, input: { saleId: string; pdf: Buffer; pdfSha256: string }) {
-    const values = { pdf: input.pdf, pdfSha256: input.pdfSha256, pdfSize: input.pdf.length };
+  async run(
+    tx,
+    context,
+    input: { saleId: string; pdf: Buffer; pdfSha256: string; signed: boolean },
+  ) {
+    // A signature that landed while a provisional copy rendered leaves the stored copy stale, to render again.
+    const [held] = await tx
+      .select({ receipt: localSale.receipt })
+      .from(localSale)
+      .where(and(eq(localSale.orgId, context.orgId), eq(localSale.id, input.saleId)));
+    const signedNow = !!(held?.receipt as { fiscal?: unknown } | undefined)?.fiscal;
+    const values = {
+      pdf: input.pdf,
+      pdfSha256: input.pdfSha256,
+      pdfSize: input.pdf.length,
+      pdfStale: signedNow && !input.signed,
+    };
     await tx
       .insert(receiptOutput)
       .values({ saleId: input.saleId, orgId: context.orgId, ...values })
@@ -80,7 +96,12 @@ const store = defineCommand({
         set: { ...values, assetId: null, uploadedAt: null, uploadAttempts: 0, nextUploadAt: null },
       });
   },
-  audit: (input) => ({ saleId: input.saleId, sha256: input.pdfSha256, size: input.pdf.length }),
+  audit: (input) => ({
+    saleId: input.saleId,
+    sha256: input.pdfSha256,
+    size: input.pdf.length,
+    signed: input.signed,
+  }),
   details: (input) => ({ entity: "sale", entityId: input.saleId }),
 });
 

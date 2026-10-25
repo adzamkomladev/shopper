@@ -5,10 +5,12 @@ import { and, eq, sql } from "drizzle-orm";
 import { v7 } from "uuid";
 import { defineCommand } from "@shopper/audit/sqlite";
 import { reference, tillState } from "@shopper/db-sqlite";
+import type { TillFiscalSignature } from "@shopper/core/schemas";
 import {
   projectCustomers,
   projectProducts,
   removeCustomers,
+  signLocalReceipt,
   unprojectProducts,
   type ProjectedCustomer,
   type ProjectedProduct,
@@ -32,6 +34,11 @@ export const applyPage = (now?: () => number) =>
             // Customers live in the lookup alone; there is no reference row to keep in step.
             if (change.op === "delete") await removeCustomers(tx, context.orgId, [change.entityId]);
             else await projectCustomers(tx, context.orgId, [change.payload as ProjectedCustomer]);
+            continue;
+          }
+          if (change.entity === "fiscal-doc") {
+            // A signature belongs on the receipt this till printed; it is not reference data.
+            await signLocalReceipt(tx, context.orgId, change.payload as TillFiscalSignature);
             continue;
           }
           const key = and(

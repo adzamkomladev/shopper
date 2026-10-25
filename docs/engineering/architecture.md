@@ -340,4 +340,46 @@ v3 (`creditNoteNumber`, and `registered` on its lines; v2 upcasts with none), ch
 `org-setting` entity; a v4 snapshot's rounding becomes the settings) and receipt v4 (`header.vatInvoice` and each
 line's `net`; v3 upcasts as a registered shop's, with no nets). `KNOWN_VERSION` on the pull side is 5.
 
+## GRA E-VAT fiscalisation (Day 19)
+
+Fiscalisation never blocks a sale. The till prints at once; the server sends the document afterwards, in order.
+
+- **Documents.** When `sale.accept` or `refund.accept` stores a receipt that is a VAT invoice (`header.vatInvoice`)
+  with a number, it inserts a `fiscal_doc` in the same transaction: `kind` invoice or credit note, the
+  `fiscalPayload` of the receipt, `status` `pending`. A shop that is not VAT-registered makes none. Statuses:
+  `pending → submitted → accepted | rejected`, or `dead` after the tenth failed try.
+- **SDC port.** `Sdc.submit({ invoiceNumber, payload })` answers a signature (`sdcId`, `counter`, `signature`,
+  `qr`, `signedAt`) or a final rejection (`code`, `message`); an unreachable SDC or a 5xx throws `SdcUnavailable`.
+  `createSdc` (`@shopper/core/fiscal`) is plain `fetch`, built against the mock contract in `tooling/sdc/server.ts`
+  until GRA sandbox access is granted. A resubmission of one invoice number gets its first answer.
+- **Submission** (`submitFiscalDoc`) is two audited commands around the call: `fiscal.submit` (claim, count the try)
+  and `fiscal.settle` (signature, rejection, or back to pending with the error; dead on the tenth). An accepted
+  document writes a `fiscal-doc` feed change to its store and starts the archive bundle of its hour.
+- **FiscalLane** (`Lane` port, one per store, keyed `orgId/storeId`). The sync routes enqueue a document after the
+  upload commits (a replayed upload enqueues it again). The queue is FIFO; the head is retried with backoff (30 s
+  doubling, at most an hour) before anything behind it, so a store's documents reach the SDC in receipt order. After
+  ten failures the head is dead-lettered and the lane moves on; the dashboard's Retry (`tax.write`) puts it back at
+  the end. When a lane drains it adopts its store's stranded documents (an enqueue lost after the commit) that are
+  over a minute old, and looks again a minute later if younger ones exist. Cloud: the `FiscalLane` Durable Object
+  (queue in its SQLite, an alarm drains it, a drain mutex keeps a forced alarm from racing a real one). Box: the
+  in-process `boxLane`, rebuilt from PostgreSQL by `relaunch` at boot (Rivet actors replace it on Day 36). Both pass
+  `laneConformance`. Without `SHOPPER_SDC_URL` and `SHOPPER_SDC_KEY` no lane is wired and documents wait as pending.
+- **Receipts.** Receipt v5 adds `fiscal` (null until signed). A VAT invoice prints at once as PROVISIONAL with no QR;
+  a signed one prints the SDC's QR and `E-VAT <sdcId> #<counter>`; a plain receipt prints neither. The till applies
+  the `fiscal-doc` change to the receipt it holds (`signLocalReceipt`), so a reprint is the definitive receipt, and
+  marks a rendered PDF stale; after the pull the host renders the definitive PDF and uploads it again. The server
+  replaces the bytes under the same receipt asset: `asset.verified_sha256` records which bytes were checked, so the
+  same PDF stays final and another digest supersedes it.
+- **Archive.** `FiscalArchiveWorkflow` (instance `fiscal-archive_<orgId>_<storeId>_<YYYYMMDDHH>`) sleeps until five
+  minutes after its hour, then bundles every accepted, unarchived document of the store accepted before the hour
+  ended as JSONL at `fiscal/<storeId>/<yyyy>/<mm>/<dd>/<hh>.jsonl` in the org's blobs, and records `fiscal_archive`
+  (count, bytes, SHA-256) and each document's `archive_id` in one transaction. A document a bundle missed lands in
+  the next. Six-year retention is the bucket's lifecycle rule on `fiscal/`.
+- **Dashboard.** `GET /tax/fiscal` (counts per segment, newest 200, search by number), `GET /tax/fiscal/:id`,
+  `GET /tax/fiscal/archives?date=` (signed download links) need `tax.read`; `POST /tax/fiscal/:id/retry` needs
+  `tax.write`. The reply says whether an SDC lane is connected.
+
+**Versions bumped in Day 19:** receipt v5 (`fiscal`; v4 upcasts unsigned), change feed and snapshot v6 (the
+`fiscal-doc` entity; the snapshot is unchanged). `KNOWN_VERSION` on the pull side is 6.
+
 The owner approved this architecture on 14 October 2026. This cleanup documents it; it does not implement new management hosts, billing, backup services or Electron. TanStack Start remains the customer-shop SSR framework; management keeps the existing Router SPA.

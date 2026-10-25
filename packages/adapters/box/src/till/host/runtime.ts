@@ -66,6 +66,7 @@ export async function startTillHost(
       void publishStatus();
     },
     payments,
+    () => receipts.refreshSigned(),
   );
   const receipts = createHostReceipts({
     database,

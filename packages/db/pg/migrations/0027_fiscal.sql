@@ -62,3 +62,5 @@ CREATE INDEX IF NOT EXISTS fiscal_doc_unarchived ON fiscal_doc (org_id, store_id
 ALTER TABLE store_change DROP CONSTRAINT IF EXISTS store_change_entity;
 --> statement-breakpoint
 ALTER TABLE store_change ADD CONSTRAINT store_change_entity CHECK (entity IN ('product', 'price', 'tax-rule', 'barcode-mapping', 'customer', 'org-setting', 'fiscal-doc'));
+--> statement-breakpoint
+ALTER TABLE asset ADD COLUMN IF NOT EXISTS verified_sha256 text;

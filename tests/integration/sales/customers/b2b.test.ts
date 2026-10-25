@@ -45,7 +45,7 @@ test("B2B sale carries buyer TIN onto the invoice and fiscal payload", async () 
     businessName: "Kofi Traders Ltd",
     tin: "C0012345678",
   });
-  expect(sold.receipt).toMatchObject({ v: 4, buyer });
+  expect(sold.receipt).toMatchObject({ v: 5, buyer });
   expect(await serverCustomer(customer.id)).toBeUndefined();
 
   await till.online();
@@ -66,7 +66,7 @@ test("B2B sale carries buyer TIN onto the invoice and fiscal payload", async () 
   // On the server: linked, and the stored receipt is the v3 invoice.
   const stored = await serverSale(sold.saleId);
   expect(stored).toMatchObject({ customer_id: customer.id, event_version: 6 });
-  expect(stored!.receipt).toMatchObject({ v: 4, buyer });
+  expect(stored!.receipt).toMatchObject({ v: 5, buyer });
   expect(fiscalPayload(stored!.receipt).buyer).toEqual(buyer);
   expect(fiscalPayload(stored!.receipt).buyer!.tin).toBe("C0012345678");
 
@@ -83,11 +83,11 @@ test("a walk-in sale has buyer null on every document and no customer", async ()
   const till = await printingCounter();
   const sold = await sellTo(till, null);
   expect(sold.sale.customer).toBeNull();
-  expect(sold.receipt).toMatchObject({ v: 4, buyer: null });
+  expect(sold.receipt).toMatchObject({ v: 5, buyer: null });
   await till.settle();
   expect(await serverSale(sold.saleId)).toMatchObject({ customer_id: null, event_version: 6 });
   const stored = (await serverSale(sold.saleId))!.receipt;
-  expect(stored).toMatchObject({ v: 4, buyer: null });
+  expect(stored).toMatchObject({ v: 5, buyer: null });
   expect(fiscalPayload(stored).buyer).toBeNull();
   const [job] = await printer!.waitForJobs(1);
   expect(job!.page).not.toContain("Buyer");
@@ -102,7 +102,7 @@ test("an individual without a TIN is linked to the sale but is not a buyer on th
   await till.settle();
   const stored = await serverSale(sold.saleId);
   expect(stored).toMatchObject({ customer_id: customer.id });
-  expect(stored!.receipt).toMatchObject({ v: 4, buyer: null });
+  expect(stored!.receipt).toMatchObject({ v: 5, buyer: null });
   expect(fiscalPayload(stored!.receipt).buyer).toBeNull();
   expect(await serverCustomer(customer.id)).toMatchObject({ name: "Ama Boateng", version: 1 });
   const [job] = await printer!.waitForJobs(1);

@@ -226,3 +226,15 @@ vp run guard                                    # repository rules
 ```
 
 Direct-upload tests require the local RustFS service and `vp run storage:setup` before integration/e2e suites. Grant issuance, integrity, permission revocation and import idempotency use real PostgreSQL and object storage. Conformance drives direct PUT through both adapter implementations, checks signature tampering/expiry and bounded reads, and preserves old generated R2 keys. Local workerd plus RustFS is not evidence of a live external R2 upload; record live provider verification separately.
+
+### Fiscalisation (Day 19)
+
+- The GRA SDC is faked at the network edge by `tooling/sdc/server.ts` (`down`, `up`, `failNext(n)`,
+  `reject(number)`, recorded `arrivals`; `/test/*` routes steer it from a Worker). The Workers vitest config starts
+  one and binds `SHOPPER_SDC_URL`/`SHOPPER_SDC_KEY`.
+- `tests/support/fiscal/lane.ts` is the lane the shared test API is built with: it records every enqueue, and
+  `useLane(boxLane(...))` makes it submit for real. `tests/support/fiscal/docs.ts` seeds pending documents, each with
+  its own copy of the provisioned pending sale.
+- Lane conformance (`packages/conformance/src/cases/lane.ts`) runs on the box in `tests/integration/ports/lane.test.ts`
+  and on Workers in `tooling/worker/tests/lane.test.ts`; `drain(store, rounds)` fires backoff timers at once.
+- Archive tests run the workflow with its sleep already over and date acceptances directly: the test plays the clock.

@@ -7,6 +7,7 @@ import { v7 } from "uuid";
 import * as schema from "@shopper/db-pg";
 import { openTillDatabase } from "@shopper/adapters-box";
 import { mutateManagement } from "@shopper/core/management";
+import { FEED_VERSION } from "@shopper/core/changes";
 import { reference, type TillDatabase } from "@shopper/db-sqlite";
 import { provisioningContext } from "../../../tooling/database/seed";
 import { config, ids } from "./sales";
@@ -158,7 +159,7 @@ export async function startAtHead(database: TillDatabase) {
   const cursor = String(await head());
   await database.transaction((tx) =>
     tx.run(sql`INSERT INTO till_state (id, org_id, device_id, pull_cursor, reference_version)
-      VALUES (${v7()}, ${context.orgId}, ${deviceId}, ${cursor}, 5)
+      VALUES (${v7()}, ${context.orgId}, ${deviceId}, ${cursor}, ${FEED_VERSION})
       ON CONFLICT(org_id, device_id) DO UPDATE SET pull_cursor = excluded.pull_cursor,
         reference_version = excluded.reference_version`),
   );

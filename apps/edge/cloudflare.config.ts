@@ -91,6 +91,11 @@ export default defineConfig(({ mode }) => {
           worker: name,
           exportName: "StatementWorkflow",
         }),
+        FISCAL_ARCHIVE: bindings.workflow({
+          name: workflow("fiscal-archive"),
+          worker: name,
+          exportName: "FiscalArchiveWorkflow",
+        }),
         MOMO_PAYMENT: bindings.workflow({
           name: workflow("momo-payment"),
           worker: name,
@@ -118,6 +123,7 @@ export default defineConfig(({ mode }) => {
         KycWorkflow: exports.workflow({ name: workflow("kyc") }),
         AccountWorkflow: exports.workflow({ name: workflow("account") }),
         StatementWorkflow: exports.workflow({ name: workflow("statements") }),
+        FiscalArchiveWorkflow: exports.workflow({ name: workflow("fiscal-archive") }),
       },
     },
   };

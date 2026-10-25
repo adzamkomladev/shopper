@@ -50,7 +50,7 @@ export const code = (value: string, quantityThousandths = 1000) => ({
 
 export function snapshotBody(
   products: ProductRow[],
-  { orgId = ids.org, cursor = "9", version = 5 } = {},
+  { orgId = ids.org, cursor = "9", version = 6 } = {},
 ) {
   const base = { v: version, orgId, storeId: ids.store, cursor };
   if (version === 1)
@@ -70,7 +70,7 @@ export function snapshotBody(
     reference: version >= 5 ? { ...v4, settings: { id: orgId, cashRounding: "10p" } } : v4,
   };
 }
-export const upsert = (seq: number, row: ProductRow, version = 5) => ({
+export const upsert = (seq: number, row: ProductRow, version = 6) => ({
   seq: String(seq),
   entity: "product",
   entityId: row.id,
@@ -83,7 +83,7 @@ export const remove = (seq: number, id: string) => ({
   entity: "product",
   entityId: id,
   op: "delete",
-  v: 5,
+  v: 6,
   payload: { id },
 });
 export const pageBody = (cursor: number, changes: unknown[]) => ({

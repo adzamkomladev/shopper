@@ -109,6 +109,19 @@ const tillReferenceV5 = v.strictObject({
   settings: tillOrgSetting,
 });
 
+/** The SDC's signature for one of the store's documents; a till that holds the sale or refund adds it to the receipt. */
+export const tillFiscalSignature = v.strictObject({
+  id: tillId,
+  saleId: v.nullable(tillId),
+  refundId: v.nullable(tillId),
+  sdcId: v.string(),
+  counter: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
+  signature: v.string(),
+  qr: v.string(),
+  signedAt: timestamp,
+});
+export type TillFiscalSignature = v.InferOutput<typeof tillFiscalSignature>;
+
 const payloads = {
   product: tillProduct,
   price: tillPrice,
@@ -116,15 +129,16 @@ const payloads = {
   "barcode-mapping": tillMapping,
   customer: tillCustomer,
   "org-setting": tillOrgSetting,
+  "fiscal-doc": tillFiscalSignature,
 };
 const remove = v.object({ id: tillId });
-const changeV5 = v.pipe(
+const changeV6 = v.pipe(
   v.looseObject({
     seq: sequenceSchema,
     entityId: v.string(),
     entity: v.picklist(Object.keys(payloads) as (keyof typeof payloads)[]),
     op: v.picklist(["upsert", "delete"]),
-    v: v.literal(5),
+    v: v.literal(6),
   }),
   v.rawTransform(({ dataset, addIssue, NEVER }) => {
     const change = dataset.value;
@@ -135,20 +149,20 @@ const changeV5 = v.pipe(
     return NEVER;
   }),
 );
-const snapshotV5 = v.object({
-  v: v.literal(5),
+const snapshotV6 = v.object({
+  v: v.literal(6),
   orgId: tillId,
   storeId: tillId,
   cursor: sequenceSchema,
   reference: tillReferenceV5,
 });
-export type ReferenceChange = v.InferOutput<typeof changeV5>;
-export type ReferenceSnapshot = v.InferOutput<typeof snapshotV5>;
+export type ReferenceChange = v.InferOutput<typeof changeV6>;
+export type ReferenceSnapshot = v.InferOutput<typeof snapshotV6>;
 
 type Raw = Record<string, unknown>;
 export const decodeReferenceChange = createEventDecoder<ReferenceChange>(
-  5,
-  (raw) => v.parse(changeV5, raw),
+  6,
+  (raw) => v.parse(changeV6, raw),
   {
     1: (raw) => {
       const change = raw as Raw & { entity: unknown; op: unknown; payload: Raw };
@@ -163,11 +177,13 @@ export const decodeReferenceChange = createEventDecoder<ReferenceChange>(
     3: (raw) => ({ ...(raw as Raw), v: 4 }),
     // v5 only added the org-setting entity.
     4: (raw) => ({ ...(raw as Raw), v: 5 }),
+    // v6 only added the fiscal-doc entity.
+    5: (raw) => ({ ...(raw as Raw), v: 6 }),
   },
 );
 export const decodeSnapshot = createEventDecoder<ReferenceSnapshot>(
-  5,
-  (raw) => v.parse(snapshotV5, raw),
+  6,
+  (raw) => v.parse(snapshotV6, raw),
   {
     1: (raw) => {
       const snapshot = raw as Raw & { reference: { products: Raw[] } };
@@ -198,5 +214,7 @@ export const decodeSnapshot = createEventDecoder<ReferenceSnapshot>(
         reference: { ...reference, settings: { id: snapshot.orgId, cashRounding } },
       };
     },
+    // A snapshot carries reference data only; v6 changed nothing in it.
+    5: (raw) => ({ ...(raw as Raw), v: 6 }),
   },
 );

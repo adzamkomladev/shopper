@@ -36,12 +36,20 @@ type Issued = { assetId: string; saleId: string; linked?: true } & Partial<BlobU
 
 export const issueReceiptUpload = defineCommand({
   name: "asset.receipt.issue",
-  /** A linked receipt is final: no grant is minted, and nothing is audited again. */
+  /**
+   * A linked receipt is final for the same bytes: no grant is minted, and nothing is audited again. Other bytes (the
+   * definitive copy once the SDC signed the sale) supersede it.
+   */
   async replay(tx, context, input: { blobs: Blobs; data: unknown }) {
     const data = v.safeParse(receiptUploadInput, input.data);
     if (!data.success) return undefined;
     const found = await ownSale(tx, context.orgId, context.deviceId, data.output.saleId);
-    return found.receiptAssetId
+    if (!found.receiptAssetId) return undefined;
+    const [linked] = await tx
+      .select({ verified: asset.verifiedSha256 })
+      .from(asset)
+      .where(and(eq(asset.orgId, context.orgId), eq(asset.id, found.receiptAssetId)));
+    return linked?.verified === data.output.sha256
       ? { output: { assetId: found.receiptAssetId, saleId: found.id, linked: true as const } }
       : undefined;
   },
@@ -114,9 +122,10 @@ async function loadReceipt(
 
 export const confirmReceiptUpload = defineCommand({
   name: "asset.receipt.confirm",
+  /** Bytes already verified and linked: a retry after a lost response changes nothing. */
   async replay(tx, context, input: { blobs: Blobs; assetId: string }) {
     const { found, owned } = await loadReceipt(tx, context.orgId, context.deviceId, input.assetId);
-    return owned.receiptAssetId === found.id
+    return owned.receiptAssetId === found.id && found.verifiedSha256 === found.sha256
       ? { output: { assetId: found.id, saleId: owned.id } }
       : undefined;
   },
@@ -135,9 +144,15 @@ export const confirmReceiptUpload = defineCommand({
       throw new AssetError("Receipt upload is missing or differs from what was registered", 409);
     }
     await tx
-      .update(sale)
-      .set({ receiptAssetId: found.id })
-      .where(and(eq(sale.orgId, context.orgId), eq(sale.id, owned.id)));
+      .update(asset)
+      .set({ verifiedSha256: found.sha256, updatedAt: new Date() })
+      .where(and(eq(asset.orgId, context.orgId), eq(asset.id, found.id)));
+    // A sale links its receipt once; a superseding copy (the signed receipt) replaces the bytes under the same asset.
+    if (owned.receiptAssetId !== found.id)
+      await tx
+        .update(sale)
+        .set({ receiptAssetId: found.id })
+        .where(and(eq(sale.orgId, context.orgId), eq(sale.id, owned.id)));
     return { assetId: found.id, saleId: owned.id };
   },
   audit: (_input, output) => ({ assetId: output.assetId, saleId: output.saleId }),

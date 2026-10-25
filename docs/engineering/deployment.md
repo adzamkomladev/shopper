@@ -241,6 +241,24 @@ with the release and reset their databases.
 **Reset dev data and till databases.** Run `vp run db:reset`, `db:migrate` and `db:seed`, and delete each till's
 SQLite database. Do not backfill. Each shop's owner enters the TIN in Tax → Settings before receipts print it.
 
+## GRA E-VAT fiscalisation (Day 19)
+
+Apply `0027_fiscal`: `fiscal_doc`, `fiscal_archive`, `asset.verified_sha256` and the `fiscal-doc` feed entity. The edge
+Worker gains the `FiscalLane` Durable Object (`FISCAL_LANE`, SQLite storage) and `FiscalArchiveWorkflow`
+(`FISCAL_ARCHIVE`, `shopper-fiscal-archive-<stage>`).
+
+**SDC.** `SHOPPER_SDC_URL` and `SHOPPER_SDC_KEY` are not declared yet: until GRA grants sandbox access no lane runs
+and documents wait as pending (the dashboard says so). When access is granted, declare both on edge (URL as text, key
+as a secret), set the secret on every staging Worker before pushing, and point the box's environment at the same
+pair.
+
+**Retention.** Add an R2 lifecycle rule on the assets bucket that keeps objects under `fiscal/` for six years and
+never deletes them earlier. RustFS on a box keeps them until the nightly mirror has them in R2.
+
+**Versions.** Receipt v5 and change feed and snapshot v6 ship together. Let every till upload, update the tills,
+then reset dev data and the till databases (`vp run db:reset`, `db:migrate`, `db:seed`). Do not backfill documents
+for old sales.
+
 ## Browser Run (receipt rendering)
 
 `apps/edge` and `apps/portal` bind `BROWSER` (`bindings.browser({})`; compatibility date 2026-03-24 or later). Browser Run is available on every Workers account and needs nothing enabled in the dashboard. `quickAction` does not run in local dev; no local code path calls it yet, so the binding has no `dev: { remote: true }`. Add that (it requires a Cloudflare login) when a route starts rendering online-order PDFs. Tests use `tooling/browser/server.ts`, a Playwright Chromium stand-in (CI installs Chromium before `vp test --run`).

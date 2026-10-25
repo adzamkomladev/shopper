@@ -23,6 +23,8 @@ export function createHostSync(
   config: HostConfiguration,
   notify: () => void,
   payments?: Pick<ReturnType<typeof createHostPayments>, "receive" | "recover">,
+  /** After every pull: signatures it brought may need their receipt PDFs rendered again. */
+  onPulled?: () => Promise<void>,
 ) {
   const identity = config.identity;
   const options = {
@@ -42,6 +44,7 @@ export function createHostSync(
   const approvers = () => refreshApprovers(options).catch(() => false);
   const pullAndRefresh = async () => {
     await pull.trigger();
+    await onPulled?.();
     await approvers();
   };
   const live = createLiveWorker({

@@ -10,10 +10,10 @@ const sale = goldenReceipt();
 const options = { paperMm: 80 as const, reprint: false };
 
 test("the document marks a sale as a sale and a refund as a numbered credit note for the original receipt", () => {
-  expect(sale).toMatchObject({ v: 4, kind: "sale", refundOf: null });
+  expect(sale).toMatchObject({ v: 5, kind: "sale", refundOf: null });
   const refund = goldenRefundReceipt();
   expect(refund).toMatchObject({
-    v: 4,
+    v: 5,
     kind: "refund",
     refundOf: "BR1-T1-000001",
     header: { receiptNumber: "BR1-T1-000002" },

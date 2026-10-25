@@ -105,6 +105,32 @@ export const orgSettingUpsert = (orgId: string, settings: TaxSettings): Change =
   payload: { id: orgId, ...settings },
 });
 
+/** An accepted document's SDC signature, for the store's tills to add to their receipt. */
+export const fiscalSigned = (doc: {
+  id: string;
+  saleId: string | null;
+  refundId: string | null;
+  sdcId: string;
+  sdcCounter: number;
+  signature: string;
+  qr: string;
+  signedAt: Date;
+}): Change => ({
+  entity: "fiscal-doc",
+  entityId: doc.id,
+  op: "upsert",
+  payload: {
+    id: doc.id,
+    saleId: doc.saleId,
+    refundId: doc.refundId,
+    sdcId: doc.sdcId,
+    counter: doc.sdcCounter,
+    signature: doc.signature,
+    qr: doc.qr,
+    signedAt: doc.signedAt.toISOString(),
+  },
+});
+
 export const deleted = (entity: Change["entity"], id: string): Change => ({
   entity,
   entityId: id,

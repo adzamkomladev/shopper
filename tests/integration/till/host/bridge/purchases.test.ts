@@ -30,7 +30,7 @@ test("purchases lists and reads the immutable completed sale with its stored rec
   });
   expect(read).toMatchObject({
     kind: "purchase",
-    purchase: { receipt: { v: 4, saleId: completed.event.sale.id } },
+    purchase: { receipt: { v: 5, saleId: completed.event.sale.id } },
   });
   expect(v.safeParse(bridgeMessage, read).success).toBe(true);
 });

@@ -23,6 +23,20 @@ export function goldenReceipt(lineNames = saleLines, registered = true) {
   return v.parse(receiptDocument, buildReceipt(goldenSale(lineNames, registered), reference));
 }
 
+/** The golden receipt once the SDC signed it: the definitive copy a reprint renders. */
+export function signedReceipt(lineNames = saleLines) {
+  return {
+    ...goldenReceipt(lineNames),
+    fiscal: {
+      sdcId: "SDC-TEST-01",
+      counter: 7,
+      signature: "0F3A9C2B7E11D4A6",
+      qr: "https://evat.example.test/verify?sdc=SDC-TEST-01&n=7&s=0F3A9C2B7E11D4A6",
+      signedAt: "2025-06-16T08:31:00.000Z",
+    },
+  };
+}
+
 /** The refund receipt of one unit of the golden sale's first line, paid back as `tender`. */
 export function goldenRefundReceipt(
   tender: { kind: "cash" } | { kind: "card" | "momo"; reference: string } = { kind: "cash" },

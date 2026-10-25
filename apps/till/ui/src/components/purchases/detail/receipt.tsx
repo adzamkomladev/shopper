@@ -3,7 +3,12 @@ import { cn } from "cn";
 import { Button } from "@shopper/ui/components/button";
 import { Kbd } from "@shopper/ui/components/kbd";
 import type { PurchaseDetails, ReceiptDelivery } from "@shopper/sync/bridge";
-import { digitalCopyText, deliveryText, reprintBlock } from "../../../purchases/delivery";
+import {
+  digitalCopyText,
+  deliveryText,
+  fiscalText,
+  reprintBlock,
+} from "../../../purchases/delivery";
 import type { PurchaseOutput, ReprintFeedback } from "../../../sale/types";
 import { ReceiptPreview } from "./preview";
 
@@ -30,6 +35,7 @@ export function DetailReceipt({ purchase, delivery, output, reprint, previewing,
         {receipt && <Row label="Register / cashier" value={registerLine(receipt)} />}
         <Row danger={failed} label="Receipt delivery" value={deliveryText(delivery)} />
         <Row label="Digital copy" value={digitalCopyText(delivery)} />
+        {receipt && fiscalText(receipt) && <Row label="E-VAT" value={fiscalText(receipt)!} />}
       </dl>
       <div className="grid grid-cols-1 gap-2 px-4 pb-4">
         <ReprintButton

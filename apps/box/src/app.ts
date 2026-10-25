@@ -22,6 +22,7 @@ import {
   boxMomoPayment,
   boxQueue,
   boxLane,
+  boxFiscalArchive,
 } from "@shopper/adapters-box";
 import { boxRenderer } from "@shopper/adapters-box/renderer";
 import { NOTIFICATION_RETRY } from "@shopper/ports";
@@ -60,6 +61,15 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
             region: environment.SHOPPER_S3_REGION ?? "",
           }
         : undefined;
+    const blobs = async () =>
+      (
+        await boxBlobs(environment.SHOPPER_BLOBS_PATH ?? ".shopper/blobs", {
+          baseUrl: SHOPPER_AUTH_URL,
+          secret: new TextEncoder().encode(SHOPPER_AUTH_SECRET),
+          objectStorage: s3(environment.SHOPPER_S3_BUCKET),
+          receiptsObjectStorage: s3(environment.SHOPPER_S3_RECEIPTS_BUCKET),
+        })
+      ).blobs;
     const connection = await boxDatabase(DATABASE_URL);
     cache ??= boxCache(environment.SHOPPER_CACHE_PATH ?? ".shopper/cache.sqlite");
     workflowPool ??= boxPool(DATABASE_URL);
@@ -149,15 +159,17 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
         .catch((error: unknown) => console.error({ event: "account.relaunch_failed", error }));
     }
     if (!lane && environment.SHOPPER_SDC_URL && environment.SHOPPER_SDC_KEY) {
+      const archive = boxFiscalArchive({ database: workflowDatabase, blobs: await blobs() });
       lane = boxLane({
         db: workflowDatabase,
         sdc: createSdc({ url: environment.SHOPPER_SDC_URL, apiKey: environment.SHOPPER_SDC_KEY }),
         appVersion: buildInfo.version,
+        archive: archive.launcher,
       });
-      // On boot every store with documents still waiting for the SDC gets its lane back.
-      lane
-        .relaunch()
-        .catch((error: unknown) => console.error({ event: "fiscal.relaunch_failed", error }));
+      // On boot every store with documents still waiting for the SDC gets its lane back, and its bundle.
+      Promise.all([lane.relaunch(), archive.relaunch()]).catch((error: unknown) =>
+        console.error({ event: "fiscal.relaunch_failed", error }),
+      );
     }
     if (sms && environment.SHOPPER_LINK_SECRET)
       kycFlows ??= boxKycFlows({
@@ -178,14 +190,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
           realtime,
           context.env?.upgrade ? { upgrade: context.env.upgrade.bind(context.env) } : undefined,
         ),
-        blobs: (
-          await boxBlobs(environment.SHOPPER_BLOBS_PATH ?? ".shopper/blobs", {
-            baseUrl: SHOPPER_AUTH_URL,
-            secret: new TextEncoder().encode(SHOPPER_AUTH_SECRET),
-            objectStorage: s3(environment.SHOPPER_S3_BUCKET),
-            receiptsObjectStorage: s3(environment.SHOPPER_S3_RECEIPTS_BUCKET),
-          })
-        ).blobs,
+        blobs: await blobs(),
         secret: SHOPPER_AUTH_SECRET,
         baseURL: SHOPPER_AUTH_URL,
         orgId: SHOPPER_ORG_ID,

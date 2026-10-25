@@ -105,7 +105,7 @@ test("a merged customer leaves the lookup and the winner stays", async () => {
   expect(await ids(till.database)).toEqual([winnerId]);
 });
 
-test("v3 and v5 pages both apply, and a v6 row halts the pull as upgrade needed", async () => {
+test("v3 and v6 pages both apply, and a v7 row halts the pull as upgrade needed", async () => {
   await start();
   const row = (v: number) => {
     const id = v7();
@@ -124,7 +124,7 @@ test("v3 and v5 pages both apply, and a v6 row halts the pull as upgrade needed"
       },
     };
   };
-  const [older, current] = [row(3), row(5)];
+  const [older, current] = [row(3), row(6)];
   await appendRows([older, current]);
   await worker!.trigger();
   expect(worker!.getStatus().state).toBe("idle");
@@ -134,7 +134,7 @@ test("v3 and v5 pages both apply, and a v6 row halts the pull as upgrade needed"
   expect(reference.map((r) => r.id)).toEqual([older.entityId, current.entityId].sort());
 
   const safe = await tillCursor(till.database);
-  await appendRows([{ v: 6, payload: { shape: "future" } }]);
+  await appendRows([{ v: 7, payload: { shape: "future" } }]);
   await worker!.trigger();
   expect(worker!.getStatus()).toMatchObject({ state: "upgrade", cursor: safe });
 });
@@ -167,7 +167,7 @@ test("a till last synced at reference version 3 takes one snapshot that carries 
       sql`SELECT reference_version FROM till_state WHERE device_id = ${deviceId}`,
     ),
   );
-  expect(state[0]!.reference_version).toBe(5);
+  expect(state[0]!.reference_version).toBe(6);
 
   await create("After snapshot", "0241230006");
   await worker.trigger();

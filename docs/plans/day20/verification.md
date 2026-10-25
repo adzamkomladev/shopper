@@ -35,6 +35,11 @@ and the screens got a 404 in the e2e), and the entry sheet's focus fallback (a l
   staging build hit their 5-minute timeouts under memory pressure; rerun alone, both pass (workerd 1 test in
   115 s, the staging build 6 tests in 43 s).
 
+- Full e2e (879): 865 passed, 14 failed. Three portal failures were mine: the Audit link made the one-row header
+  overlap the shop switcher between 1280 and 1535 px (it now keeps two rows until 2xl, and the search box no longer
+  widens there) and a nav link count. Fixed; those specs and the audit spec pass (20). The 11 till-UI failures were
+  60 s timeouts waiting for the page under memory pressure; rerun alone, all 65 specs in those files pass.
+
 ## Screens
 
 `docs/plans/day20/screenshots/portal`: the log at 1920, 1440, 1366, 768 and 390; the entry sheet at 1440 and 390;

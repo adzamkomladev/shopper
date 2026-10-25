@@ -36,12 +36,13 @@ export function TopNav({ shops, currentId, user }: Props) {
     <nav
       ref={shortcuts}
       aria-label="Main"
-      className="flex flex-wrap items-center gap-x-6 gap-y-3 xl:flex-nowrap"
+      className="flex flex-wrap items-center gap-x-6 gap-y-3 2xl:flex-nowrap"
     >
-      <div className="flex min-w-0 flex-1 items-center gap-x-6 xl:flex-initial">
+      <div className="flex min-w-0 flex-1 items-center gap-x-6 2xl:flex-initial">
         <ShopSwitcher shops={shops} currentId={currentId} />
       </div>
-      <div className="order-last flex w-full flex-wrap gap-x-6 gap-y-1 xl:order-none xl:w-auto xl:flex-nowrap xl:gap-x-3 2xl:gap-x-6">
+      {/* Thirteen links share one row with the rest only from 2xl; below it they take their own row. */}
+      <div className="order-last flex w-full flex-wrap gap-x-6 gap-y-1 2xl:order-none 2xl:w-auto 2xl:flex-nowrap 2xl:gap-x-3">
         {navItems.map(({ to, label, also }) => {
           const here = [to, ...(also ?? [])].some(
             (page) => path === page || path.startsWith(`${page}/`),
@@ -69,7 +70,7 @@ export function TopNav({ shops, currentId, user }: Props) {
         >
           <SearchIcon aria-hidden />
         </Button>
-        <InputGroup className="hidden w-48 xl:flex 2xl:w-72">
+        <InputGroup className="hidden w-48 xl:flex">
           <InputGroupAddon>
             <SearchIcon aria-hidden />
           </InputGroupAddon>

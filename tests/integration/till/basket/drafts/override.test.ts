@@ -96,3 +96,29 @@ it("a price-labelled line cannot be overridden, even with an approver", async ()
     ).rejects.toMatchObject({ code: "OVERRIDE_INVALID" });
   });
 });
+
+it("a second override records the first override, not the list price, as its before", async () => {
+  const { host, lineId } = await start();
+  const approval = { approverId: manager, pin: managerPin };
+  for (const [expectedRevision, unitPrice] of [
+    [1, 9_000],
+    [2, 8_000],
+  ] as const)
+    expect(
+      await host.request({
+        type: "line.price",
+        expectedRevision,
+        lineId,
+        unitPrice,
+        reason,
+        approval,
+      }),
+    ).toMatchObject({ kind: "draft" });
+  const rows = await fixture!.database.read((tx) => tx.select().from(tillAudit));
+  expect(
+    rows.filter((row) => row.command === "till.draft.price").map((row) => [row.before, row.after]),
+  ).toMatchObject([
+    [{ unitPrice: 12_000 }, { unitPrice: 9_000 }],
+    [{ unitPrice: 9_000 }, { unitPrice: 8_000 }],
+  ]);
+});

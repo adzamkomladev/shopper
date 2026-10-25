@@ -6,7 +6,8 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { asc, eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
 import { defineCommand } from "@shopper/audit";
-import { verifyStream } from "@shopper/core/audit";
+import { auditStreams, verifyStream } from "@shopper/core/audit";
+import { v7 } from "uuid";
 import { migrateDatabase } from "../../../tooling/database/migrate";
 import { provisionOrg, provisioningContext } from "../../../tooling/database/seed";
 import { postgresFixture } from "../../fixtures/postgres";
@@ -121,6 +122,26 @@ test("a tail cut off behind an anchor fails on the anchor", async () => {
     valid: false,
     entryId: rows.at(-2)!.id,
     seq: rows.at(-2)!.chainSeq,
+    reason: "anchor",
+  });
+});
+
+test("a register whose every uploaded row was deleted is still listed through its anchors, and fails", async () => {
+  const register = v7();
+  await db.insert(schema.auditAnchor).values({
+    orgId: context.orgId,
+    day: "2026-10-24",
+    stream: register,
+    chainSeq: 4,
+    hash: "a".repeat(64),
+  });
+  expect((await auditStreams(db, context.orgId)).find((s) => s.stream === register)).toMatchObject({
+    count: 0,
+    head: null,
+    anchor: { day: "2026-10-24", seq: 4 },
+  });
+  expect(await verifyStream(db, context.orgId, register)).toMatchObject({
+    valid: false,
     reason: "anchor",
   });
 });

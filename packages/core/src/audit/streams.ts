@@ -19,6 +19,12 @@ export async function auditStreams(db: Queryable, orgId: string) {
       UNION ALL
       SELECT stream_id::text, count(*), max(chain_seq) FROM device_audit
        WHERE org_id = ${orgId} GROUP BY stream_id
+      UNION ALL
+      -- A register whose rows are all gone still has its anchors: list it, so verifying it fails.
+      SELECT DISTINCT stream, 0::bigint, NULL::bigint FROM audit_anchor
+       WHERE org_id = ${orgId} AND stream <> 'org'
+         AND NOT EXISTS (SELECT 1 FROM device_audit
+                          WHERE org_id = ${orgId} AND stream_id::text = audit_anchor.stream)
     )
     SELECT h.stream, d.name, h.count, h.seq,
            coalesce(l.hash, r.hash) AS hash,

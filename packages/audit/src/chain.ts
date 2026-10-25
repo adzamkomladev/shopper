@@ -70,13 +70,15 @@ export async function hashEntry(entry: AuditEntry): Promise<string> {
   return sha256(body);
 }
 
-// Supply rows ordered by chainSeq (legacy rows first). An external anchor detects tail truncation.
+// Supply rows ordered by chainSeq (legacy rows first). An external anchor detects tail truncation. `start` continues
+// a chain verified page by page: the last good row's sequence and hash.
 export async function verifyChain(
   entries: readonly AuditEntry[],
   expectedFinalHash?: string,
+  start = { seq: 0, hash: GENESIS_HASH },
 ): Promise<ChainVerification> {
-  let previous = GENESIS_HASH;
-  let sequence = 0;
+  let previous = start.hash;
+  let sequence = start.seq;
   const orgId = entries[0]?.orgId;
   for (const entry of entries) {
     const fail = (

@@ -45,6 +45,7 @@ test("Durable Objects, Workflows and every resource binding are the staging ones
     ["AccountWorkflow", "shopper-account-staging"],
     ["StatementWorkflow", "shopper-statements-staging"],
     ["FiscalArchiveWorkflow", "shopper-fiscal-archive-staging"],
+    ["AuditAnchorWorkflow", "shopper-audit-anchor-staging"],
   ]) {
     expect(exports[exportName]).toMatchObject({ type: "workflow", name });
   }
@@ -58,6 +59,11 @@ test("Durable Objects, Workflows and every resource binding are the staging ones
     type: "workflow",
     name: "shopper-fiscal-archive-staging",
     exportName: "FiscalArchiveWorkflow",
+  });
+  expect(bound.AUDIT_ANCHOR).toMatchObject({
+    type: "workflow",
+    name: "shopper-audit-anchor-staging",
+    exportName: "AuditAnchorWorkflow",
   });
   expect(bound.CACHE_DB).toMatchObject({ type: "d1", id: "44230678-333c-446c-af51-22fe0c8eb20e" });
   expect(bound.HYPERDRIVE).toMatchObject({
@@ -101,6 +107,13 @@ test("the notifications queue has an edge consumer with five retries and a dead-
       maxBatchSize: 10,
     }),
   );
+});
+
+test("the only cron is the daily watchdog at 23:59 UTC", () => {
+  const { triggers } = worker();
+  expect(triggers.filter((t: { type: string }) => t.type === "scheduled")).toEqual([
+    expect.objectContaining({ schedule: "59 23 * * *" }),
+  ]);
 });
 
 test("bucket names and the R2 S3 location are text; credentials are secrets", () => {

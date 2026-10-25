@@ -6,6 +6,7 @@ import {
   deliverTierNotice,
 } from "../customers";
 import { deliverStockAlert } from "../stock";
+import { deliverAuditAnchor } from "../audit/anchor";
 import type { NotificationDeps } from "./types";
 export type { NotificationDeps } from "./types";
 
@@ -28,6 +29,8 @@ export async function deliverNotification(deps: NotificationDeps, delivery: Deli
     case "statement.schedule":
     case "statement.scheduled":
       return await deliverSchedule(deps, delivery);
+    case "audit.anchor":
+      return await deliverAuditAnchor(deps, delivery);
     default:
       console.error({ event: "notification.unknown_type", type: delivery.message.type });
       return await delivery.retry();

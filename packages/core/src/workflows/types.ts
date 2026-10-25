@@ -29,3 +29,10 @@ export interface FiscalArchiveDeps {
   /** Where the hourly bundles are written: R2 in the cloud, RustFS or the filesystem on a box. */
   blobs: Blobs;
 }
+
+export interface AuditAnchorDeps {
+  withDatabase<T>(run: (db: ShopperDatabase) => Promise<T>): Promise<T>;
+  appVersion: string;
+  /** Carries the owners' anchor emails to the notification consumer. */
+  queue?: Queue;
+}

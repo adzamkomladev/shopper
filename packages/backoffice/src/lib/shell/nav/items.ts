@@ -8,6 +8,7 @@ import {
   LandmarkIcon,
   PackageIcon,
   ScanBarcodeIcon,
+  ScrollTextIcon,
   ShieldCheckIcon,
   StoreIcon,
   UploadIcon,
@@ -50,4 +51,5 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { to: "/roles", label: "Roles", icon: ShieldCheckIcon, permission: "role.read" },
   { to: "/devices", label: "Devices", icon: MonitorSmartphoneIcon, permission: "device.read" },
   { to: "/shifts", label: "Shifts", icon: ClockIcon, permission: "shift.read" },
+  { to: "/audit", label: "Audit", icon: ScrollTextIcon, permission: "audit.read" },
 ];

@@ -5,6 +5,7 @@ import { Money } from "@shopper/ui/components/money";
 import { shiftTime } from "../../../lib/shifts/format";
 import type { ShiftView } from "../../../queries/shifts/list";
 import { VarianceBadge } from "./badge";
+import { ChecksBadge } from "./checks";
 
 // A phone keeps when it closed and how it came out; a tablet adds the cash; a laptop shows the rest.
 export const FROM_MD = "hidden md:table-cell";
@@ -50,7 +51,12 @@ export function ShiftTable({ shifts }: { shifts: ShiftView[] }) {
     {
       id: "variance",
       header: "Variance",
-      cell: ({ row }) => <VarianceBadge short={row.original.short} over={row.original.over} />,
+      cell: ({ row }) => (
+        <div className="flex flex-wrap gap-1.5">
+          <VarianceBadge short={row.original.short} over={row.original.over} />
+          <ChecksBadge checks={row.original.checks} />
+        </div>
+      ),
     },
   ];
   return (

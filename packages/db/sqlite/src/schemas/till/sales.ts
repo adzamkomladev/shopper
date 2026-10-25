@@ -79,6 +79,9 @@ export const tillState = sqliteTable(
     pullInitialized: integer("pull_initialized", { mode: "boolean" }).notNull().default(false),
     pullCursor: text("pull_cursor").notNull().default("0"),
     referenceVersion: integer("reference_version").notNull().default(1),
+    auditUploadedSeq: integer("audit_uploaded_seq").notNull().default(0),
+    auditBlockedCode: text("audit_blocked_code"),
+    auditBlockedReason: text("audit_blocked_reason"),
   },
   (t) => [unique().on(t.orgId, t.deviceId)],
 );

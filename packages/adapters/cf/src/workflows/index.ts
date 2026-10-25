@@ -5,3 +5,4 @@ export { KycWorkflow } from "./kyc";
 export { AccountWorkflow } from "./account";
 export { StatementWorkflow } from "./statements";
 export { FiscalArchiveWorkflow } from "./fiscal";
+export { AuditAnchorWorkflow } from "./anchor";

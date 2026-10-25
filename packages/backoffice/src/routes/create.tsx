@@ -16,6 +16,7 @@ import { inventoryRoutes } from "./inventory";
 import { kycRoutes } from "./kyc";
 import { settingsRoutes } from "./settings";
 import { taxRoutes } from "./tax";
+import { auditRoutes } from "./audit";
 import { publicStatementRoutes } from "./statements/public";
 import { shiftRoutes } from "./shifts";
 import { currentOrgQuery, requireSession } from "../queries/session/session";
@@ -141,6 +142,7 @@ export function createBackofficeRoutes(
       ...kycRoutes(shopRoute),
       ...settingsRoutes(shopRoute),
       ...taxRoutes(shopRoute),
+      ...auditRoutes(shopRoute),
     ]),
   ]);
 }

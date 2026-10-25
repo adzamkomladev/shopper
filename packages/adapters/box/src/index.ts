@@ -14,3 +14,4 @@ export { boxAccountFlows } from "./workflows/account";
 export { boxStatementFlows } from "./workflows/statements";
 export { boxLane } from "./lane";
 export { boxFiscalArchive } from "./workflows/fiscal";
+export { boxAuditAnchors, boxWatchdog } from "./workflows/anchor";

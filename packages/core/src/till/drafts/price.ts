@@ -24,7 +24,7 @@ export async function setDraftPrice(db: TillDatabase, context: CommandContext, r
     input.approverId,
     !input.session.permissions.includes("sale.price_override"),
   );
-  return price(db, { ...context, approverId }, input);
+  return (await price(db, { ...context, approverId }, input)).view;
 }
 
 const price = defineCommand({
@@ -53,7 +53,18 @@ const price = defineCommand({
     const { totals } = quoteDraft(refs, input.scope.branchId, input.at, lines, found.draft.totals);
     await assertTenderBalance(tx, found.draft.id, totals.gross, refs.cashRounding);
     await tx.update(saleDraft).set({ totals }).where(eq(saleDraft.id, found.draft.id));
-    return toView(tx, input.scope, input.at, { draft: { ...found.draft, totals }, lines });
+    return {
+      view: await toView(tx, input.scope, input.at, { draft: { ...found.draft, totals }, lines }),
+      // What the line sold at before this change: an earlier override, else the list price.
+      before: line.overridePrice ?? listed.tax.unitPrice,
+    };
   },
   audit: (input) => ({ lineId: input.lineId, unitPrice: input.unitPrice, reason: input.reason }),
+  // Filed under the product, the line's price before and the override after, so its history shows till overrides.
+  details: (input, output) => ({
+    entity: "product",
+    entityId: output.view.draft?.lines.find((line) => line.id === input.lineId)?.productId,
+    before: { unitPrice: output.before },
+    after: { unitPrice: input.unitPrice, reason: input.reason, lineId: input.lineId },
+  }),
 });

@@ -74,6 +74,24 @@ const row = (name: keyof typeof events, over: object) => ({
   declaredCash: 1_036_000,
   short: 0,
   over: 0,
+  // These Zs are worked by hand: the server holds none of their sales or refunds, nor the chain they anchor.
+  checks: {
+    totals: {
+      status: "mismatch",
+      fields: [
+        "sales.count",
+        "sales.gross",
+        "sales.tax",
+        "refunds.count",
+        "refunds.total",
+        "cash.sales",
+        "cash.refunds",
+        "card.sales",
+        "card.refunds",
+      ],
+    },
+    anchor: "pending",
+  },
   ...over,
 });
 const rowsOf = () => ({

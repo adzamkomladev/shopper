@@ -52,6 +52,8 @@ export default defineConfig(({ mode }) => {
           retryDelay: 60,
           maxBatchSize: 10,
         }),
+        // The one daily watchdog: 23:59 UTC is Accra's end of day all year (no DST).
+        triggers.scheduled({ schedule: "59 23 * * *" }),
       ],
       env: {
         CACHE_DB: bindings.d1({ name: `shopper-cache-${stage}`, id: ids[stage].d1 }),
@@ -96,6 +98,11 @@ export default defineConfig(({ mode }) => {
           worker: name,
           exportName: "FiscalArchiveWorkflow",
         }),
+        AUDIT_ANCHOR: bindings.workflow({
+          name: workflow("audit-anchor"),
+          worker: name,
+          exportName: "AuditAnchorWorkflow",
+        }),
         MOMO_PAYMENT: bindings.workflow({
           name: workflow("momo-payment"),
           worker: name,
@@ -124,6 +131,7 @@ export default defineConfig(({ mode }) => {
         AccountWorkflow: exports.workflow({ name: workflow("account") }),
         StatementWorkflow: exports.workflow({ name: workflow("statements") }),
         FiscalArchiveWorkflow: exports.workflow({ name: workflow("fiscal-archive") }),
+        AuditAnchorWorkflow: exports.workflow({ name: workflow("audit-anchor") }),
       },
     },
   };

@@ -8,6 +8,7 @@ import {
   createCustomerUploadWorker,
   createRefundUploadWorker,
   createShiftUploadWorker,
+  createAuditUploadWorker,
   createReceiptUploadWorker,
   createStockUploadWorker,
   refreshApprovers,
@@ -74,11 +75,21 @@ export function createHostSync(
     config: { ...options.config, protocol: buildInfo.syncProtocol },
     onChange: notify,
   });
-  const shifts = createShiftUploadWorker({
+  const shiftUploads = createShiftUploadWorker({
     ...options,
     config: { ...options.config, protocol: buildInfo.syncProtocol },
     onChange: notify,
   });
+  const audit = createAuditUploadWorker({
+    ...options,
+    config: { ...options.config, protocol: buildInfo.syncProtocol },
+    onChange: notify,
+  });
+  // The audit chain goes first, so a Z's anchor is already on the server when its shift arrives.
+  const shifts = {
+    trigger: (force = false) => audit.trigger(force).then(() => shiftUploads.trigger(force)),
+    stop: () => Promise.all([audit.stop(), shiftUploads.stop()]),
+  };
   const accountPayments = createAccountPaymentUploadWorker({
     ...options,
     config: { ...options.config, protocol: buildInfo.syncProtocol },

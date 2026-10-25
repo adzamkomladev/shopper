@@ -4,6 +4,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { branch, device, shift, shiftTender, user, type ShopperDatabase } from "@shopper/db-pg";
 import { add, money, type Money } from "@shopper/money";
 import { SHIFT_LIST_LIMIT, decodeZReport } from "../schemas/till/shift";
+import { shiftChecks } from "./checks";
 
 /**
  * Closed shifts of the organisation, newest first, with who closed and approved them. `short` sums the
@@ -15,7 +16,10 @@ export async function listShifts(db: ShopperDatabase, orgId: string) {
   return { shifts: rows };
 }
 
-/** One closed shift with its stored Z (never recomputed) and the names of everyone the Z mentions. */
+/**
+ * One closed shift with its stored Z (never recomputed), its checks against the server's records, and the names of
+ * everyone the Z mentions.
+ */
 export async function readShift(db: ShopperDatabase, orgId: string, id: string) {
   const [row] = await summaries(db, orgId, id);
   if (!row) return null;
@@ -56,6 +60,9 @@ async function summaries(db: ShopperDatabase, orgId: string, id?: string) {
       approverName: approver.name,
       expectedCash: shift.expectedCash,
       declaredCash: shift.declaredCash,
+      anchorSeq: shift.anchorSeq,
+      anchorHash: shift.anchorHash,
+      report: shift.report,
     })
     .from(shift)
     .innerJoin(device, and(eq(device.orgId, shift.orgId), eq(device.id, shift.deviceId)))
@@ -79,8 +86,14 @@ async function summaries(db: ShopperDatabase, orgId: string, id?: string) {
           ),
         )
     : [];
-  return rows.map((row) => ({
+  const checks = await shiftChecks(
+    db,
+    orgId,
+    rows.map((row) => ({ ...row, report: decodeZReport(row.report) })),
+  );
+  return rows.map(({ anchorSeq: _seq, anchorHash: _hash, report: _report, ...row }) => ({
     ...row,
+    checks: checks.get(row.id)!,
     openedAt: row.openedAt.toISOString(),
     closedAt: row.closedAt.toISOString(),
     approverName: row.approverName ?? null,

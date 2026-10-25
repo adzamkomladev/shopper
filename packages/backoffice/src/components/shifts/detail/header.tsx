@@ -5,6 +5,7 @@ import { focusOnMount } from "../../../lib/focus";
 import { shiftTime } from "../../../lib/shifts/format";
 import type { ShiftView } from "../../../schemas/shifts";
 import { VarianceBadge } from "../list/badge";
+import { ChecksBadge, ShiftChecks } from "../list/checks";
 
 /** Where and when the shift ran and who closed it; the Z report below has the figures. */
 export function ShiftHeader({ shift }: { shift: ShiftView }) {
@@ -28,6 +29,7 @@ export function ShiftHeader({ shift }: { shift: ShiftView }) {
           {shift.deviceName}
         </h1>
         <VarianceBadge short={shift.short} over={shift.over} />
+        <ChecksBadge checks={shift.checks} />
       </div>
       <dl className="grid gap-x-6 gap-y-3 text-sm grid-cols-2 lg:grid-cols-5">
         {facts.map(([label, value]) => (
@@ -37,6 +39,7 @@ export function ShiftHeader({ shift }: { shift: ShiftView }) {
           </div>
         ))}
       </dl>
+      <ShiftChecks checks={shift.checks} />
     </header>
   );
 }

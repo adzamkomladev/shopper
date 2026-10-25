@@ -46,14 +46,14 @@ beforeAll(async () => {
   await runGolden(world, tradingDay[0]!);
   owner = await portalOwner(ids.org, ids.cashier);
   manager = await memberWithPin("Floor Manager", "admin", managerPin);
-  [{ productId }] = await world.db
+  [{ productId }] = (await world.db
     .select({ productId: product.id })
     .from(product)
     .where(eq(product.orgId, ids.org))
-    .limit(1) as [{ productId: string }];
+    .limit(1)) as [{ productId: string }];
   for (const [amount, reason] of [
     [13_000, "Supplier increase"],
-    [14_500, "Fuel levy, \"temporary\", review in May"],
+    [14_500, 'Fuel levy, "temporary", review in May'],
   ] as const) {
     const response = await owner.api.request(`/products/${productId}/prices`, {
       method: "POST",
@@ -92,7 +92,7 @@ test("a product's history shows its price changes and the till override, who did
     actor: { id: ids.cashier },
     approver: { id: manager, name: "Floor Manager" },
   });
-  expect(second).toMatchObject({ stream: "org", reason: "Fuel levy, \"temporary\", review in May" });
+  expect(second).toMatchObject({ stream: "org", reason: 'Fuel levy, "temporary", review in May' });
   const detail = await get(owner.api, owner.cookie, `/audit/${second.id}`);
   expect(detail.body).toMatchObject({
     id: second.id,
@@ -105,13 +105,21 @@ test("a product's history shows its price changes and the till override, who did
     amount: 13_000,
   });
   const tillDetail = await get(owner.api, owner.cookie, `/audit/${override.id}`);
-  expect(tillDetail.body).toMatchObject({ before: { unitPrice: 12_000 }, after: { unitPrice: 9_000 } });
+  expect(tillDetail.body).toMatchObject({
+    before: { unitPrice: 12_000 },
+    after: { unitPrice: 9_000 },
+  });
 });
 
 test("each filter narrows the merged log, and cursor pages neither repeat nor skip", async () => {
   const all = await allPages({});
   expect(new Set(all.map((e) => e.stream))).toEqual(new Set(["org", deviceId]));
-  expect(all.map((e) => e.id)).toEqual(all.map((e) => e.id).sort().reverse());
+  expect(all.map((e) => e.id)).toEqual(
+    all
+      .map((e) => e.id)
+      .sort()
+      .reverse(),
+  );
   expect(new Set(all.map((e) => e.id)).size).toBe(all.length);
   const paged = await allPages({ limit: "3" });
   expect(paged.map((e) => e.id)).toEqual(all.map((e) => e.id));
@@ -167,15 +175,20 @@ test("the CSV is the filtered log with quoting kept, and no PIN or password reac
 test("streams list the org chain and each register with its head, and each verifies on demand", async () => {
   const streams = await get(owner.api, owner.cookie, "/audit/streams");
   expect(streams.body).toEqual([
-    expect.objectContaining({ stream: "org", head: expect.objectContaining({ seq: expect.any(Number) }) }),
+    expect.objectContaining({
+      stream: "org",
+      head: expect.objectContaining({ seq: expect.any(Number) }),
+    }),
     expect.objectContaining({ stream: deviceId, anchor: null }),
   ]);
   for (const row of streams.body as unknown as { stream: string; count: number; head: object }[])
-    expect((await get(owner.api, owner.cookie, `/audit/verify?stream=${row.stream}`)).body).toEqual({
-      valid: true,
-      count: row.count,
-      head: row.head,
-    });
+    expect((await get(owner.api, owner.cookie, `/audit/verify?stream=${row.stream}`)).body).toEqual(
+      {
+        valid: true,
+        count: row.count,
+        head: row.head,
+      },
+    );
   expect((await get(owner.api, owner.cookie, "/audit/verify?stream=nope")).status).toBe(400);
 });
 

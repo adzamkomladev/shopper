@@ -20,6 +20,14 @@ export const shiftRow = v.object({
   short: v.number(),
   /** Σ of the tenders that came up over: 0 or more. Kept apart from `short` so offsetting tenders are not "balanced". */
   over: v.number(),
+  /** Read-time checks: the Z against the server's own sales and refunds, and its anchor against the uploaded chain. */
+  checks: v.object({
+    totals: v.variant("status", [
+      v.object({ status: v.literal("matched") }),
+      v.object({ status: v.literal("mismatch"), fields: v.array(v.string()) }),
+    ]),
+    anchor: v.picklist(["verified", "pending", "mismatch"]),
+  }),
 });
 export type ShiftView = v.InferOutput<typeof shiftRow>;
 

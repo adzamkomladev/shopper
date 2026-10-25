@@ -54,6 +54,10 @@ it("Override without manager PIN is refused; with PIN, audit shows both actor an
   expect(entries[0]).toMatchObject({
     actorId: fixture!.config.session!.userId,
     approverId: manager,
+    entity: "product",
+    entityId: expect.any(String),
+    before: { unitPrice: 12_000 },
+    after: { unitPrice: 9_000, reason, lineId },
   });
   expect(JSON.stringify(rows)).not.toContain(managerPin);
   expect(await verifyChain(rows as AuditEntry[])).toMatchObject({ valid: true });

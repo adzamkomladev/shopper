@@ -31,51 +31,66 @@ export async function cloudflareRuntime(
   if (!env.SHOPPER_AUTH_SECRET || !env.SHOPPER_AUTH_URL || !env.HYPERDRIVE)
     return runtimeUnavailable();
   const connection = await cloudflareDatabase(env.HYPERDRIVE.connectionString);
-  try {
-    const response = await serveRuntime(request, {
-      database: connection.db,
-      sequencer: cloudflareSequencer(env.STORE_SEQUENCER),
-      cache: cloudflareCache(env.CACHE_DB),
-      live: cloudflareLive(env.STORE_HUB),
-      realtime: cloudflareRealtime(env.STORE_HUB),
-      notifications: env.NOTIFICATIONS
-        ? cloudflareQueue(env.NOTIFICATIONS, NOTIFICATION_RETRY)
+  const response = await serveRuntime(request, {
+    database: connection.db,
+    sequencer: cloudflareSequencer(env.STORE_SEQUENCER),
+    cache: cloudflareCache(env.CACHE_DB),
+    live: cloudflareLive(env.STORE_HUB),
+    realtime: cloudflareRealtime(env.STORE_HUB),
+    notifications: env.NOTIFICATIONS
+      ? cloudflareQueue(env.NOTIFICATIONS, NOTIFICATION_RETRY)
+      : undefined,
+    lane:
+      env.FISCAL_LANE && env.SHOPPER_SDC_URL && env.SHOPPER_SDC_KEY
+        ? cloudflareLane(env.FISCAL_LANE)
         : undefined,
-      lane:
-        env.FISCAL_LANE && env.SHOPPER_SDC_URL && env.SHOPPER_SDC_KEY
-          ? cloudflareLane(env.FISCAL_LANE)
-          : undefined,
-      blobs: (
-        await cloudflareBlobs(env.BLOBS, {
-          imports: env.IMPORTS,
-          baseUrl: env.SHOPPER_AUTH_URL,
-          secret: new TextEncoder().encode(env.SHOPPER_AUTH_SECRET),
-          receipts: env.RECEIPTS,
-          objectStorage: s3(env, env.SHOPPER_S3_BUCKET),
-          receiptsObjectStorage: s3(env, env.SHOPPER_S3_RECEIPTS_BUCKET),
-        })
-      ).blobs,
-      renderer: env.BROWSER ? cloudflareRenderer(env.BROWSER) : undefined,
-      secret: env.SHOPPER_AUTH_SECRET,
-      baseURL: env.SHOPPER_AUTH_URL,
-      bootstrapToken: env.SHOPPER_BOOTSTRAP_TOKEN,
-      clientIP: request.headers.get("CF-Connecting-IP") ?? undefined,
-      priceChange: cloudflareLauncher(env.PRICE_CHANGE),
-      momoPayment:
-        env.MOMO_PAYMENT && env.PAYSTACK_SECRET_KEY
-          ? cloudflareLauncher(env.MOMO_PAYMENT)
-          : undefined,
-      paystackSecret: env.PAYSTACK_SECRET_KEY,
-      authFlows: env.AUTH_FLOWS ? cloudflareLauncher(env.AUTH_FLOWS) : undefined,
-      kyc:
-        env.KYC_FLOWS && env.ARKESEL_API_KEY && env.ARKESEL_SENDER
-          ? cloudflareLauncher(env.KYC_FLOWS)
-          : undefined,
-      linkSecret: env.SHOPPER_LINK_SECRET,
-      publicOnboarding: true,
-    });
-    return cloudflareResponse(response);
-  } finally {
+    blobs: (
+      await cloudflareBlobs(env.BLOBS, {
+        imports: env.IMPORTS,
+        baseUrl: env.SHOPPER_AUTH_URL,
+        secret: new TextEncoder().encode(env.SHOPPER_AUTH_SECRET),
+        receipts: env.RECEIPTS,
+        objectStorage: s3(env, env.SHOPPER_S3_BUCKET),
+        receiptsObjectStorage: s3(env, env.SHOPPER_S3_RECEIPTS_BUCKET),
+      })
+    ).blobs,
+    renderer: env.BROWSER ? cloudflareRenderer(env.BROWSER) : undefined,
+    secret: env.SHOPPER_AUTH_SECRET,
+    baseURL: env.SHOPPER_AUTH_URL,
+    bootstrapToken: env.SHOPPER_BOOTSTRAP_TOKEN,
+    clientIP: request.headers.get("CF-Connecting-IP") ?? undefined,
+    priceChange: cloudflareLauncher(env.PRICE_CHANGE),
+    momoPayment:
+      env.MOMO_PAYMENT && env.PAYSTACK_SECRET_KEY
+        ? cloudflareLauncher(env.MOMO_PAYMENT)
+        : undefined,
+    paystackSecret: env.PAYSTACK_SECRET_KEY,
+    authFlows: env.AUTH_FLOWS ? cloudflareLauncher(env.AUTH_FLOWS) : undefined,
+    kyc:
+      env.KYC_FLOWS && env.ARKESEL_API_KEY && env.ARKESEL_SENDER
+        ? cloudflareLauncher(env.KYC_FLOWS)
+        : undefined,
+    linkSecret: env.SHOPPER_LINK_SECRET,
+    publicOnboarding: true,
+  }).catch(async (error: unknown) => {
     await connection.close();
+    throw error;
+  });
+  if (!response.body) {
+    await connection.close();
+    return cloudflareResponse(response);
   }
+  // A streamed body (the audit CSV) still queries as the client reads: close once it ends or is cancelled.
+  const { readable, writable } = new TransformStream();
+  void response.body
+    .pipeTo(writable)
+    .catch(() => undefined)
+    .finally(() => connection.close());
+  return cloudflareResponse(
+    new Response(readable, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    }),
+  );
 }

@@ -8,6 +8,7 @@ import { catalogueRoutes } from "./routes/catalogue";
 import { administrationRoutes } from "./routes/administration";
 import { deviceRoutes } from "./routes/devices";
 import { shiftRoutes } from "./routes/shifts";
+import { auditRoutes } from "./routes/audit";
 import { stockRoutes } from "./routes/stock";
 import { customerRoutes } from "./routes/customers";
 import { settingsRoutes } from "./routes/settings";
@@ -62,6 +63,7 @@ export function createApi(options: ApiOptions = {}) {
   app.route("/", administrationRoutes(options));
   if (options.devices) app.route("/", deviceRoutes(options.devices, options.authentication));
   if (options.database) app.route("/", shiftRoutes(options.database, options.authentication));
+  if (options.database) app.route("/", auditRoutes(options.database, options.authentication));
   if (options.database)
     app.route("/", stockRoutes(options.database, options.authentication, options.notifications));
   if (options.database)

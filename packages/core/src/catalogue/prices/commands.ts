@@ -30,6 +30,12 @@ export const setPrice = defineCommand({
       .from(product)
       .where(and(eq(product.orgId, context.orgId), eq(product.id, productId)));
     if (!found) throw new ManagementError("Record not found");
+    const before = await priceAt(tx, {
+      orgId: context.orgId,
+      productId,
+      branchId: data.branchId,
+      at: data.validFrom,
+    });
     const [row] = await tx
       .insert(price)
       .values({
@@ -47,13 +53,18 @@ export const setPrice = defineCommand({
       [priceUpsert(row!)],
       await affectedStores(tx, context.orgId, row!.branchId),
     );
-    return managementJson({ productId, after: priceView(row!) });
+    return managementJson({
+      productId,
+      before: before && priceView(before),
+      after: priceView(row!),
+    });
   },
   audit: (input, result) => ({ productId: result.productId, priceId: result.after.id }),
+  // Filed under the product, with the version it replaced, so the product's history answers who changed its price.
   details: (_input, result) => ({
-    entity: "price",
-    entityId: result.after.id,
-    before: null,
+    entity: "product",
+    entityId: result.productId,
+    before: result.before,
     after: { productId: result.productId, ...result.after },
   }),
 });

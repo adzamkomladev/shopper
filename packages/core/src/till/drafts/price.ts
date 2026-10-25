@@ -56,4 +56,14 @@ const price = defineCommand({
     return toView(tx, input.scope, input.at, { draft: { ...found.draft, totals }, lines });
   },
   audit: (input) => ({ lineId: input.lineId, unitPrice: input.unitPrice, reason: input.reason }),
+  // Filed under the product, list price before and override after, so its history shows till overrides too.
+  details: (input, view) => {
+    const quoted = view.quote.lines.find((line) => line.lineId === input.lineId);
+    return {
+      entity: "product",
+      entityId: view.draft?.lines.find((line) => line.id === input.lineId)?.productId,
+      before: { unitPrice: quoted && !quoted.error ? quoted.listPrice : undefined },
+      after: { unitPrice: input.unitPrice, reason: input.reason, lineId: input.lineId },
+    };
+  },
 });

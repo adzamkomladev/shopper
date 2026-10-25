@@ -14,3 +14,33 @@ export type StreamVerification =
 export type DeviceAuditOutcome =
   | { accepted: { head: { seq: number; hash: string } }; from?: number }
   | { rejected: { code: string; message: string } };
+
+type Named = { id: string; name: string | null } | null;
+
+/** One row of the merged log as the viewer lists it. `stream` is `org` or the uploading register's id. */
+export type AuditItem = {
+  id: string;
+  stream: string;
+  streamName: string | null;
+  seq: number;
+  at: string;
+  deviceTime: string | null;
+  command: string;
+  entity: string | null;
+  entityId: string | null;
+  role: string | null;
+  reason: string | null;
+  actor: Named;
+  approver: Named;
+  device: Named;
+  branch: Named;
+};
+
+export type AuditDetail = AuditItem & {
+  before: unknown;
+  after: unknown;
+  payload: Record<string, unknown>;
+  hash: string;
+  prevHash: string;
+  appVersion: string;
+};

@@ -65,8 +65,7 @@ const v3 = {
   buyer: v.nullable(v.strictObject({ name: v.string(), tin: v.string() })),
   ...body,
 };
-const current = v.strictObject({
-  v: v.literal(4),
+const v4 = {
   ...v3,
   header: v.strictObject({
     ...body.header.entries,
@@ -80,16 +79,31 @@ const current = v.strictObject({
       net: v.nullable(amount),
     }),
   ),
+};
+/** The GRA SDC's signature. A VAT invoice without one is provisional; it is added once the SDC accepts. */
+export const receiptFiscal = v.strictObject({
+  sdcId: v.string(),
+  counter: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
+  signature: v.string(),
+  qr: v.string(),
+  signedAt: v.pipe(v.string(), v.isoTimestamp()),
 });
+const current = v.strictObject({ v: v.literal(5), ...v4, fiscal: v.nullable(receiptFiscal) });
 type Current = v.InferOutput<typeof current>;
+/** Before v5 nothing was signed: a stored v4 receipt is provisional, or not a VAT invoice at all. */
+const upcastV4 = v.pipe(
+  v.strictObject({ v: v.literal(4), ...v4 }),
+  v.transform((receipt): Current => ({ ...receipt, v: 5, fiscal: null })),
+);
 /** v3 had no VAT invoice flag (every shop was registered) and no net per line; a v3 refund had no own number. */
 const upcastV3 = v.pipe(
   v.strictObject({ v: v.literal(3), ...v3 }),
   v.transform((receipt): Current => ({
     ...receipt,
-    v: 4,
+    v: 5,
     header: { ...receipt.header, vatInvoice: true },
     lines: receipt.lines.map((line) => ({ ...line, net: null })),
+    fiscal: null,
   })),
 );
 /** v2 had no buyer: every stored v2 receipt is to a walk-in. */
@@ -109,5 +123,5 @@ const upcastV1 = v.pipe(
     v.parse(upcastV3, { v: 3, kind: "sale", refundOf: null, buyer: null, ...rest }),
   ),
 );
-export const receiptDocument = v.union([current, upcastV3, upcastV2, upcastV1]);
+export const receiptDocument = v.union([current, upcastV4, upcastV3, upcastV2, upcastV1]);
 export type ReceiptDocument = v.InferOutput<typeof receiptDocument>;

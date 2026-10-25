@@ -6,7 +6,8 @@
   "exports": {
     "./support/hardware/receipt": "./support/hardware/receipt.ts",
     "./support/hardware/statement": "./support/hardware/statement.ts",
-    "./support/till/pending/sale": "./support/till/pending/sale.ts"
+    "./support/till/pending/sale": "./support/till/pending/sale.ts",
+    "./support/fiscal/docs": "./support/fiscal/docs.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",

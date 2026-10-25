@@ -51,11 +51,18 @@ export function taxRows(receipt: ReceiptDocument) {
   return rows;
 }
 
-/** Placeholder E-VAT payload until the GRA SDC signs receipts. */
-export const qrPayload = (receipt: ReceiptDocument) =>
-  `${receipt.header.receiptNumber ?? ""}|${receipt.saleId}`;
-
-export const qrCaption = "E-VAT QR pending";
+/**
+ * The E-VAT block: the SDC's QR and reference once signed, a provisional notice until then, nothing on a receipt that
+ * is not a VAT invoice.
+ */
+export function fiscalMark(receipt: ReceiptDocument) {
+  if (!receipt.header.vatInvoice) return null;
+  if (!receipt.fiscal) return { qr: null, caption: "PROVISIONAL - E-VAT signature pending" };
+  return {
+    qr: receipt.fiscal.qr,
+    caption: `E-VAT ${receipt.fiscal.sdcId} #${receipt.fiscal.counter}`,
+  };
+}
 
 /** The refund payout line: "Refunded (Cash)", "Refunded (Card REF-1)". */
 export function refundedLabel(tender: Tender) {

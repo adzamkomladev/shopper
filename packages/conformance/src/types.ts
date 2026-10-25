@@ -1,5 +1,6 @@
 import type {
   Blobs,
+  Lane,
   Cache,
   Json,
   Queue,
@@ -64,3 +65,25 @@ export type QueueFixture = (handler: QueueHandler) => Promise<{
   // Resolves once every delivery and redelivery has run.
   settle(): Promise<void>;
 }>;
+
+export interface LaneFixture {
+  lane: Lane;
+  orgId: string;
+  storeId: string;
+  otherStoreId: string;
+  /** Pending fiscal documents for a store, numbered `${prefix}-1`… in the order given. */
+  docs(storeId: string, prefix: string, count: number): Promise<string[]>;
+  /** Steers the SDC fake, which may run in another process. Arrivals are invoice numbers, oldest first. */
+  sdc: {
+    failNext(count: number): Promise<void>;
+    down(): Promise<void>;
+    up(): Promise<void>;
+    arrivals(): Promise<string[]>;
+  };
+  /** Runs the store's lane, firing backoff timers at once, until it is empty or has made `rounds` tries. */
+  drain(storeId: string, rounds?: number): Promise<void>;
+  status(docId: string): Promise<string>;
+  /** Replaces the lane as after a restart (box) or an eviction (Durable Object). */
+  reopen(): Promise<void>;
+  close(): Promise<void>;
+}

@@ -17,6 +17,8 @@ export const receiptOutput = sqliteTable(
     uploadedAt: text("uploaded_at"),
     uploadAttempts: integer("upload_attempts").notNull().default(0),
     nextUploadAt: integer("next_upload_at"),
+    /** Set when the SDC signed the sale after this PDF was rendered: the definitive copy is still to render. */
+    pdfStale: integer("pdf_stale", { mode: "boolean" }).notNull().default(false),
   },
   (t) => [
     foreignKey({ columns: [t.orgId, t.saleId], foreignColumns: [localSale.orgId, localSale.id] }),

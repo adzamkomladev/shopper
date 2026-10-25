@@ -6,6 +6,7 @@ import * as v from "valibot";
 import { tillAudit } from "@shopper/db-sqlite";
 import { bridgeMessage } from "@shopper/sync/bridge";
 import { manager, pin, startShifter, type Shifter } from "../../../../../support/till/host/shifts";
+import { auditText } from "../../../../../support/till/approvers";
 
 let shifter: Shifter | undefined;
 afterEach(async () => {
@@ -146,7 +147,7 @@ test("the manager's PIN closes a counted shift: the Z names the approver, prints
   expect(rows.filter((row) => row.command === "shift.close")).toMatchObject([
     { actorId: register.fixture.config.session!.userId, approverId: manager },
   ]);
-  expect(JSON.stringify(rows)).not.toContain(pin);
+  expect(auditText(rows)).not.toContain(pin);
 });
 
 test("a close after a declare that already closed the shift is SHIFT_REQUIRED", async () => {

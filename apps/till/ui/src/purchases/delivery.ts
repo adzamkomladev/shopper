@@ -1,4 +1,4 @@
-import type { ReceiptDelivery } from "@shopper/sync/bridge";
+import type { PurchaseDetails, ReceiptDelivery } from "@shopper/sync/bridge";
 import type { PurchaseOutput } from "../sale/types";
 import type { SettingsCurrent } from "../settings/types";
 
@@ -14,6 +14,14 @@ export function deliveryText({ printedAt, printError, reprints }: ReceiptDeliver
 
 export const digitalCopyText = ({ pdf }: ReceiptDelivery) =>
   pdf === "uploaded" ? "Uploaded" : pdf === "pending" ? "Waiting to upload" : "Not stored";
+
+/** Where a VAT invoice stands with the GRA SDC; null for a receipt that is not a VAT invoice. */
+export function fiscalText(receipt: NonNullable<PurchaseDetails["receipt"]>) {
+  if (!receipt.header.vatInvoice) return null;
+  return receipt.fiscal
+    ? `Signed · ${receipt.fiscal.sdcId} #${receipt.fiscal.counter}`
+    : "Provisional · waiting for the SDC";
+}
 
 /** The register's printer and paper from its settings, and the cashier's right to reprint. */
 export function purchaseOutput(

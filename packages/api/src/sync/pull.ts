@@ -8,12 +8,15 @@ import type { ShopperDatabase } from "@shopper/db-pg";
 import type { createDeviceService } from "@shopper/auth/devices";
 import { and, eq } from "drizzle-orm";
 import { store } from "@shopper/db-pg";
+import type { Lane } from "@shopper/ports";
+import { sweepStrandedFiscal } from "./fiscal";
 
 /** `GET /sync/changes`: a device's store change feed, read-only and so not audited. */
 export function createPullRoutes(options: {
   database: ShopperDatabase;
   devices: ReturnType<typeof createDeviceService>;
   protocol: number;
+  lane?: Lane;
 }) {
   return new Hono()
     .get("/sync/status", async (c) => {
@@ -39,6 +42,7 @@ export function createPullRoutes(options: {
         return c.json({ error: "Incompatible sync protocol" }, 409);
       const parsed = v.safeParse(query, c.req.query());
       if (!parsed.success) return c.json({ error: "Malformed sync query" }, 400);
+      await sweepStrandedFiscal(options.database, options.lane, principal);
       return c.json(
         await pullChanges(
           options.database,

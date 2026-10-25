@@ -6,6 +6,7 @@ export { TillError } from "./error";
 
 export { issueReceiptBlocks } from "./receipts/blocks";
 export { readReceiptStatus } from "./receipts/assign";
+export { signLocalReceipt, unsignedLocalReceipts } from "./receipts/sign";
 
 export { projectProducts, unprojectProducts, clearProjection } from "./lookup/project";
 export type { CatalogueMatch, ProjectedCustomer, ProjectedProduct } from "./lookup/types";

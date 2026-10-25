@@ -90,12 +90,12 @@ test("A v4 sale event is upcast to v6 and accepted; a v5 line counts as a regist
   expect(saved).toMatchObject({ eventVersion: 6, customerId: null });
 });
 
-test("A stored v2 receipt reads as v4 with no buyer", () => {
-  const { v: _v, buyer: _buyer, header, lines, ...rest } = goldenReceipt();
+test("A stored v2 receipt reads as v5 with no buyer", () => {
+  const { v: _v, buyer: _buyer, fiscal: _fiscal, header, lines, ...rest } = goldenReceipt();
   const { vatInvoice: _vatInvoice, ...v2Header } = header;
   const v2Lines = lines.map(({ net: _net, ...line }) => line);
   const parsed = v.parse(receiptDocument, { v: 2, header: v2Header, lines: v2Lines, ...rest });
-  expect(parsed).toMatchObject({ v: 4, kind: "sale", buyer: null, header: { vatInvoice: true } });
+  expect(parsed).toMatchObject({ v: 5, kind: "sale", buyer: null, header: { vatInvoice: true } });
   expect(parsed.lines.map((line) => line.net)).toEqual(lines.map(() => null));
 });
 

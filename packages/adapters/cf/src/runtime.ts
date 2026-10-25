@@ -9,6 +9,7 @@ import { NOTIFICATION_RETRY } from "@shopper/ports";
 import { cloudflareDatabase } from "./database";
 import { cloudflareLauncher } from "./launcher";
 import { cloudflareSequencer } from "./sequencer";
+import { cloudflareLane } from "./lane";
 import type { CloudflareRuntimeEnvironment } from "./runtime/types";
 
 const s3 = (env: CloudflareRuntimeEnvironment, bucket?: string) =>
@@ -40,6 +41,10 @@ export async function cloudflareRuntime(
       notifications: env.NOTIFICATIONS
         ? cloudflareQueue(env.NOTIFICATIONS, NOTIFICATION_RETRY)
         : undefined,
+      lane:
+        env.FISCAL_LANE && env.SHOPPER_SDC_URL && env.SHOPPER_SDC_KEY
+          ? cloudflareLane(env.FISCAL_LANE)
+          : undefined,
       blobs: (
         await cloudflareBlobs(env.BLOBS, {
           imports: env.IMPORTS,

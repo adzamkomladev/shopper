@@ -11,6 +11,7 @@ import { retryDeadline } from "../push/backoff";
 import { createPushTransport } from "../push/http";
 
 import { applySnapshot } from "./snapshot";
+import { skippedSignatures } from "./signatures";
 import { decodeReferenceChange, decodeSnapshot } from "@shopper/core/schemas";
 import { applyPage, KNOWN_VERSION, page, type Page } from "./apply";
 
@@ -91,10 +92,13 @@ export function createPullWorker(options: PullOptions) {
       if (!data) return undefined;
       if (data.orgId !== config.orgId || (config.storeId && data.storeId !== config.storeId))
         throw new Error("Snapshot outside device scope");
+      const signatures = await skippedSignatures(database, config.orgId, (path, body) =>
+        transport.request(path, body),
+      );
       await bootstrap(
         database,
         { orgId: config.orgId, deviceId: config.deviceId, appVersion: config.appVersion },
-        { ...data, referenceVersion: rawSnapshot.v },
+        { ...data, referenceVersion: rawSnapshot.v, signatures },
       );
       attempts = 0;
       publish({

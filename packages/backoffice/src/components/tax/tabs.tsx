@@ -2,15 +2,16 @@ import { Link } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@shopper/ui/components/tabs";
 import { focusIfIdle } from "../../lib/focus";
 
-type TaxTab = "summary" | "returns" | "rules" | "settings";
+type TaxTab = "summary" | "returns" | "fiscal" | "rules" | "settings";
 
 const TABS: {
   value: TaxTab;
-  to: "/tax" | "/tax/returns" | "/tax/rules" | "/tax/settings";
+  to: "/tax" | "/tax/returns" | "/tax/fiscal" | "/tax/rules" | "/tax/settings";
   label: string;
 }[] = [
   { value: "summary", to: "/tax", label: "Summary" },
   { value: "returns", to: "/tax/returns", label: "VAT return" },
+  { value: "fiscal", to: "/tax/fiscal", label: "Fiscal" },
   { value: "rules", to: "/tax/rules", label: "Rates" },
   { value: "settings", to: "/tax/settings", label: "Settings" },
 ];
@@ -22,7 +23,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-/** The tax area's heading and tab bar; every tab needs tax.read, so all four always show. */
+/** The tax area's heading and tab bar; every tab needs tax.read, so all five always show. */
 export function TaxPage({ active, action, children }: Props) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6">

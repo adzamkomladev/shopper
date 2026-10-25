@@ -75,7 +75,7 @@ test("1,200 changes arrive as pages of 500, 500 and 200 and the last cursor is t
     "seq",
     "v",
   ]);
-  expect(first.changes[0]).toMatchObject({ entity: "product", op: "upsert", v: 5 });
+  expect(first.changes[0]).toMatchObject({ entity: "product", op: "upsert", v: 6 });
 });
 
 test("a caught-up till gets no changes and the head as its cursor; exactly one full page has no more", async () => {

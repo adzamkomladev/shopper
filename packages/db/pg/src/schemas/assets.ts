@@ -26,6 +26,8 @@ export const asset = pgTable(
     contentType: text("content_type").notNull(),
     sizeBytes: integer("size_bytes").notNull(),
     sha256: text("sha256").notNull(),
+    /** The digest of the bytes last verified in storage; a sale receipt is served once it equals `sha256`. */
+    verifiedSha256: text("verified_sha256"),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     actorId: uuid("actor_id"),
   },

@@ -56,7 +56,7 @@ async function snapshotOf(world: World, storeId = world.stores[0]!) {
   };
 }
 
-test("a customer change is a v5 customer row on every store, carrying only what the till needs", async () => {
+test("a customer change is a v6 customer row on every store, carrying only what the till needs", async () => {
   const world = await feed.world(3);
   const id = await add(world, "Ama Mensah", "0241234567", {
     kind: "business",
@@ -66,7 +66,7 @@ test("a customer change is a v5 customer row on every store, carrying only what 
   for (const storeId of world.stores) {
     const rows = await feed.changes(world.orgId, { storeId, entity: "customer" });
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ entity_id: id, op: "upsert", v: 5 });
+    expect(rows[0]).toMatchObject({ entity_id: id, op: "upsert", v: 6 });
     expect(rows[0]!.payload).toEqual({
       id,
       orgId: world.orgId,
@@ -82,7 +82,7 @@ test("a customer change is a v5 customer row on every store, carrying only what 
   }
   await updateCustomer(feed.db, context(world), { id, patch: { name: "Ama Owusu" } });
   const rows = await feed.changes(world.orgId, { storeId: world.stores[0], entity: "customer" });
-  expect(rows.map((r) => r.v)).toEqual([5, 5]);
+  expect(rows.map((r) => r.v)).toEqual([6, 6]);
   expect(rows.at(-1)!.payload).toMatchObject({ name: "Ama Owusu", version: 2 });
 });
 
@@ -103,7 +103,7 @@ test("the snapshot is v4 and lists active customers only, never another organisa
 
   for (const storeId of mine.stores) {
     const snapshot = await snapshotOf(mine, storeId);
-    expect(snapshot.v).toBe(5);
+    expect(snapshot.v).toBe(6);
     expect(snapshot.reference.customers.map((c) => c.id).sort()).toEqual([active, winner].sort());
   }
   const text = JSON.stringify(await snapshotOf(mine));

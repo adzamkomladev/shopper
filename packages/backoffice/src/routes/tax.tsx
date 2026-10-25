@@ -7,12 +7,15 @@ import { settingsQuery } from "../queries/settings/resource";
 import { taxRulesQuery } from "../queries/tax/rules";
 import { taxSummaryQuery, vatReturnQuery } from "../queries/tax/returns";
 import { returnSearch, summarySearch } from "../schemas/tax/returns";
+import { fiscalSearch } from "../schemas/tax/fiscal";
+import { fiscalArchivesQuery, fiscalListQuery } from "../queries/tax/fiscal";
+import { FiscalSkeleton } from "../components/tax/fiscal/states";
 import type { BackofficeContext } from "../types";
 import { whenHeld } from "./held";
 
 type Context = { context: BackofficeContext };
 
-/** The tax area: the summary, the monthly VAT return, the dated rates and the tax settings. Each needs tax.read. */
+/** The tax area: the summary, the monthly VAT return, fiscal documents, the dated rates and the tax settings. Each needs tax.read. */
 export function taxRoutes(shopRoute: AnyRoute) {
   const summaryRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -52,6 +55,22 @@ export function taxRoutes(shopRoute: AnyRoute) {
     ...routeStates,
     pendingComponent: () => <TaxBodySkeleton label="Loading the VAT return" />,
   });
+  const fiscalRoute = createRoute({
+    getParentRoute: () => shopRoute,
+    path: "/tax/fiscal",
+    validateSearch: fiscalSearch,
+    loaderDeps: ({ search }) => search,
+    loader: ({ context, deps }: Context & { deps: v.InferOutput<typeof fiscalSearch> }) =>
+      whenHeld(context, "tax.read", () =>
+        Promise.all([
+          context.queryClient.ensureQueryData(fiscalListQuery(deps)),
+          context.queryClient.ensureQueryData(fiscalArchivesQuery(deps.date ?? shopToday())),
+        ]),
+      ),
+    component: lazyRouteComponent(() => import("../screens/tax/fiscal/screen"), "FiscalScreen"),
+    ...routeStates,
+    pendingComponent: () => <FiscalSkeleton />,
+  });
   const rulesRoute = createRoute({
     getParentRoute: () => shopRoute,
     path: "/tax/rules",
@@ -75,5 +94,5 @@ export function taxRoutes(shopRoute: AnyRoute) {
     ...routeStates,
     pendingComponent: () => <TaxBodySkeleton label="Loading tax settings" />,
   });
-  return [summaryRoute, returnsRoute, rulesRoute, settingsRoute];
+  return [summaryRoute, returnsRoute, fiscalRoute, rulesRoute, settingsRoute];
 }

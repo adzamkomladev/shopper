@@ -37,7 +37,7 @@ test("acceptance stores reconciled tenders and signed stock movements atomically
     total: snapshot.totals.gross,
     paid: snapshot.totals.gross,
     change: 0,
-    receipt: { v: 4, saleId: snapshot.id },
+    receipt: { v: 5, saleId: snapshot.id },
   });
 });
 

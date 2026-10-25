@@ -1,6 +1,7 @@
 import { startBrowserFake } from "../../browser/server";
 import { startPaystackFake } from "../../paystack/server";
 import { startArkeselFake } from "../../arkesel/server";
+import { startSdcFake } from "../../sdc/server";
 import { fileURLToPath } from "node:url";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -28,6 +29,7 @@ await build({
 const paystack = await startPaystackFake();
 const browser = await startBrowserFake();
 const arkesel = await startArkeselFake();
+const sdc = await startSdcFake();
 paystack.behave("0551234987", "success");
 paystack.behave("0551234986", "send_otp");
 paystack.behave("0241234567", "pending");
@@ -40,6 +42,7 @@ export default defineConfig({
     { name: "paystack-fake", closeBundle: () => paystack.stop() },
     { name: "browser-fake", closeBundle: () => browser.stop() },
     { name: "arkesel-fake", closeBundle: () => arkesel.stop() },
+    { name: "sdc-fake", closeBundle: () => sdc.stop() },
     cloudflareTest({
       remoteBindings: false,
       experimental: { newConfig: { configPath: "../../../apps/edge/cloudflare.config.ts" } },
@@ -48,6 +51,7 @@ export default defineConfig({
         durableObjects: {
           STORE_SEQUENCER: { className: "StoreSequencer", useSQLite: true },
           STORE_HUB: { className: "StoreHub", useSQLite: true },
+          FISCAL_LANE: { className: "FiscalLane", useSQLite: true },
         },
         bindings: {
           // Signing credentials never exist in tests; without an endpoint the grants stay off.
@@ -55,6 +59,8 @@ export default defineConfig({
           BROWSER_FAKE_URL: browser.baseUrl,
           ARKESEL_API_KEY: arkesel.apiKey,
           ARKESEL_BASE_URL: arkesel.baseUrl,
+          SHOPPER_SDC_URL: sdc.url,
+          SHOPPER_SDC_KEY: sdc.apiKey,
           PAYSTACK_SECRET_KEY: paystack.secretKey,
           PAYSTACK_BASE_URL: paystack.baseUrl,
           SHOPPER_AUTH_SECRET: "integration-secret-with-at-least-32-characters",
@@ -89,6 +95,7 @@ export default defineConfig({
       "approvers.test.ts",
       "refunds.test.ts",
       "shifts.test.ts",
+      "lane.test.ts",
     ],
   },
 });

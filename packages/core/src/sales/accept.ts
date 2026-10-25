@@ -17,6 +17,7 @@ import { earnPoints } from "../customers/loyalty/ledger";
 import { wakeAccount } from "../customers/accounts/wake";
 import { checkReorder } from "../stock/reorder";
 import type { Queue } from "@shopper/ports";
+import { fiscalDocOf, recordFiscalDoc } from "../fiscal/documents";
 
 export async function acceptSale(
   db: ShopperDatabase,
@@ -86,6 +87,7 @@ const accept = defineCommand({
         occurredAt: saved.occurredAt.toISOString(),
         customerId: saved.customerId,
         customerCreated: false,
+        fiscalDocId: await fiscalDocOf(tx, ctx.orgId, { saleId: saved.id }),
       },
     };
   },
@@ -96,6 +98,7 @@ const accept = defineCommand({
     await validateReceipt(tx, snapshot);
     const tenders = await validateTenders(tx, snapshot);
     const buyer = await ensureSaleCustomer(tx, ctx, snapshot);
+    const receipt = await saleDocument(tx, snapshot);
     const [saved] = await tx
       .insert(sale)
       .values({
@@ -113,7 +116,7 @@ const accept = defineCommand({
         deviceTime: new Date(snapshot.deviceTime),
         occurredAt: input.occurredAt,
         receiptNumber: snapshot.receiptNumber,
-        receipt: await saleDocument(tx, snapshot),
+        receipt,
         total: snapshot.total,
         cashRounding: snapshot.cashRounding,
         paid: snapshot.paid,
@@ -124,6 +127,11 @@ const accept = defineCommand({
       .onConflictDoNothing({ target: [sale.deviceId, sale.localId] })
       .returning();
     if (!saved) throw new SaleError("CONFLICT", "Sale identity already exists");
+    const fiscalDocId = await recordFiscalDoc(tx, ctx.orgId, receipt, {
+      storeId: snapshot.storeId,
+      branchId: snapshot.branchId,
+      saleId: saved.id,
+    });
     await consumeHolds(tx, ctx, snapshot, input.occurredAt);
     await tx.insert(saleLine).values(
       snapshot.lines.map((line) => ({
@@ -168,6 +176,7 @@ const accept = defineCommand({
       occurredAt: saved.occurredAt.toISOString(),
       customerId: buyer.id,
       customerCreated: Boolean(buyer.created),
+      fiscalDocId,
       ...(earned ? { pointsEarned: earned } : {}),
     };
   },

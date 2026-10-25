@@ -8,9 +8,13 @@ import { WorkflowTimeoutError, type Json, type RetryPolicy, type Workflow } from
 export function cloudflareFlow(
   event: WorkflowEvent<Json>,
   step: WorkflowStep,
-): Pick<Workflow, "instanceId" | "step" | "waitFor"> {
+): Pick<Workflow, "instanceId" | "step" | "waitFor" | "sleepUntil"> {
   return {
     instanceId: event.instanceId,
+    // Cloudflare rejects a sleep into the past; the box engine returns at once, so match it.
+    sleepUntil: async (name, instant) => {
+      if (instant.getTime() > Date.now()) await step.sleepUntil(name, instant);
+    },
     step: async <T extends Json>(name: string, policy: RetryPolicy, run: () => Promise<T>) =>
       JSON.parse(
         await step.do(

@@ -1,7 +1,6 @@
-import * as v from "valibot";
 import { eq } from "drizzle-orm";
-import { localSale, receiptOutput, refund } from "@shopper/db-sqlite";
-import { receiptDocument, type ReceiptDocument } from "@shopper/core/receipts";
+import { receiptOutput } from "@shopper/db-sqlite";
+import type { ReceiptDocument } from "@shopper/core/receipts";
 import {
   readRegisterSettings,
   recordReceiptPrint,
@@ -24,6 +23,7 @@ import type { TillDatabase } from "@shopper/db-sqlite";
 import type { HostConfiguration } from "./config";
 import { auditContext } from "./context";
 import { describeConnection, printerFor } from "./peripherals/printers";
+import { storedReceipt } from "./receipts/stored";
 
 type Job = {
   kind: NonNullable<PrinterStatus["lastJob"]>["kind"];
@@ -73,20 +73,7 @@ export function createHostReceipts(options: {
     return current;
   };
 
-  /** The stored receipt of a sale, or of a refund (which has no receipt output of its own). */
-  async function receiptOf(id: string) {
-    const [sale] = await database.read((tx) =>
-      tx.select({ receipt: localSale.receipt }).from(localSale).where(eq(localSale.id, id)),
-    );
-    const [refunded] = sale
-      ? []
-      : await database.read((tx) =>
-          tx.select({ receipt: refund.receipt }).from(refund).where(eq(refund.id, id)),
-        );
-    const stored = sale?.receipt ?? refunded?.receipt;
-    if (!stored) throw new TillError("SALE_UNKNOWN", "Receipt is unavailable");
-    return v.parse(receiptDocument, stored);
-  }
+  const receiptOf = (id: string) => storedReceipt(database, id);
 
   /** Sends one job, records the attempt when it belongs to a sale, and throws PRINTER_OFFLINE on failure. */
   async function send(current: Ready, context: Context, job: Job, write: Write) {
@@ -154,10 +141,11 @@ export function createHostReceipts(options: {
   async function storePdf(saleId: string, seller: Context) {
     try {
       const { value } = await readRegisterSettings(database, config.identity);
+      const receipt = await receiptOf(saleId);
       const pdf = await (
         await renderer()
-      ).receipt(await receiptOf(saleId), { paperMm: value.paperMm, reprint: false }, "pdf");
-      await storeReceiptPdf(database, seller, { saleId, pdf });
+      ).receipt(receipt, { paperMm: value.paperMm, reprint: false }, "pdf");
+      await storeReceiptPdf(database, seller, { saleId, pdf, signed: !!receipt.fiscal });
       options.onPdfStored();
     } catch (error) {
       console.error("Receipt PDF after sale failed", error);
@@ -165,6 +153,18 @@ export function createHostReceipts(options: {
   }
 
   return {
+    /** Renders the definitive PDF of every sale the SDC signed after its first PDF; storing it uploads it again. */
+    async refreshSigned() {
+      const stale = await database.read((tx) =>
+        tx
+          .select({ saleId: receiptOutput.saleId })
+          .from(receiptOutput)
+          .where(eq(receiptOutput.pdfStale, true)),
+      );
+      const seller = auditContext(config);
+      for (const { saleId } of stale) pdfTail = pdfTail.then(() => storePdf(saleId, seller));
+      await pdfTail;
+    },
     printer(configured: boolean): PrinterStatus {
       return { state: !configured ? "unconfigured" : offline ? "offline" : "ready", lastJob };
     },

@@ -63,7 +63,7 @@ test("asset migration constraint and index names match the owning Drizzle models
 test("current migration metadata includes asset and all published receipt fields", async () => {
   const snapshot = JSON.parse(
     await readFile(
-      new URL("../../../packages/db/pg/migrations/meta/0026_snapshot.json", import.meta.url),
+      new URL("../../../packages/db/pg/migrations/meta/0027_snapshot.json", import.meta.url),
       "utf8",
     ),
   );
@@ -81,6 +81,8 @@ test("current migration metadata includes asset and all published receipt fields
     schema.accountHold,
     schema.refund,
     schema.vatReturn,
+    schema.fiscalDoc,
+    schema.fiscalArchive,
   ]) {
     const config = getTableConfig(table);
     const columns = await fixture.client.query<{ column_name: string }>(

@@ -20,6 +20,7 @@ export const storeChangeEntities = [
   "barcode-mapping",
   "customer",
   "org-setting",
+  "fiscal-doc",
 ] as const;
 
 /** The per-store change feed tills pull from. Append-only: rows are never updated or deleted. */
@@ -45,7 +46,7 @@ export const storeChange = pgTable(
     primaryKey({ columns: [t.orgId, t.storeId, t.seq] }),
     check(
       "store_change_entity",
-      sql`${t.entity} IN ('product', 'price', 'tax-rule', 'barcode-mapping', 'customer', 'org-setting')`,
+      sql`${t.entity} IN ('product', 'price', 'tax-rule', 'barcode-mapping', 'customer', 'org-setting', 'fiscal-doc')`,
     ),
     check("store_change_op", sql`${t.op} IN ('upsert', 'delete')`),
     foreignKey({ columns: [t.orgId, t.storeId], foreignColumns: [store.orgId, store.id] }),

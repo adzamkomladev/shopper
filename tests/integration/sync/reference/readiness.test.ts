@@ -46,7 +46,7 @@ async function v1Till(next: unknown) {
   upstream.snapshot = next;
 }
 
-test("a till at reference_version 1 asks for cursor 0 once, takes a v5 snapshot and ends at version 5", async () => {
+test("a till at reference_version 1 asks for cursor 0 once, takes a v6 snapshot and ends at version 6", async () => {
   const withBarcode = product({ name: "Packed", barcodes: [code("0012345", 6000)] });
   await v1Till(snapshotBody([withBarcode], { cursor: "9" }));
   expect(await tillStateRow(till.database)).toMatchObject({
@@ -61,7 +61,7 @@ test("a till at reference_version 1 asks for cursor 0 once, takes a v5 snapshot 
   expect(upstream.urls.filter((url) => url.includes("cursor=0"))).toHaveLength(1);
   expect(await tillStateRow(till.database)).toMatchObject({
     pull_cursor: "9",
-    reference_version: 5,
+    reference_version: 6,
   });
   expect(await referenceNames(till.database)).toEqual(["Packed"]);
   expect(await search("0012345")).toEqual(["Packed"]);
@@ -72,7 +72,7 @@ test("a till already at the known version resumes from its cursor with no snapsh
   till = await tempTill();
   upstream = await referenceUpstream(snapshotBody([product({ name: "Seeded" })], { cursor: "5" }));
   await (await run()).stop();
-  expect(await tillStateRow(till.database)).toMatchObject({ reference_version: 5 });
+  expect(await tillStateRow(till.database)).toMatchObject({ reference_version: 6 });
 
   upstream.urls.length = 0;
   await run();
@@ -106,16 +106,16 @@ test("an offline server during the forced snapshot leaves version 1, the cursor 
   await worker!.trigger();
   expect(await tillStateRow(till.database)).toMatchObject({
     pull_cursor: "9",
-    reference_version: 5,
+    reference_version: 6,
   });
   expect(await search("fresh")).toEqual(["Fresh"]);
 });
 
-test("a malformed v5 row halts as incompatible and changes neither cursor, rows nor index", async () => {
+test("a malformed v6 row halts as incompatible and changes neither cursor, rows nor index", async () => {
   till = await tempTill();
   upstream = await referenceUpstream(snapshotBody([product({ name: "Seeded" })], { cursor: "5" }));
   await (await run()).stop();
-  await setReferenceVersion(till.database, 5);
+  await setReferenceVersion(till.database, 6);
   const { barcodes: _gone, ...noBarcodes } = product({ name: "Broken" });
   upstream.pages.push(
     pageBody(8, [upsert(6, product({ name: "Good first" })), upsert(7, noBarcodes as never)]),
@@ -126,7 +126,7 @@ test("a malformed v5 row halts as incompatible and changes neither cursor, rows 
   expect(worker!.getStatus()).toMatchObject({ state: "incompatible", cursor: "5" });
   expect(await tillStateRow(till.database)).toMatchObject({
     pull_cursor: "5",
-    reference_version: 5,
+    reference_version: 6,
   });
   expect(await referenceNames(till.database)).toEqual(["Seeded"]);
   expect(await search("good")).toEqual([]);

@@ -5,7 +5,15 @@ import type {
   createInvitations,
 } from "@shopper/auth";
 import type { ShopperDatabase } from "@shopper/db-pg";
-import type { Blobs, Queue, Realtime, Renderer, Sequencer, WorkflowLauncher } from "@shopper/ports";
+import type {
+  Blobs,
+  Lane,
+  Queue,
+  Realtime,
+  Renderer,
+  Sequencer,
+  WorkflowLauncher,
+} from "@shopper/ports";
 import type { Cache } from "@shopper/ports";
 import type { LiveUpgrade } from "./sync/live";
 
@@ -29,6 +37,8 @@ export interface ApiOptions {
   blobs?: Blobs;
   realtime?: Realtime;
   notifications?: Queue;
+  /** Submits VAT documents to the SDC in order, per store; without it documents wait as pending. */
+  lane?: Lane;
   /** Signs statement links and KYC codes; public statement reads, link creation and KYC need it. */
   linkSecret?: string;
   baseURL?: string;
@@ -51,6 +61,7 @@ export interface RuntimeOptions {
   live?: LiveUpgrade;
   realtime?: Realtime;
   notifications?: Queue;
+  lane?: Lane;
   renderer?: Renderer;
   cache: Cache;
   secret: string;

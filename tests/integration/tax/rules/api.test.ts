@@ -87,9 +87,9 @@ test("a scheduled rule is created, edited and removed with an audit row each, an
     .from(schema.storeChange)
     .where(and(eq(schema.storeChange.storeId, storeId), eq(schema.storeChange.entityId, id)));
   expect(feed.map((row) => [row.entity, row.op, row.v])).toEqual([
-    ["tax-rule", "upsert", 5],
-    ["tax-rule", "upsert", 5],
-    ["tax-rule", "delete", 5],
+    ["tax-rule", "upsert", 6],
+    ["tax-rule", "upsert", 6],
+    ["tax-rule", "delete", 6],
   ]);
   expect(feed[1]!.payload).toMatchObject({ id, vatBps: 1_300, effectiveFrom: day(1) });
 });

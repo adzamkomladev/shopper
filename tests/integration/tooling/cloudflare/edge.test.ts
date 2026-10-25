@@ -36,6 +36,7 @@ test("Durable Objects, Workflows and every resource binding are the staging ones
   const { env: bound, exports } = worker();
   expect(exports.StoreSequencer).toMatchObject({ type: "durable-object", storage: "sqlite" });
   expect(exports.StoreHub).toMatchObject({ type: "durable-object", storage: "sqlite" });
+  expect(exports.FiscalLane).toMatchObject({ type: "durable-object", storage: "sqlite" });
   for (const [exportName, name] of [
     ["PriceChangeWorkflow", "shopper-price-change-staging"],
     ["AuthWorkflow", "shopper-auth-flow-staging"],
@@ -43,6 +44,7 @@ test("Durable Objects, Workflows and every resource binding are the staging ones
     ["KycWorkflow", "shopper-kyc-staging"],
     ["AccountWorkflow", "shopper-account-staging"],
     ["StatementWorkflow", "shopper-statements-staging"],
+    ["FiscalArchiveWorkflow", "shopper-fiscal-archive-staging"],
   ]) {
     expect(exports[exportName]).toMatchObject({ type: "workflow", name });
   }
@@ -51,6 +53,12 @@ test("Durable Objects, Workflows and every resource binding are the staging ones
     exportName: "StoreSequencer",
   });
   expect(bound.STORE_HUB).toMatchObject({ type: "durable-object", exportName: "StoreHub" });
+  expect(bound.FISCAL_LANE).toMatchObject({ type: "durable-object", exportName: "FiscalLane" });
+  expect(bound.FISCAL_ARCHIVE).toMatchObject({
+    type: "workflow",
+    name: "shopper-fiscal-archive-staging",
+    exportName: "FiscalArchiveWorkflow",
+  });
   expect(bound.CACHE_DB).toMatchObject({ type: "d1", id: "44230678-333c-446c-af51-22fe0c8eb20e" });
   expect(bound.HYPERDRIVE).toMatchObject({
     type: "hyperdrive",

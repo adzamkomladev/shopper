@@ -67,7 +67,7 @@ for (const [index, scenario] of tradingDay.entries()) {
       cashRounding: snapshot.cashRounding,
       paid: snapshot.paid,
       change: snapshot.change,
-      receipt: { v: 4, saleId: snapshot.id },
+      receipt: { v: 5, saleId: snapshot.id },
     });
     const tenders = await world.db
       .select()

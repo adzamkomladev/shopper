@@ -4,8 +4,7 @@ import {
   clip,
   documentTitle,
   ghs,
-  qrCaption,
-  qrPayload,
+  fiscalMark,
   quantity,
   refundedLabel,
   taxRows,
@@ -32,6 +31,7 @@ export function ReceiptView({
   const { header } = receipt;
   const bold = { fontWeight: 700 } as const;
   const refund = receipt.kind === "refund";
+  const mark = fiscalMark(receipt);
   return (
     <Stack
       style={{
@@ -112,10 +112,12 @@ export function ReceiptView({
         );
       })}
       {refund ? null : <Row left="Change" right={ghs(receipt.change)} />}
-      {refund ? null : (
-        <Center style={{ margin: "16px 0 4px" }}>{qrImage(qrPayload(receipt), 200)}</Center>
-      )}
-      {refund ? null : <Center style={{ fontSize: 18, lineHeight: "24px" }}>{qrCaption}</Center>}
+      {mark?.qr ? <Center style={{ margin: "16px 0 4px" }}>{qrImage(mark.qr, 200)}</Center> : null}
+      {mark ? (
+        <Center style={{ fontSize: 18, lineHeight: "24px", marginTop: mark.qr ? 0 : 12 }}>
+          {mark.caption}
+        </Center>
+      ) : null}
       <Center style={{ marginTop: 12 }}>{receipt.footer}</Center>
     </Stack>
   );

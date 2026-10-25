@@ -10,7 +10,7 @@ import { acceptSale, SaleError } from "@shopper/core/sales";
 import { issueReceiptBlocks } from "@shopper/core/till";
 
 import type { ShopperDatabase } from "@shopper/db-pg";
-import type { Blobs, Queue, Sequencer } from "@shopper/ports";
+import type { Blobs, Lane, Queue, Sequencer } from "@shopper/ports";
 import type { createDeviceService } from "@shopper/auth/devices";
 import { createApproverRoutes } from "./approvers";
 import { createAccountRoutes } from "./accounts";
@@ -21,6 +21,7 @@ import { createShiftRoutes } from "./shifts";
 import { createStockRoutes } from "./stock";
 import { createLiveRoutes, type LiveUpgrade } from "./live";
 import { createPullRoutes } from "./pull";
+import { enqueueFiscal } from "./fiscal";
 import { createSnapshotRoutes } from "./snapshot";
 
 const maxBytes = 1024 * 1024;
@@ -33,6 +34,7 @@ export function createSyncRoutes(options: {
   live?: LiveUpgrade;
   blobs?: Blobs;
   notifications?: Queue;
+  lane?: Lane;
   now?: () => number;
 }) {
   const protocol = options.protocol ?? buildInfo.syncProtocol;
@@ -118,6 +120,7 @@ export function createSyncRoutes(options: {
           options.notifications,
         );
         occurredAt = result.occurredAt;
+        await enqueueFiscal(options.lane, principal, result.fiscalDocId);
       } catch (error) {
         const postgresError = error as { code?: string; cause?: { code?: string } };
         const failure =

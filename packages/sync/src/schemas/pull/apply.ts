@@ -1,4 +1,4 @@
-export const KNOWN_VERSION = 5;
+export const KNOWN_VERSION = 6;
 import * as v from "valibot";
 
 import { sequenceSchema } from "@shopper/ports";

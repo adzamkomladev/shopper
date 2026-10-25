@@ -2,10 +2,10 @@ import { describe, expect, test } from "vite-plus/test";
 import { toDecimal, type Money } from "@shopper/money";
 import { encodeReceipt, paper, printerProfiles, qrMatrix } from "@shopper/hardware";
 import { decodeEscPos } from "../../../support/hardware/escpos";
-import { goldenReceipt } from "../../../support/hardware/receipt";
+import { goldenReceipt, signedReceipt } from "../../../support/hardware/receipt";
 
-const receipt = goldenReceipt();
-const payload = `${receipt.header.receiptNumber}|${receipt.saleId}`;
+const receipt = signedReceipt();
+const payload = receipt.fiscal.qr;
 const DRAWER = [0x1b, 0x70, 0x00, 0x19, 0xfa];
 
 function encode(
@@ -14,7 +14,7 @@ function encode(
     paperMm?: 58 | 80;
     reprint?: boolean;
     openDrawer?: boolean;
-    doc?: typeof receipt;
+    doc?: ReturnType<typeof goldenReceipt>;
   } = {},
 ) {
   return encodeReceipt(options.doc ?? receipt, {
@@ -61,7 +61,7 @@ describe("Epson 80 mm receipt", () => {
       ghs(receipt.total),
       ghs(receipt.change),
       "ABC123",
-      "E-VAT QR pending",
+      "E-VAT SDC-TEST-01 #7",
     ])
       expect(all).toContain(expected);
     expect(receipt.taxSummary.nhil).toBeGreaterThan(0);
@@ -70,7 +70,7 @@ describe("Epson 80 mm receipt", () => {
     expect(all.toLowerCase()).toContain("card");
   });
 
-  test("stores one native QR whose payload is receipt number and sale id", () => {
+  test("stores one native QR whose payload is the SDC's verification link", () => {
     const stored = commands.filter((command) => command.name === "qrStore");
     expect(stored).toEqual([{ name: "qrStore", payload }]);
     expect(commands.filter((command) => command.name === "qrPrint")).toHaveLength(1);
@@ -83,6 +83,15 @@ describe("Epson 80 mm receipt", () => {
     expect(commands[0]).toEqual({ name: "init" });
     expect(Math.max(...text.map((line) => line.length))).toBeLessThanOrEqual(48);
   });
+});
+
+test("a provisional VAT invoice prints the pending notice and no QR; a plain receipt prints neither", () => {
+  const provisional = decodeEscPos(encode("epson", { doc: goldenReceipt() }));
+  expect(provisional.text.join("\n")).toContain("PROVISIONAL - E-VAT signature pending");
+  expect(provisional.commands.some((command) => command.name === "qrStore")).toBe(false);
+  const plain = decodeEscPos(encode("epson", { doc: goldenReceipt(undefined, false) }));
+  expect(plain.text.join("\n")).not.toMatch(/E-VAT|PROVISIONAL/);
+  expect(plain.commands.some((command) => command.name === "qrStore")).toBe(false);
 });
 
 test("a 58 mm receipt keeps every line within 32 columns", () => {

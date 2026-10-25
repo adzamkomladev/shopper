@@ -144,6 +144,12 @@ VAT return is entered by members with `tax.return`. The Rates tab follows the cl
 moves into force at midnight without a reload. Figma has no tax frames: the screens follow the Settings and Inventory
 patterns.
 
+**Fiscal** (`/tax/fiscal`, Day 19) lists VAT invoices and credit notes on their way to the GRA SDC in five segments
+(keys 1 to 5: All, Pending, Accepted, Rejected, Dead-lettered) with each one's reason, a receipt-number search (/), a
+sheet per document with Retry (R, `tax.write`, dead-lettered only) and the day's hourly archive bundles to download.
+It warns when no SDC is connected. It follows the Previous purchases frame (45:852). The till's purchase detail shows
+each VAT invoice as Provisional or Signed.
+
 ## UX rules
 
 - **Every screen has every state designed:** empty (with the next action), loading (a skeleton sized

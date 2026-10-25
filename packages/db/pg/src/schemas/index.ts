@@ -13,3 +13,4 @@ export * from "./refunds";
 export * from "./shifts";
 export * from "./customers";
 export * from "./tax";
+export * from "./fiscal";

@@ -16,6 +16,7 @@ import { checkReorder } from "../stock/reorder";
 import { creditRefund, saleAccount } from "../customers/credit/refunds";
 import { salePoints, settleRefundPoints } from "../customers/loyalty/ledger";
 import type { Queue } from "@shopper/ports";
+import { fiscalDocOf, recordFiscalDoc } from "../fiscal/documents";
 
 type Input = {
   principal: UploadPrincipal;
@@ -59,7 +60,12 @@ export async function acceptRefund(
       contentHash: await sha256(canonicalJson(snapshot)),
     },
   );
-  return { id: saved.id, occurredAt: saved.occurredAt, total: saved.total };
+  return {
+    id: saved.id,
+    occurredAt: saved.occurredAt,
+    total: saved.total,
+    fiscalDocId: saved.fiscalDocId,
+  };
 }
 
 const accept = defineCommand({
@@ -80,7 +86,12 @@ const accept = defineCommand({
     );
     if (saved.contentHash !== input.contentHash)
       throw new SaleError("CONFLICT", "Refund identity already has different content");
-    return { output: output(saved) };
+    return {
+      output: {
+        ...output(saved),
+        fiscalDocId: await fiscalDocOf(tx, ctx.orgId, { refundId: saved.id }),
+      },
+    };
   },
   async run(tx, ctx, input) {
     const snapshot = input.event.refund;
@@ -145,6 +156,11 @@ const accept = defineCommand({
         contentHash: input.contentHash,
       })
       .returning();
+    const fiscalDocId = await recordFiscalDoc(tx, ctx.orgId, receipt, {
+      storeId: snapshot.storeId,
+      branchId: snapshot.branchId,
+      refundId: snapshot.id,
+    });
     await creditRefund(tx, ctx, {
       customerId: account.customerId,
       share: share.account,
@@ -191,7 +207,7 @@ const accept = defineCommand({
       snapshot.branchId,
       snapshot.lines.map((line) => line.productId),
     );
-    return { ...output(saved!), excess };
+    return { ...output(saved!), fiscalDocId, excess };
   },
   audit: (input, result) => ({
     ...result,

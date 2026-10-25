@@ -11,6 +11,8 @@ import {
 } from "@shopper/ports";
 import { cloudflareDatabase } from "./database";
 
+export { FiscalLane } from "./lane";
+
 // PG is the durable record. The DO provides one hot coordination address per store;
 // it keeps no second cursor that could disagree with a committed PG transaction.
 export class StoreSequencer extends DurableObject<{ HYPERDRIVE: Hyperdrive }> {

@@ -7,6 +7,7 @@ import {
   at,
   auditRows,
   context,
+  auditText,
   expectChain,
   manager,
   pin,
@@ -67,7 +68,7 @@ test("a correct PIN clears earlier failures and audits the reset", async () => {
     expect((await row(db))?.attempts).toBe(0);
     const rows = await auditRows(db);
     expect(rows.map((entry) => entry.command)).toContain("approval.reset");
-    expect(JSON.stringify(rows)).not.toContain(pin);
+    expect(auditText(rows)).not.toContain(pin);
   });
 });
 

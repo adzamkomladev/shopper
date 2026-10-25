@@ -45,6 +45,13 @@ test("migration 0026 is journalled at idx 26 and replaying it twice changes noth
   const before = await catalog();
   await fixture.client.query(migration);
   await fixture.client.query(migration);
+  // 0027 widens the feed's entity list again; replaying it restores the schema.
+  await fixture.client.query(
+    (await readFile(new URL("0027_fiscal.sql", dir), "utf8")).replaceAll(
+      "--> statement-breakpoint",
+      "",
+    ),
+  );
   expect(await catalog()).toEqual(before);
 });
 

@@ -189,13 +189,18 @@ expected cash before counting. A declared shift over the threshold waits for a m
 can move it. The Z is stored on the shift and reprinted, never recomputed.
 
 The Z carries the audit anchor: the `till_audit` chain head (`chain_seq`, `hash`, or `GENESIS_HASH`)
-read inside the close transaction before the close's own row. It is printed and uploaded; publishing
-anchors is Day 20. Each closed shift uploads once as a `shift.closed` v1 event to `POST /sync/shifts`
+read inside the close transaction before the close's own row. It is printed and uploaded. Each closed shift uploads once as a `shift.closed` v1 event to `POST /sync/shifts`
 on the document lane, after the sale backlog drains. The server (`shift.accept`) re-checks the Z's own
 arithmetic (`SHIFT_MISMATCH`), the closing session's `shift.write` and the approver's live
-`shift.approve`, then stores `shift`, `shift_tender` and `shift_movement`. It trusts the till's sale and
-refund totals until the Day 20 cross-check. The back office reads `GET /shifts` and `GET /shifts/:id`
+`shift.approve`, then stores `shift`, `shift_tender` and `shift_movement`. The back office reads `GET /shifts` and `GET /shifts/:id`
 behind `shift.read`; open shifts stay on the till.
+
+Each read also checks the Z (Day 20), at read time so a late upload corrects itself: the register's own
+completed sales and refunds between the shift's open and close (device clock, as the Z) summed by the till's
+`shiftTotals`, against the Z's sales, tax, refunds, account and per-tender figures (`matched`, or `mismatch`
+naming the fields); and the uploaded register chain at the Z's anchor seq (`verified`, `pending` until the
+chain uploads, or `mismatch`). The till uploads its `till_audit` chain to `POST /sync/audit` before its
+shifts, so a Z's anchor is normally on the server when the Z arrives (see `packages/audit/README.md`).
 
 ### Inventory (Day 16)
 

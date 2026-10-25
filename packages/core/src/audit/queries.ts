@@ -41,9 +41,21 @@ export async function auditFacets(db: Queryable, orgId: string) {
       )
       .then((result) => result.rows.map((row) => row.value));
   const [actors, devices, branches, commands, entities, roles] = await Promise.all([
-    db.select({ id: user.id, name: user.name }).from(user).where(eq(user.orgId, orgId)).orderBy(user.name),
-    db.select({ id: device.id, name: device.name }).from(device).where(eq(device.orgId, orgId)).orderBy(device.name),
-    db.select({ id: branch.id, name: branch.name }).from(branch).where(eq(branch.orgId, orgId)).orderBy(branch.name),
+    db
+      .select({ id: user.id, name: user.name })
+      .from(user)
+      .where(eq(user.orgId, orgId))
+      .orderBy(user.name),
+    db
+      .select({ id: device.id, name: device.name })
+      .from(device)
+      .where(eq(device.orgId, orgId))
+      .orderBy(device.name),
+    db
+      .select({ id: branch.id, name: branch.name })
+      .from(branch)
+      .where(eq(branch.orgId, orgId))
+      .orderBy(branch.name),
     seen("command"),
     seen("entity"),
     seen("role"),

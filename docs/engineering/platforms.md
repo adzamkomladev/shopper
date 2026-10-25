@@ -109,6 +109,10 @@ Before using a Cloudflare product that is not in this table, load the `cloudflar
   Rivet actor lands on Day 36. Both pass `laneConformance`.
 - **Never poll and never put business logic on a cron tick.** A wait on people, partners or time is a
   workflow `sleepUntil` or `waitFor`.
+- **The one watchdog** fires at 23:59 UTC (Accra keeps UTC all year): the edge `scheduled` handler
+  (`59 23 * * *`, the only cron trigger) on Cloudflare, a self-re-arming Bun timer on the box until the Rivet
+  schedule lands on Day 36. It only starts one-shot workflows, `audit-anchor` per org per day; starting an
+  instance id that exists is a no-op, so a second firing is harmless. The work happens in the workflow.
 - **Cache port: never read after write in the same request.** It is not a source of truth.
 - **Cloud-only extras degrade gracefully.** If a Cloudflare feature has no box twin (Analytics Engine,
   Images resizing), the shared code must not depend on it. Put it behind an optional port, and have

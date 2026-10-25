@@ -17,7 +17,10 @@ import { auditStreamQuery } from "../schemas/audit";
 import type { ApiAuthentication, ApiEnvironment } from "../types";
 
 /** The audit log for the back office, behind `audit.read`: entries, facets, export, streams and verification. */
-export function auditRoutes(database: ShopperDatabase, authentication: ApiAuthentication | undefined) {
+export function auditRoutes(
+  database: ShopperDatabase,
+  authentication: ApiAuthentication | undefined,
+) {
   const app = new Hono<ApiEnvironment>();
   app.use("/audit", requirePermission(authentication, "audit.read"));
   app.use("/audit/*", requirePermission(authentication, "audit.read"));

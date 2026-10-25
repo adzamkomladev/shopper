@@ -17,7 +17,26 @@ Database triggers reject updates, deletes, truncation and new unhashed rows.
 `verifyChain(rows, expectedFinalHash?)` names the first failing entry. Supply rows
 from one org in `chain_seq` order. An externally retained final hash detects tail
 truncation; a self-contained chain alone cannot prove that its tail is complete.
-Daily anchors and the audit viewer are scheduled for later days.
+`verifyChain` also takes a start `{ seq, hash }`, so `verifyStream` in `@shopper/core/audit` re-hashes a
+stream in pages of 2000 rows without loading six years at once, and checks every `audit_anchor` row for the
+stream against the entry at its seq (a head below the last anchor fails with `anchor`).
+
+## Device streams and anchors
+
+Each till keeps its own chain in `till_audit` (`@shopper/audit/sqlite`). It uploads to `POST /sync/audit`
+in batches after the server's head; the server stores it in `device_audit` only when the batch continues
+the stored head (contiguous `chain_seq`, matching `prev_hash`) and every `hashEntry` matches. A gap, fork,
+forged hash or another device's rows is rejected and audited as `device.audit.rejected`, and the till stops
+sending. The upload itself is a `device.audit.upload` command, so the org chain records each device head.
+
+Once a day the one watchdog starts an `audit.anchor` workflow per org (instance `anchor-{orgId}-{day}`). It
+writes one `audit_anchor` row per stream (the org head before its own row, and each device head) and emails
+the heads to each protected owner. A day the watchdog misses has no anchor; the next day's covers it.
+
+## Retention
+
+`audit_log`, `device_audit` and `audit_anchor` are append-only (triggers reject update, delete and
+truncate). Nothing purges them: the six-year retention is a floor, not a deletion schedule.
 
 The forward migration preserves existing Day 2 rows: their chain fields remain
 null. The verifier explicitly reports `legacy-unhashed` at those rows. New rows

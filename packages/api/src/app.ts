@@ -18,6 +18,7 @@ import { managementRoutes } from "./routes/management";
 import { systemRoutes } from "./routes/system";
 import { taxReportRoutes } from "./routes/tax/reports";
 import { taxRuleRoutes } from "./routes/tax/rules";
+import { fiscalRoutes } from "./routes/tax/fiscal";
 import type { ApiEnvironment, ApiOptions } from "./types";
 
 export function createApi(options: ApiOptions = {}) {
@@ -86,6 +87,16 @@ export function createApi(options: ApiOptions = {}) {
     app.route(
       "/",
       taxReportRoutes(options.database, options.authentication, options.notifications),
+    );
+  if (options.database)
+    app.route(
+      "/",
+      fiscalRoutes({
+        database: options.database,
+        authentication: options.authentication,
+        lane: options.lane,
+        blobs: options.blobs,
+      }),
     );
   return app;
 }

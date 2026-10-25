@@ -6,6 +6,7 @@ import { KycError } from "@shopper/auth/kyc";
 import { ManagementError } from "@shopper/core/management";
 import { CustomerError } from "@shopper/core/customers";
 import { StockError } from "@shopper/core/stock";
+import { FiscalError } from "@shopper/core/fiscal";
 
 const customerStatus = { NOT_FOUND: 404 } as const;
 const kycStatus = {
@@ -34,6 +35,11 @@ export function problem(error: Error, c: Context): Response {
     return c.json({ error: "Invalid request data", detail: issue.message, field }, 400);
   }
   if (error instanceof AssetError) return c.json({ error: error.message }, error.status);
+  if (error instanceof FiscalError)
+    return c.json(
+      { error: error.message, code: error.code },
+      error.code === "NOT_FOUND" ? 404 : 409,
+    );
   if (error instanceof ManagementError) return c.json({ error: error.message }, error.status);
   // The code lets a client tell the conflicts apart (TAKE_OPEN from NOT_COUNTED, say) without reading the words.
   if (error instanceof StockError)

@@ -9,3 +9,5 @@ export { archiveFiscalHour, fiscalArchiveId, fiscalArchiveKey, fiscalHour } from
 export { runFiscalArchive, ARCHIVE_GRACE_MS } from "../workflows/fiscal";
 export { fiscalArchiveParams } from "../schemas/fiscal/archive";
 export type { FiscalArchiveDeps } from "../workflows/types";
+export { listFiscalArchives, listFiscalDocs, readFiscalDoc } from "./queries";
+export { fiscalSegments } from "../schemas/fiscal/queries";

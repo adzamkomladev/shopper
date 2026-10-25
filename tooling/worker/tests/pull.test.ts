@@ -143,7 +143,7 @@ test("GET /sync/changes in workerd serves a device's store feed in the shared JS
         entity: "product",
         entityId: products[1],
         op: "upsert",
-        v: 5,
+        v: 6,
         payload: expect.objectContaining({ id: products[1], orgId, name: "Second" }),
       },
     ],

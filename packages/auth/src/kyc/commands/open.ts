@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { v7 } from "uuid";
 import * as v from "valibot";
 import { defineCommand } from "@shopper/audit";
@@ -30,7 +30,13 @@ export const openCase = defineCommand({
       const [requested] = await tx
         .select({ id: role.id })
         .from(role)
-        .where(and(eq(role.orgId, context.orgId), eq(role.id, input.requestedRoleId)));
+        .where(
+          and(
+            eq(role.orgId, context.orgId),
+            eq(role.id, input.requestedRoleId),
+            isNull(role.archivedAt),
+          ),
+        );
       if (!member || !requested) throw new KycError("NOT_FOUND", "Member or role not found");
       phone = input.phone;
     }

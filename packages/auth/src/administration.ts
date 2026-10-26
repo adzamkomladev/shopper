@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, count, eq, isNull } from "drizzle-orm";
 import {
   member,
   permission,
@@ -34,7 +34,7 @@ export async function listRoles(db: Database, orgId: string) {
   const rows = await db
     .select({ id: role.id, name: role.name, protectedOwner: role.protectedOwner })
     .from(role)
-    .where(eq(role.orgId, orgId))
+    .where(and(eq(role.orgId, orgId), isNull(role.archivedAt)))
     .orderBy(asc(role.name), asc(role.id));
   const grants = await db
     .select({ roleId: rolePermission.roleId, code: permission.code })
@@ -48,9 +48,15 @@ export async function listRoles(db: Database, orgId: string) {
     )
     .where(eq(rolePermission.orgId, orgId))
     .orderBy(asc(permission.code));
+  const holders = await db
+    .select({ roleId: member.roleId, n: count() })
+    .from(member)
+    .where(eq(member.orgId, orgId))
+    .groupBy(member.roleId);
   return rows.map((row) => ({
     ...row,
     permissionCodes: grants.filter((grant) => grant.roleId === row.id).map(({ code }) => code),
+    memberCount: holders.find((holder) => holder.roleId === row.id)?.n ?? 0,
   }));
 }
 

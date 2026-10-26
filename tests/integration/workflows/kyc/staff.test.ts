@@ -118,3 +118,29 @@ test("the last-owner rule still holds: approving the sole owner's demotion is re
     200,
   );
 });
+
+test("a deleted role can't be requested, and a role an open case requests can't be deleted", async () => {
+  const owner = as("superadmin");
+  const made = await owner.call("POST", "/roles", { name: "KYC only", permissionCodes: [] });
+  expect(made.status).toBe(201);
+  const opened = await owner.open({
+    subject: { userId: await userIdOf("inventory") },
+    purpose: "role",
+    requestedRoleId: made.body.id,
+    phone: phone(),
+  });
+  expect(opened.status).toBe(201);
+  const blocked = await owner.call("DELETE", `/roles/${made.body.id}`);
+  expect(blocked.status).toBe(409);
+  expect(blocked.body.error).toBe("Used by 1 open identity check");
+
+  const gone = await owner.call("POST", "/roles", { name: "Retired", permissionCodes: [] });
+  expect((await owner.call("DELETE", `/roles/${gone.body.id}`)).status).toBe(204);
+  const refused = await owner.open({
+    subject: { userId: await userIdOf("accountant") },
+    purpose: "role",
+    requestedRoleId: gone.body.id,
+    phone: phone(),
+  });
+  expect(refused.status).toBe(404);
+});

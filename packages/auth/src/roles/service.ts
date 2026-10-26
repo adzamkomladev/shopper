@@ -1,5 +1,5 @@
 export type { AuthPrincipal } from "./types";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { defineCommand, type CommandContext } from "@shopper/audit";
 import {
   member,
@@ -149,7 +149,8 @@ export async function assertCanGrantRole(
   const [target] = await tx
     .select({ protectedOwner: role.protectedOwner })
     .from(role)
-    .where(and(eq(role.orgId, context.orgId), eq(role.id, targetRoleId)));
+    .where(and(eq(role.orgId, context.orgId), eq(role.id, targetRoleId), isNull(role.archivedAt)));
+  if (!target) throw new AdministrationError("Role not found in this organization", 404);
   const [owner] = await tx
     .select({ id: member.id })
     .from(member)
@@ -163,7 +164,7 @@ export async function assertCanGrantRole(
     );
   if (grantRows.some(({ code }) => !actorCodes.has(code)))
     throw new AdministrationError("Cannot grant permissions you do not hold", 403);
-  if (target?.protectedOwner && !owner)
+  if (target.protectedOwner && !owner)
     throw new AdministrationError("Only an owner can grant the owner role", 403);
 }
 

@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import {
   invitation,
   org,
@@ -35,7 +35,7 @@ export async function invitationPreview(
   const [requestedRole] = await db
     .select({ name: role.name })
     .from(role)
-    .where(and(eq(role.orgId, row.orgId), eq(role.id, row.roleId!)));
+    .where(and(eq(role.orgId, row.orgId), eq(role.id, row.roleId!), isNull(role.archivedAt)));
   const [existing] = await db
     .select({ id: user.id })
     .from(user)

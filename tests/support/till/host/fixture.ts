@@ -80,10 +80,7 @@ function waitingOnHost(database: ReturnType<typeof openTillDatabase>): typeof da
       try {
         return await operation();
       } catch (error) {
-        const busy = JSON.stringify(error, Object.getOwnPropertyNames(error)).includes(
-          "SQLITE_BUSY",
-        );
-        if (!busy || attempt >= 40) throw error;
+        if (!busy(error) || attempt >= 40) throw error;
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
     }
@@ -93,4 +90,12 @@ function waitingOnHost(database: ReturnType<typeof openTillDatabase>): typeof da
     read: (fn) => retry(() => database.read(fn)),
     transaction: (fn) => retry(() => database.transaction(fn)),
   };
+}
+
+// Drizzle wraps the driver error ("Failed query: begin immediate"); the SqliteError is its cause.
+function busy(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    ((error as { code?: unknown }).code === "SQLITE_BUSY" || busy(error.cause))
+  );
 }

@@ -1,4 +1,4 @@
-import { execFileSync, spawn, type ChildProcess } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { createHostFixture } from "../../../support/till/host/fixture";
@@ -19,7 +19,6 @@ afterEach(async () => {
 describe("till host startup lifecycle", () => {
   it("closes its listener cleanly when the parent disconnects during startup", async () => {
     fixture = await createHostFixture({ freshSession: true });
-    buildHost();
     const started = spawn(process.execPath, [resolve("apps/till/host/dist/server.js")], {
       cwd: process.cwd(),
       stdio: ["ignore", "pipe", "pipe", "ipc"],
@@ -45,14 +44,6 @@ describe("till host startup lifecycle", () => {
     expect(result?.code).toBe(0);
   });
 });
-
-function buildHost() {
-  execFileSync(
-    "vp",
-    ["-C", "apps/till/host", "exec", "node", "../../../tooling/build/server.mjs", "till-host"],
-    { cwd: process.cwd(), stdio: "pipe" },
-  );
-}
 
 function waitForExit(process: ChildProcess) {
   return new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolveExit) => {

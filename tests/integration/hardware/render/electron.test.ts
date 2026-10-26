@@ -6,12 +6,7 @@ import { afterEach, expect, test } from "vite-plus/test";
 import type { Json } from "@shopper/ports";
 import { rendererConformance } from "@shopper/conformance";
 import { goldenReceipt } from "../../../support/hardware/receipt";
-import {
-  buildElectron,
-  electronRenderer,
-  launchElectron,
-  stopElectron,
-} from "../../../support/hardware/electron";
+import { electronRenderer, launchElectron, stopElectron } from "../../../support/hardware/electron";
 
 const receipt = goldenReceipt() as unknown as Json;
 
@@ -23,7 +18,6 @@ afterEach(async () => {
 });
 
 test("Electron starts the real host in parent-renderer mode and opens the till window", async () => {
-  await buildElectron();
   const directory = await mkdtemp(join(tmpdir(), "shopper-electron-"));
   cleanup.push(() => rm(directory, { recursive: true, force: true }));
   let requested!: (url: string) => void;

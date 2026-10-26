@@ -9,6 +9,7 @@ import { provisionOrg, provisioningContext } from "../../../tooling/database/see
 
 const exec = promisify(execFile);
 const root = new URL("../../../", import.meta.url);
+// Only this file runs apps/box/dist under Vitest, so it builds the box itself.
 beforeAll(async () => {
   await exec("vp", ["run", "-F", "@shopper/box", "build"], { cwd: root });
 });

@@ -60,7 +60,13 @@ tooling/worker/tests/         Workers runtime suite (Vitest 4 + Cloudflare plugi
 
 - **A fresh PostgreSQL 18 database per suite** via `postgresFixture()` in
   `tests/fixtures/postgres.ts`, migrated with `migrateDatabase()`. It is dropped afterwards. Never
-  share state between files. Vitest runs files serially (`fileParallelism: false`).
+  share state between files: Vitest runs files in parallel, in three groups (`vite.config.ts`):
+  `integration` (4 wide), then `heavy` (2 wide: CPU-hungry files and ones that assert a time budget
+  or an upload interleaving), then `solo` (release builds that rewrite a shared `dist/`). Add a file
+  to `heavy` or `solo` only for those reasons, never to hide a race.
+- **Spawned apps are prebuilt.** `tests/support/prebuild.ts`, the Vitest and Playwright global setup,
+  bundles the till host and Electron once per run. A suite never rebuilds into a shared `dist/`:
+  another file may be running from it.
 - **Real commands.** Change data through `defineCommand()`, the API, or the till-host, exactly as
   production does. Then assert on the rows, the audit chain (`verifyChain`), and the HTTP response.
 - **Both adapters for anything behind a port.** Conformance suites live in `packages/conformance`
@@ -133,8 +139,8 @@ test IDs, unless no accessible name exists, and then the missing name is the bug
 ## Electron under Xvfb
 
 Electron suites (`tests/integration/hardware/render/electron.test.ts`, `equivalence.test.ts`) start
-the real binary through `tests/support/hardware/electron.ts`, which builds the Electron main and the
-till host, then runs `xvfb-run -a electron --no-sandbox --disable-gpu dist/main.js` when `DISPLAY` is
+the real binary through `tests/support/hardware/electron.ts`, on the Electron main and till host that
+`tests/support/prebuild.ts` built, and runs `xvfb-run -a electron --no-sandbox --disable-gpu dist/main.js` when `DISPLAY` is
 unset. `--disable-gpu` is required under Xvfb: with GPU compositing `capturePage` fails with
 `UnknownVizError`. Render-only mode (`SHOPPER_ELECTRON_RENDER_ONLY=1`) answers `render` messages over
 the child's Node IPC channel and starts no host.

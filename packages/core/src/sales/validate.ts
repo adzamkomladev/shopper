@@ -55,18 +55,16 @@ export async function validateReferences(
 ) {
   const time = occurredAt;
   const on = time.toISOString().slice(0, 10); // Accra uses UTC year-round.
-  const [rule] = await tx
-    .select()
+  const [dated] = await tx
+    .select({ rule: taxRule, vatRegisteredFrom: org.vatRegisteredFrom })
     .from(taxRule)
+    .innerJoin(org, eq(org.id, taxRule.orgId))
     .where(and(eq(taxRule.orgId, orgId), lte(taxRule.effectiveFrom, on)))
     .orderBy(desc(taxRule.effectiveFrom))
     .limit(1);
-  if (!rule) throw new SaleError("INVALID_REFERENCE", "No dated tax rule for this sale");
-  const [seller] = await tx
-    .select({ vatRegisteredFrom: org.vatRegisteredFrom })
-    .from(org)
-    .where(eq(org.id, orgId));
-  const registered = seller!.vatRegisteredFrom !== null && seller!.vatRegisteredFrom <= on;
+  if (!dated) throw new SaleError("INVALID_REFERENCE", "No dated tax rule for this sale");
+  const rule = dated.rule;
+  const registered = dated.vatRegisteredFrom !== null && dated.vatRegisteredFrom <= on;
   const capturedRule = {
     id: rule.id,
     effectiveFrom: rule.effectiveFrom,

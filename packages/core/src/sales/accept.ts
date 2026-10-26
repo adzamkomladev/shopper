@@ -2,7 +2,14 @@ import { sha256 } from "@shopper/utils";
 import { and, eq } from "drizzle-orm";
 import * as v from "valibot";
 import { defineCommand, canonicalJson } from "@shopper/audit";
-import { sale, saleLine, saleTender, stockMovement, type ShopperDatabase } from "@shopper/db-pg";
+import {
+  fiscalDoc,
+  sale,
+  saleLine,
+  saleTender,
+  stockMovement,
+  type ShopperDatabase,
+} from "@shopper/db-pg";
 import { decodeSaleEvent, saleSnapshot, type SaleEvent } from "../schemas/till/sale";
 import { validateAuthority, validateReferences, type UploadPrincipal } from "./validate";
 import { overrideAudit } from "./authority";
@@ -17,7 +24,7 @@ import { earnPoints } from "../customers/loyalty/ledger";
 import { wakeAccount } from "../customers/accounts/wake";
 import { checkReorder } from "../stock/reorder";
 import type { Queue } from "@shopper/ports";
-import { fiscalDocOf, recordFiscalDoc } from "../fiscal/documents";
+import { recordFiscalDoc } from "../fiscal/documents";
 
 export async function acceptSale(
   db: ShopperDatabase,
@@ -60,9 +67,10 @@ const accept = defineCommand({
       occurredAt: Date;
     },
   ) {
-    const [saved] = await tx
-      .select()
+    const [found] = await tx
+      .select({ saved: sale, fiscalDocId: fiscalDoc.id })
       .from(sale)
+      .leftJoin(fiscalDoc, and(eq(fiscalDoc.orgId, sale.orgId), eq(fiscalDoc.saleId, sale.id)))
       .where(
         and(
           eq(sale.orgId, ctx.orgId),
@@ -70,7 +78,8 @@ const accept = defineCommand({
           eq(sale.localId, input.event.sale.localId),
         ),
       );
-    if (!saved) return undefined;
+    if (!found) return undefined;
+    const saved = found.saved;
     await validateAuthority(
       tx,
       ctx,
@@ -87,7 +96,7 @@ const accept = defineCommand({
         occurredAt: saved.occurredAt.toISOString(),
         customerId: saved.customerId,
         customerCreated: false,
-        fiscalDocId: await fiscalDocOf(tx, ctx.orgId, { saleId: saved.id }),
+        fiscalDocId: found.fiscalDocId,
       },
     };
   },

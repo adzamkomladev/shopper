@@ -28,25 +28,23 @@ export function assignSaleSequence(
     }),
   );
 }
+// `defineCommand` hands `run` the same input `replay` just looked up, inside the same transaction.
+const replayed = new WeakMap<object, Awaited<ReturnType<typeof acceptedSale>>>();
 const assign = defineCommand({
   name: "sale.assign-sequence",
   async replay(tx, ctx, input: { storeId: string; deviceId: string; localId: string }) {
     const saved = await acceptedSale(tx, ctx.orgId, input);
+    replayed.set(input, saved);
     return saved.storeSequence === null ? undefined : { output: saved.storeSequence };
   },
   async run(tx, ctx, input) {
-    const saved = await acceptedSale(tx, ctx.orgId, input);
+    const saved = replayed.get(input) ?? (await acceptedSale(tx, ctx.orgId, input));
     ctx.actorId = saved.cashierId;
     ctx.deviceId = saved.deviceId;
     ctx.branchId = saved.branchId;
     ctx.deviceTime = saved.deviceTime;
     ctx.appVersion = saved.appVersion;
-    const [session] = await tx
-      .select({ roleName: cashierSession.roleName })
-      .from(cashierSession)
-      .where(and(eq(cashierSession.orgId, ctx.orgId), eq(cashierSession.id, saved.sessionId)));
-    // The accepted sale has a tenant-scoped foreign key to this cashier session.
-    ctx.role = session!.roleName;
+    ctx.role = saved.roleName;
     const sequence = await allocateStoreSequence(tx, ctx.orgId, input.storeId);
     await tx
       .update(sale)
@@ -66,9 +64,14 @@ async function acceptedSale(
   orgId: string,
   input: { storeId: string; deviceId: string; localId: string },
 ) {
-  const [saved] = await tx
-    .select()
+  const [found] = await tx
+    .select({ sale, roleName: cashierSession.roleName })
     .from(sale)
+    // The accepted sale has a tenant-scoped foreign key to its cashier session.
+    .innerJoin(
+      cashierSession,
+      and(eq(cashierSession.orgId, sale.orgId), eq(cashierSession.id, sale.sessionId)),
+    )
     .where(
       and(
         eq(sale.orgId, orgId),
@@ -77,6 +80,6 @@ async function acceptedSale(
         eq(sale.localId, input.localId),
       ),
     );
-  if (!saved) throw new Error("Accepted sale does not belong to this tenant/device/store");
-  return saved;
+  if (!found) throw new Error("Accepted sale does not belong to this tenant/device/store");
+  return { ...found.sale, roleName: found.roleName };
 }

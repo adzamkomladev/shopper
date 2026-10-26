@@ -7,7 +7,8 @@ export default defineConfig({
   run: { tasks: { build: buildTask("vp build") } },
   plugins: [
     productionBuild(),
-    cloudflare({ viteEnvironment: { name: "ssr" } }),
+    // Each dev Worker owns an inspector port (edge 9229, portal 9230); `vp run dev` starts them together.
+    cloudflare({ viteEnvironment: { name: "ssr" }, inspectorPort: 9231 }),
     tanstackStart(),
     react(),
   ],

@@ -26,6 +26,12 @@ Hono API (it strips `/api` except for `/api/auth`, which Better Auth serves unde
 edge dev Worker on :8787. `apps/edge/.dev.vars` holds the local secrets (`.dev.vars.example` is
 the template). Portal = TanStack Start in SPA mode: a prerendered static shell served by Workers Static Assets; one Worker runs only for `/api/*` (the shared Hono API through native Hyperdrive, D1, R2, Durable Object and Workflow bindings) and `/_serverFn/*` (host-only server functions). Backoffice data stays on the shared API so the box SPA and Electron reuse it.
 
+The remote `IMPORTS` and `RECEIPTS` bindings need Cloudflare credentials. Interactive shells use the
+`cf` login. A non-interactive shell (an agent, CI or a remote box) has no prompt, so export the `cf`
+OAuth token first: `cf auth whoami` checks it, and then
+`export CLOUDFLARE_API_TOKEN=$(jq -r .oauth_token ~/.config/cloudflare/config/default.json)`.
+Copy `apps/edge/.dev.vars` to `apps/portal/.dev.vars` too: the portal Worker reads the same secrets.
+
 On Windows: `.gitattributes` checks every text file out with LF (pnpm 12 cannot parse a CRLF
 `pnpm-lock.yaml`, and fixtures are byte-exact). If an older global pnpm on `PATH` makes `vp install`
 fail with `ERR_PNPM_BROKEN_LOCKFILE`, run `vp exec pnpm install --frozen-lockfile`. If a native

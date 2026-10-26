@@ -18,6 +18,8 @@ export default defineConfig(({ command, isPreview }) => ({
           cloudflare({
             viteEnvironment: { name: "ssr" },
             remoteBindings: command === "serve" && !isPreview,
+            // Each dev Worker owns an inspector port (edge 9229, shop 9231); `vp run dev` starts them together.
+            inspectorPort: 9230,
             // Start reads this flag while prerendering the SPA shell; it never reaches a deploy.
             prerenderWorker: {
               // Assets belong to the default Worker only, and prerendering needs no credentials.

@@ -1,7 +1,7 @@
 name = "ui-builder"
 description = "Builds screens and components from Figma with @shopper/ui, no effects, every state, keyboard-first, verified with screenshots."
-model = "gpt-6-luna"
-model_reasoning_effort = "xhigh"
+model = "gpt-6.1-terra"
+model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 Read .agents/roles/ui-builder.md and AGENTS.md first, then follow the role exactly. The parent's message is your task.

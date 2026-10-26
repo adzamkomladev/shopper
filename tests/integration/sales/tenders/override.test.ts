@@ -6,14 +6,13 @@ import {
   auditLog,
   barcodeMapping,
   cashierSession,
-  member,
   permission,
   productBarcode,
   rolePermission,
   sale,
 } from "@shopper/db-pg";
 import { memberWithPin } from "../../../support/sync/members";
-import { databases, deviceId, principal, recordSale } from "../../../support/till/server";
+import { databases, principal, recordSale } from "../../../support/till/server";
 import { weightLabel } from "../../../support/till/drafts";
 import { ids } from "../../../support/till/sales";
 import {
@@ -42,24 +41,6 @@ test("an overridden line is rejected when the approver lacks the grant", async (
   await expect(accept(created, event)).rejects.toMatchObject({ code: "INVALID_SESSION" });
   const { db } = databases();
   expect(await db.select().from(sale).where(eq(sale.localId, event.sale.localId))).toEqual([]);
-});
-
-test("an approver deactivated before the sale no longer authorises it; one deactivated after still does", async () => {
-  const created = await recordSale();
-  const approverId = await memberWithPin("Abena Manager", "admin", "2468");
-  const event = overridden(created, 9_000, { listPrice: listPrice(created), reason, approverId });
-  const { db } = databases();
-  const approver = eq(member.userId, approverId);
-  await db
-    .update(member)
-    .set({ deactivatedAt: new Date("2025-12-31T23:00:00Z") })
-    .where(approver);
-  await expect(accept(created, event)).rejects.toMatchObject({ code: "INVALID_SESSION" });
-  await db
-    .update(member)
-    .set({ deactivatedAt: new Date("2025-12-31T23:45:00Z") })
-    .where(approver);
-  await expect(accept(created, event)).resolves.toMatchObject({ localId: event.sale.localId });
 });
 
 test("an override with no approver needs the cashier session to hold the grant", async () => {

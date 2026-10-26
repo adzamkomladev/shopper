@@ -37,6 +37,7 @@ export async function validateShiftAuthority(
         report.approverId,
         "shift.approve",
         new Date(report.closedAt),
+        principal.branchId,
       ))
     )
       throw new SaleError("INVALID_SESSION", "Shift approver lacks shift.approve");

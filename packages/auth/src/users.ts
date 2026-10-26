@@ -2,7 +2,7 @@ import { and, eq, isNull, ne } from "drizzle-orm";
 import { hashPassword } from "better-auth/crypto";
 import * as v from "valibot";
 import { defineCommand, type CommandContext } from "@shopper/audit";
-import { account, member, role, user, type ShopperTransaction } from "@shopper/db-pg";
+import { account, member, memberBranch, role, user, type ShopperTransaction } from "@shopper/db-pg";
 import { assignRoleInput, registerUserInput } from "./schemas/users";
 import { assertCanGrantRole, assertHasPermission, AdministrationError } from "./roles/service";
 import { assertWithin, memberBranchIds } from "./members/target";
@@ -12,10 +12,6 @@ export const assignMemberRole = defineCommand({
   async run(tx, context, rawInput: unknown) {
     const input = v.parse(assignRoleInput, rawInput);
     await assertHasPermission(tx, context, "role.write");
-    // A branch-scoped actor changes roles only for members inside their own branches.
-    const actorScope = await memberBranchIds(tx, context.orgId, context.actorId!);
-    if (actorScope.length)
-      assertWithin(actorScope, await memberBranchIds(tx, context.orgId, input.userId));
     return grantMemberRole(tx, context, input);
   },
   audit: (input, output) => ({ userId: output.userId, roleId: output.roleId }),
@@ -24,7 +20,9 @@ export const assignMemberRole = defineCommand({
 
 /**
  * Gives a member a role inside the caller's command: the role must exist, the actor must hold every
- * permission it carries, and the last owner stays an owner. Shared by role assignment and KYC approval.
+ * permission it carries, and the last owner stays an owner. A branch-scoped actor reaches only members inside
+ * their branches, and someone joining through them joins there. An owner works everywhere. Shared by role
+ * assignment, KYC approval and invitation acceptance.
  */
 export async function grantMemberRole(
   tx: ShopperTransaction,
@@ -66,6 +64,11 @@ export async function grantMemberRole(
       .limit(1);
     if (!other) throw new AdministrationError("The last owner cannot be demoted", 409);
   }
+  const actorScope = context.actorId
+    ? await memberBranchIds(tx, context.orgId, context.actorId)
+    : [];
+  if (previous && actorScope.length)
+    assertWithin(actorScope, await memberBranchIds(tx, context.orgId, input.userId));
   const [assigned] = await tx
     .insert(member)
     .values({
@@ -80,6 +83,16 @@ export async function grantMemberRole(
       set: { role: targetRole.protectedOwner ? "owner" : "member", roleId: input.roleId },
     })
     .returning({ id: member.id });
+  if (targetRole.protectedOwner)
+    await tx
+      .delete(memberBranch)
+      .where(and(eq(memberBranch.orgId, context.orgId), eq(memberBranch.memberId, assigned!.id)));
+  else if (!previous && actorScope.length)
+    await tx
+      .insert(memberBranch)
+      .values(
+        actorScope.map((branchId) => ({ orgId: context.orgId, memberId: assigned!.id, branchId })),
+      );
   return {
     memberId: assigned!.id,
     userId: input.userId,

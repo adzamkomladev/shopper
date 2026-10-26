@@ -39,7 +39,7 @@ export async function validateAuthority(
     snapshot.lines.some((line) => line.discount > 0) &&
     !(
       session.permissions.includes("sale.discount") &&
-      (await hasGrant(tx, ctx.orgId, snapshot.cashierId, "sale.discount", time))
+      (await hasGrant(tx, ctx.orgId, snapshot.cashierId, "sale.discount", time, snapshot.branchId))
     )
   )
     throw new SaleError("INVALID_SESSION", "Sale discount lacks cashier permission");

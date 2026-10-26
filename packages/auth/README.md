@@ -89,8 +89,13 @@ upload too. Reactivating restores the role and branches the member had.
 branches a member works at in `member_branch`. No rows means every branch, and the owner is always
 org-wide (409). Every branch must exist in the org (404). A scoped actor may hand out only a
 non-empty subset of their own branches, and may manage only members already inside their branches
-(403); the same branch ceiling guards role changes and deactivation. Narrowing the scope cuts the
-member's live cashier sessions at other branches, like deactivation.
+(403). The same branch ceiling guards every role change (`grantMemberRole`: direct assignment, KYC
+approval and invitation acceptance) and deactivation. Someone who joins through a scoped inviter joins
+at the inviter's branches, and granting the owner role lifts any scope. Narrowing the scope cuts the
+member's live cashier sessions at other branches, like deactivation. A manager approval uploaded from
+a till (price override, refund, shift close) also needs the approver to have been allowed at that
+branch when they approved: `hasGrant` reads `member_branch.created_at`, because a new scope replaces
+all its rows at once.
 
 `AuthPrincipal.branchIds` is resolved once in `resolvePrincipal` (`null` for org-wide members). Till
 login refuses a scoped member at another branch's register (403 "Not allowed at this branch"), and

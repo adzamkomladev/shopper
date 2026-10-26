@@ -93,3 +93,48 @@ test("a scoped admin grants only within their own branches and never manages a w
   // Reset for the other suites in this file's database.
   for (const who of ["admin", "accountant", "inventory"]) await scope(who, []);
 });
+
+test("promoting a scoped member to owner lifts their branch limit", async () => {
+  const [a] = await branches("Owner lift");
+  expect((await scope("accountant", [a!])).status).toBe(200);
+  const accountant = await userOf("accountant");
+  const owner = await userOf("same-owner");
+  const promote = (roleId: string) =>
+    request(api, cookies.get("superadmin")!, `/users/${accountant.id}/role`, "PATCH", { roleId });
+  expect((await promote(owner.roleId)).status).toBe(200);
+  expect((await userOf("accountant")).branchIds).toEqual([]);
+  expect((await promote(accountant.roleId)).status).toBe(200);
+});
+
+test("a scoped member can't change stores or branches, even holding branch.write", async () => {
+  const [a, b] = await branches("Writes A", "Writes B");
+  const owner = cookies.get("superadmin")!;
+  const role = await (
+    await request(api, owner, "/roles", "POST", {
+      name: `Branch writer ${v7().slice(-6)}`,
+      permissionCodes: ["branch.read", "branch.write", "store.read", "store.write"],
+    })
+  ).json();
+  const accountant = await userOf("accountant");
+  expect(
+    (await request(api, owner, `/users/${accountant.id}/role`, "PATCH", { roleId: role.id }))
+      .status,
+  ).toBe(200);
+  expect((await scope("accountant", [a!])).status).toBe(200);
+  const writer = await signIn(auth, "accountant@example.com");
+  const storeId = (
+    (await (await request(api, owner, `/branches/${b}`)).json()) as { storeId: string }
+  ).storeId;
+  for (const [method, path, body] of [
+    ["PATCH", `/branches/${b}`, { name: "Renamed" }],
+    ["DELETE", `/branches/${b}`, undefined],
+    ["PATCH", `/branches/${a}`, { name: "Renamed" }],
+    ["PATCH", `/stores/${storeId}`, { name: "Renamed" }],
+    ["POST", "/branches", { name: "New", storeId }],
+  ] as const)
+    expect((await request(api, writer, path, method, body)).status, `${method} ${path}`).toBe(403);
+  const kept = (await (await request(api, owner, `/branches/${b}`)).json()) as { name: string };
+  expect(kept.name).toBe("Writes B");
+  await scope("accountant", []);
+  await request(api, owner, `/users/${accountant.id}/role`, "PATCH", { roleId: accountant.roleId });
+});

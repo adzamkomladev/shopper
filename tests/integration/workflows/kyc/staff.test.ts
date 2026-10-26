@@ -144,3 +144,24 @@ test("a deleted role can't be requested, and a role an open case requests can't 
   });
   expect(refused.status).toBe(404);
 });
+
+test("a branch-scoped approver can't change the role of a member outside their branches", async () => {
+  const owner = as("superadmin");
+  const store = await owner.call("POST", "/stores", { name: "KYC scope store" });
+  const branch = await owner.call("POST", "/branches", { name: "KYC A", storeId: store.body.id });
+  const made = await inReview("accountant", "inventory");
+  const admin = await userIdOf("admin");
+  expect(
+    (await owner.call("PUT", `/users/${admin}/branches`, { branchIds: [branch.body.id] })).status,
+  ).toBe(200);
+  const refused = await as("admin").decide(made.id, {
+    approve: true,
+    roleId: roleIds.get("inventory"),
+    note: "Moves to stock",
+  });
+  expect(refused.status).toBe(403);
+  expect(await roleOf(made.userId)).toBe(roleIds.get("accountant"));
+  expect((await caseRow(made.id)).status).toBe("review");
+  expect((await owner.call("PUT", `/users/${admin}/branches`, { branchIds: [] })).status).toBe(200);
+  expect((await owner.decide(made.id, { approve: false, note: "No" })).status).toBe(200);
+});

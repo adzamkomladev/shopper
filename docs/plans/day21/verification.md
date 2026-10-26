@@ -35,6 +35,21 @@ Each check was broken on purpose, watched go red, then restored and watched go g
 - Slice 4: an uppercase device id could bypass the revoke check, so ids are lowercased and an unknown
   device is refused; portal audit rows had a null branch, so `commandContext` now takes the write's branch.
 
+- Whole branch (26 Oct), each fix with a test that went red first:
+  - Store and branch PATCH, DELETE and POST did not apply the scope, so a scoped member holding
+    `branch.write` could change a branch they could not see. Writes are now refused to scoped members
+    (`auth/members/branches.test.ts`).
+  - KYC approval granted roles through `grantMemberRole`, past the branch ceiling that lived only in
+    `assignMemberRole`. The ceiling moved into `grantMemberRole` (`workflows/kyc/staff.test.ts`).
+  - A scoped admin's invitations could never be accepted: the new member had no branches, which the
+    ceiling read as "every branch". They now join at the inviter's branches
+    (`auth/invitations/acceptance.test.ts`).
+  - Promoting a scoped member to owner kept their branch rows. Granting the owner role now lifts them
+    (`auth/members/branches.test.ts`).
+  - The server accepted an approval from a manager scoped to another branch. `hasGrant` now checks that
+    the approver was allowed at the upload's branch when they approved (your decision, 26 Oct;
+    `sales/tenders/approvers.test.ts`).
+
 ## E2E (real portal against a reset e2e database)
 
 `vp exec playwright test --project=setup --project=portal tests/e2e/portal/roles tests/e2e/portal/users`

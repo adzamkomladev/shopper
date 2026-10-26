@@ -36,6 +36,9 @@ export function managementRoutes(options: ApiOptions) {
             return c.json({ error: "Method not allowed" }, 405);
           if (id && !v.safeParse(managementId, id).success)
             return c.json({ error: "Invalid UUIDv7" }, 400);
+          // Stores and branches are org-wide records: a branch-scoped member reads their own and changes none.
+          if (action !== "GET" && branchScope(principal))
+            return c.json({ error: "That branch is outside your access" }, 403);
           try {
             if (action === "GET") {
               const rows = await visible(

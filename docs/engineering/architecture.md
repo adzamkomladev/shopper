@@ -402,8 +402,9 @@ Deactivation is `member.deactivated_at`. Both live in `@shopper/auth`; its READM
   `scopedBody` and `scopedQuery` answer 403 for a branch outside it, and `requireOrgWide` guards the
   org-wide views (the VAT return, chain verification). Branch-keyed core reads take `scope?: string[]`
   and filter with `inArray`: stock, shifts, devices, audit, tax reports and fiscal, and the branch and
-  store lists. A row outside the scope reads as 404. Catalogue, customers, tax rules, roles and users
-  stay org-wide behind their permissions. New branch-keyed reads (Day 22 sales and refund reports
+  store lists. A row outside the scope reads as 404. Store and branch writes are refused to any scoped
+  member (403), whatever their role holds. Catalogue, customers, tax rules, roles and users stay
+  org-wide behind their permissions. New branch-keyed reads (Day 22 sales and refund reports
   included) must take the scope too.
 - **Tills follow at their next approvers refresh.** `GET /sync/approvers` carries `staff`, the active
   members allowed at the register's branch, and the till deletes any cached sign-in not in it. The till

@@ -13,6 +13,7 @@ import {
   commandContext,
   baseURL,
   request,
+  api,
 } from "../setup";
 import { authLauncherFixture } from "../../../support/workflows/fixture";
 let workflows: ReturnType<typeof authLauncherFixture>;
@@ -163,6 +164,39 @@ test("acceptance rechecks inviter authority after a demotion", async () => {
     userId: inviter.userId,
     roleId: roleIds.get("admin"),
   });
+});
+
+test("a branch-scoped inviter's new member joins inside the inviter's branches", async () => {
+  const owner = cookies.get("superadmin")!;
+  const store = await (
+    await request(api, owner, "/stores", "POST", { name: "Invite store" })
+  ).json();
+  const branch = await (
+    await request(api, owner, "/branches", "POST", { name: "Invite A", storeId: store.id })
+  ).json();
+  const inviter = await principal("admin");
+  const scoped = await request(api, owner, `/users/${inviter.userId}/branches`, "PUT", {
+    branchIds: [branch.id],
+  });
+  expect(scoped.status).toBe(200);
+  const invite = await service().issue(await principal("admin"), {
+    email: "scoped-invitee@example.com",
+    roleId: roleIds.get("cashier"),
+    channel: "local",
+  });
+  await service().accept(invite.id, {
+    token: setupToken(invite.setupLink!),
+    name: "Scoped cashier",
+    password,
+  });
+  const users = (await (await request(api, owner, "/users")).json()) as {
+    email: string;
+    branchIds: string[];
+  }[];
+  expect(users.find((row) => row.email === "scoped-invitee@example.com")?.branchIds).toEqual([
+    branch.id,
+  ]);
+  await request(api, owner, `/users/${inviter.userId}/branches`, "PUT", { branchIds: [] });
 });
 
 test("invitation HTTP routes enforce management permissions and allow public previews and atomic staff acceptance", async () => {

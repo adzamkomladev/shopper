@@ -391,4 +391,24 @@ Fiscalisation never blocks a sale. The till prints at once; the server sends the
 **Versions bumped in Day 19:** receipt v5 (`fiscal`; v4 upcasts unsigned), change feed and snapshot v6 (the
 `fiscal-doc` entity; the snapshot is unchanged). `KNOWN_VERSION` on the pull side is 6.
 
+## Access (Day 21)
+
+Permissions are data (`role_permission`), and so is **branch scope** (`member_branch`): a member with
+rows works only at those branches, and one with none works everywhere. The owner is always org-wide.
+Deactivation is `member.deactivated_at`. Both live in `@shopper/auth`; its README has the rules.
+
+- **One scope helper.** `branchScope(principal)` in `api/src/middleware/require/branches.ts` returns a
+  till's own branch, a scoped member's branches, or `undefined` for every branch. `assertBranch`,
+  `scopedBody` and `scopedQuery` answer 403 for a branch outside it, and `requireOrgWide` guards the
+  org-wide views (the VAT return, chain verification). Branch-keyed core reads take `scope?: string[]`
+  and filter with `inArray`: stock, shifts, devices, audit, tax reports and fiscal, and the branch and
+  store lists. A row outside the scope reads as 404. Catalogue, customers, tax rules, roles and users
+  stay org-wide behind their permissions. New branch-keyed reads (Day 22 sales and refund reports
+  included) must take the scope too.
+- **Tills follow at their next approvers refresh.** `GET /sync/approvers` carries `staff`, the active
+  members allowed at the register's branch, and the till deletes any cached sign-in not in it. The till
+  and server ship together, because an older till rejects the new response.
+- **Cut, not revoked.** Deactivating or rescoping a member cuts their live cashier sessions to now, so
+  sales made before the cut still upload with their historical authority.
+
 The owner approved this architecture on 14 October 2026. This cleanup documents it; it does not implement new management hosts, billing, backup services or Electron. TanStack Start remains the customer-shop SSR framework; management keeps the existing Router SPA.

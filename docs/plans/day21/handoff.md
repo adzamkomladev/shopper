@@ -7,13 +7,13 @@ records where the work stands against it and what is left.
 
 Branch `day21-access`, based on `origin/main` at `cf453d2` and pushed to origin. No PR yet.
 
-| Commit    | Slice                                                                         | State                                     |
-| --------- | ----------------------------------------------------------------------------- | ----------------------------------------- |
-| `acbeecc` | 1. Role delete (archives the role) and the access schema, migration `0029`    | Done, tested, Codex reviewed              |
-| `8468ca2` | 2. Deactivate and reactivate members (server and till login)                  | Done, tested, Codex reviewed              |
-| `02f5081` | 3. Branch-scoped members (`member_branch`, till login, approvers, `forgetStaff`) | Done, tested, Codex reviewed           |
-| `ed3f5d6` | 4. Branch scope across the portal API                                         | Done, tested, Codex reviewed              |
-| `3a5ac47` | 5. Portal UI (WIP)                                                            | Written. `vp check` and guard are clean. **No e2e run, ui-verify or review yet** |
+| Commit    | Slice                                                                            | State                                                                            |
+| --------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `acbeecc` | 1. Role delete (archives the role) and the access schema, migration `0029`       | Done, tested, Codex reviewed                                                     |
+| `8468ca2` | 2. Deactivate and reactivate members (server and till login)                     | Done, tested, Codex reviewed                                                     |
+| `02f5081` | 3. Branch-scoped members (`member_branch`, till login, approvers, `forgetStaff`) | Done, tested, Codex reviewed                                                     |
+| `ed3f5d6` | 4. Branch scope across the portal API                                            | Done, tested, Codex reviewed                                                     |
+| `3a5ac47` | 5. Portal UI (WIP)                                                               | Written. `vp check` and guard are clean. **No e2e run, ui-verify or review yet** |
 
 Slice 0 (the `tsrs` dev dependency) was dropped: it was already upstream.
 
@@ -108,6 +108,7 @@ Slice 0 (the `tsrs` dev dependency) was dropped: it was already upstream.
 
    Put the screenshots in `docs/plans/day21/screenshots/`. Then run `/skeleton-audit` on Users
    and Roles.
+
 3. **Codex review** of the slice. Fix what it finds, then amend or follow up on the WIP commit
    with a clean slice message.
 4. **Slice 6:**

@@ -64,8 +64,9 @@ tooling/worker/tests/         Workers runtime suite (Vitest 4 + Cloudflare plugi
   `integration` (4 wide), then `heavy` (2 wide: CPU-hungry files and ones that assert a time budget
   or an upload interleaving), then `solo` (release builds that rewrite a shared `dist/`). Add a file
   to `heavy` or `solo` only for those reasons, never to hide a race.
-- **Spawned apps are prebuilt.** `tests/support/prebuild.ts` bundles the till host, Electron and the
-  box once per run. A suite never rebuilds into a shared `dist/`: another file may be running from it.
+- **Spawned apps are prebuilt.** `tests/support/prebuild.ts`, the Vitest and Playwright global setup,
+  bundles the till host and Electron once per run. A suite never rebuilds into a shared `dist/`:
+  another file may be running from it.
 - **Real commands.** Change data through `defineCommand()`, the API, or the till-host, exactly as
   production does. Then assert on the rows, the audit chain (`verifyChain`), and the HTTP response.
 - **Both adapters for anything behind a port.** Conformance suites live in `packages/conformance`

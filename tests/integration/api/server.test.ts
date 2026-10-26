@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { expect, test } from "vite-plus/test";
+import { beforeAll, expect, test } from "vite-plus/test";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "@shopper/db-pg";
 import { postgresFixture } from "../../fixtures/postgres";
@@ -9,6 +9,10 @@ import { provisionOrg, provisioningContext } from "../../../tooling/database/see
 
 const exec = promisify(execFile);
 const root = new URL("../../../", import.meta.url);
+// Only this file runs apps/box/dist under Vitest, so it builds the box itself.
+beforeAll(async () => {
+  await exec("vp", ["run", "-F", "@shopper/box", "build"], { cwd: root });
+});
 
 test("the built Bun entry serves health and fails closed without runtime configuration", async () => {
   const { stdout } = await exec(

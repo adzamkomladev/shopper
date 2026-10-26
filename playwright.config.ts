@@ -21,6 +21,8 @@ export default defineConfig({
   testDir: "tests/e2e",
   workers: 1,
   timeout: 60_000,
+  // Specs spawn the till host from apps/till/host/dist; build it once before any of them run.
+  globalSetup: "./tests/support/prebuild.ts",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI ? "github" : "list",

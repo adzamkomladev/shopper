@@ -1,6 +1,7 @@
 import { expect, type APIRequestContext } from "@playwright/test";
+import { e2eRun } from "../../../tooling/e2e/run";
 
-export const MAIL_URL = "http://127.0.0.1:3103";
+export const MAIL_URL = `http://127.0.0.1:${e2eRun.port(3103)}`;
 
 type Message = { to: { address: string }; subject: string; plain: string };
 

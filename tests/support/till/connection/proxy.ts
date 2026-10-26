@@ -1,8 +1,10 @@
 import { createServer, type IncomingMessage } from "node:http";
 import { once } from "node:events";
 import { WebSocket, WebSocketServer, type RawData } from "ws";
+import { e2eRun } from "../../../../tooling/e2e/run";
 
-const proxyPort = 5186;
+// The till-ui dev server proxies /bridge here (SHOPPER_TILL_HOST_URL in the Playwright configs).
+const proxyPort = e2eRun.port(5186);
 export type StatusFault =
   | "infinite-timestamp"
   | "unsafe-timestamp"

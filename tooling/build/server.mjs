@@ -10,6 +10,7 @@ await build({
     ssr:
       { "till-host": "src/server.ts", "till-electron": "src/main.ts" }[process.argv[2]] ??
       "src/index.ts",
-    outDir: "dist",
+    // An e2e run with SHOPPER_RUN_ID builds into its own folder (tooling/e2e/run.ts).
+    outDir: process.env.SHOPPER_BUILD_OUT_DIR ?? "dist",
   },
 });

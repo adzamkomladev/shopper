@@ -4,7 +4,6 @@ import { context, resetLocalTill } from "../../../support/till/server";
 import { syncHeaders } from "../../../support/till/requests";
 import {
   MAX_RECEIPT_BYTES,
-  RECEIPTS_BUCKET,
   acceptedSale,
   auditsOfAsset,
   confirmReceipt,
@@ -79,7 +78,7 @@ test("issuing twice for one sale returns the same asset and a PUT URL in the rec
   expect(second.assetId).toBe(first.assetId);
   expect(await receiptAssets(saleId)).toHaveLength(1);
   expect(new URL(first.url).pathname).toBe(
-    `/${RECEIPTS_BUCKET}/${context.orgId}/${receiptKey(saleId)}`,
+    `/${server.bucket}/${context.orgId}/${receiptKey(saleId)}`,
   );
   expect(first.headers).toMatchObject({ "Content-Type": "application/pdf" });
   expect(await auditsOfAsset("asset.receipt.issue", first.assetId)).not.toHaveLength(0);

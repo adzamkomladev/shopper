@@ -8,6 +8,7 @@
     "typecheck": "tsrs -b",
     "services:up": "docker compose -f tooling/docker/compose.dev.yml up -d",
     "services:down": "docker compose -f tooling/docker/compose.dev.yml down",
+    "services:clean": "tsx tooling/services/clean.ts",
     "db:migrate": "tsx tooling/database/cli.ts migrate",
     "db:seed": "tsx tooling/database/cli.ts seed",
     "db:reset": "tsx tooling/database/cli.ts reset",

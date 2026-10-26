@@ -7,7 +7,8 @@
     "./support/hardware/receipt": "./support/hardware/receipt.ts",
     "./support/hardware/statement": "./support/hardware/statement.ts",
     "./support/till/pending/sale": "./support/till/pending/sale.ts",
-    "./support/fiscal/docs": "./support/fiscal/docs.ts"
+    "./support/fiscal/docs": "./support/fiscal/docs.ts",
+    "./support/assets/rustfs": "./support/assets/rustfs.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",

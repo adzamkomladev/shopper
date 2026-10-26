@@ -1,9 +1,19 @@
 import { env } from "cloudflare:test";
-import { expect, test } from "vitest";
+import { afterAll, expect, test } from "vitest";
 import { v7 } from "uuid";
 import { cloudflareBlobs } from "@shopper/adapters-cf";
 import { objectStorage } from "@shopper/ports";
 import { receiptUploadConformance, uploadConformance } from "@shopper/conformance";
+import { dropBucket, rustfs, testBucket } from "@shopper/tests/support/assets/rustfs";
+
+// This file's own RustFS buckets, dropped after it, so parallel runs never share objects.
+const importsBucket = testBucket();
+const receiptsBucket = testBucket();
+afterAll(async () => {
+  await Promise.all(
+    [importsBucket, receiptsBucket].map(async (bucket) => dropBucket(await bucket)),
+  );
+});
 
 uploadConformance("workerd S3 grants (RustFS transport)", test, async (now) => {
   const bindings = env as { BLOBS: R2Bucket; IMPORTS: R2Bucket };
@@ -11,24 +21,10 @@ uploadConformance("workerd S3 grants (RustFS transport)", test, async (now) => {
     imports: bindings.IMPORTS,
     baseUrl: "https://shopper.test/blobs",
     secret: new Uint8Array(32),
-    objectStorage: {
-      endpoint: "http://127.0.0.1:9200",
-      bucket: "shopper-imports-dev",
-      accessKeyId: "shopper_dev_access",
-      secretAccessKey: "shopper_dev_secret_at_least_32_chars",
-      region: "us-east-1",
-      now,
-    },
+    objectStorage: { ...rustfs, bucket: await importsBucket, now },
   });
   // RustFS verifies the signed HTTP contract; native R2 storage is exercised below.
-  const transport = objectStorage({
-    endpoint: "http://127.0.0.1:9200",
-    bucket: "shopper-imports-dev",
-    accessKeyId: "shopper_dev_access",
-    secretAccessKey: "shopper_dev_secret_at_least_32_chars",
-    region: "us-east-1",
-    now,
-  });
+  const transport = objectStorage({ ...rustfs, bucket: await importsBucket, now });
   return {
     blobs: { ...blobs, get: transport.get, delete: transport.delete },
     orgId: v7(),
@@ -36,30 +32,24 @@ uploadConformance("workerd S3 grants (RustFS transport)", test, async (now) => {
   };
 });
 
-const rustfs = {
-  endpoint: "http://127.0.0.1:9200",
-  accessKeyId: "shopper_dev_access",
-  secretAccessKey: "shopper_dev_secret_at_least_32_chars",
-  region: "us-east-1",
-  bucket: "shopper-receipts-dev",
-};
 receiptUploadConformance("workerd S3 grants (RustFS transport)", test, async () => {
+  const receipts = { ...rustfs, bucket: await receiptsBucket };
   const bindings = env as { BLOBS: R2Bucket; IMPORTS: R2Bucket; RECEIPTS: R2Bucket };
   const { blobs } = await cloudflareBlobs(bindings.BLOBS, {
     imports: bindings.IMPORTS,
     receipts: bindings.RECEIPTS,
     baseUrl: "https://shopper.test/blobs",
     secret: new Uint8Array(32),
-    objectStorage: { ...rustfs, bucket: "shopper-imports-dev" },
-    receiptsObjectStorage: rustfs,
+    objectStorage: { ...rustfs, bucket: await importsBucket },
+    receiptsObjectStorage: receipts,
   });
   // RustFS verifies the signed HTTP contract; native R2 storage is exercised separately.
-  const transport = objectStorage(rustfs);
+  const transport = objectStorage(receipts);
   return {
     blobs: { ...blobs, get: transport.get, delete: transport.delete },
     orgId: v7(),
     otherOrgId: v7(),
-    bucket: rustfs.bucket,
+    bucket: receipts.bucket,
   };
 });
 

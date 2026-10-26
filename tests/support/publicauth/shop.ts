@@ -2,8 +2,9 @@ import { expect, type APIRequest, type APIRequestContext } from "@playwright/tes
 import { OWNER_PASSWORD, waitForAuthSlot } from "../e2e";
 import { emailedLink } from "./mail";
 import { waitForPublicSlot } from "./slots";
+import { e2eRun } from "../../../tooling/e2e/run";
 
-export const PUBLIC_ORIGIN = "http://localhost:5185";
+export const PUBLIC_ORIGIN = e2eRun.url(5185);
 const API = `${PUBLIC_ORIGIN}/api`;
 const headers = { Origin: PUBLIC_ORIGIN };
 

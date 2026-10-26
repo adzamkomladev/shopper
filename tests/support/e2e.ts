@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Page } from "@playwright/test";
+import { e2eRun } from "../../tooling/e2e/run";
 
 /** Fails on serious or critical axe violations and names each rule and target. */
 export async function expectNoSeriousAxe(page: Page) {
@@ -24,8 +25,8 @@ export async function expectNoSeriousAxe(page: Page) {
   expect(serious).toEqual([]);
 }
 
-export const BOX_API = process.env.E2E_BOX_URL ?? "http://localhost:3101";
-export const PORTAL_ORIGIN = process.env.E2E_PORTAL_URL ?? "http://localhost:5183";
+export const BOX_API = process.env.E2E_BOX_URL ?? e2eRun.url(3101);
+export const PORTAL_ORIGIN = process.env.E2E_PORTAL_URL ?? e2eRun.url(5183);
 export const BOOTSTRAP_TOKEN = "e2e-only-bootstrap-token";
 export const OWNER_PASSWORD = "e2e-owner-password-123";
 export const OWNER_NAME = "E2E Owner";
@@ -46,7 +47,10 @@ export const ANNEX: Shop = {
 const AUTH_LIMIT = 3;
 // The request leaves the browser a little after this is called, so the window gets some slack.
 const AUTH_WINDOW_MS = 10_000 + 3_000;
-const AUTH_COUNT_FILE = "tests/e2e/.auth/auth-requests.json";
+const AUTH_COUNT_FILE = e2eRun.path(
+  "tests/e2e/.auth/auth-requests.json",
+  "auth/auth-requests.json",
+);
 
 /** Call right before every request that signs in or up. */
 export async function waitForAuthSlot() {

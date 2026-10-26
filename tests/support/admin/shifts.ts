@@ -6,6 +6,7 @@ import { v7 } from "uuid";
 import { BOX_API, BRANCH_NAME, PORTAL_ORIGIN } from "../e2e";
 import { enrolDevice, post, shopHeaders, unique } from "../admin";
 import { createStaff } from "./people";
+import { e2eRun } from "../../../tooling/e2e/run";
 
 type Branch = { id: string; name: string; storeId: string };
 type Counts = Record<string, number>;
@@ -25,7 +26,7 @@ export const seedShifts = () => (seeded ??= seed());
 
 // Own session, so any spec can ask for the shifts, signed in as someone else or not.
 async function seed() {
-  const request = await playwright.newContext({ storageState: "tests/e2e/.auth/owner.json" });
+  const request = await playwright.newContext({ storageState: e2eRun.ownerState });
   try {
     return await seedWith(request);
   } finally {

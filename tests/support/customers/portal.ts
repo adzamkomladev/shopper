@@ -12,8 +12,9 @@ import { v7 } from "uuid";
 import { E2E_DATABASE_URL } from "../../../tooling/database/e2e";
 import { BOX_API, MART } from "../e2e";
 import { post, shopHeaders, unique } from "../admin";
+import { e2eRun } from "../../../tooling/e2e/run";
 
-export const ARKESEL_URL = process.env.E2E_ARKESEL_URL ?? "http://127.0.0.1:3104";
+export const ARKESEL_URL = process.env.E2E_ARKESEL_URL ?? `http://127.0.0.1:${e2eRun.port(3104)}`;
 const DAY = 86_400_000;
 
 async function sql<T = Record<string, unknown>>(text: string, values: unknown[] = []) {

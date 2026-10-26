@@ -4,7 +4,9 @@ import { afterAll } from "vite-plus/test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { rustfs } from "../../../tooling/storage/buckets";
 import { db, auth, otherAuth } from "../../integration/auth/setup";
+import { fileBucket } from "./buckets";
 
 let directory: string;
 let storage: Awaited<ReturnType<typeof boxBlobs>>;
@@ -14,14 +16,7 @@ export async function importStorage() {
   storage = await boxBlobs(directory, {
     baseUrl: "https://shopper.test/blobs",
     secret: new Uint8Array(32).fill(3),
-    objectStorage: {
-      endpoint: process.env.SHOPPER_S3_ENDPOINT ?? "http://127.0.0.1:9200",
-      bucket: process.env.SHOPPER_S3_BUCKET ?? "shopper-imports-dev",
-      accessKeyId: process.env.SHOPPER_S3_ACCESS_KEY_ID ?? "shopper_dev_access",
-      secretAccessKey:
-        process.env.SHOPPER_S3_SECRET_ACCESS_KEY ?? "shopper_dev_secret_at_least_32_chars",
-      region: process.env.SHOPPER_S3_REGION ?? "us-east-1",
-    },
+    objectStorage: { ...rustfs, bucket: await fileBucket() },
   });
   return storage.blobs;
 }

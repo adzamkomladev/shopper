@@ -20,6 +20,7 @@ import { enrollFixtureTill } from "./enrollment";
 import { insertOpenShift } from "./shifts";
 import { notifications } from "../stock/queue";
 import { lane } from "../fiscal/lane";
+import { e2eRun } from "../../../tooling/e2e/run";
 export type SaleEvent = v.InferOutput<typeof saleEvent>;
 
 let fixture: Awaited<ReturnType<typeof postgresFixture>>;
@@ -105,7 +106,7 @@ export async function recordSale(options: { lineCount?: number } = {}): Promise<
 export async function hostConfiguration(
   sqlitePath: string,
   origins: string[],
-  upstream = "http://127.0.0.1:3101",
+  upstream = `http://127.0.0.1:${e2eRun.port(3101)}`,
   options: { freshSession?: boolean; session?: null } = {},
 ) {
   const hostSession =

@@ -19,15 +19,18 @@ import { readFile } from "node:fs/promises";
 import { extname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { startArkeselFake } from "../../../tooling/arkesel/server";
+import { e2eRun } from "../../../tooling/e2e/run";
+import { rustfs } from "../../../tooling/storage/buckets";
 
 const databaseURL = process.env.E2E_DATABASE_URL;
 if (!databaseURL || !new URL(databaseURL).pathname.endsWith("_e2e")) {
   throw new Error("The portal browser server requires E2E_DATABASE_URL ending in _e2e");
 }
 const database = boxPool(databaseURL);
-const baseURL = process.env.SHOPPER_AUTH_URL ?? "http://localhost:5183";
+const baseURL = process.env.SHOPPER_AUTH_URL ?? e2eRun.url(5183);
 const linkSecret = "e2e-only-link-secret-more-than-32-characters";
-const cache = boxCache(`.shopper/portal/${new URL(baseURL).port}.sqlite`);
+const port = new URL(baseURL).port;
+const cache = boxCache(e2eRun.path(`.shopper/portal/${port}.sqlite`, `portal/${port}.sqlite`));
 const publicOnboarding = process.env.E2E_PUBLIC_ONBOARDING === "1";
 const authFlows = boxAuthFlows({
   withDatabase: (run) => run(database.db),
@@ -36,33 +39,34 @@ const authFlows = boxAuthFlows({
   mail: createMaileroo({
     apiKey: "local-maileroo-contract-key",
     from: "noreply@shopper.test",
-    endpoint: "http://127.0.0.1:3103/api/v2/emails",
+    endpoint: `http://127.0.0.1:${e2eRun.port(3103)}/api/v2/emails`,
   }),
 });
 // Identity checks send their one-time codes through an Arkesel fake: a spec reads the code from
-// http://127.0.0.1:3104/test/requests, as a person would read it from their phone.
-const arkesel = await startArkeselFake({ port: Number(process.env.E2E_ARKESEL_PORT ?? 3104) });
+// http://127.0.0.1:3104/test/requests (shifted by the run's port offset), as a person would read it from their phone.
+const arkesel = await startArkeselFake({
+  port: Number(process.env.E2E_ARKESEL_PORT ?? e2eRun.port(3104)),
+});
 const kyc = boxKycFlows({
   withDatabase: (run) => run(database.db),
   sms: createArkesel({ apiKey: arkesel.apiKey, sender: "Shopper", baseUrl: arkesel.baseUrl }),
   linkSecret,
 });
 const priceChange = boxPriceChange({ database: database.db, realtime: boxRealtime() }).launcher;
-const blobs = await boxBlobs(".shopper/portal/blobs", {
+const blobs = await boxBlobs(e2eRun.path(".shopper/portal/blobs", "portal/blobs"), {
   baseUrl: baseURL,
   secret: new TextEncoder().encode(linkSecret),
   objectStorage: {
-    endpoint: "http://127.0.0.1:9200",
-    bucket: "shopper-imports-dev",
-    accessKeyId: "shopper_dev_access",
-    secretAccessKey: "shopper_dev_secret_at_least_32_chars",
-    region: "us-east-1",
+    ...rustfs,
+    bucket: e2eRun.bucket,
   },
 });
-const server = await import(pathToFileURL(resolve("apps/portal/dist/server/server.js")).href);
+const server = await import(
+  pathToFileURL(resolve(`apps/portal/${e2eRun.outDir}/server/server.js`)).href
+);
 // Satori and resvg read their wasm from their own folders, which a bundle in .shopper/ cannot reach, so this
 // server has no renderer. A statement's PDF comes from the box on the same database and link secret.
-const boxURL = process.env.E2E_BOX_URL ?? "http://localhost:3101";
+const boxURL = process.env.E2E_BOX_URL ?? e2eRun.url(3101);
 const statementPdf = /^\/api(\/public\/statements\/[^/]+\/pdf)$/;
 const portalRuntime = async (request: Request) => {
   const pdf = statementPdf.exec(new URL(request.url).pathname);
@@ -116,7 +120,7 @@ async function clientAddress(request: Request) {
   return `10.${octet(0)}.${octet(1)}.${octet(2)}`;
 }
 
-const assets = resolve("apps/portal/dist/client");
+const assets = resolve(`apps/portal/${e2eRun.outDir}/client`);
 const contentTypes: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -147,7 +151,7 @@ function respond(bytes: Uint8Array, extension: string) {
 }
 
 export default {
-  port: Number(new URL(baseURL).port),
+  port: Number(port),
   idleTimeout: 30,
   async fetch(request: Request) {
     const path = new URL(request.url).pathname;

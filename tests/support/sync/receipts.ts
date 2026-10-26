@@ -7,22 +7,21 @@ import { boxBlobs } from "@shopper/adapters-box";
 import { createApi } from "@shopper/api";
 import { auditLog } from "@shopper/db-pg";
 import { sha256 } from "@shopper/utils";
+import { rustfs } from "../../../tooling/storage/buckets";
+import { fileBucket } from "../assets/buckets";
 import { serveHono } from "../till/http";
 import { push, syncHeaders } from "../till/requests";
 import { context, databases, devices, recordSale, sequencer } from "../till/server";
 
 export const MAX_RECEIPT_BYTES = 1024 * 1024;
-export const RECEIPTS_BUCKET = "shopper-receipts-dev";
-const rustfs = {
-  endpoint: "http://127.0.0.1:9200",
-  accessKeyId: "shopper_dev_access",
-  secretAccessKey: "shopper_dev_secret_at_least_32_chars",
-  region: "us-east-1",
-};
+// One pair per test file, made on first import and dropped after the file.
+const importsBucket = fileBucket();
+const receiptsBucket = fileBucket();
 type Target = { request(path: string, init?: RequestInit): Promise<Response> };
 
 /** The box API over the fixture database with RustFS-backed blobs; `s3: false` leaves direct uploads unconfigured. */
 export async function startReceiptApi(options: { s3?: boolean } = {}) {
+  const bucket = await receiptsBucket;
   const directory = await mkdtemp(join(tmpdir(), "shopper-receipt-api-"));
   const { blobs } = await boxBlobs(directory, {
     baseUrl: "http://127.0.0.1",
@@ -30,14 +29,15 @@ export async function startReceiptApi(options: { s3?: boolean } = {}) {
     ...(options.s3 === false
       ? {}
       : {
-          objectStorage: { ...rustfs, bucket: "shopper-imports-dev" },
-          receiptsObjectStorage: { ...rustfs, bucket: RECEIPTS_BUCKET },
+          objectStorage: { ...rustfs, bucket: await importsBucket },
+          receiptsObjectStorage: { ...rustfs, bucket },
         }),
   });
   const http = await serveHono(createApi({ database: databases().db, devices, sequencer, blobs }));
   return {
     ...http,
     blobs,
+    bucket,
     async close() {
       await http.close();
       await rm(directory, { recursive: true, force: true });

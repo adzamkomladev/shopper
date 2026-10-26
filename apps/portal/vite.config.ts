@@ -46,6 +46,9 @@ export default defineConfig(({ command, isPreview }) => ({
     babel({ presets: [reactCompilerPreset()] }),
   ],
   define: buildDefines,
+  // An e2e run builds into its own folder. Start's prerender reloads this file for `vite preview`,
+  // so an inline outDir would not reach it.
+  build: { outDir: process.env.SHOPPER_BUILD_OUT_DIR },
   server: { port: 5173 },
 }));
 

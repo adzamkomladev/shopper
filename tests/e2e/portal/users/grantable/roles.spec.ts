@@ -30,7 +30,7 @@ test.describe("role choices respect the signed-in member's grant policy", () => 
     await page.keyboard.press("Escape");
     await dialog(page).getByRole("button", { name: "Cancel" }).click();
 
-    await page.getByRole("button", { name: `Change role for ${member.name}` }).click();
+    await page.getByRole("button", { name: `Edit access for ${member.name}` }).click();
     await dialog(page).getByRole("combobox", { name: "Role" }).click();
     await expect(page.getByRole("option", { name: "Owner", exact: true })).toHaveCount(0);
     await expect(page.getByRole("option", { name: wide.name, exact: true })).toHaveCount(0);
@@ -62,7 +62,7 @@ test.describe("role choices respect the signed-in member's grant policy", () => 
     const members = page.getByRole("region", { name: "Members" });
     await members.focus();
     await page.keyboard.press("End");
-    await page.getByRole("button", { name: `Change role for ${member.name}` }).click();
+    await page.getByRole("button", { name: `Edit access for ${member.name}` }).click();
     await dialog(page).getByRole("combobox", { name: "Role" }).click();
     await expect(page.getByRole("option", { name: "Owner", exact: true })).toHaveCount(0);
   });

@@ -40,11 +40,11 @@ test.describe("capabilities that differ from the owner's", () => {
       page.getByRole("button", { name: `Cancel invitation for ${pending}` }),
     ).toHaveCount(0);
 
-    const trigger = page.getByRole("button", { name: `Change role for ${member.name}` });
+    const trigger = page.getByRole("button", { name: `Edit access for ${member.name}` });
     await trigger.click();
     await chooseByTyping(page, dialog(page).getByRole("combobox", { name: "Role" }), "acc");
     await page.keyboard.press("ControlOrMeta+Enter");
-    await expect(page.getByText("Role updated")).toBeVisible();
+    await expect(page.getByText("Access updated")).toBeVisible();
     await expect(row(page, member.name)).toContainText("accountant");
     expect((await listUsers(request)).find((user) => user.id === member.userId)?.roleName).toBe(
       "accountant",
@@ -71,7 +71,7 @@ test.describe("capabilities that differ from the owner's", () => {
     await expect(page.getByRole("button", { name: "Invite user" })).toHaveCount(0);
     await page.keyboard.press("i");
     await expect(dialog(page)).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /^Change role for / })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Edit access for / })).toHaveCount(0);
     await expect(page.getByText(/You can see who has access/)).toBeVisible();
     await expectNoSeriousAxe(page);
   });

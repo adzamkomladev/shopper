@@ -32,7 +32,7 @@ test.describe("as the owner of E2E Mart", () => {
     // Members are listed by name; End reaches this one because its name sorts after every other.
     const member = await createStaff(request, "cashier", "Zuberi");
     await page.reload();
-    const trigger = page.getByRole("button", { name: `Change role for ${member.name}` });
+    const trigger = page.getByRole("button", { name: `Edit access for ${member.name}` });
     const members = page.getByRole("region", { name: "Members" });
     await members.focus();
     await page.keyboard.press("End");
@@ -41,10 +41,10 @@ test.describe("as the owner of E2E Mart", () => {
     await trigger.focus();
     await expect(trigger).toBeFocused();
     await page.keyboard.press("Enter");
-    await expect(dialog(page).getByRole("heading", { name: "Change role" })).toBeVisible();
+    await expect(dialog(page).getByRole("heading", { name: "Edit access" })).toBeVisible();
     await chooseByTyping(page, dialog(page).getByRole("combobox", { name: "Role" }), "acc");
     await page.keyboard.press("ControlOrMeta+Enter");
-    await expect(page.getByText("Role updated")).toBeVisible();
+    await expect(page.getByText("Access updated")).toBeVisible();
     await expect(dialog(page)).toBeHidden();
     await expect(row(page, member.name)).toContainText("accountant");
     await expect(trigger).toBeFocused();
@@ -54,20 +54,20 @@ test.describe("as the owner of E2E Mart", () => {
   });
 
   test("the last owner can't be demoted, and the sheet says why", async ({ page }) => {
-    await page.getByRole("button", { name: `Change role for ${OWNER_NAME}` }).click();
+    await page.getByRole("button", { name: `Edit access for ${OWNER_NAME}` }).click();
     await chooseByTyping(page, dialog(page).getByRole("combobox", { name: "Role" }), "cash");
-    await dialog(page).getByRole("button", { name: "Save role" }).click();
+    await dialog(page).getByRole("button", { name: "Save access" }).click();
     await expect(dialog(page).getByRole("alert")).toContainText("last owner");
     await expect(dialog(page)).toBeVisible();
   });
 
-  test("the change-role sheet starts on the role the member holds now", async ({
+  test("the access sheet starts on the role the member holds now", async ({
     page,
     request,
   }) => {
     const member = await createStaff(request, "cashier", "Esi");
     await page.reload();
-    await page.getByRole("button", { name: `Change role for ${member.name}` }).click();
+    await page.getByRole("button", { name: `Edit access for ${member.name}` }).click();
     await expect(dialog(page).getByRole("combobox", { name: "Role" })).toContainText("cashier");
   });
 
@@ -118,12 +118,12 @@ test.describe("as the owner of E2E Mart", () => {
     await expect(page.getByRole("region", { name: "Members" })).toBeVisible();
   });
 
-  test("offline shows the banner and Save role is disabled with the reason", async ({
+  test("offline shows the banner and Save access is disabled with the reason", async ({
     page,
     context,
   }, info) => {
-    await page.getByRole("button", { name: `Change role for ${OWNER_NAME}` }).click();
-    const save = dialog(page).getByRole("button", { name: "Save role" });
+    await page.getByRole("button", { name: `Edit access for ${OWNER_NAME}` }).click();
+    const save = dialog(page).getByRole("button", { name: "Save access" });
     await context.setOffline(true);
     await expect(page.getByText(/offline/i).first()).toBeVisible();
     await expect(save).toBeDisabled();
@@ -142,7 +142,7 @@ test.describe("as the owner of E2E Mart", () => {
   }, info) => {
     await expect(row(page, OWNER_NAME)).toBeVisible();
     await expectNoSeriousAxe(page);
-    await page.getByRole("button", { name: `Change role for ${OWNER_NAME}` }).click();
+    await page.getByRole("button", { name: `Edit access for ${OWNER_NAME}` }).click();
     await expectNoSeriousAxe(page);
     await page.keyboard.press("Escape");
     await captureSizes(page, info, "users", async () => {

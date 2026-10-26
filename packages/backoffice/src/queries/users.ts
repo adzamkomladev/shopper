@@ -1,6 +1,12 @@
-import { invitationList, cancellationResponse, roleResponse } from "../schemas/users";
-import type { UserView, Revealed, InviteValues } from "./types";
-export type { UserView, Revealed, InviteValues } from "./types";
+import {
+  invitationList,
+  cancellationResponse,
+  changeResponse,
+  grantableBranches,
+  roleResponse,
+} from "../schemas/users";
+import type { AccessValues, StatusChange, UserView, Revealed, InviteValues } from "./types";
+export type { AccessValues, StatusChange, UserView, Revealed, InviteValues } from "./types";
 import { issued, type InvitationView } from "../schemas/users";
 export { type InvitationView } from "../schemas/users";
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -105,22 +111,55 @@ export function useCancelInvitation(onCancelled: () => void) {
   });
 }
 
-/** Moves a member to another role. Their permissions follow at once, so session permissions are refetched too. */
-export function useAssignRole(member: UserView, onSaved: () => void) {
+/** The branches whoever manages access may hand out: their own, or every branch. Needs role.write. */
+export function accessBranchesQuery(shop = currentShop()) {
+  return queryOptions({
+    queryKey: ["users", "branches", shop?.id ?? "box"],
+    queryFn: () => apiFetch("/users/branches", grantableBranches, { shopId: shop?.id ?? null }),
+  });
+}
+
+/** Saves a member's role and branches, each only when it changed. Permissions follow at once, so the session refetches. */
+export function useSaveAccess(member: UserView, onSaved: () => void) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (roleId: string) =>
-      apiFetch(`/users/${member.id}/role`, roleResponse, {
-        method: "PATCH",
-        body: { roleId },
-      }),
+    mutationFn: async (values: AccessValues) => {
+      if (values.roleId !== member.roleId)
+        await apiFetch(`/users/${member.id}/role`, roleResponse, {
+          method: "PATCH",
+          body: { roleId: values.roleId },
+        });
+      const branchIds = values.everywhere ? [] : [...values.branchIds].sort();
+      if (branchIds.join() !== [...member.branchIds].sort().join())
+        await apiFetch(`/users/${member.id}/branches`, changeResponse, {
+          method: "PUT",
+          body: { branchIds },
+        });
+    },
     onSuccess: async () => {
-      toast.success("Role updated");
+      toast.success("Access updated");
       onSaved();
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["users"] }),
         queryClient.invalidateQueries({ queryKey: ["roles"] }),
         queryClient.invalidateQueries({ queryKey: ["session"] }),
+      ]);
+    },
+  });
+}
+
+/** Deactivates (signs out everywhere, refuses sign-in) or reactivates a member. */
+export function useMemberStatus(onDone: () => void) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ member, action }: StatusChange) =>
+      apiFetch(`/users/${member.id}/${action}`, changeResponse, { method: "POST" }),
+    onSuccess: async (_result, { member, action }) => {
+      toast.success(`${member.name} ${action}d`);
+      onDone();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["users"] }),
+        queryClient.invalidateQueries({ queryKey: ["roles"] }),
       ]);
     },
   });

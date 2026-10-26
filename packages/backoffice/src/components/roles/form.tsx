@@ -11,6 +11,7 @@ import { useOnline } from "@shopper/ui/hooks/use-online";
 import { FormFooter } from "../admin/form/sheet";
 import { TextField } from "../fields/text";
 import { focusFirstInvalid } from "../../lib/focus";
+import { DeleteRole } from "./delete/dialog";
 import { PermissionMatrix } from "./matrix";
 import { PERMISSION_GROUPS } from "../../lib/roles/permissions";
 import { useSaveRole, type RoleValues, type RoleView } from "../../queries/roles";
@@ -116,6 +117,7 @@ export function RoleForm({ role, mine, tillCodes, canWrite, onSaved }: Props) {
             <AlertDescription>{save.error.message}</AlertDescription>
           </Alert>
         )}
+        {role && !locked && <DeleteRole role={role} onDeleted={onSaved} />}
       </FieldGroup>
       {locked ? (
         <SheetFooter>

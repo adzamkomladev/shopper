@@ -7,6 +7,7 @@ import { devicesScreenQueries } from "../queries/devices";
 import { rolesScreenQueries } from "../queries/roles";
 import { storesQuery } from "../queries/stores";
 import { usersScreenQueries } from "../queries/users";
+import { usersSearch } from "../schemas/users";
 import { permissionsQuery } from "../queries/session/permissions";
 import type { BackofficeContext } from "../types";
 
@@ -49,6 +50,7 @@ export function administrationRoutes(shopRoute: AnyRoute) {
   const usersRoute = createRoute({
     getParentRoute: () => shopRoute,
     path: "/users",
+    validateSearch: usersSearch,
     loader: ({ context }: Context) => loadAll(context, usersScreenQueries()),
     component: lazyRouteComponent(() => import("../screens/users/screen"), "UsersScreen"),
     ...routeStates,

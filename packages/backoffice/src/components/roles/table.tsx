@@ -28,6 +28,13 @@ export function RoleTable({ roles, total, canWrite, mine, onOpen }: Props) {
       cell: ({ row }) => `${row.original.permissionCodes.length} of ${total}`,
     },
     {
+      id: "members",
+      header: "Members",
+      meta: { className: "tabular-nums" },
+      cell: ({ row }) =>
+        `${row.original.memberCount} ${row.original.memberCount === 1 ? "member" : "members"}`,
+    },
+    {
       id: "actions",
       header: () => <span className="sr-only">Actions</span>,
       cell: ({ row }) => {

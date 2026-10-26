@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { MailIcon } from "lucide-react";
+import { useSearch } from "@tanstack/react-router";
+import { MailIcon, UserXIcon } from "lucide-react";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { FormSheet } from "../../components/admin/form/sheet";
 import { PageHeader } from "../../components/admin/page/header";
@@ -12,25 +13,31 @@ import { permissionsQuery } from "../../queries/session/permissions";
 import { sessionQuery } from "../../queries/session/session";
 import { roleLabel, rolesQuery, type RoleView } from "../../queries/roles";
 import { CancelInvitationDialog } from "../../components/users/cancel/dialog";
-import { ChangeRoleForm } from "../../components/users/change/role/form";
+import { AccessForm } from "../../components/users/access/form";
+import { MemberStatusDialog } from "../../components/users/status/dialog";
+import { StatusTabs } from "../../components/users/status/tabs";
 import { InvitationsTable, cancelButtonId } from "../../components/users/invitations/table";
 import { InviteForm } from "../../components/users/invite/form";
 import { KycStartSheet } from "../../components/kyc/start";
-import { MembersTable } from "../../components/users/members/table";
+import { MembersTable, statusButtonId } from "../../components/users/members/table";
 import {
+  accessBranchesQuery,
   invitationsQuery,
   useReissue,
   usersQuery,
   type InvitationView,
   type Revealed,
+  type StatusChange,
   type UserView,
 } from "../../queries/users";
 import { SetupLinkDialog } from "../../components/users/setup/link/dialog";
 
 const NO_ROLES: RoleView[] = [];
+const NO_BRANCHES: { id: string; name: string }[] = [];
 
 export function UsersScreen() {
-  const { data: members } = useSuspenseQuery(usersQuery());
+  const { status } = useSearch({ from: "/_shop/users" });
+  const { data: everyone } = useSuspenseQuery(usersQuery());
   const { data: allInvitations } = useSuspenseQuery(invitationsQuery());
   const { data: held } = useSuspenseQuery(permissionsQuery());
   const { data: session } = useSuspenseQuery(sessionQuery());
@@ -39,7 +46,9 @@ export function UsersScreen() {
   const roles = roleList.data ?? NO_ROLES;
   const roleListPermissionDenied =
     roleList.error instanceof ApiError && roleList.error.status === 403;
-  const currentMember = members.find((member) => member.id === session?.user.id);
+  const currentMember = everyone.find((member) => member.id === session?.user.id);
+  const deactivated = everyone.filter((member) => member.deactivatedAt);
+  const members = status === "deactivated" ? deactivated : everyone.filter((m) => !m.deactivatedAt);
   const grantableRoles = roles.filter(
     (role) =>
       (currentMember?.protectedOwner || !role.protectedOwner) &&
@@ -48,15 +57,24 @@ export function UsersScreen() {
   const addRef = useRef<HTMLButtonElement>(null);
   const invite = usePanel(addRef);
   const roleChange = usePanel<UserView>(addRef);
+  const statusChange = usePanel<StatusChange>(addRef);
   const verification = usePanel<UserView>(addRef);
   const link = usePanel<Revealed>(addRef);
   const cancellation = usePanel<InvitationView>(addRef);
   const reissue = useReissue((revealed) => link.show(revealed));
   const canWriteRoles = held.includes("role.write");
+  // Branch names come with the branches you may hand out, which needs role.write.
+  const branchList = useQuery({ ...accessBranchesQuery(), enabled: canWriteRoles, retry: false });
+  const branches = branchList.data?.branches ?? NO_BRANCHES;
   const canAssign = canWriteRoles && roleList.data !== undefined && grantableRoles.length > 0;
   const canInvite = canAssign && held.includes("user.write");
   const noPanelOpen =
-    !invite.open && !roleChange.open && !verification.open && !link.open && !cancellation.open;
+    !invite.open &&
+    !roleChange.open &&
+    !statusChange.open &&
+    !verification.open &&
+    !link.open &&
+    !cancellation.open;
   const shortcuts = useShortcuts({ I: () => canInvite && noPanelOpen && invite.show() });
   // A replaced invitation is history that only repeats the one that replaced it.
   const invitations = allInvitations.filter((invitation) => invitation.status !== "replaced");
@@ -100,15 +118,39 @@ export function UsersScreen() {
       )}
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Members</h2>
-        <MembersTable
-          members={members}
-          onVerify={
-            canAssign ? (member) => verification.show(member, editButtonId(member.id)) : undefined
-          }
-          onChangeRole={
-            canAssign ? (member) => roleChange.show(member, editButtonId(member.id)) : undefined
-          }
-        />
+        <StatusTabs
+          status={status}
+          counts={{ active: everyone.length - deactivated.length, deactivated: deactivated.length }}
+        >
+          {members.length === 0 ? (
+            <EmptyList
+              icon={UserXIcon}
+              title="No deactivated members"
+              description="Members you deactivate show up here, so you can bring them back."
+            />
+          ) : (
+            <MembersTable
+              members={members}
+              branchNames={new Map(branches.map((branch) => [branch.id, branch.name]))}
+              self={currentMember}
+              onVerify={
+                canAssign
+                  ? (member) => verification.show(member, editButtonId(member.id))
+                  : undefined
+              }
+              onEditAccess={
+                canAssign && branchList.data
+                  ? (member) => roleChange.show(member, editButtonId(member.id))
+                  : undefined
+              }
+              onStatus={
+                held.includes("user.write")
+                  ? (change) => statusChange.show(change, statusButtonId(change.member.id))
+                  : undefined
+              }
+            />
+          )}
+        </StatusTabs>
       </section>
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Invitations</h2>
@@ -152,19 +194,26 @@ export function UsersScreen() {
       <FormSheet
         open={roleChange.open}
         onOpenChange={roleChange.setOpen}
-        title="Change role"
-        description={`Choose the role ${roleChange.value?.name ?? "this member"} signs in with.`}
+        title="Edit access"
+        description={`Choose the role ${roleChange.value?.name ?? "this member"} signs in with and where they work.`}
         restoreFocus={roleChange.restoreFocus}
       >
         {roleChange.value && (
-          <ChangeRoleForm
+          <AccessForm
             key={roleChange.value.id}
             member={roleChange.value}
             roles={grantableRoles}
+            branches={branches}
             onSaved={() => roleChange.setOpen(false)}
           />
         )}
       </FormSheet>
+      <MemberStatusDialog
+        change={statusChange.value}
+        open={statusChange.open}
+        onOpenChange={statusChange.setOpen}
+        restoreFocus={statusChange.restoreFocus}
+      />
       <KycStartSheet
         open={verification.open}
         onOpenChange={verification.setOpen}

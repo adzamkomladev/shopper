@@ -1,5 +1,6 @@
 import * as v from "valibot";
 import type { Context } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { AssetError } from "@shopper/assets";
 import { AdministrationError } from "@shopper/auth";
 import { KycError } from "@shopper/auth/kyc";
@@ -29,6 +30,7 @@ const uniqueField = (constraint?: string) => {
 
 /** Maps validation, management and constraint errors to a problem body; `field` names the culprit. */
 export function problem(error: Error, c: Context): Response {
+  if (error instanceof HTTPException) return error.getResponse();
   if (v.isValiError(error)) {
     const [issue] = error.issues;
     const field = v.getDotPath(issue) ?? undefined;

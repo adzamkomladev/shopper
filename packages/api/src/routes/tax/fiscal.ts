@@ -9,6 +9,7 @@ import type { Blobs, Lane } from "@shopper/ports";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import { commandContext } from "../stock/context";
 import { problem } from "../../middleware/problem";
+import { branchScope, requireOrgWide } from "../../middleware/require/branches";
 import { requirePermission } from "../../middleware/require/permission";
 import type { ApiAuthentication, ApiEnvironment } from "../../types";
 
@@ -29,21 +30,25 @@ export function fiscalRoutes(options: {
   app.get("/tax/fiscal/:id", read);
   app.post("/tax/fiscal/:id/retry", requirePermission(options.authentication, "tax.write"));
   const org = (c: Context<ApiEnvironment>) => c.get("principal").orgId;
+  const scope = (c: Context<ApiEnvironment>) => branchScope(c.get("principal"));
+  // Archives are per store, not per branch: org-wide members only.
+  app.use("/tax/fiscal/archives", requireOrgWide);
 
   app.get("/tax/fiscal", async (c) =>
     c.json({
       connected: !!options.lane,
-      ...(await listFiscalDocs(options.database, org(c), c.req.query())),
+      ...(await listFiscalDocs(options.database, org(c), c.req.query(), scope(c))),
     }),
   );
   app.get("/tax/fiscal/archives", async (c) =>
     c.json(await listFiscalArchives(options.database, org(c), c.req.query(), options.blobs)),
   );
   app.get("/tax/fiscal/:id", async (c) =>
-    c.json(await readFiscalDoc(options.database, org(c), c.req.param("id"))),
+    c.json(await readFiscalDoc(options.database, org(c), c.req.param("id"), scope(c))),
   );
   app.post("/tax/fiscal/:id/retry", async (c) => {
     const id = c.req.param("id");
+    await readFiscalDoc(options.database, org(c), id, scope(c));
     const { storeId } = await retryFiscalDoc(options.database, commandContext(c.get("principal")), {
       docId: id,
     });

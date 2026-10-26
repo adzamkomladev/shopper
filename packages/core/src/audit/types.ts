@@ -1,3 +1,4 @@
+import type { AuditFilters } from "../schemas/audit/filters";
 import type { ChainVerification } from "@shopper/audit";
 
 /** A stream's verdict: its length and head when intact, or the first entry that breaks it and why. */
@@ -44,3 +45,6 @@ export type AuditDetail = AuditItem & {
   prevHash: string;
   appVersion: string;
 };
+
+/** Filters plus `scope`: a branch-scoped caller's branches, never read from a query string. */
+export type ScopedAuditFilters = AuditFilters & { scope?: string[] };

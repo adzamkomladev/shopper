@@ -1,7 +1,7 @@
 import { toCsv } from "@shopper/utils";
-import type { AuditFilters } from "../schemas/audit/filters";
 import type { Queryable } from "../types";
 import { listAuditDetails } from "./queries";
+import type { ScopedAuditFilters } from "./types";
 
 const header = [
   "Time",
@@ -26,7 +26,7 @@ const header = [
  * The filtered log as CSV lines, a page at a time so six years never sit in memory: the header first, then one line
  * per entry, newest first. The Shopper Archive reuses it.
  */
-export async function* auditCsv(db: Queryable, orgId: string, filters: AuditFilters) {
+export async function* auditCsv(db: Queryable, orgId: string, filters: ScopedAuditFilters) {
   yield `${toCsv([header])}\n`;
   let cursor = filters.cursor;
   do {

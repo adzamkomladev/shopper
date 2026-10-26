@@ -65,12 +65,18 @@ const summarize = (kind: string, lines: Line[]) => ({
 });
 
 /** Stock records (counts, receipts, adjustments), newest first, keyset-paged by id (UUIDv7 is time-ordered). */
-export async function listDocuments(db: Queryable, orgId: string, rawQuery: unknown) {
+export async function listDocuments(
+  db: Queryable,
+  orgId: string,
+  rawQuery: unknown,
+  scope?: string[],
+) {
   const { branchId, kind, cursor, limit } = v.parse(documentsQuery, rawQuery);
   if (branchId) await requireBranch(db, orgId, branchId);
   const inBranch = and(
     eq(stockDocument.orgId, orgId),
     branchId ? eq(stockDocument.branchId, branchId) : undefined,
+    scope ? inArray(stockDocument.branchId, scope) : undefined,
   );
   const rows = await selectDocuments(db)
     .where(
@@ -118,14 +124,17 @@ export async function listDocuments(db: Queryable, orgId: string, rawQuery: unkn
   return { items, nextCursor: rows.length > limit ? items[limit - 1]!.id : null, counts };
 }
 
-/** One record with the movements it posted, by product name. A count line equal to on hand posted none. */
-export async function readDocument(db: Queryable, orgId: string, id: string, onlyBranch?: string) {
+/**
+ * One record with the movements it posted, by product name. A count line equal to on hand posted none. Outside
+ * `scope` (the caller's branches) it reads as not found.
+ */
+export async function readDocument(db: Queryable, orgId: string, id: string, scope?: string[]) {
   if (!v.is(uuidV7Schema, id)) throw new StockError("INVALID_REFERENCE", "Invalid stock record id");
   const [head] = await selectDocuments(db).where(
     and(
       eq(stockDocument.orgId, orgId),
       eq(stockDocument.id, id),
-      onlyBranch ? eq(stockDocument.branchId, onlyBranch) : undefined,
+      scope ? inArray(stockDocument.branchId, scope) : undefined,
     ),
   );
   if (!head) throw notFound("Stock record");

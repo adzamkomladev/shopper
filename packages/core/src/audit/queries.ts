@@ -1,14 +1,13 @@
-import { eq, sql, type SQL } from "drizzle-orm";
+import { and, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { branch, device, user } from "@shopper/db-pg";
-import type { AuditFilters } from "../schemas/audit/filters";
 import type { Queryable } from "../types";
-import type { AuditDetail, AuditItem } from "./types";
+import type { AuditDetail, AuditItem, ScopedAuditFilters } from "./types";
 
 /**
  * One page of the merged log (the org chain and every uploaded register chain), newest first by UUIDv7, with the
  * actor, approver, device and branch named. `next` is the cursor for the following page, or null at the end.
  */
-export async function listAudit(db: Queryable, orgId: string, filters: AuditFilters) {
+export async function listAudit(db: Queryable, orgId: string, filters: ScopedAuditFilters) {
   const rows = await select(db, orgId, filters, filters.limit + 1);
   return {
     entries: rows.slice(0, filters.limit).map(item),
@@ -17,7 +16,7 @@ export async function listAudit(db: Queryable, orgId: string, filters: AuditFilt
 }
 
 /** `listAudit` with each entry's full detail, for exports. */
-export async function listAuditDetails(db: Queryable, orgId: string, filters: AuditFilters) {
+export async function listAuditDetails(db: Queryable, orgId: string, filters: ScopedAuditFilters) {
   const rows = await select(db, orgId, filters, filters.limit + 1);
   return {
     entries: rows.slice(0, filters.limit).map(detail),
@@ -26,13 +25,13 @@ export async function listAuditDetails(db: Queryable, orgId: string, filters: Au
 }
 
 /** One entry with what it changed, its payload and its place in its chain. */
-export async function readAudit(db: Queryable, orgId: string, id: string) {
-  const [row] = await select(db, orgId, {}, 1, sql`e.id = ${id}::uuid`);
+export async function readAudit(db: Queryable, orgId: string, id: string, scope?: string[]) {
+  const [row] = await select(db, orgId, { scope }, 1, sql`e.id = ${id}::uuid`);
   return row ? detail(row) : null;
 }
 
 /** What the filters can offer: members, registers and branches by name, and the commands, entities and roles seen. */
-export async function auditFacets(db: Queryable, orgId: string) {
+export async function auditFacets(db: Queryable, orgId: string, scope?: string[]) {
   const seen = (column: "command" | "entity" | "role") =>
     db
       .execute<{ value: string }>(
@@ -49,12 +48,12 @@ export async function auditFacets(db: Queryable, orgId: string) {
     db
       .select({ id: device.id, name: device.name })
       .from(device)
-      .where(eq(device.orgId, orgId))
+      .where(and(eq(device.orgId, orgId), scope ? inArray(device.branchId, scope) : undefined))
       .orderBy(device.name),
     db
       .select({ id: branch.id, name: branch.name })
       .from(branch)
-      .where(eq(branch.orgId, orgId))
+      .where(and(eq(branch.orgId, orgId), scope ? inArray(branch.id, scope) : undefined))
       .orderBy(branch.name),
     seen("command"),
     seen("entity"),
@@ -139,7 +138,7 @@ const merged = (orgId: string) => sql`
 async function select(
   db: Queryable,
   orgId: string,
-  filters: Partial<AuditFilters>,
+  filters: Partial<ScopedAuditFilters>,
   limit: number,
   extra?: SQL,
 ) {
@@ -149,6 +148,12 @@ async function select(
     filters.role && sql`e.role = ${filters.role}`,
     filters.device && sql`(e.device_id = ${filters.device} OR e.stream = ${filters.device})`,
     filters.branch && sql`e.branch_id = ${filters.branch}`,
+    // Entries with no branch (org-level changes) are outside every branch scope.
+    filters.scope &&
+      sql`e.branch_id IN (${sql.join(
+        filters.scope.map((id) => sql`${id}::uuid`),
+        sql`, `,
+      )})`,
     filters.entity && sql`e.entity = ${filters.entity}`,
     filters.entityId && sql`e.entity_id = ${filters.entityId}`,
     filters.command && sql`e.command = ${filters.command}`,

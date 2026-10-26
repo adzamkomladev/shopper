@@ -12,6 +12,7 @@ import {
 } from "@shopper/core/audit";
 import { managementId } from "@shopper/core/management";
 import type { ShopperDatabase } from "@shopper/db-pg";
+import { branchScope, requireOrgWide } from "../middleware/require/branches";
 import { requirePermission } from "../middleware/require/permission";
 import { auditStreamQuery } from "../schemas/audit";
 import type { ApiAuthentication, ApiEnvironment } from "../types";
@@ -25,12 +26,15 @@ export function auditRoutes(
   app.use("/audit", requirePermission(authentication, "audit.read"));
   app.use("/audit/*", requirePermission(authentication, "audit.read"));
   const orgId = (c: Context<ApiEnvironment>) => c.get("principal").orgId;
+  const scope = (c: Context<ApiEnvironment>) => branchScope(c.get("principal"));
+  // A chain spans every branch it touched: verifying one is for org-wide members.
+  app.use("/audit/streams", requireOrgWide).use("/audit/verify", requireOrgWide);
   app.get("/audit", async (c) => {
     const filters = v.safeParse(auditFilters, c.req.query());
     if (!filters.success) return c.json({ error: "Invalid audit filters" }, 400);
-    return c.json(await listAudit(database, orgId(c), filters.output));
+    return c.json(await listAudit(database, orgId(c), { ...filters.output, scope: scope(c) }));
   });
-  app.get("/audit/facets", async (c) => c.json(await auditFacets(database, orgId(c))));
+  app.get("/audit/facets", async (c) => c.json(await auditFacets(database, orgId(c), scope(c))));
   app.get("/audit/streams", async (c) => c.json(await auditStreams(database, orgId(c))));
   app.get("/audit/verify", async (c) => {
     const query = v.safeParse(auditStreamQuery, c.req.query());
@@ -44,14 +48,15 @@ export function auditRoutes(
     c.header("content-type", "text/csv; charset=utf-8");
     c.header("content-disposition", 'attachment; filename="audit.csv"');
     const org = orgId(c);
+    const scoped = { ...filters.output, scope: scope(c) };
     return stream(c, async (out) => {
-      for await (const chunk of auditCsv(database, org, filters.output)) await out.write(chunk);
+      for await (const chunk of auditCsv(database, org, scoped)) await out.write(chunk);
     });
   });
   app.get("/audit/:id", async (c) => {
     const id = v.safeParse(managementId, c.req.param("id"));
     if (!id.success) return c.json({ error: "Invalid audit entry id" }, 400);
-    const found = await readAudit(database, orgId(c), id.output);
+    const found = await readAudit(database, orgId(c), id.output, scope(c));
     return found ? c.json(found) : c.json({ error: "Audit entry not found" }, 404);
   });
   return app;

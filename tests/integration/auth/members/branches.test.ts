@@ -65,6 +65,15 @@ test("a scoped admin grants only within their own branches and never manages a w
   expect((await scope("admin", [a!])).status).toBe(200);
   const admin = await signIn(auth, "admin@example.com");
   cookies.set("admin", admin);
+  // What the access editor offers: the admin's own branches; the owner every branch.
+  const offered = async (as: string) =>
+    (
+      (await (await request(api, cookies.get(as)!, "/users/branches")).json()) as {
+        branches: { id: string }[];
+      }
+    ).branches.map((row) => row.id);
+  expect(await offered("admin")).toEqual([a]);
+  expect(await offered("superadmin")).toEqual(expect.arrayContaining([a, b]));
   // The accountant is org-wide, wider than the admin: hands off, their role included.
   expect((await scope("accountant", [a!], "admin")).status).toBe(403);
   const accountant = await userOf("accountant");

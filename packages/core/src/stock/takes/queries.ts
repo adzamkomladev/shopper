@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { and, asc, desc, eq, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { branch, category, product, stockTake, stockTakeLine, user } from "@shopper/db-pg";
 import { mulQty } from "@shopper/money";
 import { uuidV7Schema } from "@shopper/ports";
@@ -48,8 +48,8 @@ const summary = <T extends { startedAt: Date; closedAt: Date | null }>(row: T) =
   closedAt: iso(row.closedAt),
 });
 
-/** Stock takes, newest first, keyset-paged by id; a till (`onlyBranch`) sees its own branch's. */
-export async function listTakes(db: Queryable, orgId: string, rawQuery: unknown) {
+/** Stock takes, newest first, keyset-paged by id; limited to `scope` (the caller's branches) when given. */
+export async function listTakes(db: Queryable, orgId: string, rawQuery: unknown, scope?: string[]) {
   const { branchId, status, cursor, limit } = v.parse(takesQuery, rawQuery);
   if (branchId) await requireBranch(db, orgId, branchId);
   const rows = await selectTakes(db)
@@ -57,6 +57,7 @@ export async function listTakes(db: Queryable, orgId: string, rawQuery: unknown)
       and(
         eq(stockTake.orgId, orgId),
         branchId ? eq(stockTake.branchId, branchId) : undefined,
+        scope ? inArray(stockTake.branchId, scope) : undefined,
         status ? eq(stockTake.status, status) : undefined,
         cursor ? lt(stockTake.id, cursor) : undefined,
       ),
@@ -71,13 +72,13 @@ export async function listTakes(db: Queryable, orgId: string, rawQuery: unknown)
  * A take with its sheet. Open, expected is on hand at the line's countedAt (now when uncounted) and
  * moves with late sales; posted, the stored expected is shown. Value is variance at the last cost.
  */
-export async function readTake(db: Queryable, orgId: string, id: string, onlyBranch?: string) {
+export async function readTake(db: Queryable, orgId: string, id: string, scope?: string[]) {
   if (!v.is(uuidV7Schema, id)) throw new StockError("INVALID_REFERENCE", "Invalid stock take id");
   const [head] = await selectTakes(db).where(
     and(
       eq(stockTake.orgId, orgId),
       eq(stockTake.id, id),
-      onlyBranch ? eq(stockTake.branchId, onlyBranch) : undefined,
+      scope ? inArray(stockTake.branchId, scope) : undefined,
     ),
   );
   if (!head) throw new StockError("NOT_FOUND", "Stock take not found");

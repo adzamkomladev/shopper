@@ -8,7 +8,9 @@ import {
   listPermissions,
   grantedCodes,
 } from "@shopper/auth";
+import { stockBranches } from "@shopper/core/stock";
 import { uuidV7Schema } from "@shopper/ports";
+import { branchScope } from "../middleware/require/branches";
 import { requirePermission } from "../middleware/require/permission";
 import { problem } from "../middleware/problem";
 import type { ApiEnvironment, ApiOptions } from "../types";
@@ -30,6 +32,12 @@ export function administrationRoutes(options: ApiOptions) {
       return c.json(await read(options.database, c.get("principal").orgId));
     });
   }
+  // The branches someone managing access may grant: their own, or every branch.
+  app.get("/users/branches", requirePermission(options.authentication, "role.write"), async (c) => {
+    if (!options.database) return c.json({ error: "Database unavailable" }, 503);
+    const principal = c.get("principal");
+    return c.json(await stockBranches(options.database, principal.orgId, branchScope(principal)));
+  });
   app.get("/session/permissions", async (c) => {
     const principal = await options.authentication?.resolvePrincipal(c.req.raw);
     if (!principal) return c.json({ error: "Authentication required" }, 401);

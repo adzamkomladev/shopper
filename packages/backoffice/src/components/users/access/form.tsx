@@ -63,7 +63,7 @@ export function AccessForm({ member, roles, branches, onSaved }: Props) {
       }}
     >
       <FieldGroup className="flex-1 overflow-y-auto px-4">
-        {/* A member whose role the editor can't grant keeps it; it shows as the current choice only. */}
+        {/* A member whose role the editor can't grant keeps it as a choice beside the ones they can. */}
         <form.Field name="roleId">
           {(field) => (
             <SelectField
@@ -78,6 +78,7 @@ export function AccessForm({ member, roles, branches, onSaved }: Props) {
                       name: member.roleName,
                       protectedOwner: member.protectedOwner,
                     },
+                    ...roles,
                   ]
               ).map((role) => ({ value: role.id, label: roleLabel(role) }))}
             />

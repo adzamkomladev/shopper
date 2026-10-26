@@ -9,12 +9,13 @@ import type { AccessValues, StatusChange, UserView, Revealed, InviteValues } fro
 export type { AccessValues, StatusChange, UserView, Revealed, InviteValues } from "./types";
 import { issued, type InvitationView } from "../schemas/users";
 export { type InvitationView } from "../schemas/users";
-import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as v from "valibot";
 import { invitationIssueSchema, userListResponse } from "@shopper/auth/schemas";
 import { apiFetch } from "../api/client";
 import { permissionsQuery } from "./session/permissions";
+import { rolesQuery } from "./roles";
 import { currentShop } from "../stores/shops";
 
 // The list never carries a setup link, so even if the server one day adds it, it is dropped here.
@@ -37,6 +38,18 @@ export function invitationsQuery(shop = currentShop()) {
 
 /** What the users screen needs before it can draw. Roles load after, because naming them is optional. */
 export const usersScreenQueries = () => [usersQuery(), invitationsQuery(), permissionsQuery()];
+
+/**
+ * Starts the optional role choices and grantable branches beside the screen's own queries, without holding the
+ * screen for them, so they rarely arrive after it draws and push the table down.
+ */
+export async function prefetchAccessChoices(queryClient: QueryClient) {
+  // A failed permissions load is the route's error to show; here it only means nothing to start.
+  const held = await queryClient.ensureQueryData(permissionsQuery()).catch((): string[] => []);
+  if (held.includes("role.read")) void queryClient.prefetchQuery({ ...rolesQuery(), retry: false });
+  if (held.includes("role.write"))
+    void queryClient.prefetchQuery({ ...accessBranchesQuery(), retry: false });
+}
 
 /**
  * A setup link is a secret that opens an account. It goes straight to `reveal` (the dialog's own
@@ -136,9 +149,12 @@ export function useSaveAccess(member: UserView, onSaved: () => void) {
           body: { branchIds },
         });
     },
-    onSuccess: async () => {
+    onSuccess: () => {
       toast.success("Access updated");
       onSaved();
+    },
+    // The role can save and the branches then fail, so the list refetches either way.
+    onSettled: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["users"] }),
         queryClient.invalidateQueries({ queryKey: ["roles"] }),

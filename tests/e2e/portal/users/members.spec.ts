@@ -61,10 +61,7 @@ test.describe("as the owner of E2E Mart", () => {
     await expect(dialog(page)).toBeVisible();
   });
 
-  test("the access sheet starts on the role the member holds now", async ({
-    page,
-    request,
-  }) => {
+  test("the access sheet starts on the role the member holds now", async ({ page, request }) => {
     const member = await createStaff(request, "cashier", "Esi");
     await page.reload();
     await page.getByRole("button", { name: `Edit access for ${member.name}` }).click();

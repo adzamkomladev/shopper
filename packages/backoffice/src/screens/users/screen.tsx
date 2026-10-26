@@ -144,7 +144,8 @@ export function UsersScreen() {
                   : undefined
               }
               onStatus={
-                held.includes("user.write")
+                // The server checks the target's role against your own, which needs role.write too.
+                canWriteRoles && held.includes("user.write")
                   ? (change) => statusChange.show(change, statusButtonId(change.member.id))
                   : undefined
               }
@@ -201,7 +202,8 @@ export function UsersScreen() {
         {roleChange.value && (
           <AccessForm
             key={roleChange.value.id}
-            member={roleChange.value}
+            // The refetched row, so a retry after a partial save compares against what was saved.
+            member={everyone.find((m) => m.id === roleChange.value?.id) ?? roleChange.value}
             roles={grantableRoles}
             branches={branches}
             onSaved={() => roleChange.setOpen(false)}

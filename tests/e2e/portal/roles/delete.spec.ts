@@ -58,17 +58,19 @@ test.describe("as the owner of E2E Mart", () => {
 
   test("a group switches on at once, and the filter narrows the list", async ({ page }, info) => {
     await page.getByRole("button", { name: "New role" }).click();
-    const stock = dialog(page).getByRole("checkbox", { name: "Every Stock permission" });
+    const stock = dialog(page).getByRole("checkbox", {
+      name: "Every Products and stock permission",
+    });
     await stock.check();
     for (const toggle of await dialog(page)
-      .getByRole("group", { name: "Stock" })
+      .getByRole("group", { name: "Products and stock" })
       .getByRole("switch")
       .all())
       await expect(toggle).toBeChecked();
     await dialog(page).getByRole("switch", { name: "View stock" }).click();
     await expect(stock).toHaveAttribute("aria-checked", "mixed");
     await dialog(page).getByRole("searchbox", { name: "Filter permissions" }).fill("refund");
-    await expect(dialog(page).getByRole("group", { name: "Stock" })).toHaveCount(0);
+    await expect(dialog(page).getByRole("group", { name: "Products and stock" })).toHaveCount(0);
     await expect(dialog(page).getByRole("switch").first()).toBeVisible();
     for (const label of await dialog(page).getByRole("switch").all())
       await expect(label).toHaveAccessibleName(/refund/i);

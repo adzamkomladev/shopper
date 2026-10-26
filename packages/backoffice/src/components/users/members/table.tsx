@@ -10,7 +10,7 @@ type Props = {
   members: UserView[];
   /** Branch names by id; a branch the viewer can't see counts without a name. */
   branchNames: Map<string, string>;
-  /** Only members who may change roles get the button. */
+  /** Only members who may change roles get the button, and only on members inside their branches. */
   onEditAccess?: (member: UserView) => void;
   /** Starts a role check for the member; only members who may assign roles get it. */
   onVerify?: (member: UserView) => void;
@@ -34,6 +34,10 @@ export function MembersTable(props: Props) {
           <span className="flex flex-wrap items-center gap-2 text-muted-foreground">
             {row.original.email}
             {!row.original.emailVerified && <Badge variant="outline">Not verified</Badge>}
+            {/* Under md the Branches column folds into the name, so the actions stay on screen. */}
+            <span className="md:hidden">
+              · {branchesLabel(row.original.branchIds, branchNames)}
+            </span>
             {row.original.deactivatedAt && (
               <Badge variant="secondary">
                 Deactivated {formatDate(row.original.deactivatedAt)}
@@ -52,7 +56,7 @@ export function MembersTable(props: Props) {
     {
       id: "branches",
       header: "Branches",
-      meta: { className: "whitespace-normal" },
+      meta: { className: "hidden whitespace-normal md:table-cell" },
       cell: ({ row }) => branchesLabel(row.original.branchIds, branchNames),
     },
   ];
@@ -60,11 +64,13 @@ export function MembersTable(props: Props) {
     columns.push({
       id: "actions",
       header: () => <span className="sr-only">Actions</span>,
+      meta: { className: "whitespace-normal" },
       cell: ({ row }) => {
         const member = row.original;
         const action = member.deactivatedAt ? "reactivate" : "deactivate";
+        const reachable = within(self, member);
         return (
-          <div className="flex justify-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             {onVerify && !member.deactivatedAt && (
               <Button
                 variant="outline"
@@ -75,7 +81,7 @@ export function MembersTable(props: Props) {
                 Verify identity
               </Button>
             )}
-            {onEditAccess && !member.deactivatedAt && (
+            {onEditAccess && reachable && !member.deactivatedAt && (
               <Button
                 id={editButtonId(member.id)}
                 variant="outline"
@@ -87,6 +93,7 @@ export function MembersTable(props: Props) {
               </Button>
             )}
             {onStatus &&
+              reachable &&
               member.id !== self?.id &&
               (self?.protectedOwner || !member.protectedOwner) && (
                 <Button
@@ -112,6 +119,12 @@ export function MembersTable(props: Props) {
       className="max-h-96"
     />
   );
+}
+
+/** A branch-scoped manager reaches only members scoped inside their own branches; the server refuses the rest. */
+function within(self: UserView | undefined, member: UserView) {
+  if (!self?.branchIds.length) return true;
+  return member.branchIds.length > 0 && member.branchIds.every((id) => self.branchIds.includes(id));
 }
 
 function branchesLabel(ids: string[], names: Map<string, string>) {

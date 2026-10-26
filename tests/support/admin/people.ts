@@ -9,7 +9,14 @@ export type RoleRow = {
   protectedOwner: boolean;
   permissionCodes: string[];
 };
-export type UserRow = { id: string; name: string; email: string; roleName: string };
+export type UserRow = {
+  id: string;
+  name: string;
+  email: string;
+  roleName: string;
+  branchIds: string[];
+  deactivatedAt: string | null;
+};
 export type Invitation = {
   id: string;
   email: string;

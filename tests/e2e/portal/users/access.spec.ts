@@ -3,6 +3,20 @@ import { captureSizes, shopHeaders, unique } from "../../../support/admin";
 import { createStaff, dialog, listUsers, row, signInAs } from "../../../support/admin/people";
 import { BOX_API, BRANCH_NAME, OWNER_NAME, expectNoSeriousAxe } from "../../../support/e2e";
 
+/** Limits a member to the named branches through the real API, as the owner. */
+async function scope(request: APIRequestContext, userId: string, names: string[]) {
+  const headers = await shopHeaders(request);
+  const branches = (await (await request.get(`${BOX_API}/branches`, { headers })).json()) as {
+    id: string;
+    name: string;
+  }[];
+  const response = await request.put(`${BOX_API}/users/${userId}/branches`, {
+    headers,
+    data: { branchIds: branches.filter((b) => names.includes(b.name)).map((b) => b.id) },
+  });
+  expect(response.status(), await response.text()).toBe(200);
+}
+
 /** A second branch of E2E Mart's store, so access has something to choose between. */
 async function addBranch(request: APIRequestContext) {
   const headers = await shopHeaders(request);
@@ -45,10 +59,8 @@ test.describe("as the owner of E2E Mart", () => {
     await expect(dialog(page)).toBeHidden();
     await expect(row(page, member.name)).toContainText(BRANCH_NAME);
     await expect(trigger).toBeFocused();
-    const saved = (await listUsers(request)).find((user) => user.id === member.userId) as unknown as {
-      branchIds: string[];
-    };
-    expect(saved.branchIds).toHaveLength(1);
+    const saved = (await listUsers(request)).find((user) => user.id === member.userId);
+    expect(saved?.branchIds).toHaveLength(1);
   });
 
   test("limiting to no branch at all is refused before saving", async ({ page, request }) => {
@@ -91,7 +103,7 @@ test.describe("as the owner of E2E Mart", () => {
     await expect(row(page, member.name)).toHaveCount(0);
 
     await them.reload();
-    await expect(them.getByRole("heading", { name: /sign in/i }).first()).toBeVisible();
+    await expect(them.getByRole("heading", { name: "Log in to Shopper" })).toBeVisible();
     await theirs.close();
 
     await page.getByRole("tab", { name: /Deactivated/ }).click();
@@ -107,7 +119,36 @@ test.describe("as the owner of E2E Mart", () => {
       .getByRole("button", { name: "Reactivate" })
       .click();
     await expect(page.getByText(`${member.name} reactivated`)).toBeVisible();
-    await page.getByRole("tab", { name: /Active/ }).first().click();
+    await page
+      .getByRole("tab", { name: /Active/ })
+      .first()
+      .click();
     await expect(row(page, member.name)).toBeVisible();
   });
+});
+
+test("a branch-scoped admin manages only members inside their branches", async ({
+  browser,
+  request,
+}) => {
+  const other = await addBranch(request);
+  const admin = await createStaff(request, "admin", "Esi");
+  const inside = await createStaff(request, "cashier", "Kofi");
+  const everywhere = await createStaff(request, "cashier", "Abena");
+  await scope(request, admin.userId, [BRANCH_NAME]);
+  await scope(request, inside.userId, [BRANCH_NAME]);
+  const theirs = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+  const page = await theirs.newPage();
+  await signInAs(page, admin);
+  await page.goto("/users");
+  await expect(row(page, everywhere.name)).toContainText("All branches");
+  await expect(
+    page.getByRole("button", { name: `Edit access for ${everywhere.name}` }),
+  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: `Deactivate ${everywhere.name}` })).toHaveCount(0);
+  await page.getByRole("button", { name: `Edit access for ${inside.name}` }).click();
+  await expect(dialog(page).getByRole("switch", { name: "All branches" })).not.toBeChecked();
+  await expect(dialog(page).getByRole("checkbox", { name: BRANCH_NAME })).toBeChecked();
+  await expect(dialog(page).getByRole("checkbox", { name: other })).toHaveCount(0);
+  await theirs.close();
 });

@@ -2,11 +2,12 @@ import type { EnsureQueryDataOptions } from "@tanstack/react-query";
 import { createRoute, lazyRouteComponent, type AnyRoute } from "@tanstack/react-router";
 import { routeStates } from "../components/route/states";
 import { ListSkeleton } from "../components/admin/states";
+import { UsersSkeleton } from "../components/users/states";
 import { branchesQuery } from "../queries/branches";
 import { devicesScreenQueries } from "../queries/devices";
 import { rolesScreenQueries } from "../queries/roles";
 import { storesQuery } from "../queries/stores";
-import { usersScreenQueries } from "../queries/users";
+import { prefetchAccessChoices, usersScreenQueries } from "../queries/users";
 import { usersSearch } from "../schemas/users";
 import { permissionsQuery } from "../queries/session/permissions";
 import type { BackofficeContext } from "../types";
@@ -51,10 +52,13 @@ export function administrationRoutes(shopRoute: AnyRoute) {
     getParentRoute: () => shopRoute,
     path: "/users",
     validateSearch: usersSearch,
-    loader: ({ context }: Context) => loadAll(context, usersScreenQueries()),
+    loader: ({ context }: Context) => {
+      void prefetchAccessChoices(context.queryClient);
+      return loadAll(context, usersScreenQueries());
+    },
     component: lazyRouteComponent(() => import("../screens/users/screen"), "UsersScreen"),
     ...routeStates,
-    pendingComponent: () => <ListSkeleton label="Loading users" />,
+    pendingComponent: UsersSkeleton,
   });
   const rolesRoute = createRoute({
     getParentRoute: () => shopRoute,

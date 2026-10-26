@@ -1,4 +1,4 @@
-import { execFileSync, spawn, spawnSync, type ChildProcess } from "node:child_process";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { parentRenderer } from "@shopper/adapters-box/till";
@@ -8,23 +8,6 @@ const root = process.cwd();
 export const electronMain = resolve(root, "apps/till/electron/dist/main.js");
 // The `electron` package default export is the binary path; it downloads the binary on first use.
 const binary = createRequire(import.meta.url)("electron") as string;
-let built: Promise<void> | undefined;
-
-/** Bundles apps/till/electron and the host it forks, once per test process. */
-export function buildElectron() {
-  built ??= Promise.resolve().then(() => {
-    for (const [app, bundle] of [
-      ["host", "till-host"],
-      ["electron", "till-electron"],
-    ])
-      execFileSync(
-        "vp",
-        ["-C", `apps/till/${app}`, "exec", "node", "../../../tooling/build/server.mjs", bundle!],
-        { cwd: root, stdio: "pipe" },
-      );
-  });
-  return built;
-}
 
 const windows = process.platform === "win32";
 
@@ -33,7 +16,6 @@ const windows = process.platform === "win32";
  * under `xvfb-run -a`; Windows always has a desktop. `--no-sandbox` is for CI containers that run as root.
  */
 export async function launchElectron(env: Record<string, string>, args: string[] = []) {
-  await buildElectron();
   const electron = [binary, "--no-sandbox", "--disable-gpu", electronMain, ...args];
   const [command, ...rest] =
     windows || process.env.DISPLAY ? electron : ["xvfb-run", "-a", ...electron];

@@ -1,9 +1,8 @@
 import { and, eq, isNull, ne, sql } from "drizzle-orm";
-import * as v from "valibot";
-import { defineCommand, type CommandContext } from "@shopper/audit";
-import { cashierSession, member, role, session, type ShopperTransaction } from "@shopper/db-pg";
-import { uuidV7Schema } from "@shopper/ports";
-import { AdministrationError, assertCanGrantRole, assertHasPermission } from "../roles/service";
+import { defineCommand } from "@shopper/audit";
+import { cashierSession, member, role, session } from "@shopper/db-pg";
+import { AdministrationError } from "../roles/service";
+import { manageable } from "./target";
 
 /**
  * Stops a member signing in or acting anywhere: their portal sessions end and their live till sessions are cut
@@ -12,7 +11,7 @@ import { AdministrationError, assertCanGrantRole, assertHasPermission } from "..
 export const deactivateMember = defineCommand({
   name: "auth.member.deactivate",
   async run(tx, context, rawUserId: string) {
-    const target = await manageable(tx, context, rawUserId);
+    const target = await manageable(tx, context, rawUserId, "user.write");
     if (target.userId === context.actorId)
       throw new AdministrationError("You can't deactivate yourself", 409);
     if (target.protectedOwner && !target.deactivatedAt) {
@@ -58,7 +57,7 @@ export const deactivateMember = defineCommand({
 export const reactivateMember = defineCommand({
   name: "auth.member.reactivate",
   async run(tx, context, rawUserId: string) {
-    const target = await manageable(tx, context, rawUserId);
+    const target = await manageable(tx, context, rawUserId, "user.write");
     await tx
       .update(member)
       .set({ deactivatedAt: null })
@@ -68,27 +67,6 @@ export const reactivateMember = defineCommand({
   audit: (_input, output) => ({ userId: output.userId }),
   details: (_input, output) => ({ entity: "user", entityId: output.userId, ...output.change }),
 });
-
-/** The target's membership, once the actor may manage it: `user.write` and every permission its role holds. */
-async function manageable(tx: ShopperTransaction, context: CommandContext, rawUserId: string) {
-  const userId = v.parse(uuidV7Schema, rawUserId).toLowerCase();
-  await assertHasPermission(tx, context, "user.write");
-  const [target] = await tx
-    .select({
-      memberId: member.id,
-      userId: member.userId,
-      roleId: member.roleId,
-      protectedOwner: role.protectedOwner,
-      deactivatedAt: member.deactivatedAt,
-    })
-    .from(member)
-    .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
-    .where(and(eq(member.orgId, context.orgId), eq(member.userId, userId)))
-    .for("update", { of: member });
-  if (!target) throw new AdministrationError("User not found in this organization", 404);
-  await assertCanGrantRole(tx, context, target.roleId);
-  return target;
-}
 
 const status = (target: { userId: string; deactivatedAt: Date | null }, at: Date | null) => ({
   userId: target.userId,

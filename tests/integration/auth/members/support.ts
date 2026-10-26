@@ -19,6 +19,7 @@ export async function userOf(who: string) {
   const users = (await (await request(api, cookies.get("superadmin")!, "/users")).json()) as {
     id: string;
     email: string;
+    roleId: string;
     deactivatedAt: string | null;
     branchIds: string[];
   }[];

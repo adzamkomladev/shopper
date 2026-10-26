@@ -1,6 +1,7 @@
 import { and, asc, count, eq, isNull } from "drizzle-orm";
 import {
   member,
+  memberBranch,
   permission,
   role,
   rolePermission,
@@ -12,9 +13,10 @@ import { AdministrationError } from "./roles/service";
 
 type Database = ShopperDatabase | ShopperTransaction;
 
-export function listUsers(db: Database, orgId: string) {
-  return db
+export async function listUsers(db: Database, orgId: string) {
+  const rows = await db
     .select({
+      memberId: member.id,
       id: user.id,
       name: user.name,
       email: user.email,
@@ -29,6 +31,15 @@ export function listUsers(db: Database, orgId: string) {
     .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
     .where(eq(user.orgId, orgId))
     .orderBy(asc(user.name), asc(user.id));
+  const scopes = await db
+    .select({ memberId: memberBranch.memberId, branchId: memberBranch.branchId })
+    .from(memberBranch)
+    .where(eq(memberBranch.orgId, orgId))
+    .orderBy(asc(memberBranch.branchId));
+  return rows.map(({ memberId, ...row }) => ({
+    ...row,
+    branchIds: scopes.filter((scope) => scope.memberId === memberId).map((scope) => scope.branchId),
+  }));
 }
 
 export async function listRoles(db: Database, orgId: string) {

@@ -9,7 +9,7 @@ export const approvalPermissions = [
   "shift.approve",
 ] as const;
 
-/** `GET /sync/approvers`: who can approve with a PIN, and for which actions. */
+/** `GET /sync/approvers`: who can approve with a PIN, for which actions, and who may still sign in at the register. */
 export const approverList = v.strictObject({
   approvers: v.array(
     v.strictObject({
@@ -19,5 +19,7 @@ export const approverList = v.strictObject({
       permissions: v.array(v.string()),
     }),
   ),
+  /** Absent from a server older than Day 21; the till then keeps its offline sign-ins as they are. */
+  staff: v.optional(v.array(tillId)),
 });
 export type ApproverList = v.InferOutput<typeof approverList>;

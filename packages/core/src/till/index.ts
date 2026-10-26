@@ -64,7 +64,14 @@ export {
   markStockDocumentRejected,
   queueStockDocument,
 } from "./stock";
-export { failStaffSignIn, readStaff, readStoredSession, signInStaff, signOutStaff } from "./staff";
+export {
+  failStaffSignIn,
+  forgetStaff,
+  readStaff,
+  readStoredSession,
+  signInStaff,
+  signOutStaff,
+} from "./staff";
 export { approve, authorize, LOCK_MS, MAX_FAILURES } from "./approvals";
 export { readApprovers, refreshApprovers } from "./approvers";
 export {

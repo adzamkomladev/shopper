@@ -5,6 +5,7 @@ import {
   deactivateMember,
   deleteRole,
   reactivateMember,
+  setMemberBranches,
   updateRole,
 } from "@shopper/auth";
 import { roleAssignmentInput } from "@shopper/auth/schemas";
@@ -69,6 +70,19 @@ export const administrationWrites: {
       }),
       status: 200,
     }),
+  },
+  {
+    method: "PUT",
+    path: "/users/:id/branches",
+    code: "role.write",
+    json: true,
+    run: async (db, context, id, body) => {
+      const { userId, branchIds } = await setMemberBranches(db, context, {
+        userId: id,
+        data: body,
+      });
+      return { body: { userId, branchIds }, status: 200 };
+    },
   },
   ...(
     [

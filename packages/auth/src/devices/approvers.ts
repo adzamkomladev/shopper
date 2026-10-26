@@ -8,9 +8,13 @@ import {
   type ShopperDatabase,
 } from "@shopper/db-pg";
 import { approvalPermissions } from "@shopper/core/schemas";
+import { atBranch } from "../members/target";
 
-/** Active members with a PIN and a till-allowed approval grant: what a register keeps to approve offline. */
-export async function listApprovers(db: ShopperDatabase, orgId: string) {
+/**
+ * Active members allowed at the register's branch with a PIN and a till-allowed approval grant: what it keeps to
+ * approve offline.
+ */
+export async function listApprovers(db: ShopperDatabase, orgId: string, branchId: string) {
   const rows = await db
     .select({
       userId: cashierPin.userId,
@@ -37,7 +41,7 @@ export async function listApprovers(db: ShopperDatabase, orgId: string) {
         inArray(permission.code, [...approvalPermissions]),
       ),
     )
-    .where(and(eq(cashierPin.orgId, orgId), isNull(member.deactivatedAt)));
+    .where(and(eq(cashierPin.orgId, orgId), isNull(member.deactivatedAt), atBranch(db, branchId)));
   const approvers = new Map<
     string,
     { userId: string; name: string; pinHash: string; permissions: string[] }
@@ -48,4 +52,13 @@ export async function listApprovers(db: ShopperDatabase, orgId: string) {
     approvers.set(row.userId, approver);
   }
   return [...approvers.values()];
+}
+
+/** Who may still sign in at the register's branch: a till forgets everyone else's offline sign-in. */
+export async function listStaff(db: ShopperDatabase, orgId: string, branchId: string) {
+  const rows = await db
+    .select({ userId: member.userId })
+    .from(member)
+    .where(and(eq(member.orgId, orgId), isNull(member.deactivatedAt), atBranch(db, branchId)));
+  return rows.map((row) => row.userId);
 }

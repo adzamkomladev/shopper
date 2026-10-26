@@ -7,6 +7,7 @@ import { AuthRollback, mutating } from "./request";
 import { buildAuth } from "./better/auth";
 import { constantTimeEqual, response } from "./http";
 import { grantedCodes } from "../roles/service";
+import { memberBranchIds } from "../members/target";
 import type { AuthPrincipal, CreateAuthOptions } from "../types";
 
 export function createAuth(input: CreateAuthOptions) {
@@ -82,14 +83,15 @@ export function createAuth(input: CreateAuthOptions) {
           ),
         )
         .limit(1);
-      return membership
-        ? {
-            orgId,
-            userId: sessionResult.user.id,
-            roleId: membership.roleId,
-            roleName: membership.roleName,
-          }
-        : null;
+      if (!membership) return null;
+      const branchIds = await memberBranchIds(input.database, orgId, sessionResult.user.id);
+      return {
+        orgId,
+        userId: sessionResult.user.id,
+        roleId: membership.roleId,
+        roleName: membership.roleName,
+        branchIds: branchIds.length ? branchIds : null,
+      };
     },
     async hasPermission(principal: AuthPrincipal, code: string): Promise<boolean> {
       if (principal.orgId !== orgId) return false;

@@ -5,6 +5,7 @@ export { createDeviceService } from "./devices/service";
 export type { AuthPrincipal, CreateAuthOptions } from "./types";
 export { createRole, deleteRole, updateRole } from "./roles/commands";
 export { deactivateMember, reactivateMember } from "./members/status";
+export { setMemberBranches } from "./members/branches";
 export { listUsers, listRoles, listPermissions } from "./administration";
 export {
   AdministrationError,

@@ -5,12 +5,17 @@ import { defineCommand, type CommandContext } from "@shopper/audit";
 import { account, member, role, user, type ShopperTransaction } from "@shopper/db-pg";
 import { assignRoleInput, registerUserInput } from "./schemas/users";
 import { assertCanGrantRole, assertHasPermission, AdministrationError } from "./roles/service";
+import { assertWithin, memberBranchIds } from "./members/target";
 
 export const assignMemberRole = defineCommand({
   name: "auth.member.assign-role",
   async run(tx, context, rawInput: unknown) {
     const input = v.parse(assignRoleInput, rawInput);
     await assertHasPermission(tx, context, "role.write");
+    // A branch-scoped actor changes roles only for members inside their own branches.
+    const actorScope = await memberBranchIds(tx, context.orgId, context.actorId!);
+    if (actorScope.length)
+      assertWithin(actorScope, await memberBranchIds(tx, context.orgId, input.userId));
     return grantMemberRole(tx, context, input);
   },
   audit: (input, output) => ({ userId: output.userId, roleId: output.roleId }),

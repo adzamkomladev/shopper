@@ -1,4 +1,4 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, ne, notInArray } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit/sqlite";
 import { hostSession, tillStaff, type TillDatabase } from "@shopper/db-sqlite";
 import type { TillSession } from "../schemas/till/session";
@@ -99,4 +99,17 @@ export const signOutStaff = defineCommand({
   async run() {},
   audit: (input: { userId: string; sessionId: string }) => input,
   details: (input) => ({ entity: "session", entityId: input.sessionId }),
+});
+
+/** Forgets the offline sign-in of everyone not in `staff`: deactivated, or no longer allowed at this register. */
+export const forgetStaff = defineCommand({
+  name: "till.staff.forget",
+  async run(tx, context, input: { staff: string[] }) {
+    const forgotten = await tx
+      .delete(tillStaff)
+      .where(and(eq(tillStaff.orgId, context.orgId), notInArray(tillStaff.userId, input.staff)))
+      .returning({ userId: tillStaff.userId });
+    return forgotten.map((row) => row.userId);
+  },
+  audit: (_input, forgotten) => ({ userIds: forgotten }),
 });

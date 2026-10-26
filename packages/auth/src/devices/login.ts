@@ -12,6 +12,7 @@ import {
   cashierSession,
   type ShopperTransaction,
 } from "@shopper/db-pg";
+import { memberBranchIds } from "../members/target";
 import { cashierLoginInput } from "../schemas/devices";
 import { digest, minutes, randomToken } from "./commands";
 import { deactivated, passwordIdentity } from "./password";
@@ -42,6 +43,9 @@ export const loginCommand = defineCommand({
         : await pinIdentity(tx, c.orgId, input);
     if ("error" in identity) return identity;
     const { userId, name, roleId, roleName } = identity;
+    const branches = await memberBranchIds(tx, c.orgId, userId);
+    if (branches.length && !branches.includes(c.branchId!))
+      return { error: "Not allowed at this branch", status: 403 as const };
     c.actorId = userId.toLowerCase();
     c.role = roleName;
     const grants = await tx

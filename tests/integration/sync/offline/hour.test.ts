@@ -48,6 +48,8 @@ test("a till offline for one hour converges exactly after exhausting its receipt
   till = await tillFile();
   const host = await hostConfiguration("unused", [], server.url, { freshSession: true });
   if (!host.session) throw new Error("Gate requires a cashier session");
+  // The PIN login stamps the session with the wall clock; a slow login would otherwise start it after the first sale.
+  clock = Math.max(clock, Date.parse(host.session.issuedAt));
   await insertOpenShift(till.database, {
     orgId: context.orgId,
     deviceId,

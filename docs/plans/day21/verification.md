@@ -69,3 +69,18 @@ Result (26 Oct): the roles and users folders are green, 48 tests. Two specs
 (`users/grantable/roles.spec.ts` "loading feedback" and `users/mobile/navigation.spec.ts`) timed out
 waiting for the app shell while the machine's load average was about 30 on 8 cores, with a second
 portal stack running. Rerun alone, all 8 tests in those files passed.
+
+## Full integration run (26 Oct, shared machine)
+
+Grouped runs: 2,042 of 2,071 tests passed on the first pass.
+
+- `sync/offline/hour.test.ts` failed when the PIN login took over a second: its session started after
+  the test's first sale. The test now starts its clock no earlier than the session (a race in the
+  test, fixed). Every other failure was a timeout: `sync/push`, `sync/volume`,
+  `workflows/price/change/edges` (a 1 s budget took 1.13 s), and the workerd suite (`lane.test.ts`
+  at its 5 s limit). Three other sessions were sharing this machine's Postgres container and CPU.
+  None of these paths changed on Day 21 except discount and override approvals; plain sales are
+  untouched.
+- Electron and native-render tests cannot start here: Electron as root needs its sandbox off, which
+  this machine's permissions refuse. Day 21 does not touch them.
+- CI runs the whole suite on clean runners.

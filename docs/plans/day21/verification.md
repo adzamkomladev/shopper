@@ -72,7 +72,7 @@ portal stack running. Rerun alone, all 8 tests in those files passed.
 
 ## Full integration run (26 Oct, shared machine)
 
-Grouped runs: 2,042 of 2,071 tests passed on the first pass.
+Grouped runs, first pass: 1,433 of 1,464 tests passed, 25 failed and 6 were skipped.
 
 - `sync/offline/hour.test.ts` failed when the PIN login took over a second: its session started after
   the test's first sale. The test now starts its clock no earlier than the session (a race in the

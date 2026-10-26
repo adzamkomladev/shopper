@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { hashPassword } from "better-auth/crypto";
 import * as v from "valibot";
 import { defineCommand, type CommandContext } from "@shopper/audit";
@@ -45,12 +45,21 @@ export async function grantMemberRole(
     .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
     .where(and(eq(member.orgId, context.orgId), eq(member.userId, input.userId)));
   if (previous?.protectedOwner && !targetRole.protectedOwner) {
-    const owners = await tx
+    // Another active owner must remain: a deactivated one can't run the organization.
+    const [other] = await tx
       .select({ id: member.id })
       .from(member)
       .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
-      .where(and(eq(member.orgId, context.orgId), eq(role.protectedOwner, true)));
-    if (owners.length <= 1) throw new AdministrationError("The last owner cannot be demoted", 409);
+      .where(
+        and(
+          eq(member.orgId, context.orgId),
+          eq(role.protectedOwner, true),
+          isNull(member.deactivatedAt),
+          ne(member.userId, input.userId),
+        ),
+      )
+      .limit(1);
+    if (!other) throw new AdministrationError("The last owner cannot be demoted", 409);
   }
   const [assigned] = await tx
     .insert(member)

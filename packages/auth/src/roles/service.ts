@@ -84,14 +84,21 @@ export const seedAuthRoles = defineCommand({
   audit: (_input, output) => output,
 });
 
-/** Permission codes a member holds through role_permission. Till sessions only get till-allowed codes. */
+/**
+ * Permission codes an active member holds through role_permission; a deactivated member holds none. Till sessions
+ * only get till-allowed codes.
+ */
 export function grantedCodes(
   db: ShopperDatabase | ShopperTransaction,
   orgId: string,
   userId: string,
   options: { deviceId?: string; roleId?: string; code?: string } = {},
 ) {
-  const conditions = [eq(member.orgId, orgId), eq(member.userId, userId)];
+  const conditions = [
+    eq(member.orgId, orgId),
+    eq(member.userId, userId),
+    isNull(member.deactivatedAt),
+  ];
   if (options.roleId) conditions.push(eq(member.roleId, options.roleId));
   if (options.code) conditions.push(eq(permission.code, options.code));
   if (options.deviceId) conditions.push(eq(permission.tillAllowed, true));

@@ -1,6 +1,8 @@
 // GET /sync/approvers -> { approvers: [{ userId, name, pinHash, permissions }] } (device credential required) and
 // refreshApprovers({ database, config }) -> boolean, which replaces the till's approver list from it.
 import { expect, test } from "vite-plus/test";
+import { eq } from "drizzle-orm";
+import { member } from "@shopper/db-pg";
 import { refreshApprovers } from "@shopper/sync";
 import { verifyPin } from "@shopper/auth/devices";
 import { approve } from "@shopper/core/till";
@@ -13,6 +15,7 @@ import {
   api,
   appVersion,
   context,
+  databases,
   deviceId,
   deviceToken,
   devices,
@@ -69,6 +72,21 @@ test("shift.approve reaches the till for a manager who holds it and approves a s
       verifyPin,
     );
     expect(approved).toBe(managerId);
+  });
+});
+
+test("a deactivated manager drops off the till's approvers at its next refresh", async () => {
+  const managerId = await memberWithPin("Efua Manager", "admin", "2468");
+  const { db } = databases();
+  await withTill(async (database) => {
+    await refresh(database);
+    expect((await stored(database)).map((row) => row.userId)).toContain(managerId);
+    await db
+      .update(member)
+      .set({ deactivatedAt: new Date() })
+      .where(eq(member.userId, managerId));
+    await refresh(database);
+    expect((await stored(database)).map((row) => row.userId)).not.toContain(managerId);
   });
 });
 

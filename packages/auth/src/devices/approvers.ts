@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import {
   cashierPin,
   member,
@@ -9,7 +9,7 @@ import {
 } from "@shopper/db-pg";
 import { approvalPermissions } from "@shopper/core/schemas";
 
-/** Members with a PIN and a till-allowed approval grant: what a register keeps to approve offline. */
+/** Active members with a PIN and a till-allowed approval grant: what a register keeps to approve offline. */
 export async function listApprovers(db: ShopperDatabase, orgId: string) {
   const rows = await db
     .select({
@@ -37,7 +37,7 @@ export async function listApprovers(db: ShopperDatabase, orgId: string) {
         inArray(permission.code, [...approvalPermissions]),
       ),
     )
-    .where(eq(cashierPin.orgId, orgId));
+    .where(and(eq(cashierPin.orgId, orgId), isNull(member.deactivatedAt)));
   const approvers = new Map<
     string,
     { userId: string; name: string; pinHash: string; permissions: string[] }

@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull, or } from "drizzle-orm";
 import type { CommandContext } from "@shopper/audit";
 import {
   branch,
@@ -75,6 +75,7 @@ export async function hasGrant(
   orgId: string,
   userId: string,
   code: string,
+  at: Date,
 ) {
   const [granted] = await tx
     .select({ id: permission.id })
@@ -90,7 +91,15 @@ export async function hasGrant(
         eq(permission.id, rolePermission.permissionId),
       ),
     )
-    .where(and(eq(member.orgId, orgId), eq(member.userId, userId), eq(permission.code, code)));
+    .where(
+      and(
+        eq(member.orgId, orgId),
+        eq(member.userId, userId),
+        eq(permission.code, code),
+        // Historical: a grant used before the member was deactivated still holds when it uploads later.
+        or(isNull(member.deactivatedAt), gt(member.deactivatedAt, at)),
+      ),
+    );
   return !!granted;
 }
 
@@ -103,12 +112,13 @@ export async function overrideAuthority(
   ctx: CommandContext,
   session: { permissions: string[] },
   snapshot: SaleSnapshot,
+  at: Date,
 ) {
   for (const { approverId } of overrideList(snapshot)) {
     const allowed = approverId
-      ? await hasGrant(tx, ctx.orgId, approverId, "sale.price_override")
+      ? await hasGrant(tx, ctx.orgId, approverId, "sale.price_override", at)
       : session.permissions.includes("sale.price_override") &&
-        (await hasGrant(tx, ctx.orgId, snapshot.cashierId, "sale.price_override"));
+        (await hasGrant(tx, ctx.orgId, snapshot.cashierId, "sale.price_override", at));
     if (!allowed)
       throw new SaleError("INVALID_SESSION", "Price override lacks approver permission");
   }

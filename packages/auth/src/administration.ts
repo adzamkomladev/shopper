@@ -22,6 +22,7 @@ export function listUsers(db: Database, orgId: string) {
       roleId: role.id,
       roleName: role.name,
       protectedOwner: role.protectedOwner,
+      deactivatedAt: member.deactivatedAt,
     })
     .from(user)
     .innerJoin(member, and(eq(member.orgId, user.orgId), eq(member.userId, user.id)))

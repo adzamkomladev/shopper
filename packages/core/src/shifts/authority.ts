@@ -30,7 +30,7 @@ export async function validateShiftAuthority(
     "shift.write",
   );
   if (report.approverId) {
-    if (!(await hasGrant(tx, ctx.orgId, report.approverId, "shift.approve")))
+    if (!(await hasGrant(tx, ctx.orgId, report.approverId, "shift.approve", new Date(report.closedAt))))
       throw new SaleError("INVALID_SESSION", "Shift approver lacks shift.approve");
     ctx.approverId = report.approverId;
   }

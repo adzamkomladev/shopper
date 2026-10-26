@@ -1,5 +1,12 @@
 import * as v from "valibot";
-import { assignMemberRole, createRole, deleteRole, updateRole } from "@shopper/auth";
+import {
+  assignMemberRole,
+  createRole,
+  deactivateMember,
+  deleteRole,
+  reactivateMember,
+  updateRole,
+} from "@shopper/auth";
 import { roleAssignmentInput } from "@shopper/auth/schemas";
 import type { ShopperDatabase } from "@shopper/db-pg";
 
@@ -63,4 +70,19 @@ export const administrationWrites: {
       status: 200,
     }),
   },
+  ...(
+    [
+      ["deactivate", deactivateMember],
+      ["reactivate", reactivateMember],
+    ] as const
+  ).map(([action, command]) => ({
+    method: "POST" as const,
+    path: `/users/:id/${action}`,
+    code: "user.write",
+    json: false,
+    run: async (db: ShopperDatabase, context: CommandContext, id: string) => ({
+      body: await command(db, context, id),
+      status: 200 as const,
+    }),
+  })),
 ];

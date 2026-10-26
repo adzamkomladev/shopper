@@ -4,6 +4,7 @@ export { assignMemberRole, registerOrganizationUser } from "./users";
 export { createDeviceService } from "./devices/service";
 export type { AuthPrincipal, CreateAuthOptions } from "./types";
 export { createRole, deleteRole, updateRole } from "./roles/commands";
+export { deactivateMember, reactivateMember } from "./members/status";
 export { listUsers, listRoles, listPermissions } from "./administration";
 export {
   AdministrationError,

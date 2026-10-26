@@ -45,11 +45,18 @@ export const mutating = defineCommand({
       }
       if (typeof responseUserId === "string" && v.safeParse(uuidV7Schema, responseUserId).success) {
         const [membership] = await tx
-          .select({ userId: member.userId, roleName: role.name })
+          .select({
+            userId: member.userId,
+            roleName: role.name,
+            deactivatedAt: member.deactivatedAt,
+          })
           .from(member)
           .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
           .where(and(eq(member.orgId, context.orgId), eq(member.userId, responseUserId)))
           .limit(1);
+        // Better Auth knows nothing of deactivation: refuse here, and the new session rolls back with the command.
+        if (membership?.deactivatedAt)
+          throw new AuthRollback(response({ error: "This account is deactivated" }, 403));
         if (membership) {
           context.actorId = membership.userId;
           context.role = membership.roleName;

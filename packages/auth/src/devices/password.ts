@@ -7,6 +7,8 @@ import { minutes } from "./commands";
 import type { Identity, Rejected } from "./types";
 
 const invalid = "Invalid email or password";
+/** Told only after the credential verifies, so it never reveals which accounts exist. */
+export const deactivated = "Account deactivated";
 // Verified against when the email is unknown, so both failures cost one scrypt run.
 const decoy = hashPassword("decoy-password");
 
@@ -25,6 +27,7 @@ export async function passwordIdentity(
       hash: account.password,
       roleId: role.id,
       roleName: role.name,
+      deactivatedAt: member.deactivatedAt,
     })
     .from(user)
     .innerJoin(member, and(eq(member.orgId, user.orgId), eq(member.userId, user.id)))
@@ -69,5 +72,6 @@ export async function passwordIdentity(
     .update(user)
     .set({ passwordAttempts: 0, passwordLockedUntil: null })
     .where(and(eq(user.orgId, orgId), eq(user.id, found.id)));
+  if (found.deactivatedAt) return { error: deactivated, status: 403 };
   return { userId: found.id, name: found.name, roleId: found.roleId, roleName: found.roleName };
 }

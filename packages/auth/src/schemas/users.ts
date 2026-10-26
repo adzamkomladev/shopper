@@ -17,5 +17,7 @@ export const userListItem = v.object({
   roleId: uuidV7Schema,
   roleName: v.string(),
   protectedOwner: v.boolean(),
+  /** When the member was deactivated (ISO), or null while active. */
+  deactivatedAt: v.nullable(v.string()),
 });
 export const userListResponse = v.array(userListItem);

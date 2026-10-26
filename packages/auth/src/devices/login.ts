@@ -14,7 +14,7 @@ import {
 } from "@shopper/db-pg";
 import { cashierLoginInput } from "../schemas/devices";
 import { digest, minutes, randomToken } from "./commands";
-import { passwordIdentity } from "./password";
+import { deactivated, passwordIdentity } from "./password";
 import { verifyPin } from "./pin";
 import type { Identity, Rejected } from "./types";
 
@@ -132,7 +132,12 @@ async function pinIdentity(
     };
   }
   const [membership] = await tx
-    .select({ roleId: member.roleId, roleName: role.name, name: user.name })
+    .select({
+      roleId: member.roleId,
+      roleName: role.name,
+      name: user.name,
+      deactivatedAt: member.deactivatedAt,
+    })
     .from(member)
     .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
     .innerJoin(user, and(eq(user.orgId, member.orgId), eq(user.id, member.userId)))
@@ -142,5 +147,7 @@ async function pinIdentity(
     .update(cashierPin)
     .set({ attempts: 0, lockedUntil: null })
     .where(eq(cashierPin.id, record.id));
-  return { userId: input.userId, ...membership };
+  const { deactivatedAt, ...identity } = membership;
+  if (deactivatedAt) return { error: deactivated, status: 403 };
+  return { userId: input.userId, ...identity };
 }

@@ -26,26 +26,27 @@ export async function sessionAuthority(
   /** What a valid session that lacks `required` is refused with; most lanes do not tell the two apart. */
   deniedCode = "INVALID_SESSION",
 ) {
-  const [registered] = await tx
-    .select()
-    .from(deviceCredential)
+  // One round trip: the session row only comes back while the device credential and membership also hold.
+  const [granted] = await tx
+    .select({ session: cashierSession })
+    .from(cashierSession)
+    .innerJoin(
+      deviceCredential,
+      and(
+        eq(deviceCredential.orgId, cashierSession.orgId),
+        eq(deviceCredential.deviceId, cashierSession.deviceId),
+        isNull(deviceCredential.revokedAt),
+      ),
+    )
     .innerJoin(
       device,
       and(eq(device.orgId, deviceCredential.orgId), eq(device.id, deviceCredential.deviceId)),
     )
     .innerJoin(branch, and(eq(branch.orgId, device.orgId), eq(branch.id, device.branchId)))
-    .where(
-      and(
-        eq(deviceCredential.orgId, ctx.orgId),
-        eq(deviceCredential.deviceId, principal.deviceId),
-        eq(device.branchId, principal.branchId),
-        eq(branch.storeId, principal.storeId),
-        isNull(deviceCredential.revokedAt),
-      ),
-    );
-  const [session] = await tx
-    .select()
-    .from(cashierSession)
+    .innerJoin(
+      member,
+      and(eq(member.orgId, cashierSession.orgId), eq(member.userId, cashierSession.userId)),
+    )
     .where(
       and(
         eq(cashierSession.orgId, ctx.orgId),
@@ -55,20 +56,14 @@ export async function sessionAuthority(
         eq(cashierSession.userId, snapshot.cashierId),
         eq(cashierSession.tokenHash, proofHash),
         isNull(cashierSession.revokedAt),
+        eq(device.branchId, principal.branchId),
+        eq(branch.storeId, principal.storeId),
       ),
-    );
-  const [membership] = await tx
-    .select({ id: member.id })
-    .from(member)
-    .where(and(eq(member.orgId, ctx.orgId), eq(member.userId, snapshot.cashierId)));
+    )
+    .limit(1);
+  const session = granted?.session;
   const refused = "Sale lacks valid historical cashier authority";
-  if (
-    !registered ||
-    !session ||
-    !membership ||
-    time < session.issuedAt ||
-    time >= session.expiresAt
-  )
+  if (!session || time < session.issuedAt || time >= session.expiresAt)
     throw new SaleError("INVALID_SESSION", refused);
   if (!session.permissions.includes(required)) throw new SaleError(deniedCode, refused);
   return session;

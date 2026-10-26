@@ -8,25 +8,25 @@ export async function receiptNames(
   tx: ShopperTransaction,
   snapshot: Pick<SaleSnapshot, "orgId" | "branchId" | "deviceId" | "cashierId">,
 ) {
-  const [organisation] = await tx.select().from(org).where(eq(org.id, snapshot.orgId));
-  const [location] = await tx
-    .select()
-    .from(branch)
-    .where(and(eq(branch.orgId, snapshot.orgId), eq(branch.id, snapshot.branchId)));
-  const [register] = await tx
-    .select()
-    .from(device)
-    .where(and(eq(device.orgId, snapshot.orgId), eq(device.id, snapshot.deviceId)));
-  const [cashier] = await tx
-    .select()
-    .from(user)
-    .where(and(eq(user.orgId, snapshot.orgId), eq(user.id, snapshot.cashierId)));
+  const [names] = await tx
+    .select({
+      orgName: org.name,
+      tin: org.tin,
+      branchName: branch.name,
+      deviceName: device.name,
+      cashierName: user.name,
+    })
+    .from(org)
+    .leftJoin(branch, and(eq(branch.orgId, org.id), eq(branch.id, snapshot.branchId)))
+    .leftJoin(device, and(eq(device.orgId, org.id), eq(device.id, snapshot.deviceId)))
+    .leftJoin(user, and(eq(user.orgId, org.id), eq(user.id, snapshot.cashierId)))
+    .where(eq(org.id, snapshot.orgId));
   return {
-    orgName: organisation?.name,
-    tin: organisation?.tin,
-    branchName: location?.name,
-    deviceName: register?.name,
-    cashierName: cashier?.name,
+    orgName: names?.orgName,
+    tin: names?.tin,
+    branchName: names?.branchName ?? undefined,
+    deviceName: names?.deviceName ?? undefined,
+    cashierName: names?.cashierName ?? undefined,
   };
 }
 

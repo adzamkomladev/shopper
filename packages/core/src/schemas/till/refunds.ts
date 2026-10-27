@@ -38,6 +38,8 @@ const request = {
   tender: refundTender,
   /** A manager the host already verified by PIN; never taken from the UI. */
   approverId: v.optional(tillId),
+  /** A remote approval the host checked with the server; its manager is `approverId`. */
+  approvalId: v.optional(tillId),
   /** Present when the sale was made on another register. */
   original: v.optional(serverSale),
   /** Fixed ids, when the refund was already sent to the server under them. */

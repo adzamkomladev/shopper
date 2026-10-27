@@ -152,7 +152,7 @@ test("the sale and refund events do not mention shifts and stay on protocol 4", 
     const direct = await recordLocalSale(db, config, clerk, { lines });
     const sale = await sell(db, "2025-12-20T10:00:00.000Z");
     const { event } = await refund(db, sale, [[0, 1_000]]);
-    expect(direct).toMatchObject({ v: 6, type: "sale.recorded" });
+    expect(direct).toMatchObject({ v: 7, type: "sale.recorded" });
     expect(JSON.stringify(direct)).not.toMatch(/shift/i);
     expect(JSON.stringify(sale)).not.toMatch(/shift/i);
     expect(JSON.stringify(event)).not.toMatch(/shift/i);

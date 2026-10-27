@@ -99,6 +99,10 @@
     "./transactions": {
       "types": "./src/transactions/index.ts",
       "default": "./src/transactions/index.ts"
+    },
+    "./approvals": {
+      "types": "./src/approvals/index.ts",
+      "default": "./src/approvals/index.ts"
     }
   },
   "scripts": {

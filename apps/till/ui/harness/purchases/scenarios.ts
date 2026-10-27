@@ -3,6 +3,18 @@ import type { Scenario } from "./types";
 const scenarios: Record<string, Scenario> = {
   return: {},
   "return-approval": { approval: true },
+  "return-remote": { approval: true, remote: "approved" },
+  "return-remote-declined": { approval: true, remote: "declined" },
+  "return-remote-expired": { approval: true, remote: "expired" },
+  "return-remote-offline": { approval: true, remote: "offline" },
+  "return-remote-used": {
+    approval: true,
+    remote: "approved",
+    refundError: {
+      code: "APPROVAL_FORBIDDEN",
+      message: "This approval was already used. Ask again.",
+    },
+  },
   "return-window": { windowClosed: true, approval: true },
   "return-final": { lines: { 2: "returned", 3: "final" } },
   "return-history": { history: true, lines: { 1: "partial" } },

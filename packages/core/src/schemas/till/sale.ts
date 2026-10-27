@@ -83,6 +83,8 @@ export const saleSnapshot = v.strictObject({
   change: nonnegative,
   /** Who the sale was rung up to, as the till knew them; the buyer on the receipt comes from it. */
   customer: v.optional(v.nullable(customerSnapshot), null),
+  /** The remote approval a manager gave for this sale's discounts, when the cashier could not discount alone. */
+  discountApprovalId: v.optional(v.nullable(tillId), null),
   tenders: v.pipe(
     v.array(
       v.pipe(
@@ -118,7 +120,7 @@ export const saleSnapshot = v.strictObject({
 /** Just the buyer of a stored sale: what a refund needs, without the rest of the payload parsing. */
 export const saleCustomer = v.object({ customer: saleSnapshot.entries.customer });
 export const saleEvent = v.strictObject({
-  v: v.literal(6),
+  v: v.literal(7),
   type: v.literal("sale.recorded"),
   sale: saleSnapshot,
 });
@@ -145,11 +147,18 @@ export const registeredLines = <T extends { lines?: unknown[] }>(body: T) => ({
   }),
 });
 
-/** v4 had no customer: a stored v4 sale reads as a walk-in. v5 lines had no registration flag. */
-export const decodeSaleEvent = createEventDecoder(6, (raw) => v.parse(saleEvent, raw), {
+/**
+ * v4 had no customer: a stored v4 sale reads as a walk-in. v5 lines had no registration flag. v6 had no remote
+ * discount approval.
+ */
+export const decodeSaleEvent = createEventDecoder(7, (raw) => v.parse(saleEvent, raw), {
   4: (raw) => ({ ...(raw as object), v: 5 }),
   5: (raw) => {
     const event = raw as { sale: { lines?: unknown[] } };
     return { ...event, v: 6, sale: registeredLines(event.sale) };
+  },
+  6: (raw) => {
+    const event = raw as { sale?: object };
+    return { ...event, v: 7, sale: { discountApprovalId: null, ...event.sale } };
   },
 });

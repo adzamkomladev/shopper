@@ -59,6 +59,7 @@ export async function startTillHost(
     send(message);
     transport?.broadcast(message);
   });
+  const approvals = createApprovals({ database, config });
   const worker = createHostSync(
     database,
     config,
@@ -67,6 +68,7 @@ export async function startTillHost(
     },
     payments,
     () => receipts.refreshSigned(),
+    (payload) => approvals.receive(payload),
   );
   const receipts = createHostReceipts({
     database,
@@ -165,7 +167,7 @@ export async function startTillHost(
     devices: createDevices({ database, config, receipts, peripherals, status, publishStatus }),
     peripherals,
     session,
-    approvals: createApprovals({ database, config }),
+    approvals,
     status,
     publishStatus,
     sync: () => worker.trigger(),

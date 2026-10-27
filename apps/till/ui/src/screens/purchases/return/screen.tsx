@@ -108,12 +108,18 @@ function ReturnWorkspace({
   );
 }
 
-/** Every action has a key: Alt+1, 2 and 3 pick the method, Ctrl+Enter refunds, Escape goes back. */
+/**
+ * Every action has a key: Alt+1, 2 and 3 pick the method, Alt+P and Alt+R the manager here or remotely, Alt+A asks
+ * remotely, Ctrl+Enter refunds, Escape goes back.
+ */
 function shortcuts(form: ReturnType<typeof useReturnForm>, back: () => void) {
   return {
     "Alt+1": () => form.setKind("cash"),
     "Alt+2": () => form.setKind("card"),
     "Alt+3": () => form.setKind("momo"),
+    "Alt+P": () => form.remote.setMode("pin"),
+    "Alt+R": () => form.remote.setMode("remote"),
+    "Alt+A": () => form.remote.mode === "remote" && form.remote.ask(),
     "Mod+Enter": () => void form.submit(),
     Escape: (event: KeyboardEvent) => {
       // Escape that closes the open manager list belongs to the list.

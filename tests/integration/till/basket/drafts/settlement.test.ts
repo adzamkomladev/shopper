@@ -48,7 +48,7 @@ test("split cash and card complete with a reconciled v4 event", async () => {
       expectedRevision: 3,
       at,
     });
-    expect(event).toMatchObject({ v: 6, type: "sale.recorded" });
+    expect(event).toMatchObject({ v: 7, type: "sale.recorded" });
     expect(event.sale.tenders).toMatchObject([
       { kind: "card", amount: 5_000, approvalCode: "AB1234", last4: "4242" },
       { kind: "cash", amount: 7_000 },

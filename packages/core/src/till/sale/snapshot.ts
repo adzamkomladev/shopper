@@ -32,6 +32,7 @@ type Parts = {
   settlement: ReturnType<typeof settle>;
   tenders: Tender[];
   customer: SaleSnapshot["customer"];
+  discountApprovalId?: string | null;
 };
 
 /** The draft's lines as sold: the quote's tax snapshot with the discount, price override and label each line carried. */
@@ -70,7 +71,7 @@ export function snapshotLines(quoted: Quoted["lines"], drafted: Drafted["lines"]
 /** The sale.recorded event the outbox uploads and the till keeps. */
 export function buildSaleEvent(p: Parts) {
   return v.parse(saleEvent, {
-    v: 6,
+    v: 7,
     type: "sale.recorded",
     sale: {
       id: p.id,
@@ -92,6 +93,7 @@ export function buildSaleEvent(p: Parts) {
       change: p.settlement.change,
       paid: add(p.settlement.cash, p.settlement.nonCash),
       customer: p.customer,
+      discountApprovalId: p.discountApprovalId ?? null,
       tenders: p.tenders.map((t) => ({
         id: t.id,
         kind: t.kind,

@@ -161,6 +161,7 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     paystackSecret: options.paystackSecret,
     hubtel: options.hubtel,
     settlements: options.settlements,
+    approvals: options.approvals,
     realtime: options.realtime,
     invitations,
     blobs: options.blobs,

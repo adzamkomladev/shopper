@@ -29,6 +29,8 @@ export const refundSnapshot = v.strictObject({
   reason: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(500)),
   /** The manager who approved the refund; null when no manager approval was required. */
   approverId: v.nullable(tillId),
+  /** The remote approval the manager gave from the back office; its manager is `approverId`. */
+  approvalId: v.nullable(tillId),
   lines: v.pipe(
     v.array(
       v.strictObject({
@@ -56,7 +58,7 @@ export const refundSnapshot = v.strictObject({
   tender: refundTender,
 });
 export const refundEvent = v.strictObject({
-  v: v.literal(3),
+  v: v.literal(4),
   type: v.literal("refund.recorded"),
   refund: refundSnapshot,
 });
@@ -65,9 +67,9 @@ export type RefundSnapshot = v.InferOutput<typeof refundSnapshot>;
 
 /**
  * v1 had no account or points split: a v1 refund paid everything out in its tender. v2 had no registration flag on
- * its lines and no credit-note number.
+ * its lines and no credit-note number. v3 had no remote approval.
  */
-export const decodeRefundEvent = createEventDecoder(3, (raw) => v.parse(refundEvent, raw), {
+export const decodeRefundEvent = createEventDecoder(4, (raw) => v.parse(refundEvent, raw), {
   1: (raw) => {
     const event = raw as { refund?: object };
     return {
@@ -79,5 +81,9 @@ export const decodeRefundEvent = createEventDecoder(3, (raw) => v.parse(refundEv
   2: (raw) => {
     const event = raw as { refund: { lines?: unknown[] } };
     return { ...event, v: 3, refund: { creditNoteNumber: null, ...registeredLines(event.refund) } };
+  },
+  3: (raw) => {
+    const event = raw as { refund?: object };
+    return { ...event, v: 4, refund: { approvalId: null, ...event.refund } };
   },
 });

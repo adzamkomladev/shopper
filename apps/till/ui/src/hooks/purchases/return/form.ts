@@ -9,6 +9,12 @@ import type {
   PurchaseDetails,
   RefundKind,
 } from "../../../sale/types";
+import {
+  askRemote,
+  refuseRemote,
+  resetRemote,
+  useRemoteApproval,
+} from "../../../sale/remote/state";
 import { useApprovalForm } from "../../approval/form";
 import { useReturnLines } from "./lines";
 
@@ -23,11 +29,19 @@ export function useReturnForm(
   const [reason, setReason] = useState("");
   const [kind, setKindState] = useState<RefundKind>("cash");
   const [reference, setReference] = useState("");
-  const manager = useApprovalForm(approvers, eligibility.approvalRequired);
+  const [mode, setModeState] = useState<"pin" | "remote">("pin");
+  const remote = useRemoteApproval();
+  const manager = useApprovalForm(approvers, eligibility.approvalRequired && mode === "pin");
   const selected = eligibility.lines.flatMap(({ lineId }) => {
     const quantityThousandths = lines.quantities[lineId] ?? 0;
     return quantityThousandths > 0 ? [{ lineId, quantityThousandths }] : [];
   });
+  const preview = previewRefund(purchase, lines.quantities);
+  // The manager approved one sale and total; a changed refund needs asking again.
+  const remoteApproved =
+    remote.status === "approved" &&
+    remote.saleId === purchase.id &&
+    remote.amount === (preview?.gross ?? null);
   const needsReference = kind !== "cash";
   const block =
     selected.length === 0
@@ -36,10 +50,25 @@ export function useReturnForm(
         ? "Add a reason for the return"
         : needsReference && !reference.trim()
           ? `Enter the ${kind === "card" ? "card" : "MoMo"} reference`
-          : !manager.ready
-            ? "Choose a manager and enter their PIN"
-            : null;
+          : eligibility.approvalRequired && mode === "remote" && !remoteApproved
+            ? "Wait for a manager to approve this refund"
+            : !manager.ready
+              ? "Choose a manager and enter their PIN"
+              : null;
 
+  function setMode(next: "pin" | "remote") {
+    setModeState(next);
+    if (next === "pin") resetRemote();
+  }
+  function ask() {
+    if (!preview || !reason.trim() || selected.length === 0) return;
+    void askRemote({
+      saleId: purchase.id,
+      receiptNumber: purchase.receiptNumber ?? undefined,
+      amount: preview.gross,
+      reason: reason.trim(),
+    });
+  }
   function setKind(next: RefundKind) {
     setKindState(next);
     setReference("");
@@ -52,8 +81,15 @@ export function useReturnForm(
         reason: reason.trim(),
         tender: kind === "cash" ? { kind } : { kind, reference: reference.trim() },
         ...(approval && { approval }),
+        ...(mode === "remote" && remote.id && { approval: { approvalId: remote.id } }),
       });
-      if (outcome.ok) toast.success(`Refund of ${formatGHS(money(outcome.total))} recorded`);
+      // The PIN tab is hidden while asking remotely, so a refusal shows in the remote panel.
+      if (!outcome.ok && mode === "remote" && outcome.code.startsWith("APPROVAL"))
+        refuseRemote(outcome.message);
+      if (outcome.ok) {
+        resetRemote();
+        toast.success(`Refund of ${formatGHS(money(outcome.total))} recorded`);
+      }
       return outcome;
     });
   }
@@ -66,7 +102,8 @@ export function useReturnForm(
     reference,
     setReference,
     manager,
-    preview: previewRefund(purchase, lines.quantities),
+    remote: { mode, setMode, state: remote, approved: remoteApproved, ask },
+    preview,
     count: selected.length,
     block,
     submit,

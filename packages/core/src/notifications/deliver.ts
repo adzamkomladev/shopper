@@ -10,6 +10,7 @@ import {
 import { deliverStockAlert } from "../stock";
 import { deliverAuditAnchor } from "../audit/anchor";
 import { deliverStoreDayReminder, deliverStoreDaySummary } from "../reports/day/deliver";
+import { deliverApprovalRequest } from "../approvals/deliver";
 import type { NotificationDeps } from "./types";
 export type { NotificationDeps } from "./types";
 
@@ -40,6 +41,8 @@ export async function deliverNotification(deps: NotificationDeps, delivery: Deli
       return await deliverStoreDaySummary(deps, delivery);
     case "payment.refund":
       return await startRefund(deps, delivery);
+    case "approval.requested":
+      return await deliverApprovalRequest(deps, delivery);
     default:
       console.error({ event: "notification.unknown_type", type: delivery.message.type });
       return await delivery.retry();

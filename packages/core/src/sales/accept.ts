@@ -39,7 +39,9 @@ export async function acceptSale(
   const occurredAt = new Date(
     Math.min(now(), new Date(event.sale.deviceTime).valueOf() - event.sale.clockOffsetMs),
   );
-  const contentHash = await sha256(canonicalJson(event.sale));
+  // A sale without a remote discount approval hashes as before v7, so one accepted then replays as itself.
+  const { discountApprovalId, ...unapproved } = event.sale;
+  const contentHash = await sha256(canonicalJson(discountApprovalId ? event.sale : unapproved));
   return accept(
     db,
     {

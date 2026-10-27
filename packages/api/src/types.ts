@@ -55,6 +55,8 @@ export interface ApiOptions {
   hubtel?: ReturnType<typeof createHubtel>;
   /** Fetches a day's Paystack settlements; without it a refresh is unavailable. */
   settlements?: WorkflowLauncher;
+  /** Runs remote manager approvals; without it a register cannot ask. */
+  approvals?: WorkflowLauncher;
   priceChange?: WorkflowLauncher;
   onboarding?: ReturnType<typeof createOnboarding>;
   invitations?: ReturnType<typeof createInvitations>;
@@ -83,6 +85,7 @@ export interface RuntimeOptions {
   paystackSecret?: string;
   hubtel?: ReturnType<typeof createHubtel>;
   settlements?: WorkflowLauncher;
+  approvals?: WorkflowLauncher;
   priceChange?: WorkflowLauncher;
   authFlows?: WorkflowLauncher;
   kyc?: WorkflowLauncher;

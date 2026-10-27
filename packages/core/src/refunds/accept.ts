@@ -41,6 +41,8 @@ export async function acceptRefund(
   const occurredAt = new Date(
     Math.min(now(), new Date(snapshot.deviceTime).valueOf() - snapshot.clockOffsetMs),
   );
+  // A refund without a remote approval hashes as before v4, so one accepted then replays as itself.
+  const { approvalId, ...unapproved } = snapshot;
   // The excess is review data kept in the audit row; a replay cannot rebuild it, so the
   // response carries only what both can.
   const saved = await accept(
@@ -59,7 +61,7 @@ export async function acceptRefund(
       event,
       occurredAt,
       proofHash: await sha256(proof),
-      contentHash: await sha256(canonicalJson(snapshot)),
+      contentHash: await sha256(canonicalJson(approvalId ? snapshot : unapproved)),
     },
   );
   return {

@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, test } from "vite-plus/test";
 import { eq } from "drizzle-orm";
 import * as v from "valibot";
+import { canonicalJson } from "@shopper/audit";
 import { sale } from "@shopper/db-pg";
+import { sha256 } from "@shopper/utils";
 import { createPushWorker } from "@shopper/sync";
 import { acceptSale } from "@shopper/core/sales";
 import {
@@ -64,11 +66,15 @@ test("sale decoding rejects pre-tender events without upcasting", async () => {
   expect(decodeSaleEvent(recorded.event)).toEqual(recorded.event);
 });
 
-test("A v4 sale event is upcast to v6 and accepted; a v5 line counts as a registered shop's", async () => {
+test("A v4 sale event is upcast to v7 and accepted; a v5 line counts as a registered shop's", async () => {
   const { event, proof } = await recordSale();
   const { customer: _customer, ...legacy } = event.sale as Record<string, unknown>;
   const v4 = { ...event, v: 4, sale: legacy };
-  expect(decodeSaleEvent(v4)).toEqual({ ...event, v: 6, sale: { ...event.sale, customer: null } });
+  expect(decodeSaleEvent(v4)).toEqual({
+    ...event,
+    v: 7,
+    sale: { ...event.sale, customer: null, discountApprovalId: null },
+  });
   const unflagged = event.sale.lines.map(
     ({ tax: { registered: _registered, ...tax }, ...line }) => ({
       ...line,
@@ -87,7 +93,25 @@ test("A v4 sale event is upcast to v6 and accepted; a v5 line counts as a regist
   };
   await acceptSale(db, principal, v4, proof);
   const [saved] = await db.select().from(sale).where(eq(sale.id, event.sale.id));
-  expect(saved).toMatchObject({ eventVersion: 6, customerId: null });
+  expect(saved).toMatchObject({ eventVersion: 7, customerId: null });
+});
+
+test("a v6 sale keeps the content hash it had before v7, so a lost reply replays as the same sale", async () => {
+  const { event, proof } = await recordSale();
+  const { discountApprovalId: _none, ...legacy } = event.sale;
+  const v6 = { ...event, v: 6, sale: legacy };
+  const { db, context } = databases();
+  const principal = {
+    orgId: context.orgId,
+    deviceId,
+    branchId: event.sale.branchId,
+    storeId: event.sale.storeId,
+  };
+  await acceptSale(db, principal, v6, proof);
+  const [saved] = await db.select().from(sale).where(eq(sale.id, event.sale.id));
+  // What the server stored for this sale before the upgrade.
+  expect(saved!.contentHash).toBe(await sha256(canonicalJson(legacy)));
+  await expect(acceptSale(db, principal, v6, proof)).resolves.toBeDefined();
 });
 
 test("A stored v2 receipt reads as v5 with no buyer", () => {
@@ -108,7 +132,7 @@ describe("refund and Z versions", () => {
     scope: { orgId: id, branchId: id, deviceId: id },
   } as any;
 
-  test("a v1 refund reads as v3 that credited nothing to an account or points and has no credit-note number", async () => {
+  test("a v1 refund reads as v4 that credited nothing to an account or points and has no credit-note number", async () => {
     fixture = await createPushFixture();
     const sold = (await fixture.recordSale()).event.sale;
     const old = refundEvent(world, sold, [{ line: 0, before: 0, after: 1_000 }]);
@@ -116,9 +140,10 @@ describe("refund and Z versions", () => {
     const read = decodeRefundEvent(old);
     expect(read).toEqual({
       ...old,
-      v: 3,
+      v: 4,
       refund: {
         ...old.refund,
+        approvalId: null,
         creditNoteNumber: null,
         accountCredit: 0,
         pointsReturned: 0,
@@ -127,7 +152,7 @@ describe("refund and Z versions", () => {
     });
     expect(decodeRefundEvent(read)).toEqual(read);
     expect(() => decodeRefundEvent({ ...old, v: 2 })).toThrow();
-    expect(() => decodeRefundEvent({ ...read, v: 4 })).toThrow();
+    expect(() => decodeRefundEvent({ ...read, v: 5 })).toThrow();
   });
 
   test("a v1 Z with no account lines reads as v2 with all-zero account lines; v2 needs them", async () => {

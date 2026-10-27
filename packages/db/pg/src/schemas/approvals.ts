@@ -43,6 +43,8 @@ export const approvalRequest = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     /** Set in the transaction that accepts the refund or discount, so one approval is used once. */
     consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    /** The refund or sale that used it, so a replayed upload of that same document is not a second use. */
+    consumedBy: uuid("consumed_by"),
   },
   (t) => [
     unique().on(t.orgId, t.id),

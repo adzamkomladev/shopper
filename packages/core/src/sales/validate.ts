@@ -8,6 +8,7 @@ import { expectedLine } from "./labels";
 import { hasGrant, overrideAuthority, sessionAuthority } from "./authority";
 import type { SaleSnapshot } from "../schemas/till/sale";
 import { SaleError } from "./error";
+import { consumeApproval } from "../approvals/consume";
 
 export async function validateAuthority(
   tx: ShopperTransaction,
@@ -35,8 +36,19 @@ export async function validateAuthority(
     time,
     "sale.create",
   );
-  if (
-    snapshot.lines.some((line) => line.discount > 0) &&
+  const discount = snapshot.lines.reduce((sum, line) => add(sum, line.discount), money(0));
+  // A remote approval stands in for the cashier's own grant, and is used up by this sale.
+  if (discount > 0 && snapshot.discountApprovalId)
+    ctx.approverId = await consumeApproval(tx, ctx.orgId, {
+      id: snapshot.discountApprovalId,
+      kind: "discount",
+      deviceId: snapshot.deviceId,
+      documentId: snapshot.id,
+      amount: discount,
+      at: time,
+    });
+  else if (
+    discount > 0 &&
     !(
       session.permissions.includes("sale.discount") &&
       (await hasGrant(tx, ctx.orgId, snapshot.cashierId, "sale.discount", time, snapshot.branchId))

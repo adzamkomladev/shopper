@@ -26,6 +26,7 @@ type ReplayAttempt = Pick<Recording, "lines" | "reason" | "tender"> & {
   saleId: string;
   original: ServerSale | undefined;
   approverId: string | undefined;
+  approvalId?: string;
   id?: string;
   lineIds?: string[];
   creditNoteNumber?: string;
@@ -140,6 +141,12 @@ export function createRefunds(host: Host, localConfig: LocalConfig) {
         kind: "refundPreview",
         eligibility: await readRefundEligibility(database, localConfig, { at, saleId, original }),
       };
+    const approvalId =
+      request.approval && "approvalId" in request.approval
+        ? request.approval.approvalId
+        : undefined;
+    const remote =
+      !retry && approvalId ? await host.approvals.remote(approvalId, saleId) : undefined;
     const input = retry ?? {
       at,
       saleId,
@@ -147,9 +154,21 @@ export function createRefunds(host: Host, localConfig: LocalConfig) {
       lines: request.lines,
       reason: request.reason,
       tender: request.tender,
-      approverId: await host.approvals.verify(request.approval, "refund.approve"),
+      approverId:
+        remote?.approverId ?? (await host.approvals.verify(request.approval, "refund.approve")),
+      approvalId,
       id: request.refundId,
     };
+    // A remote approval holds for one refund total, checked before any cash leaves the drawer.
+    if (
+      remote &&
+      (await planRefund(database, localConfig, session, input)).event.refund.totals.gross !==
+        remote.amount
+    )
+      throw new TillError(
+        "APPROVAL_FORBIDDEN",
+        "The refund changed after the manager approved it. Ask again.",
+      );
     let recorded;
     if (original) {
       // The drawer opens only for a refund the server has accepted.

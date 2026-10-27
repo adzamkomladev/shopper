@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS "approval_request" (
 	"decline_reason" text,
 	"expires_at" timestamp with time zone NOT NULL,
 	"consumed_at" timestamp with time zone,
+	"consumed_by" uuid,
 	CONSTRAINT "approval_request_org_id_id_unique" UNIQUE("org_id","id"),
 	CONSTRAINT "approval_request_kind" CHECK ("approval_request"."kind" IN ('refund', 'discount')),
 	CONSTRAINT "approval_request_status" CHECK ("approval_request"."status" IN ('pending', 'approved', 'declined', 'expired')),

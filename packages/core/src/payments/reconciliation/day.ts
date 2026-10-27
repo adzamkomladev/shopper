@@ -23,14 +23,14 @@ export async function dayReconciliation(
   const [taken, shifts, momo, unapplied] = await inSnapshot(db, async (tx) => {
     const stores = await tx.select({ id: store.id }).from(store).where(eq(store.orgId, orgId));
     const days = stores.map((row) => ({ storeId: row.id, day: query.day }));
-    return Promise.all([
-      days.length
-        ? tx.execute<{ kind: string; amount: string; refunded: string }>(
-            sql`SELECT kind, sum(amount)::text AS amount, sum(refunded)::text AS refunded
+    // One client runs one query at a time, so the reads go in turn.
+    const taken = await (days.length
+      ? tx.execute<{ kind: string; amount: string; refunded: string }>(
+          sql`SELECT kind, sum(amount)::text AS amount, sum(refunded)::text AS refunded
             FROM (${foldTenders({ orgId, days, branchIds })}) t GROUP BY kind`,
-          )
-        : { rows: [] },
-      tx.execute<ShiftRow>(sql`
+        )
+      : { rows: [] });
+    const shifts = await tx.execute<ShiftRow>(sql`
       SELECT sh.id, sh.branch_id AS "branchId", sh.device_id AS "deviceId", sh.closed_at AS "closedAt",
         sh.closed_by AS "closedBy",
         json_agg(json_build_object('tender', st.tender, 'expected', st.expected, 'declared', st.declared,
@@ -38,8 +38,8 @@ export async function dayReconciliation(
       FROM shift sh JOIN shift_tender st ON st.org_id = sh.org_id AND st.shift_id = sh.id
       WHERE sh.org_id = ${orgId} AND (sh.closed_at AT TIME ZONE 'Africa/Accra')::date = ${query.day}::date
         ${inBranches(sh, branchIds)}
-      GROUP BY sh.id ORDER BY sh.closed_at`),
-      tx.execute<MomoRow>(sql`
+      GROUP BY sh.id ORDER BY sh.closed_at`);
+    const momo = await tx.execute<MomoRow>(sql`
       SELECT p.id AS "paymentId", p.reference, p.amount::bigint AS expected, l.amount::bigint AS settled,
         l.flag, se.settled_on::text AS "settledOn", s.id AS "saleId", s.receipt_number AS "receiptNumber"
       FROM sale s
@@ -48,13 +48,13 @@ export async function dayReconciliation(
       LEFT JOIN settlement_line l ON l.org_id = p.org_id AND l.payment_id = p.id
       LEFT JOIN settlement se ON se.org_id = l.org_id AND se.id = l.settlement_id
       WHERE s.org_id = ${orgId} AND ${accraDay(sql`s`)} = ${query.day}::date ${inBranches(sql`s`, branchIds)}
-      ORDER BY p.created_at`),
-      tx.execute<{ count: number }>(sql`
+      ORDER BY p.created_at`);
+    const unapplied = await tx.execute<{ count: number }>(sql`
       SELECT count(*)::int AS count FROM payment p
       WHERE p.org_id = ${orgId} AND p.status = 'confirmed'
         AND (p.created_at AT TIME ZONE 'Africa/Accra')::date = ${query.day}::date ${inBranches(p, branchIds)}
-        AND NOT EXISTS (SELECT 1 FROM sale_tender t WHERE t.org_id = p.org_id AND t.payment_id = p.id)`),
-    ]);
+        AND NOT EXISTS (SELECT 1 FROM sale_tender t WHERE t.org_id = p.org_id AND t.payment_id = p.id)`);
+    return [taken, shifts, momo, unapplied] as const;
   });
   const declared = (kind: string, field: "expected" | "declared" | "variance") =>
     shifts.rows.reduce(

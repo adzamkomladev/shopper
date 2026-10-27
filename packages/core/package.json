@@ -95,6 +95,10 @@
     "./fiscal": {
       "types": "./src/fiscal/index.ts",
       "default": "./src/fiscal/index.ts"
+    },
+    "./transactions": {
+      "types": "./src/transactions/index.ts",
+      "default": "./src/transactions/index.ts"
     }
   },
   "scripts": {

@@ -21,6 +21,7 @@ import { systemRoutes } from "./routes/system";
 import { taxReportRoutes } from "./routes/tax/reports";
 import { reportRoutes } from "./routes/reports";
 import { reconciliationRoutes } from "./routes/reconciliation";
+import { transactionRoutes } from "./routes/transactions";
 import { taxRuleRoutes } from "./routes/tax/rules";
 import { fiscalRoutes } from "./routes/tax/fiscal";
 import type { ApiEnvironment, ApiOptions } from "./types";
@@ -97,6 +98,7 @@ export function createApi(options: ApiOptions = {}) {
   if (options.database) app.route("/", kycRoutes(options));
   if (options.database) app.route("/", reportRoutes(options.database, options.authentication));
   if (options.database) app.route("/", reconciliationRoutes(options));
+  if (options.database) app.route("/", transactionRoutes(options));
   if (options.database)
     app.route(
       "/",

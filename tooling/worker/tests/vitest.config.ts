@@ -98,6 +98,7 @@ export default defineConfig({
       "lane.test.ts",
       "reports/day.test.ts",
       "billing/dunning.test.ts",
+      "sequencer.test.ts",
     ],
   },
 });

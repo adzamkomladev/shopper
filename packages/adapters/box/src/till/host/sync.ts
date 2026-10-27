@@ -43,8 +43,28 @@ export function createHostSync(
     },
   };
   const pull = createPullWorker({ ...options, retry: false, onStatus: notify });
-  // Best effort: a failed refresh keeps the previous list and its 7-day clock.
-  const approvers = () => refreshApprovers(options).catch(() => false);
+  // Best effort: a failed refresh keeps the previous list and its 7-day clock. Every store nudge asks for
+  // one, and a reconnect after a backlog nudges once per accepted sale: one refresh runs at a time and a
+  // burst of requests collapses into a single follow-up.
+  let refreshing: Promise<void> | undefined;
+  let again = false;
+  const approvers = (): Promise<void> => {
+    if (refreshing) {
+      again = true;
+      return refreshing;
+    }
+    refreshing = (async () => {
+      try {
+        do {
+          again = false;
+          await refreshApprovers(options).catch(() => false);
+        } while (again);
+      } finally {
+        refreshing = undefined;
+      }
+    })();
+    return refreshing;
+  };
   const pullAndRefresh = async () => {
     await pull.trigger();
     await onPulled?.();

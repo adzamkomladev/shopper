@@ -3,19 +3,31 @@ import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import { WebSocket, WebSocketServer } from "ws";
 import { proxyLiveConnection } from "./live/proxy";
+import { createFaults, type Faults } from "./upstream/faults";
+import {
+  countPath,
+  countPulls,
+  createGate,
+  isPullPath,
+  isPullRequest,
+  parse,
+  waitForRequest,
+  type GateState,
+  type RequestRecord,
+} from "./upstream/gates";
 
 type Target = { url: string; request(path: string, init?: RequestInit): Promise<Response> };
-type RequestRecord = { path: string; request: unknown; response?: unknown; status?: number };
 type Gate = { entered: Promise<void>; written: Promise<void>; release(): void };
 
 export async function startHostUpstream(target: Target) {
   const requests: RequestRecord[] = [];
+  const copies: RequestRecord[] = [];
   const sockets = new Set<WebSocket>();
   const bridge = new WebSocketServer({ noServer: true, perMessageDeflate: false });
   let available = true;
   let pullAvailable = true;
   let liveAvailable = true;
-  const faults = { dropRefundResponse: false };
+  const faults = createFaults();
   const releaseGates = new Set<() => void>();
   const pushWaiters = new Map<number, (request: RequestRecord) => void>();
   const pullWaiters = new Map<number, (request: RequestRecord) => void>();
@@ -35,13 +47,15 @@ export async function startHostUpstream(target: Target) {
         () => takeGate("push"),
         () => takeGate("pull"),
         faults,
+        copies,
       );
     } catch {
       if (!outgoing.destroyed) outgoing.writeHead(500).end();
     }
   });
   server.on("upgrade", (incoming, socket, head) => {
-    proxyLiveConnection(incoming, socket, head, target.url, liveAvailable, bridge, sockets);
+    const live = liveAvailable && !faults.isCut(new URL(incoming.url ?? "/", "http://l").pathname);
+    proxyLiveConnection(incoming, socket, head, target.url, live, bridge, sockets);
   });
 
   function takeGate(kind: "push" | "pull") {
@@ -65,8 +79,18 @@ export async function startHostUpstream(target: Target) {
     },
     /** The server handles the next refund upload, then the connection dies before the reply arrives. */
     dropNextRefundResponse() {
-      faults.dropRefundResponse = true;
+      faults.dropNextResponse("/sync/refunds");
     },
+    /** Cuts a path prefix ("/" for the whole network) and closes live sockets it covers. */
+    cut(prefix = "/") {
+      faults.cut(prefix);
+      if (faults.isCut("/sync/live")) for (const socket of sockets) socket.terminate();
+    },
+    restore: faults.restore,
+    dropNextResponse: faults.dropNextResponse,
+    duplicatePushes: faults.duplicatePushes,
+    /** Replies to the extra copies of duplicated pushes, which the till never saw. */
+    copies,
     setLiveAvailable(value: boolean) {
       liveAvailable = value;
     },
@@ -123,7 +147,8 @@ async function proxy(
   onPull: (request: RequestRecord) => void,
   pushGate: () => GateState | undefined,
   pullGate: () => GateState | undefined,
-  faults: { dropRefundResponse: boolean },
+  faults: Faults,
+  copies: RequestRecord[],
 ) {
   const chunks: Buffer[] = [];
   for await (const chunk of incoming) chunks.push(Buffer.from(chunk));
@@ -137,7 +162,10 @@ async function proxy(
     if (name && value) headers.append(name, value);
   }
   // Offline, pushes and the online-only account reads and holds lose their connection.
-  if ((path === "/sync/push" || pathname.startsWith("/sync/customers/")) && !isAvailable()) {
+  if (
+    faults.isCut(pathname) ||
+    ((path === "/sync/push" || pathname.startsWith("/sync/customers/")) && !isAvailable())
+  ) {
     const request = { path, request: parse(body) };
     requests.push(request);
     if (path === "/sync/push") onPush(request);
@@ -151,11 +179,16 @@ async function proxy(
     outgoing.writeHead(503).end();
     return;
   }
-  const response = await target.request(path, {
-    method: incoming.method,
-    headers,
-    body: body.length ? body : undefined,
-  });
+  const forward = () =>
+    target.request(path, {
+      method: incoming.method,
+      headers,
+      body: body.length ? body : undefined,
+    });
+  if (pathname === "/sync/push" && faults.isDuplicating())
+    for (const copy of await Promise.all([forward(), forward()]))
+      copies.push({ path, request: parse(body), status: copy.status, response: await copy.json() });
+  const response = await forward();
   const record: RequestRecord = { path, request: parse(body), status: response.status };
   requests.push(record);
   const text = await response.text();
@@ -164,8 +197,8 @@ async function proxy(
   } catch {
     record.response = text;
   }
-  if (pathname === "/sync/refunds" && faults.dropRefundResponse) {
-    faults.dropRefundResponse = false;
+  if (faults.takeDrop(pathname)) {
+    if (pathname === "/sync/push") onPush(record);
     outgoing.destroy();
     return;
   }
@@ -185,63 +218,4 @@ async function proxy(
   outgoing.writeHead(response.status, responseHeaders);
   outgoing.end(text);
   pending?.written();
-}
-
-type GateState = { enter(): void; wait: Promise<void>; release(): void; written(): void };
-
-function createGate(releaseGates: Set<() => void>) {
-  let enter = () => {};
-  let release = () => {};
-  let written = () => {};
-  const entered = new Promise<void>((resolve) => (enter = resolve));
-  const wait = new Promise<void>((resolve) => (release = resolve));
-  const responseWritten = new Promise<void>((resolve) => (written = resolve));
-  releaseGates.add(release);
-  return {
-    state: { enter, wait, release, written },
-    result: { entered, written: responseWritten, release },
-  };
-}
-
-function waitForRequest(
-  waiters: Map<number, (request: RequestRecord) => void>,
-  call: number,
-  error: string,
-  timeoutMs: number,
-) {
-  return new Promise<RequestRecord>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      waiters.delete(call);
-      reject(new Error(`${error} within ${timeoutMs}ms`));
-    }, timeoutMs);
-    waiters.set(call, (request) => {
-      clearTimeout(timer);
-      resolve(request);
-    });
-  });
-}
-
-function isPullRequest(request: RequestRecord) {
-  return isPullPath(new URL(request.path, "http://localhost").pathname);
-}
-
-function isPullPath(path: string) {
-  return path === "/sync/changes" || path === "/sync/snapshot" || path === "/sync/status";
-}
-
-function countPath(requests: RequestRecord[], path: string) {
-  return requests.filter((request) => new URL(request.path, "http://localhost").pathname === path)
-    .length;
-}
-
-function countPulls(requests: RequestRecord[]) {
-  return requests.filter(isPullRequest).length;
-}
-
-function parse(body: Buffer): unknown {
-  try {
-    return JSON.parse(body.toString("utf8"));
-  } catch {
-    return body.toString("utf8");
-  }
 }

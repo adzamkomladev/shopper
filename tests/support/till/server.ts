@@ -103,52 +103,61 @@ export async function recordSale(options: { lineCount?: number } = {}): Promise<
   return { event, proof: session.proof, sessionId: session.id };
 }
 
+export type FixtureTill = Awaited<ReturnType<typeof enrollFixtureTill>>;
+
 export async function hostConfiguration(
   sqlitePath: string,
   origins: string[],
   upstream = `http://127.0.0.1:${e2eRun.port(3101)}`,
-  options: { freshSession?: boolean; session?: null } = {},
+  options: { freshSession?: boolean; session?: null; till?: FixtureTill } = {},
 ) {
+  const till = options.till ?? { deviceId, deviceToken, receiptCodes, session };
   const hostSession =
     options.session === null
       ? null
       : options.freshSession
         ? await devices.login({
-            deviceId,
-            deviceToken,
+            deviceId: till.deviceId,
+            deviceToken: till.deviceToken,
             userId: principal.userId,
             pin: "1357",
           })
-        : session;
+        : till.session;
   return {
     sqlitePath,
     identity: {
       orgId: context.orgId,
       storeId: saleConfig.storeId,
       branchId: ids.branch,
-      deviceId,
+      deviceId: till.deviceId,
       shopName: "Shopper test shop",
       registerName: "Register 1",
     },
-    deviceToken,
+    deviceToken: till.deviceToken,
     session: hostSession && {
       id: hostSession.id,
       orgId: context.orgId,
-      deviceId,
+      deviceId: till.deviceId,
       branchId: ids.branch,
       userId: principal.userId,
-      roleName: "roleName" in hostSession ? hostSession.roleName : session.roleName,
-      issuedAt: "issuedAt" in hostSession ? isoDate(hostSession.issuedAt) : session.issuedAt,
+      roleName: "roleName" in hostSession ? hostSession.roleName : till.session.roleName,
+      issuedAt: "issuedAt" in hostSession ? isoDate(hostSession.issuedAt) : till.session.issuedAt,
       expiresAt: isoDate(hostSession.expiresAt),
-      permissions: "permissions" in hostSession ? hostSession.permissions : session.permissions,
-      proof: "token" in hostSession ? hostSession.token : session.proof,
+      permissions:
+        "permissions" in hostSession ? hostSession.permissions : till.session.permissions,
+      proof: "token" in hostSession ? hostSession.token : till.session.proof,
     },
     references,
-    receiptCodes,
+    receiptCodes: till.receiptCodes,
     upstream,
     origins,
     port: 0,
   };
+}
+
+/** Enrols another register on the same branch without replacing the suite's main till. */
+export function enrollAnotherTill() {
+  return enrollFixtureTill(db, devices, principal);
 }
 
 function isoDate(value: string | Date) {

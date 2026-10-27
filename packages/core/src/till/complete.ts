@@ -17,11 +17,11 @@ import {
   type TillDatabase,
   type TillSqlite,
 } from "@shopper/db-sqlite";
-import { sha256 } from "@shopper/utils";
 import { tillSession } from "../schemas/till/session";
 import { tillConfiguration } from "../schemas/till/config";
 import { editDraftInput } from "../schemas/till/drafts";
 import { buildReceipt } from "../receipts/build";
+import { saleContentHash } from "../sales/hash";
 import { readLookupCustomer } from "./customers/queries";
 import { buildSaleEvent, snapshotLines } from "./sale/snapshot";
 import { assertDraftScope, claimDraft } from "./drafts/edit";
@@ -147,7 +147,7 @@ export async function finishDraftSale(
     localId: id,
     shiftId: open.id,
     payload: event.sale,
-    contentHash: await sha256(canonicalJson(event.sale)),
+    contentHash: await saleContentHash(event.sale),
     receipt: buildReceipt(event.sale, {
       ...config.receiptReference,
       tin: refs.tin ?? config.receiptReference?.tin,

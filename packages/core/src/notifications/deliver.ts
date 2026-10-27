@@ -11,6 +11,8 @@ import { deliverStockAlert } from "../stock";
 import { deliverAuditAnchor } from "../audit/anchor";
 import { deliverStoreDayReminder, deliverStoreDaySummary } from "../reports/day/deliver";
 import { deliverApprovalRequest } from "../approvals/deliver";
+import { deliverReceiptEmail } from "../receipts/email/deliver";
+import { deliverInvoiceEmail } from "../billing/deliver";
 import type { NotificationDeps } from "./types";
 export type { NotificationDeps } from "./types";
 
@@ -43,6 +45,12 @@ export async function deliverNotification(deps: NotificationDeps, delivery: Deli
       return await startRefund(deps, delivery);
     case "approval.requested":
       return await deliverApprovalRequest(deps, delivery);
+    case "receipt.email":
+      return await deliverReceiptEmail(deps, delivery);
+    case "invoice.issued":
+    case "invoice.reminder":
+    case "invoice.read_only":
+      return await deliverInvoiceEmail(deps, delivery);
     default:
       console.error({ event: "notification.unknown_type", type: delivery.message.type });
       return await delivery.retry();

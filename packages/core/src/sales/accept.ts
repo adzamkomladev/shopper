@@ -1,7 +1,7 @@
 import { sha256 } from "@shopper/utils";
 import { and, eq } from "drizzle-orm";
 import * as v from "valibot";
-import { defineCommand, canonicalJson } from "@shopper/audit";
+import { defineCommand } from "@shopper/audit";
 import {
   fiscalDoc,
   sale,
@@ -17,6 +17,8 @@ import { validateReceipt } from "./receipts";
 import { SaleError } from "./error";
 import { validateTenders } from "./tenders";
 import { saleDocument } from "./document";
+import { saleContentHash } from "./hash";
+import { queueSaleReceipt } from "../receipts/email/queue";
 import { ensureSaleCustomer } from "../customers/sale";
 import { publishCustomer } from "../customers/feed";
 import { consumeHolds } from "../customers/credit/holds";
@@ -39,9 +41,7 @@ export async function acceptSale(
   const occurredAt = new Date(
     Math.min(now(), new Date(event.sale.deviceTime).valueOf() - event.sale.clockOffsetMs),
   );
-  // A sale without a remote discount approval hashes as before v7, so one accepted then replays as itself.
-  const { discountApprovalId, ...unapproved } = event.sale;
-  const contentHash = await sha256(canonicalJson(discountApprovalId ? event.sale : unapproved));
+  const contentHash = await saleContentHash(event.sale);
   return accept(
     db,
     {
@@ -181,6 +181,7 @@ const accept = defineCommand({
       occurredAt: input.occurredAt,
     });
     if (buyer.created) await publishCustomer(tx, ctx.orgId, buyer.created);
+    if (buyer.id) await queueSaleReceipt(tx, ctx.orgId, { id: saved.id, customerId: buyer.id });
     // Its charge or earn may bring the account's next interest, expiry or tier notice forward.
     if (buyer.id) wakeAccount(tx, ctx.orgId, buyer.id);
     await touchStoreDay(tx, ctx.orgId, snapshot.storeId, input.occurredAt);

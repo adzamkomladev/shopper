@@ -11,6 +11,7 @@ import {
 } from "./schemas/base";
 import { PaystackError } from "./errors";
 import { fetchSettlements } from "./settlements";
+import { initializeCheckout } from "./checkout";
 import type { PaystackCharge, PaystackOptions } from "./types";
 
 export { PaystackError };
@@ -36,6 +37,9 @@ export function createPaystack(options: PaystackOptions) {
   return {
     /** Payouts settled between two dates, with the charges each one paid out. */
     settlements: (range: { from: string; to: string }) => fetchSettlements(options, range),
+    /** A hosted checkout page for an invoice. */
+    initialize: (input: Parameters<typeof initializeCheckout>[1]) =>
+      initializeCheckout(options, input),
 
     async charge(input: PaystackCharge): Promise<ChargeResult> {
       if (money(input.amount) % PESEWA !== 0)

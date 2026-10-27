@@ -1,8 +1,8 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
 import { buildInfo } from "@shopper/config";
 import { provisionOrg } from "@shopper/core";
-import { org, registrationRequest, type ShopperTransaction } from "@shopper/db-pg";
+import { org, registrationRequest, subscription, type ShopperTransaction } from "@shopper/db-pg";
 import type * as v from "valibot";
 import type { WorkflowLauncher } from "@shopper/ports";
 import { createVerifiedOwner } from "./owner";
@@ -68,6 +68,13 @@ export const completeRegistration = defineCommand({
       if (isUniqueViolation(error)) throw new AuthLinkError("Shop code is already in use", 409);
       throw error;
     }
+    // Cloud shops are billed monthly from a month after signup; the box never has a subscription.
+    const signup = new Date(input.now);
+    await tx.insert(subscription).values({
+      orgId: context.orgId,
+      billingDay: Math.min(signup.getUTCDate(), 28),
+      nextInvoiceOn: sql`(${signup.toISOString().slice(0, 10)}::date + interval '1 month')::date`,
+    });
     await createVerifiedOwner(tx, context, {
       name: row.name,
       email: row.email,

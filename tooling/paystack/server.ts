@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { paystackRefunds } from "./refunds";
 import { paystackSettlements } from "./settlements";
+import { paystackCheckout } from "./checkout";
 
 /** Paystack's documented sandbox OTP; the fake accepts nothing else. */
 export const FAKE_OTP = "123456";
@@ -25,6 +26,7 @@ export async function startPaystackFake({ port = 0, secretKey = "sk_test_fake" }
     (body) => signWebhook(secretKey, body),
   );
   const settlements = paystackSettlements(reply);
+  const checkout = paystackCheckout(reply);
 
   const server = createServer(async (request, response) => {
     const url = new URL(request.url ?? "/", "http://localhost");
@@ -51,6 +53,7 @@ export async function startPaystackFake({ port = 0, secretKey = "sk_test_fake" }
       });
     if (refunds.handle(request.method ?? "GET", url.pathname, body, response)) return;
     if (settlements.handle(request.method ?? "GET", url, response)) return;
+    if (checkout.handle(request.method ?? "GET", url.pathname, body, response)) return;
     const verifyMatch = /^\/transaction\/verify\/([^/]+)$/.exec(url.pathname);
     if (request.method === "GET" && verifyMatch) return verify(response, verifyMatch[1]!);
     reply(response, 404, { status: false, message: "Not found" });

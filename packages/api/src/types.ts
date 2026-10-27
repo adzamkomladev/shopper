@@ -57,6 +57,8 @@ export interface ApiOptions {
   settlements?: WorkflowLauncher;
   /** Runs remote manager approvals; without it a register cannot ask. */
   approvals?: WorkflowLauncher;
+  /** Runs each billing period's dunning; a paid invoice wakes it to stop. */
+  billing?: WorkflowLauncher;
   priceChange?: WorkflowLauncher;
   onboarding?: ReturnType<typeof createOnboarding>;
   invitations?: ReturnType<typeof createInvitations>;
@@ -86,6 +88,7 @@ export interface RuntimeOptions {
   hubtel?: ReturnType<typeof createHubtel>;
   settlements?: WorkflowLauncher;
   approvals?: WorkflowLauncher;
+  billing?: WorkflowLauncher;
   priceChange?: WorkflowLauncher;
   authFlows?: WorkflowLauncher;
   kyc?: WorkflowLauncher;

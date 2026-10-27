@@ -103,6 +103,10 @@
     "./approvals": {
       "types": "./src/approvals/index.ts",
       "default": "./src/approvals/index.ts"
+    },
+    "./billing": {
+      "types": "./src/billing/index.ts",
+      "default": "./src/billing/index.ts"
     }
   },
   "scripts": {

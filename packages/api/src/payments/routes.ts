@@ -18,6 +18,7 @@ import {
 import { verifyWebhook, type PaystackWebhook } from "@shopper/core/payments/paystack";
 import { ManagementError } from "@shopper/core/management";
 import type { ApiOptions } from "../types";
+import { invoiceWebhook } from "./invoices";
 
 export function paymentRoutes(options: ApiOptions) {
   const app = new Hono<import("../types").ApiEnvironment>();
@@ -38,8 +39,13 @@ export function paymentRoutes(options: ApiOptions) {
         c.req.header("x-paystack-signature"),
       ));
     if (!event) return c.json({ error: "Invalid Paystack signature" }, 401);
-    if (!options.database || !options.momoPayment)
-      return c.json({ error: "Payments unavailable" }, 503);
+    if (!options.database) return c.json({ error: "Payments unavailable" }, 503);
+    const billed =
+      (event.event === "charge.success" || event.event === "charge.failed") &&
+      (await invoiceWebhook(options, event));
+    if (billed === "mismatch") return c.json({ error: "Payment amount mismatch" }, 400);
+    if (billed) return c.json({ received: true });
+    if (!options.momoPayment) return c.json({ error: "Payments unavailable" }, 503);
     if (event.event === "refund.processed" || event.event === "refund.failed") {
       await refundWebhook(options, options.database, event);
       return c.json({ received: true });

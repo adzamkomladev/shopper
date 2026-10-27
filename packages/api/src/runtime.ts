@@ -128,6 +128,7 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
       paystackSecret: options.paystackSecret,
       hubtel: options.hubtel,
       realtime: options.realtime,
+      billing: options.billing,
     }).fetch(request);
   const selected = request.headers.get("X-Shopper-Org");
   const parsed = v.safeParse(managementId, invitationOrg ?? options.orgId ?? selected);

@@ -9,10 +9,11 @@ import {
   type ShopperTransaction,
 } from "@shopper/db-pg";
 import { money, roundCash, sub, type Money } from "@shopper/money";
+import { SaleError } from "../../sales/error";
 
 /**
  * The compensation of a MoMo refund: sends `total`, rounded to whole pesewas, back to the sale's confirmed MoMo
- * payments in tender order, never more than each still holds. Paystack payments go to the refund workflow
+ * payments in tender order, never more than each still holds; more than they hold refuses the refund. Paystack payments go to the refund workflow
  * after commit; Hubtel ones are marked `manual`, refunded from the Hubtel dashboard.
  */
 export async function allocateMomoRefund(
@@ -63,6 +64,12 @@ export async function allocateMomoRefund(
     left = sub(left, amount);
     return [{ id: v7(), paymentId: row.id, amount, manual: row.provider === "hubtel" }];
   });
+  // Rolls the refund back: the till refunds the rest in another tender rather than the customer being short.
+  if (left > 0)
+    throw new SaleError(
+      "REFUND_EXCEEDS_TENDER",
+      "A MoMo refund can return at most what the sale's MoMo payments still hold. Refund the rest in cash.",
+    );
   if (rows.length === 0) return [];
   await tx.insert(paymentRefund).values(
     rows.map((row) => ({

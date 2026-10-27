@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
 import { payment, paymentEvent, paymentRefund, type ShopperDatabase } from "@shopper/db-pg";
 import { fromPesewas } from "@shopper/money";
@@ -13,8 +13,9 @@ type RefundEvent = {
 };
 
 /**
- * The refund a `refund.*` webhook speaks of: the one Paystack gave this id, else the only open refund of that
- * charge and amount. Two open refunds of one amount without an id match none; the workflow's verify settles them.
+ * The open refund a `refund.*` webhook speaks of: the one Paystack gave this id, else the only open refund of that
+ * charge and amount still without an id. An id that names a settled refund, or another refund's id, matches none;
+ * so do two open refunds of one amount, which the workflow's verify settles.
  */
 export async function findOpenRefund(
   db: ShopperDatabase,
@@ -25,6 +26,7 @@ export async function findOpenRefund(
       id: paymentRefund.id,
       orgId: paymentRefund.orgId,
       providerReference: paymentRefund.providerReference,
+      status: paymentRefund.status,
     })
     .from(paymentRefund)
     .innerJoin(
@@ -34,14 +36,18 @@ export async function findOpenRefund(
     .where(
       and(
         eq(payment.reference, input.reference),
-        inArray(paymentRefund.status, ["pending", "failed"]),
         eq(paymentRefund.amount, fromPesewas(input.pesewas)),
       ),
     )
     .orderBy(asc(paymentRefund.id));
+  const open = (row: (typeof rows)[number]) => row.status === "pending" || row.status === "failed";
   const exact = input.providerId && rows.find((row) => row.providerReference === input.providerId);
-  if (exact) return exact;
-  return rows.length === 1 ? rows[0] : undefined;
+  if (exact) return open(exact) ? exact : undefined;
+  // A webhook carrying an id only falls back to a refund Paystack has not yet given one.
+  const candidates = rows.filter(
+    (row) => open(row) && (!input.providerId || !row.providerReference),
+  );
+  return candidates.length === 1 ? candidates[0] : undefined;
 }
 
 /** Applies a Paystack `refund.*` webhook and its outcome in one transaction; a replay returns `duplicate`. */

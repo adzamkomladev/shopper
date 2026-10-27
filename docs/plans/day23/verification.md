@@ -51,3 +51,13 @@ real API. Screenshots at 1920, 1440, 1366, 768 and 390, each with an axe pass an
 Codex (`gpt-6.1-sol`) reviewed each slice. S10 findings fixed: Backspace in the email dialog, discount approvers locked
 out of the inbox, the transactions table not owning its scroll, focus lost after approving, and a silent refresh
 failure.
+
+Whole-branch review (`codex review --base main`) found three more, each fixed test-first:
+
+- A late `refund.*` webhook for a refund already settled by its verify could land on another open refund of the same
+  charge and amount. Now an id matches only its own refund, and falls back only to a refund Paystack has not named yet
+  (`payments/refunds/limits.test.ts`).
+- A MoMo refund larger than the sale's MoMo payments (a mixed-tender sale) was recorded in full but only partly paid
+  out. It is now refused with `REFUND_EXCEEDS_TENDER`, so the till refunds the rest in another tender.
+- Production webhooks go through `serveRuntime`, which did not pass the billing launcher, so a paid invoice never woke
+  its workflow (`billing/runtime.test.ts`; removing the fix turns it red).

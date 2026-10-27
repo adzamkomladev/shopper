@@ -1,10 +1,21 @@
 import { sql } from "drizzle-orm";
 import * as v from "valibot";
-import { money, sub } from "@shopper/money";
+import { add, money, sub } from "@shopper/money";
 import type { ShopperDatabase, ShopperTransaction } from "@shopper/db-pg";
 import { dashboardQuery } from "../schemas/reports/query";
 import { inSnapshot, reportSource } from "./read";
-import { amount, changeBps, count, grouped, perSale, productsOf, reportRange, sums } from "./sums";
+import {
+  amount,
+  changeBps,
+  count,
+  grouped,
+  perSale,
+  productsOf,
+  reportRange,
+  shareBps,
+  sums,
+  tenderLabels,
+} from "./sums";
 import type { ReportRange } from "./types";
 
 const TOP = 5;
@@ -126,10 +137,14 @@ async function tenderMix(tx: ShopperTransaction, range: ReportRange) {
     await reportSource(tx, "tenders", range),
     sql`GROUP BY 1 ORDER BY sum(amount) DESC, 1`,
   );
-  return rows.map((row) => ({
+  const nets = rows.map((row) => sub(amount(row.amount), amount(row.refunded)));
+  const whole = nets.reduce(add, money(0));
+  return rows.map((row, index) => ({
     kind: row.key!,
+    label: tenderLabels[row.key!] ?? row.key!,
     transactions: count(row.count),
-    net: sub(amount(row.amount), amount(row.refunded)),
+    net: nets[index]!,
+    shareBps: shareBps(nets[index]!, whole),
   }));
 }
 

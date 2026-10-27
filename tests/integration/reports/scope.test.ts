@@ -109,3 +109,13 @@ test("the shared runtime (Worker and box) serves /reports behind the session, no
     cache.close();
   }
 });
+
+test("the branch picker offers a reader the branches they may report on", async () => {
+  const mine = await as(scoped, "/reports/scope");
+  expect(mine.status).toBe(200);
+  expect(mine.body.branches.map((branch: any) => branch.id)).toEqual([w.otherBranch]);
+  const all = await as(w.owner.cookie, "/reports/scope");
+  expect(all.body.branches.map((branch: any) => branch.id).sort()).toEqual(
+    [ids.branch, w.otherBranch].sort(),
+  );
+});

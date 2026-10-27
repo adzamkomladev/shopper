@@ -55,9 +55,19 @@ test("top products and tender mix for the day", async () => {
   ]);
   const kinds = Object.fromEntries(body.tenders.map((t: any) => [t.kind, t]));
   const cashIn = [2, 4, 5, copied.index].reduce((s, i) => s + figure(i, 6) - figure(i, 9), 0);
-  expect(kinds.cash).toEqual({ kind: "cash", transactions: 4, net: cashIn });
-  expect(kinds.momo).toEqual({ kind: "momo", transactions: 2, net: figure(3, 7) + figure(4, 7) });
-  expect(kinds.card).toEqual({ kind: "card", transactions: 1, net: figure(4, 8) - w.refund.total });
+  const momoIn = figure(3, 7) + figure(4, 7);
+  const cardIn = figure(4, 8) - w.refund.total;
+  const share = (net: number) => Math.round((net * 10_000) / (cashIn + momoIn + cardIn));
+  expect(kinds.cash).toEqual({
+    kind: "cash",
+    label: "Cash",
+    transactions: 4,
+    net: cashIn,
+    shareBps: share(cashIn),
+  });
+  expect(kinds.momo).toMatchObject({ label: "MoMo", transactions: 2, net: momoIn });
+  expect(kinds.card).toMatchObject({ label: "Card", transactions: 1, net: cardIn });
+  expect(kinds.card.shareBps).toBe(share(cardIn));
   expect(body.tenders[0].kind).toBe("cash");
 });
 

@@ -10,6 +10,7 @@ import {
   reportWorkbook,
   salesReport,
 } from "@shopper/core/reports";
+import { stockBranches } from "@shopper/core/stock";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import { problem } from "../middleware/problem";
 import { assertBranch, branchScope } from "../middleware/require/branches";
@@ -44,6 +45,11 @@ export function reportRoutes(
   };
   const read = (report: Report<unknown>) => async (c: Context<ApiEnvironment>) =>
     c.json(await run(c, report));
+  // The branches this reader may pick: a scoped member's own, else every branch.
+  app.get(
+    "/reports/scope",
+    read((db, orgId, _query, scope) => stockBranches(db, orgId, scope)),
+  );
   app.get("/reports/dashboard", read(dashboard));
   app.get("/reports/sales", read(salesReport));
   app.get("/reports/products", read(productReport));

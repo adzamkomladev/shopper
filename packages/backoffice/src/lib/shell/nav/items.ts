@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import type { PermissionCode } from "../../roles/permissions";
 import {
+  ChartNoAxesColumnIcon,
   ClockIcon,
   WarehouseIcon,
   GitBranchIcon,
@@ -27,6 +28,7 @@ type NavItem = {
 };
 
 export const NAV_ITEMS: readonly NavItem[] = [
+  { to: "/reports", label: "Reports", icon: ChartNoAxesColumnIcon, permission: "report.read" },
   { to: "/products", label: "Products", icon: PackageIcon },
   {
     to: "/stock",

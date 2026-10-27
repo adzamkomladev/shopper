@@ -64,6 +64,22 @@ export function StoreForm({ store, onSaved }: Props) {
             />
           )}
         </form.Field>
+        <div className="grid grid-cols-2 gap-4">
+          <form.Field name="opensAt">
+            {(field) => (
+              <TextField field={field} label="Opens" type="time" step={60} onChange={clearError} />
+            )}
+          </form.Field>
+          <form.Field name="closesAt">
+            {(field) => (
+              <TextField field={field} label="Closes" type="time" step={60} onChange={clearError} />
+            )}
+          </form.Field>
+        </div>
+        <p className="-mt-4 text-sm text-muted-foreground">
+          Shop time. The day's Z-report reminder and summary go to owners at closing; a change
+          applies from tomorrow.
+        </p>
         {save.error && (
           <Alert variant="destructive">
             <CircleAlertIcon aria-hidden />

@@ -114,6 +114,7 @@ export const reportProduct = pgTable(
     tax: moneyColumn("tax").notNull(),
     net: moneyColumn("net").notNull(),
     cost: moneyColumn("cost").notNull(),
+    /** Sold plus refunded thousandths with no receipt cost behind them. */
     uncosted: bigint("uncosted", { mode: "number" }).notNull(),
     refundQuantity: bigint("refund_quantity", { mode: "number" }).notNull(),
     refundGross: moneyColumn("refund_gross").notNull(),

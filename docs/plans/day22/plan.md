@@ -73,7 +73,7 @@ green (auto-fix and re-push on failure), merge, then update Notion.
 | `GET /reports/dashboard?day&branchId`                                       | sales, transactions, basket size (gross/transactions), items per basket, refunds, unique customers — each with yesterday and % change; top 5 products; tender mix; sales by hour |
 | `GET /reports/sales?from&to&by=day\|hour\|branch\|cashier\|tender&branchId` | grouped rows plus a total row                                                                                                                                                    |
 | `GET /reports/products?from&to&branchId&sort`                               | quantity, gross, net, cost, margin, margin %, uncosted flag                                                                                                                      |
-| `GET /reports/dead-stock?days=30\|60\|90&branchId`                          | on hand > 0 (stock ledger), last sale day, days since, value at last cost; archived products excluded                                                                            |
+| `GET /reports/stock/dead?days=30\|60\|90&branchId`                          | on hand > 0 (stock ledger), last sale day, days since, value at last cost; archived products excluded                                                                            |
 | `GET /reports/branches?from&to`                                             | branch comparison: sales, transactions, basket, margin, refunds, share of total                                                                                                  |
 | `GET /reports/journal?from&to&branchId`                                     | accountant journal: per day and branch, Dr cash/MoMo/card/customer credit/loyalty, Cr sales (net), VAT, NHIL, GETFund, COVID, cash rounding; refunds reversed; debits = credits  |
 
@@ -115,7 +115,7 @@ Shells:
 
 - Nav: `Reports` (`BarChart3Icon`, `report.read`) in `lib/shell/nav/items.ts`, `also` its sub-pages.
 - Routes `routes/reports.tsx` (pattern of `routes/tax.tsx`: `whenHeld`, prefetch, lazy screen, skeleton):
-  `/reports` dashboard, `/reports/sales`, `/reports/products`, `/reports/dead-stock`, `/reports/branches`, `/reports/journal`.
+  `/reports` dashboard, `/reports/sales`, `/reports/products`, `/reports/stock/dead`, `/reports/branches`, `/reports/journal`.
 - Screens `screens/reports/<context>/screen.tsx`, components `components/reports/<context>/`, queries
   `queries/reports/`, search schemas `schemas/reports/`.
 - Figma: the dashboard follows `339:9672` (title, segment tabs, date-range button, Download, KPI tiles with

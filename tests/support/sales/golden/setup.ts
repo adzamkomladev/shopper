@@ -22,17 +22,19 @@ import { insertOpenShift } from "../../till/shifts";
 
 export const at = new Date("2026-10-15T12:00:00.000Z");
 
-/** `since` lets a suite sell before the golden day: the cashier session is valid from then. */
-export async function goldenWorld(options: { shift?: boolean; since?: string } = {}) {
+/** `since` and `until` let a suite sell around the golden day: the cashier session is valid between them. */
+export async function goldenWorld(
+  options: { shift?: boolean; since?: string; until?: string } = {},
+) {
   const since = options.since ?? "2026-10-15T00:00:00.000Z";
-  const until = "2026-10-16T00:00:00.000Z";
+  const until = options.until ?? "2026-10-16T00:00:00.000Z";
   const { db, context } = databases();
   const host = await hostConfiguration(":memory:", ["http://localhost"]);
   if (!host.session) throw new Error("Golden till requires a cashier session");
   const permissions = await configure(
     db,
     { ...context, actorId: host.session.userId },
-    { sessionId: host.session.id, since },
+    { sessionId: host.session.id, since, until },
   );
   const session = {
     ...host.session,
@@ -80,7 +82,7 @@ export async function goldenWorld(options: { shift?: boolean; since?: string } =
 
 const configure = defineCommand({
   name: "golden.test.configure",
-  async run(tx, ctx, input: { sessionId: string; since: string }) {
+  async run(tx, ctx, input: { sessionId: string; since: string; until: string }) {
     if (!ctx.actorId) throw new Error("Golden fixture needs a cashier");
     const [admin] = await tx
       .select()
@@ -110,7 +112,7 @@ const configure = defineCommand({
         permissions,
         roleName: "admin",
         issuedAt: new Date(input.since),
-        expiresAt: new Date("2026-10-16T00:00:00.000Z"),
+        expiresAt: new Date(input.until),
       })
       .where(eq(cashierSession.id, input.sessionId));
     const classes = await tx.select().from(taxClass).where(eq(taxClass.orgId, ctx.orgId));

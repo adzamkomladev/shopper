@@ -18,6 +18,7 @@ import { kycRoutes } from "./routes/kyc";
 import { managementRoutes } from "./routes/management";
 import { systemRoutes } from "./routes/system";
 import { taxReportRoutes } from "./routes/tax/reports";
+import { reportRoutes } from "./routes/reports";
 import { taxRuleRoutes } from "./routes/tax/rules";
 import { fiscalRoutes } from "./routes/tax/fiscal";
 import type { ApiEnvironment, ApiOptions } from "./types";
@@ -85,6 +86,7 @@ export function createApi(options: ApiOptions = {}) {
   if (options.database)
     app.route("/", settingsRoutes(options.database, options.authentication, options.notifications));
   if (options.database) app.route("/", kycRoutes(options));
+  if (options.database) app.route("/", reportRoutes(options.database, options.authentication));
   if (options.database)
     app.route(
       "/",

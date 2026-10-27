@@ -123,6 +123,20 @@ export function createDispatch(host: Host) {
             kind: "approvers",
             ...(await host.approvals.list(request.permission)),
           };
+        case "approval.remote.request":
+          return {
+            id: request.id,
+            type: "result",
+            kind: "remoteApproval",
+            approval: await host.approvals.request(request),
+          };
+        case "approval.remote.status":
+          return {
+            id: request.id,
+            type: "result",
+            kind: "remoteApproval",
+            approval: await host.approvals.status(request.approvalId),
+          };
         case "session.signIn":
           await host.session.signIn(request.email, request.password);
           await host.publishStatus();

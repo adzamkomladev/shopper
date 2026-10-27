@@ -51,7 +51,7 @@ test("a known customer keeps its own record and the sale links to it, whatever t
   );
   await run();
   const [saved] = await stored(saleId);
-  expect(saved).toMatchObject({ customerId: known, eventVersion: 6 });
+  expect(saved).toMatchObject({ customerId: known, eventVersion: 7 });
   expect(await serverCustomer(known)).toMatchObject({ name: "Registered Name", version: 1 });
 });
 
@@ -59,6 +59,6 @@ test("a snapshot that is no valid customer never refuses the sale; it links noth
   const id = "019a0000-0000-7000-8000-0000000000d1";
   const { saleId, run } = await accept(snapshot(id, { phone: "not a phone", tin: "bad-tin" }));
   await run();
-  expect(await stored(saleId)).toMatchObject([{ customerId: null, eventVersion: 6 }]);
+  expect(await stored(saleId)).toMatchObject([{ customerId: null, eventVersion: 7 }]);
   expect(await serverCustomer(id)).toBeUndefined();
 });

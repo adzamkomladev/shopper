@@ -4,6 +4,7 @@ export const permissionNames = [
   "sale.void",
   "sale.price_override",
   "payment.momo",
+  "payment.reconcile",
   "refund.approve",
   "refund.request",
   "shift.read",
@@ -36,4 +37,5 @@ export const permissionNames = [
   "customer.write",
   "customer.manage",
   "kyc.approve",
+  "billing.manage",
 ] as const;

@@ -262,3 +262,20 @@ for old sales.
 ## Browser Run (receipt rendering)
 
 `apps/edge` and `apps/portal` bind `BROWSER` (`bindings.browser({})`; compatibility date 2026-03-24 or later). Browser Run is available on every Workers account and needs nothing enabled in the dashboard. `quickAction` does not run in local dev; no local code path calls it yet, so the binding has no `dev: { remote: true }`. Add that (it requires a Cloudflare login) when a route starts rendering online-order PDFs. Tests use `tooling/browser/server.ts`, a Playwright Chromium stand-in (CI installs Chromium before `vp test --run`).
+
+## Payments, billing and approvals (Day 23)
+
+Apply `0031_payments`: the provider column and fee on `payment`, the webhook dedupe ledger `payment_event`,
+`payment_refund`, `settlement` and `settlement_line`, `approval_request`, `subscription` and `invoice`,
+`org.momo_provider` and the `receipt_email` dedupe table, plus the `payment.reconcile` and `billing.manage`
+permissions. It was edited before its first release, so reset dev databases rather than migrate them forward.
+
+Cloudflare: create the Workflows `shopper-momo-refund-<stage>`, `shopper-settlement-<stage>`,
+`shopper-approval-<stage>` and `shopper-billing-<stage>` (bindings `MOMO_REFUND`, `SETTLEMENT`, `APPROVAL`,
+`BILLING`). They are defined on the edge Worker; the portal Worker binds the same four through `worker: edge`.
+Set `HUBTEL_CLIENT_ID`, `HUBTEL_CLIENT_SECRET` and `HUBTEL_MERCHANT_ACCOUNT` with `cf secret` on both Workers. Without
+them Hubtel cannot be picked in Payments → Settings and every org stays on Paystack. Hubtel calls back to
+`${SHOPPER_AUTH_URL}/api/webhooks/hubtel`. MoMo refunds start only when `PAYSTACK_SECRET_KEY` is set.
+
+Box: it reads the same Hubtel names from its sealed config, runs refunds, settlements and approvals on its memory
+engine, and has no subscription, so it is never read-only. Billing is cloud only.

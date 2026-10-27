@@ -198,11 +198,17 @@ async function plan(tx: TillSqlite, { config, session, data, time }: Prepared) {
   const names = await findRegisterSettings(tx, config);
   const settings = readOrgSettings(await tx.select().from(reference));
   const event = {
-    v: 3 as const,
+    v: 4 as const,
     type: "refund.recorded" as const,
     refund: buildRefund(
       original,
-      { lines: data.lines, tender: data.tender, reason: data.reason, approverId },
+      {
+        lines: data.lines,
+        tender: data.tender,
+        reason: data.reason,
+        approverId,
+        approvalId: data.approvalId,
+      },
       {
         orgId: config.orgId,
         deviceId: config.deviceId,

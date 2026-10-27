@@ -12,4 +12,6 @@ export type Scenario = {
   preview?: "loading" | "offline" | "gone";
   refundError?: { code: string; message: string };
   lookup?: "found" | "missing" | "offline" | "failed";
+  /** How the back office answers "Ask a manager" after one check: offline never reaches it. */
+  remote?: "approved" | "declined" | "expired" | "offline";
 };

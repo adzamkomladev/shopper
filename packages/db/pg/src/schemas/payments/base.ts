@@ -1,8 +1,8 @@
 import { sql } from "drizzle-orm";
 import { check, foreignKey, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
-import { tenant, branch, moneyColumn } from "./base";
-import { user } from "./auth";
-import { device } from "./devices";
+import { tenant, branch, moneyColumn, momoProviders } from "../base";
+import { user } from "../auth";
+import { device } from "../devices";
 
 export const paymentNetworks = ["mtn", "telecel", "airteltigo"] as const;
 export const paymentStatuses = ["pending", "otp", "confirmed", "failed", "expired"] as const;
@@ -21,6 +21,7 @@ export const payment = pgTable(
     phoneFingerprint: text("phone_fingerprint"),
     network: text("network", { enum: paymentNetworks }).notNull(),
     status: text("status", { enum: paymentStatuses }).notNull().default("pending"),
+    provider: text("provider", { enum: momoProviders }).notNull().default("paystack"),
     providerReference: text("provider_reference"),
     failureReason: text("failure_reason"),
   },
@@ -36,6 +37,7 @@ export const payment = pgTable(
       "payment_phone_fingerprint",
       sql`${t.phoneFingerprint} IS NULL OR ${t.phoneFingerprint} ~ '^[0-9a-f]{64}$'`,
     ),
+    check("payment_provider", sql`${t.provider} IN ('paystack', 'hubtel')`),
     check("payment_network", sql`${t.network} IN ('mtn', 'telecel', 'airteltigo')`),
     check(
       "payment_status",

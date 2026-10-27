@@ -65,7 +65,7 @@ test("B2B sale carries buyer TIN onto the invoice and fiscal payload", async () 
 
   // On the server: linked, and the stored receipt is the v3 invoice.
   const stored = await serverSale(sold.saleId);
-  expect(stored).toMatchObject({ customer_id: customer.id, event_version: 6 });
+  expect(stored).toMatchObject({ customer_id: customer.id, event_version: 7 });
   expect(stored!.receipt).toMatchObject({ v: 5, buyer });
   expect(fiscalPayload(stored!.receipt).buyer).toEqual(buyer);
   expect(fiscalPayload(stored!.receipt).buyer!.tin).toBe("C0012345678");
@@ -85,7 +85,7 @@ test("a walk-in sale has buyer null on every document and no customer", async ()
   expect(sold.sale.customer).toBeNull();
   expect(sold.receipt).toMatchObject({ v: 5, buyer: null });
   await till.settle();
-  expect(await serverSale(sold.saleId)).toMatchObject({ customer_id: null, event_version: 6 });
+  expect(await serverSale(sold.saleId)).toMatchObject({ customer_id: null, event_version: 7 });
   const stored = (await serverSale(sold.saleId))!.receipt;
   expect(stored).toMatchObject({ v: 5, buyer: null });
   expect(fiscalPayload(stored).buyer).toBeNull();

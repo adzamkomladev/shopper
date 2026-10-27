@@ -58,6 +58,7 @@ export function goldenRefundReceipt(
     clockOffsetMs: 0,
     originalSaleId: sale.id,
     creditNoteNumber: "BR1-T1-000002",
+    approvalId: null,
     reason: "Customer returned goods",
     approverId: null,
     lines: [

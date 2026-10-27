@@ -1,6 +1,6 @@
 import type { LiveSocket, LiveMode } from "./types";
 export type { LiveSocket, LiveMode } from "./types";
-import { paymentNudge, nudge } from "./schemas/live";
+import { approvalNudge, paymentNudge, nudge } from "./schemas/live";
 import * as v from "valibot";
 
 const FALLBACK_MS = 30_000;
@@ -13,6 +13,7 @@ export function createLiveWorker(options: {
   connect: (url: string, headers: Record<string, string>) => LiveSocket;
   onMode?: (mode: LiveMode) => void;
   onPayment?: (payment: v.InferOutput<typeof paymentNudge>["payload"]) => Promise<void>;
+  onApproval?: (approval: v.InferOutput<typeof approvalNudge>["payload"]) => Promise<void>;
   onConnected?: () => Promise<void>;
 }) {
   let socket: LiveSocket | undefined;
@@ -92,6 +93,8 @@ export function createLiveWorker(options: {
         try {
           const message: unknown = JSON.parse(String(data));
           if (v.is(nudge, message)) void pull();
+          const approval = v.safeParse(approvalNudge, message);
+          if (approval.success) void options.onApproval?.(approval.output.payload);
           const payment = v.safeParse(paymentNudge, message);
           if (payment.success && options.onPayment)
             receiving = receiving

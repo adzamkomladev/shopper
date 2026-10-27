@@ -60,6 +60,7 @@ export function makeSaleSnapshot(): SaleSnapshot {
     paid: money(1_300_000),
     change: money(35_000),
     customer: null,
+    discountApprovalId: null,
     tenders: [{ id: id("8"), kind: "cash", amount: money(1_300_000) }],
   };
 }

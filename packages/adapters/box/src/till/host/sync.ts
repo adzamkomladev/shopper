@@ -26,6 +26,8 @@ export function createHostSync(
   payments?: Pick<ReturnType<typeof createHostPayments>, "receive" | "recover">,
   /** After every pull: signatures it brought may need their receipt PDFs rendered again. */
   onPulled?: () => Promise<void>,
+  /** A manager's answer to this register's remote approval, pushed through the live socket. */
+  onApproval?: (payload: unknown) => Promise<void>,
 ) {
   const identity = config.identity;
   const options = {
@@ -58,6 +60,7 @@ export function createHostSync(
     connect: (url, headers) => new WebSocket(url, { headers }),
     onMode: notify,
     onPayment: payments?.receive,
+    onApproval,
     onConnected: payments?.recover,
   });
   const uploads = createReceiptUploadWorker({

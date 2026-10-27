@@ -18,6 +18,10 @@ import { settingsRoutes } from "./settings";
 import { reportRoutes } from "./reports";
 import { taxRoutes } from "./tax";
 import { auditRoutes } from "./audit";
+import { transactionRoutes } from "./transactions";
+import { paymentRoutes } from "./payments";
+import { approvalRoutes } from "./approvals";
+import { billingRoutes } from "./billing";
 import { publicStatementRoutes } from "./statements/public";
 import { shiftRoutes } from "./shifts";
 import { currentOrgQuery, requireSession } from "../queries/session/session";
@@ -145,6 +149,10 @@ export function createBackofficeRoutes(
       ...reportRoutes(shopRoute),
       ...taxRoutes(shopRoute),
       ...auditRoutes(shopRoute),
+      ...transactionRoutes(shopRoute),
+      ...paymentRoutes(shopRoute),
+      ...approvalRoutes(shopRoute),
+      ...billingRoutes(shopRoute),
     ]),
   ]);
 }

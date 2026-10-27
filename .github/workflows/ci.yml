@@ -4,56 +4,52 @@ on:
   pull_request:
 permissions:
   contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  CF_SEND_TELEMETRY: "false"
+  TEST_DATABASE_URL: postgresql://shopper:shopper_ci_only@127.0.0.1:5432/shopper
+# Every job runs on its own runner, so the static checks, the build and each test shard finish side by side.
+# `ci` is the one required check: it passes only when every job above it passed.
 jobs:
-  foundation:
+  check:
     runs-on: ubuntu-latest
-    timeout-minutes: 75
-    services:
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_USER: shopper
-          POSTGRES_PASSWORD: shopper_ci_only
-          POSTGRES_DB: shopper
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U shopper -d shopper"
-          --health-interval 2s --health-timeout 5s --health-retries 30
-      rustfs:
-        image: rustfs/rustfs:1.0.1
-        env:
-          RUSTFS_ACCESS_KEY: shopper_dev_access
-          RUSTFS_SECRET_KEY: shopper_dev_secret_at_least_32_chars
-          RUSTFS_VOLUMES: /data
-          RUSTFS_CONSOLE_ENABLE: "false"
-          RUSTFS_CORS_ALLOWED_ORIGINS: http://localhost:5183,http://127.0.0.1:5183
-        ports: ["9200:9000"]
-        options: >-
-          --health-cmd "curl --fail http://localhost:9000/health"
-          --health-interval 2s --health-timeout 5s --health-retries 30
-    env:
-      CF_SEND_TELEMETRY: "false"
-      TEST_DATABASE_URL: postgresql://shopper:shopper_ci_only@127.0.0.1:5432/shopper
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
-      - uses: oven-sh/setup-bun@v2
-      - uses: voidzero-dev/setup-vp@v1
-        with:
-          node-version: "24.21.0"
-          version: "1.0.0"
-          run-install: false
-      - run: vp install --frozen-lockfile
-      - run: vp run storage:setup
-      - run: vp exec playwright install --with-deps chromium
+      - uses: ./.github/actions/setup
       - run: vp check
-      - run: vp run guard
-      - run: vp test --run
-      - run: vp run build
-      - run: vp run typecheck
-  e2e:
+  guard:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
-    services:
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - run: vp run guard
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - run: vp run typecheck
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - run: vp run build
+  integration:
+    name: integration (${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    services: &services
       postgres:
         image: postgres:18
         env:
@@ -76,25 +72,57 @@ jobs:
         options: >-
           --health-cmd "curl --fail http://localhost:9000/health"
           --health-interval 2s --health-timeout 5s --health-retries 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+        with:
+          storage: "true"
+          browsers: "true"
+      - run: vp test --run --shard=${{ matrix.shard }}/4
+  e2e:
+    name: e2e (${{ matrix.shard }}/3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    services: *services
     env:
-      CF_SEND_TELEMETRY: "false"
-      TEST_DATABASE_URL: postgresql://shopper:shopper_ci_only@127.0.0.1:5432/shopper
       E2E_DATABASE_URL: postgresql://shopper:shopper_ci_only@127.0.0.1:5432/shopper_e2e
     steps:
       - uses: actions/checkout@v5
-      - uses: oven-sh/setup-bun@v2
-      - uses: voidzero-dev/setup-vp@v1
+      - uses: ./.github/actions/setup
         with:
-          node-version: "24.21.0"
-          version: "1.0.0"
-          run-install: false
-      - run: vp install --frozen-lockfile
-      - run: vp run storage:setup
-      - run: vp exec playwright install --with-deps chromium
-      - run: vp run e2e
+          storage: "true"
+          browsers: "true"
+      - run: vp exec playwright test --shard=${{ matrix.shard }}/3
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-results-${{ matrix.shard }}
+          path: test-results/
+  e2e-public:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services: *services
+    env:
+      E2E_DATABASE_URL: postgresql://shopper:shopper_ci_only@127.0.0.1:5432/shopper_e2e
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+        with:
+          storage: "true"
+          browsers: "true"
       - run: vp exec playwright test --config playwright.public.config.ts --output test-results/public
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-results
+          name: playwright-results-public
           path: test-results/
+  ci:
+    if: always()
+    needs: [check, guard, typecheck, build, integration, e2e, e2e-public]
+    runs-on: ubuntu-latest
+    steps:
+      - run: test "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}" = "false"

@@ -1,13 +1,17 @@
 import type { LucideIcon } from "lucide-react";
-import type { PermissionCode } from "../../roles/permissions";
+import type { PermissionNeed } from "../../roles/permissions";
 import {
   ChartNoAxesColumnIcon,
   ClockIcon,
+  CreditCardIcon,
   WarehouseIcon,
   GitBranchIcon,
+  InboxIcon,
   MonitorSmartphoneIcon,
   LandmarkIcon,
   PackageIcon,
+  ScaleIcon,
+  ReceiptTextIcon,
   ScanBarcodeIcon,
   ScrollTextIcon,
   ShieldCheckIcon,
@@ -21,14 +25,35 @@ type NavItem = {
   to: string;
   label: string;
   icon: LucideIcon;
-  /** Shown only to members who hold this permission. */
-  permission?: PermissionCode;
+  /** Shown only to members who hold this permission, or any one of these. */
+  permission?: PermissionNeed;
   /** Other pages of the same area: the link stays highlighted on them. */
   also?: readonly string[];
+  /** An account page: listed in the user menu and the palette, not the bar. */
+  account?: true;
 };
 
 export const NAV_ITEMS: readonly NavItem[] = [
   { to: "/reports", label: "Reports", icon: ChartNoAxesColumnIcon, permission: "report.read" },
+  {
+    to: "/transactions",
+    label: "Transactions",
+    icon: ReceiptTextIcon,
+    permission: "report.read",
+  },
+  {
+    to: "/payments/reconciliation",
+    label: "Payments",
+    icon: ScaleIcon,
+    permission: "report.read",
+    also: ["/payments/settings"],
+  },
+  {
+    to: "/approvals",
+    label: "Approvals",
+    icon: InboxIcon,
+    permission: ["refund.approve", "sale.discount"],
+  },
   { to: "/products", label: "Products", icon: PackageIcon },
   {
     to: "/stock",
@@ -54,4 +79,11 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { to: "/devices", label: "Devices", icon: MonitorSmartphoneIcon, permission: "device.read" },
   { to: "/shifts", label: "Shifts", icon: ClockIcon, permission: "shift.read" },
   { to: "/audit", label: "Audit", icon: ScrollTextIcon, permission: "audit.read" },
+  {
+    to: "/billing",
+    label: "Billing",
+    icon: CreditCardIcon,
+    permission: "billing.manage",
+    account: true,
+  },
 ];

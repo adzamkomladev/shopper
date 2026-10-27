@@ -14,3 +14,11 @@ export type PaystackCharge = {
   network: MomoNetwork;
   email: string;
 };
+
+export type PaystackSettlement = {
+  providerId: string;
+  settledOn: string;
+  amount: Money;
+  fees: Money;
+  lines: Array<{ reference: string; amount: Money; fee: Money }>;
+};

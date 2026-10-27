@@ -57,16 +57,44 @@ export const errorResponseSchema = v.object({
   code: v.optional(v.string()),
 });
 
-export const webhookSchema = v.object({
-  event: v.picklist(["charge.success", "charge.failed"]),
+const pesewas = v.pipe(
+  v.union([v.number(), v.pipe(v.string(), v.regex(/^\d+$/), v.transform(Number))]),
+  v.safeInteger(),
+);
+
+export const webhookSchema = v.variant("event", [
+  v.object({
+    event: v.picklist(["charge.success", "charge.failed"]),
+    data: v.object({
+      reference: v.string(),
+      status: v.string(),
+      amount: pesewas,
+      gateway_response: v.optional(v.nullable(v.string())),
+      metadata: v.optional(v.unknown()),
+    }),
+  }),
+  // Refund events name the refunded charge; the amount is a string in some deliveries.
+  v.object({
+    event: v.picklist(["refund.processed", "refund.failed"]),
+    data: v.object({
+      id: v.optional(v.union([v.number(), v.string()])),
+      transaction_reference: v.string(),
+      refund_reference: v.optional(v.nullable(v.string())),
+      status: v.string(),
+      amount: pesewas,
+    }),
+  }),
+]);
+export type PaystackWebhook = v.InferOutput<typeof webhookSchema>;
+
+export const refundResponseSchema = v.object({
+  status: v.boolean(),
+  message: v.string(),
   data: v.object({
-    reference: v.string(),
+    id: v.union([v.number(), v.string()]),
     status: v.string(),
-    amount: v.pipe(v.number(), v.safeInteger()),
-    gateway_response: v.optional(v.nullable(v.string())),
   }),
 });
-export type PaystackWebhook = v.InferOutput<typeof webhookSchema>;
 
 export const chargeResultSchema = v.object({
   status: v.picklist(["pending", "otp", "confirmed", "failed"]),
@@ -74,3 +102,7 @@ export const chargeResultSchema = v.object({
   message: v.optional(v.string()),
 });
 export type ChargeResult = v.InferOutput<typeof chargeResultSchema>;
+export type RefundResult = {
+  status: "pending" | "processed" | "failed";
+  providerReference: string;
+};

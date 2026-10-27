@@ -41,23 +41,25 @@ export function TopNav({ shops, currentId, user }: Props) {
       <div className="flex min-w-0 flex-1 items-center gap-x-6 2xl:flex-initial">
         <ShopSwitcher shops={shops} currentId={currentId} />
       </div>
-      {/* The links share one row with the rest only from 2xl; below it they take their own row, tighter on a phone so they wrap to three rows. */}
-      <div className="order-last flex w-full flex-wrap gap-x-4 gap-y-1 md:gap-x-6 2xl:order-none 2xl:w-auto 2xl:flex-nowrap 2xl:gap-x-3">
-        {navItems.map(({ to, label, also }) => {
-          const here = [to, ...(also ?? [])].some(
-            (page) => path === page || path.startsWith(`${page}/`),
-          );
-          return (
-            <Link
-              key={to}
-              to={to}
-              aria-current={here ? "page" : undefined}
-              className="-mx-2 rounded-md px-2 py-1 text-sm font-medium text-muted-foreground hover:text-foreground aria-[current=page]:text-foreground"
-            >
-              {label}
-            </Link>
-          );
-        })}
+      {/* The links share one row with the rest only from 2xl; below it they take their own row, which wraps on a phone. */}
+      <div className="order-last flex w-full flex-wrap gap-x-3 gap-y-1 md:gap-x-4 2xl:order-none 2xl:w-auto 2xl:flex-nowrap 2xl:gap-x-3">
+        {navItems
+          .filter((item) => !item.account)
+          .map(({ to, label, also }) => {
+            const here = [to, ...(also ?? [])].some(
+              (page) => path === page || path.startsWith(`${page}/`),
+            );
+            return (
+              <Link
+                key={to}
+                to={to}
+                aria-current={here ? "page" : undefined}
+                className="-mx-2 rounded-md px-2 py-1 text-sm font-medium text-muted-foreground hover:text-foreground aria-[current=page]:text-foreground"
+              >
+                {label}
+              </Link>
+            );
+          })}
       </div>
       <div className="flex items-center gap-4 md:ml-auto">
         <Button

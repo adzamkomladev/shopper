@@ -10,6 +10,7 @@ import { cloudflareDatabase } from "./database";
 import { cloudflareLauncher } from "./launcher";
 import { cloudflareSequencer } from "./sequencer";
 import { cloudflareLane } from "./lane";
+import { cloudflareHubtel } from "./hubtel";
 import type { CloudflareRuntimeEnvironment } from "./runtime/types";
 
 const s3 = (env: CloudflareRuntimeEnvironment, bucket?: string) =>
@@ -64,7 +65,14 @@ export async function cloudflareRuntime(
       env.MOMO_PAYMENT && env.PAYSTACK_SECRET_KEY
         ? cloudflareLauncher(env.MOMO_PAYMENT)
         : undefined,
+    momoRefund:
+      env.MOMO_REFUND && env.PAYSTACK_SECRET_KEY ? cloudflareLauncher(env.MOMO_REFUND) : undefined,
     paystackSecret: env.PAYSTACK_SECRET_KEY,
+    hubtel: cloudflareHubtel(env),
+    settlements:
+      env.SETTLEMENT && env.PAYSTACK_SECRET_KEY ? cloudflareLauncher(env.SETTLEMENT) : undefined,
+    approvals: env.APPROVAL ? cloudflareLauncher(env.APPROVAL) : undefined,
+    billing: env.BILLING ? cloudflareLauncher(env.BILLING) : undefined,
     authFlows: env.AUTH_FLOWS ? cloudflareLauncher(env.AUTH_FLOWS) : undefined,
     kyc:
       env.KYC_FLOWS && env.ARKESEL_API_KEY && env.ARKESEL_SENDER

@@ -4,7 +4,7 @@ import { eq, and } from "drizzle-orm";
 import { v7 } from "uuid";
 import * as schema from "@shopper/db-pg";
 import { defineCommand } from "@shopper/audit";
-import type { WorkflowLauncher } from "@shopper/ports";
+import type { Realtime, WorkflowLauncher } from "@shopper/ports";
 import { createApi } from "@shopper/api";
 import { createAuth, seedAuthRoles } from "@shopper/auth";
 import { createDeviceService } from "@shopper/auth/devices";
@@ -99,14 +99,19 @@ export async function momoFixture() {
     secret: "integration-secret-at-least-thirty-two-chars",
     baseURL: "http://localhost",
   });
-  const withLauncher = (momoPayment: WorkflowLauncher) =>
+  const withLauncher = (
+    momoPayment: WorkflowLauncher,
+    live: Realtime = realtime,
+    extra: Partial<Parameters<typeof createApi>[0]> = {},
+  ) =>
     createApi({
+      ...extra,
       database: db,
       devices: createDeviceService(db, cache.cache, "test"),
       authentication,
       momoPayment,
       paystackSecret: fake.secretKey,
-      realtime,
+      realtime: live,
     });
   const api = withLauncher(launcher);
   const headers = {
@@ -120,6 +125,22 @@ export async function momoFixture() {
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
+  function webhookTo(
+    target: ReturnType<typeof createApi>,
+    reference: string,
+    event = "charge.success",
+    amount = 100,
+  ) {
+    const body = JSON.stringify({
+      event,
+      data: { reference, status: event === "charge.success" ? "success" : "failed", amount },
+    });
+    return target.request("/webhooks/paystack", {
+      method: "POST",
+      headers: { "x-paystack-signature": signWebhook(fake.secretKey, body) },
+      body,
+    });
+  }
   return {
     fixture,
     db,
@@ -136,17 +157,9 @@ export async function momoFixture() {
     deviceToken,
     token,
     session,
-    async webhook(reference: string, event = "charge.success", amount = 100) {
-      const body = JSON.stringify({
-        event,
-        data: { reference, status: event === "charge.success" ? "success" : "failed", amount },
-      });
-      return api.request("/webhooks/paystack", {
-        method: "POST",
-        headers: { "x-paystack-signature": signWebhook(fake.secretKey, body) },
-        body,
-      });
-    },
+    webhook: (reference: string, event = "charge.success", amount = 100) =>
+      webhookTo(api, reference, event, amount),
+    webhookTo,
     async close() {
       cache.close();
       await fake.stop();

@@ -1,0 +1,35 @@
+name: Setup
+description: Checkout-independent toolchain setup shared by every CI job.
+inputs:
+  storage:
+    description: Create the RustFS buckets the suites use.
+    default: "false"
+  browsers:
+    description: Install Playwright Chromium with its system dependencies.
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - uses: oven-sh/setup-bun@v2
+    - uses: voidzero-dev/setup-vp@v1
+      with:
+        node-version: "24.21.0"
+        version: "1.0.0"
+        run-install: false
+    - run: vp install --frozen-lockfile
+      shell: bash
+    - if: inputs.storage == 'true'
+      run: vp run storage:setup
+      shell: bash
+    - if: inputs.browsers == 'true'
+      id: playwright
+      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      shell: bash
+    - if: inputs.browsers == 'true'
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+    - if: inputs.browsers == 'true'
+      run: vp exec playwright install --with-deps chromium
+      shell: bash

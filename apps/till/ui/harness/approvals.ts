@@ -30,7 +30,10 @@ export function approversFor(scenario: string, permission: ApprovalPermission): 
 }
 
 /** The host's answer to a change that may carry a manager's PIN, with the host's own words. */
-export function judge(scenario: string, approval: Approval | undefined): SaleOutcome {
+export function judge(
+  scenario: string,
+  approval: Approval | { approvalId: string } | undefined,
+): SaleOutcome {
   if (!approval) return { ok: true };
   if (scenario === "void-locked")
     return {
@@ -40,7 +43,8 @@ export function judge(scenario: string, approval: Approval | undefined): SaleOut
     };
   if (scenario === "void-forbidden")
     return { ok: false, code: "APPROVAL_FORBIDDEN", message: "This person cannot approve that" };
-  if (approval.pin === managerPin) return { ok: true };
+  // A remote approval reaches a refund only once the harness answered it as approved.
+  if ("approvalId" in approval || approval.pin === managerPin) return { ok: true };
   wrong += 1;
   return {
     ok: false,

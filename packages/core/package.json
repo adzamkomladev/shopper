@@ -40,6 +40,10 @@
       "types": "./src/sms/arkesel.ts",
       "default": "./src/sms/arkesel.ts"
     },
+    "./payments/hubtel": {
+      "types": "./src/payments/hubtel/index.ts",
+      "default": "./src/payments/hubtel/index.ts"
+    },
     "./payments/paystack": {
       "types": "./src/payments/paystack/index.ts",
       "default": "./src/payments/paystack/index.ts"
@@ -91,6 +95,18 @@
     "./fiscal": {
       "types": "./src/fiscal/index.ts",
       "default": "./src/fiscal/index.ts"
+    },
+    "./transactions": {
+      "types": "./src/transactions/index.ts",
+      "default": "./src/transactions/index.ts"
+    },
+    "./approvals": {
+      "types": "./src/approvals/index.ts",
+      "default": "./src/approvals/index.ts"
+    },
+    "./billing": {
+      "types": "./src/billing/index.ts",
+      "default": "./src/billing/index.ts"
     }
   },
   "scripts": {

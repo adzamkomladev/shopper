@@ -5,7 +5,9 @@ import { FieldError } from "@shopper/ui/components/field";
 import { Kbd } from "@shopper/ui/components/kbd";
 import type { useReturnForm } from "../../../hooks/purchases/return/form";
 import type { ApproverState } from "../../../sale/types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@shopper/ui/components/tabs";
 import { ApprovalFields } from "../../approval/fields";
+import { RemoteApproval } from "../../approval/remote";
 
 /** The refund in numbers, the manager when one is needed, any refusal, and the one button that sends it. */
 export function ReturnSummary({
@@ -20,7 +22,7 @@ export function ReturnSummary({
   approvalNote: string | null;
   onRetryApprovers: () => void;
 }) {
-  const { preview, manager, block, count } = form;
+  const { preview, manager, remote, block, count } = form;
   return (
     <section aria-label="Refund summary" className="rounded-lg border bg-card shadow-sm">
       <div className="border-b px-4 py-3">
@@ -50,12 +52,36 @@ export function ReturnSummary({
         )}
         {approvalNote && <p className="text-sm text-muted-foreground">{approvalNote}</p>}
         {approvalNote && (
-          <ApprovalFields
-            approvers={approvers}
-            form={manager}
-            onRetry={onRetryApprovers}
-            permission="refund.approve"
-          />
+          <Tabs
+            className="gap-3"
+            onValueChange={(value) => remote.setMode(value === "remote" ? "remote" : "pin")}
+            value={remote.mode}
+          >
+            <TabsList className="h-12 w-full">
+              <TabsTrigger className="h-11" value="pin">
+                Manager here <Kbd className="max-sm:hidden">Alt+P</Kbd>
+              </TabsTrigger>
+              <TabsTrigger className="h-11" value="remote">
+                Ask remotely <Kbd className="max-sm:hidden">Alt+R</Kbd>
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent className="grid gap-4" value="pin">
+              <ApprovalFields
+                approvers={approvers}
+                form={manager}
+                onRetry={onRetryApprovers}
+                permission="refund.approve"
+              />
+            </TabsContent>
+            <TabsContent value="remote">
+              <RemoteApproval
+                approved={remote.approved}
+                canAsk={count > 0 && !!preview && form.reason.trim() !== ""}
+                onAsk={remote.ask}
+                state={remote.state}
+              />
+            </TabsContent>
+          </Tabs>
         )}
         {manager.problem && <FieldError>{manager.problem}</FieldError>}
         <Button

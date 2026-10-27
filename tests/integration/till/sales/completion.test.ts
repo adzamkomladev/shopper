@@ -45,7 +45,7 @@ test("a cash tender completes the draft once with change and a v4 outbox sale", 
     });
 
     expect(event).toMatchObject({
-      v: 6,
+      v: 7,
       type: "sale.recorded",
       sale: {
         total: 12_000,

@@ -21,7 +21,7 @@ describe("till host process bridge", () => {
     });
     expect(result).toMatchObject({ type: "result", kind: "sale" });
     const event = result.event as Record<string, unknown>;
-    expect(event).toMatchObject({ v: 6, type: "sale.recorded" });
+    expect(event).toMatchObject({ v: 7, type: "sale.recorded" });
     expect(await fixture.localSales()).toHaveLength(1);
     expect(await fixture.queued()).toHaveLength(1);
 

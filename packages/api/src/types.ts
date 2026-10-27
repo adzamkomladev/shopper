@@ -1,3 +1,4 @@
+import type { createHubtel } from "@shopper/core/payments/hubtel";
 import type {
   AuthPrincipal,
   createDeviceService,
@@ -47,7 +48,17 @@ export interface ApiOptions {
   // Populated by the authenticated session adapter; never derive this from request parameters.
   resolveOrgId?: (request: Request) => Promise<string | null>;
   momoPayment?: WorkflowLauncher;
+  /** Wakes the MoMo refund workflow when Paystack reports a refund's outcome. */
+  momoRefund?: WorkflowLauncher;
   paystackSecret?: string;
+  /** Confirms Hubtel callbacks through its status API; without it Hubtel callbacks are refused. */
+  hubtel?: ReturnType<typeof createHubtel>;
+  /** Fetches a day's Paystack settlements; without it a refresh is unavailable. */
+  settlements?: WorkflowLauncher;
+  /** Runs remote manager approvals; without it a register cannot ask. */
+  approvals?: WorkflowLauncher;
+  /** Runs each billing period's dunning; a paid invoice wakes it to stop. */
+  billing?: WorkflowLauncher;
   priceChange?: WorkflowLauncher;
   onboarding?: ReturnType<typeof createOnboarding>;
   invitations?: ReturnType<typeof createInvitations>;
@@ -72,7 +83,12 @@ export interface RuntimeOptions {
   bootstrapToken?: string;
   clientIP?: string;
   momoPayment?: WorkflowLauncher;
+  momoRefund?: WorkflowLauncher;
   paystackSecret?: string;
+  hubtel?: ReturnType<typeof createHubtel>;
+  settlements?: WorkflowLauncher;
+  approvals?: WorkflowLauncher;
+  billing?: WorkflowLauncher;
   priceChange?: WorkflowLauncher;
   authFlows?: WorkflowLauncher;
   kyc?: WorkflowLauncher;

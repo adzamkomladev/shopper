@@ -17,7 +17,7 @@ import { tenant, branch, store, moneyColumn } from "./base";
 import { user } from "./auth";
 import { device, cashierSession } from "./devices";
 import { product, price, taxRule } from "./catalogue";
-import { payment } from "./payments";
+import { payment } from "./payments/base";
 import { asset } from "./assets";
 import { customer } from "./customers/base";
 import { accountHold } from "./customers/holds";

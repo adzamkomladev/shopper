@@ -10,11 +10,11 @@ import {
   EmptyTitle,
 } from "@shopper/ui/components/empty";
 import { useQuery } from "@tanstack/react-query";
-import type { PermissionCode } from "../../lib/roles/permissions";
+import { holds, type PermissionNeed } from "../../lib/roles/permissions";
 import { ApiError } from "../../api/client";
 import { permissionsQuery } from "../../queries/session/permissions";
 
-/** Shows `children` once the signed-in user is known to hold `need`; otherwise the reason it is hidden. */
+/** Shows `children` once the signed-in user is known to hold `need` (or one of them); otherwise the reason it is hidden. */
 export function Gate({
   need,
   what,
@@ -22,7 +22,7 @@ export function Gate({
   fallback,
   children,
 }: {
-  need: PermissionCode;
+  need: PermissionNeed;
   what: string;
   /** What the permission lets them do, when it is not just to view `what`. */
   verb?: string;
@@ -31,7 +31,7 @@ export function Gate({
 }) {
   const { data, isPending } = useQuery(permissionsQuery());
   if (isPending) return fallback;
-  return data?.includes(need) ? children : <NoPermission what={what} verb={verb} />;
+  return holds(data, need) ? children : <NoPermission what={what} verb={verb} />;
 }
 
 export function NoPermission({ what, verb = "view" }: { what: string; verb?: string }) {

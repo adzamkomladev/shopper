@@ -26,6 +26,7 @@ import { scenarios } from "./scenarios";
 import { purchaseOutput } from "../src/purchases/delivery";
 import { purchaseActions } from "./purchases/actions";
 import { initialPurchases } from "./purchases/data";
+import { remoteHarness } from "./purchases/remote";
 import { purchasePermissions } from "./purchases/scenarios";
 import { paymentActions } from "./sale/accounts";
 import { saleActions } from "./sale/actions";
@@ -45,6 +46,7 @@ const record =
     window.saleCalls.push({ type, args });
 const params = new URLSearchParams(location.search);
 const name = params.get("scenario") ?? "lines";
+remoteHarness(name, record);
 // The shell specs sign in as other staff (`?permissions=report.read,stock.read`) or lose the server (`?offline`).
 const permissions = params.get("permissions")?.split(",") ?? [
   "sale.create",

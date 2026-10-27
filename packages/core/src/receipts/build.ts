@@ -7,7 +7,8 @@ import type { ReceiptReference } from "./types";
 type Lines = SaleSnapshot["lines"] | RefundSnapshot["lines"];
 type Totals = SaleSnapshot["totals"];
 /** A sale as the receipt reads it; a walk-in has no customer to name. */
-type Sold = Omit<SaleSnapshot, "customer"> & Partial<Pick<SaleSnapshot, "customer">>;
+type Sold = Omit<SaleSnapshot, "customer" | "discountApprovalId"> &
+  Partial<Pick<SaleSnapshot, "customer" | "discountApprovalId">>;
 
 export function buildReceipt(sale: Sold, reference: ReceiptReference = {}): ReceiptDocument {
   return {

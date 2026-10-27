@@ -116,7 +116,7 @@ export type RefundInput = {
   lines: { lineId: string; quantityThousandths: number }[];
   reason: string;
   tender: RefundTender;
-  approval?: Approval;
+  approval?: Approval | { approvalId: string };
 };
 /** `total` is what the register paid out, after cash rounding. */
 export type RefundOutcome = { ok: true; total: number } | Extract<SaleOutcome, { ok: false }>;

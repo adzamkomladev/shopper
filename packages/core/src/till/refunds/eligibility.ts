@@ -51,6 +51,7 @@ type Request = {
   tender: RefundSnapshot["tender"];
   reason: string;
   approverId: string | null;
+  approvalId?: string | null;
 };
 type Stamp = Pick<
   RefundSnapshot,
@@ -130,6 +131,7 @@ export function buildRefund(
     creditNoteNumber: ids.creditNoteNumber ?? null,
     reason: request.reason,
     approverId: request.approverId,
+    approvalId: request.approvalId ?? null,
     lines,
     totals,
     cashRounding: payout.cashRounding,

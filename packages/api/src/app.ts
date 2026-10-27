@@ -1,4 +1,5 @@
 import { paymentRoutes } from "./payments/routes";
+import { hubtelRoutes } from "./payments/hubtel";
 import { createSyncRoutes } from "./sync/routes";
 import { onboardingRoutes } from "./routes/onboarding";
 import { invitationRoutes } from "./routes/invitations";
@@ -19,9 +20,14 @@ import { managementRoutes } from "./routes/management";
 import { systemRoutes } from "./routes/system";
 import { taxReportRoutes } from "./routes/tax/reports";
 import { reportRoutes } from "./routes/reports";
+import { reconciliationRoutes } from "./routes/reconciliation";
+import { transactionRoutes } from "./routes/transactions";
+import { approvalRoutes } from "./routes/approvals";
 import { taxRuleRoutes } from "./routes/tax/rules";
 import { fiscalRoutes } from "./routes/tax/fiscal";
 import type { ApiEnvironment, ApiOptions } from "./types";
+import { readOnlyGuard } from "./middleware/readonly";
+import { billingRoutes } from "./routes/billing";
 
 export function createApi(options: ApiOptions = {}) {
   const app = new Hono<ApiEnvironment>();
@@ -29,8 +35,10 @@ export function createApi(options: ApiOptions = {}) {
     await next();
     c.header("Shopper-Version", buildInfo.version);
   });
+  app.use("*", readOnlyGuard(options));
   app.route("/", systemRoutes());
   app.route("/", paymentRoutes(options));
+  app.route("/", hubtelRoutes(options));
   if (options.database && options.devices && options.sequencer)
     app.route(
       "/",
@@ -84,9 +92,19 @@ export function createApi(options: ApiOptions = {}) {
   if (options.database)
     app.route("/", loyaltyRoutes(options.database, options.authentication, options.notifications));
   if (options.database)
-    app.route("/", settingsRoutes(options.database, options.authentication, options.notifications));
+    app.route(
+      "/",
+      settingsRoutes(options.database, options.authentication, options.notifications, {
+        paystack: !!options.momoPayment,
+        hubtel: !!options.hubtel,
+      }),
+    );
   if (options.database) app.route("/", kycRoutes(options));
   if (options.database) app.route("/", reportRoutes(options.database, options.authentication));
+  if (options.database) app.route("/", reconciliationRoutes(options));
+  if (options.database) app.route("/", transactionRoutes(options));
+  if (options.database) app.route("/", approvalRoutes(options));
+  if (options.database) app.route("/", billingRoutes(options));
   if (options.database)
     app.route(
       "/",

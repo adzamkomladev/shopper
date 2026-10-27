@@ -1,34 +1,27 @@
-import { money, toPesewas } from "@shopper/money";
+import { money, toPesewas, wholePesewas, type Money } from "@shopper/money";
 import * as v from "valibot";
 import {
   chargeResponseSchema,
   errorResponseSchema,
   PROVIDER_CODES,
+  refundResponseSchema,
   verifyResponseSchema,
   type ChargeResult,
+  type RefundResult,
 } from "./schemas/base";
+import { PaystackError } from "./errors";
+import { fetchSettlements } from "./settlements";
+import { initializeCheckout } from "./checkout";
 import type { PaystackCharge, PaystackOptions } from "./types";
+
+export { PaystackError };
 
 const PESEWA = 100;
 
-export class PaystackError extends Error {
-  constructor(
-    message: string,
-    readonly httpStatus: number,
-    readonly code?: string,
-  ) {
-    super(message);
-    this.name = "PaystackError";
-  }
-}
-
 type Reply = { status: number; json: unknown };
 
-export function createPaystack({
-  secretKey,
-  baseUrl = "https://api.paystack.co",
-  fetch: fetcher = fetch,
-}: PaystackOptions) {
+export function createPaystack(options: PaystackOptions) {
+  const { secretKey, baseUrl = "https://api.paystack.co", fetch: fetcher = fetch } = options;
   async function call(path: string, body?: object): Promise<Reply> {
     const response = await fetcher(`${baseUrl}${path}`, {
       method: body ? "POST" : "GET",
@@ -42,6 +35,12 @@ export function createPaystack({
   }
 
   return {
+    /** Payouts settled between two dates, with the charges each one paid out. */
+    settlements: (range: { from: string; to: string }) => fetchSettlements(options, range),
+    /** A hosted checkout page for an invoice. */
+    initialize: (input: Parameters<typeof initializeCheckout>[1]) =>
+      initializeCheckout(options, input),
+
     async charge(input: PaystackCharge): Promise<ChargeResult> {
       if (money(input.amount) % PESEWA !== 0)
         throw new RangeError("Mobile money amounts must be whole pesewas");
@@ -71,8 +70,39 @@ export function createPaystack({
         ...(data.gateway_response ? { message: data.gateway_response } : {}),
       };
     },
+
+    /** Refunds part or all of a settled charge back to the payer's wallet. */
+    async refund(input: { reference: string; amount: Money }): Promise<RefundResult> {
+      const { data } = parseOrThrow(
+        refundResponseSchema,
+        await call("/refund", {
+          transaction: input.reference,
+          amount: toPesewas(wholePesewas(input.amount)),
+        }),
+      );
+      return {
+        status: refundStatuses[data.status] ?? "pending",
+        providerReference: String(data.id),
+      };
+    },
+
+    async verifyRefund(id: string): Promise<RefundResult> {
+      const { data } = parseOrThrow(
+        refundResponseSchema,
+        await call(`/refund/${encodeURIComponent(id)}`),
+      );
+      return {
+        status: refundStatuses[data.status] ?? "pending",
+        providerReference: String(data.id),
+      };
+    },
   };
 }
+
+const refundStatuses: Partial<Record<string, RefundResult["status"]>> = {
+  processed: "processed",
+  failed: "failed",
+};
 
 // Anything else (abandoned, ongoing, queued, processing) is still unsettled.
 const verifiedStatuses: Partial<Record<string, ChargeResult["status"]>> = {

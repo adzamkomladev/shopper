@@ -2,10 +2,14 @@ import type { CommandContext } from "@shopper/audit";
 import type { ShopperTransaction } from "@shopper/db-pg";
 import { hasGrant, sessionAuthority } from "../sales/authority";
 import { SaleError } from "../sales/error";
+import { consumeApproval } from "../approvals/consume";
 import type { UploadPrincipal } from "../sales/types";
 import type { RefundSnapshot } from "../schemas/till/refund";
 
-/** The device scope, a live cashier session holding `refund.request`, and a named approver's live `refund.approve` grant. */
+/**
+ * The device scope, a live cashier session holding `refund.request`, and a named approver's live `refund.approve`
+ * grant; a remote approval is used up here, once, and must name that approver.
+ */
 export async function validateRefundAuthority(
   tx: ShopperTransaction,
   ctx: CommandContext,
@@ -30,6 +34,19 @@ export async function validateRefundAuthority(
     occurredAt,
     "refund.request",
   );
+  if (refund.approvalId) {
+    const decidedBy = await consumeApproval(tx, ctx.orgId, {
+      id: refund.approvalId,
+      kind: "refund",
+      deviceId: refund.deviceId,
+      saleId: refund.originalSaleId,
+      documentId: refund.id,
+      amount: refund.totals.gross,
+      at: occurredAt,
+    });
+    if (refund.approverId !== decidedBy)
+      throw new SaleError("APPROVAL", "The refund names a different manager than approved it");
+  }
   if (refund.approverId) {
     if (
       !(await hasGrant(

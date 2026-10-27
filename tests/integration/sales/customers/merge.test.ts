@@ -42,6 +42,6 @@ test("a sale whose customer was merged into another is stored against the winner
   await counter.settle();
 
   const stored = await serverSale(sold.saleId);
-  expect(stored).toMatchObject({ customer_id: winner, event_version: 6 });
+  expect(stored).toMatchObject({ customer_id: winner, event_version: 7 });
   expect((await portal.read(loser)).body).toMatchObject({ mergedIntoId: winner });
 });

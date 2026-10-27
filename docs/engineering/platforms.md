@@ -223,3 +223,24 @@ low-stock alert is SMS only. On a box or Worker with only mail configured (no `A
 message cannot be sent, so it is retried and then dead-lettered by design: nothing falls back to email. Configure
 Arkesel wherever low-stock alerts are wanted. Statement PDFs are at most 366 days of entries and break into A4-height
 pages; a statement link signs only with a link secret of at least 32 characters.
+
+## Payments workflows (Day 23)
+
+Four more shells on `cloudflareFlow`, each defined on the edge Worker and bound by the portal too:
+
+| Workflow                      | Instance id                    | Binding (`<stage>`)           | Runs                                                           |
+| ----------------------------- | ------------------------------ | ----------------------------- | -------------------------------------------------------------- |
+| MoMo refund (`runMomoRefund`) | refund id                      | `shopper-momo-refund-<stage>` | provider refund, `refund.processed` wait (24 h), one verify    |
+| Settlement (`runSettlement`)  | `settlement:<day>`             | `shopper-settlement-<stage>`  | fetch Paystack settlements, match by reference, flag lines     |
+| Approval (`runApproval`)      | approval id                    | `shopper-approval-<stage>`    | SMS approvers, `manager_approval` wait (10 min), publish       |
+| Billing (`runBilling`)        | `billing:<org>:<period start>` | `shopper-billing-<stage>`     | invoice and checkout, reminders at +3 and +7, read-only at +14 |
+
+- Webhooks are idempotent: `payment_event` (unique per provider and event key) is inserted in the same transaction
+  as the update, so a replay audits, sequences and publishes nothing. Hubtel callbacks are unsigned, so each one is
+  confirmed through Hubtel's status API before it is applied.
+- The watchdog also starts yesterday's `settlement` and each billing period falling due by tomorrow. A refund is
+  started by the notification consumer after a MoMo-tender refund is accepted.
+- The approval's decision reaches the till as `approval.decided` through StoreHub; the refund or discount that uses it
+  marks the request consumed in its own transaction, so it redeems once.
+- Paying an invoice restores access in the webhook at once; the billing workflow only stops dunning. On the box there
+  is no billing workflow.

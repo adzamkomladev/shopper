@@ -72,8 +72,8 @@ test("The accountant can file a VAT return from the worksheet", async ({ page, r
   await expect(page.getByRole("region", { name: "Balance" })).toContainText("GH₵ 165.50");
   await shoot(page, info, "tax-return-filed", { sizes: SIZES });
 
-  // E downloads the workbook the accountant files from.
-  await page.locator("body").click();
+  // E downloads the workbook the accountant files from (focus leaves the fields, or E types into one).
+  await page.getByRole("heading", { name: "Tax", level: 1 }).click();
   const download = page.waitForEvent("download");
   await page.keyboard.press("e");
   const file = await download;

@@ -10,6 +10,7 @@ import {
   jsonb,
   pgTable,
   text,
+  time,
   timestamp,
   unique,
   uniqueIndex,
@@ -130,11 +131,15 @@ export const store = pgTable(
     cashRoundingStep: moneyColumn("cash_rounding_step")
       .notNull()
       .default(sql`100`),
+    /** Trading hours in Accra time (UTC all year): the store-day workflow wakes at each. */
+    opensAt: time("opens_at").notNull().default("07:00"),
+    closesAt: time("closes_at").notNull().default("21:00"),
   },
   (t) => [
     unique().on(t.orgId, t.id),
     check("store_sequence_nonnegative", sql`${t.lastSeq} >= 0`),
     check("positive_cash_rounding_step", sql`${t.cashRoundingStep} > 0`),
+    check("store_hours", sql`${t.closesAt} > ${t.opensAt}`),
   ],
 );
 export const branch = pgTable(

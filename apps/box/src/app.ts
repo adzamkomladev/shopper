@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { buildInfo } from "@shopper/config";
 import { createPaystack } from "@shopper/core/payments/paystack";
 import { deliverNotification } from "@shopper/core/notifications";
-import { runWatchdog } from "@shopper/core/audit";
+import { runWatchdog } from "@shopper/core/reports";
 import { createArkesel } from "@shopper/core/sms/arkesel";
 import { createSdc } from "@shopper/core/fiscal";
 import { createMaileroo } from "@shopper/auth";
@@ -25,6 +25,7 @@ import {
   boxLane,
   boxFiscalArchive,
   boxAuditAnchors,
+  boxStoreDays,
   boxWatchdog,
 } from "@shopper/adapters-box";
 import { boxRenderer } from "@shopper/adapters-box/renderer";
@@ -43,6 +44,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
   let statementFlows: ReturnType<typeof boxStatementFlows> | undefined;
   let lane: ReturnType<typeof boxLane> | undefined;
   let watchdog: ReturnType<typeof boxWatchdog> | undefined;
+  let storeDays: ReturnType<typeof boxStoreDays> | undefined;
   const renderer = boxRenderer();
   return new Hono<{ Bindings: BoxBindings }>().all("*", async (context) => {
     const request = context.req.raw;
@@ -162,11 +164,23 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
         .relaunch()
         .catch((error: unknown) => console.error({ event: "account.relaunch_failed", error }));
     }
+    if (!storeDays) {
+      storeDays = boxStoreDays({ database: workflowDatabase, queue: notifications });
+      // The in-process engine forgets sleeping days on restart: every store's today starts again on boot.
+      storeDays
+        .relaunch()
+        .catch((error: unknown) => console.error({ event: "store_day.relaunch_failed", error }));
+    }
     if (!watchdog) {
       const anchors = boxAuditAnchors({ database: workflowDatabase, queue: notifications });
+      const days = storeDays.launcher;
       watchdog = boxWatchdog((at) =>
         runWatchdog(
-          { withDatabase: (run) => run(workflowDatabase), anchors: anchors.launcher },
+          {
+            withDatabase: (run) => run(workflowDatabase),
+            anchors: anchors.launcher,
+            storeDays: days,
+          },
           at,
         ),
       );
@@ -214,6 +228,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
         paystackSecret: environment.PAYSTACK_SECRET_KEY,
         authFlows,
         kyc: kycFlows,
+        storeDays: storeDays.launcher,
         linkSecret: environment.SHOPPER_LINK_SECRET,
       });
     } finally {

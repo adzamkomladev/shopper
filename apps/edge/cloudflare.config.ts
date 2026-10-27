@@ -103,6 +103,11 @@ export default defineConfig(({ mode }) => {
           worker: name,
           exportName: "AuditAnchorWorkflow",
         }),
+        STORE_DAY: bindings.workflow({
+          name: workflow("store-day"),
+          worker: name,
+          exportName: "StoreDayWorkflow",
+        }),
         MOMO_PAYMENT: bindings.workflow({
           name: workflow("momo-payment"),
           worker: name,
@@ -132,6 +137,7 @@ export default defineConfig(({ mode }) => {
         StatementWorkflow: exports.workflow({ name: workflow("statements") }),
         FiscalArchiveWorkflow: exports.workflow({ name: workflow("fiscal-archive") }),
         AuditAnchorWorkflow: exports.workflow({ name: workflow("audit-anchor") }),
+        StoreDayWorkflow: exports.workflow({ name: workflow("store-day") }),
       },
     },
   };

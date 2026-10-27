@@ -16,7 +16,7 @@ import { allowPublicAuth } from "./middleware/public/auth";
 export const publicApi = createApi();
 export function isPublicRequest(request: Request) {
   const path = new URL(request.url).pathname;
-  return !/^\/(?:payments(?:\/|$)|webhooks\/paystack$|api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|tax(?:\/|$)|devices(?:\/|$)|shifts(?:\/|$)|audit(?:\/|$)|stock(?:\/|$)|customers(?:\/|$)|kyc(?:\/|$)|loyalty(?:\/|$)|settings(?:\/|$)|public\/statements(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
+  return !/^\/(?:payments(?:\/|$)|webhooks\/paystack$|api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|tax(?:\/|$)|devices(?:\/|$)|shifts(?:\/|$)|audit(?:\/|$)|stock(?:\/|$)|reports(?:\/|$)|customers(?:\/|$)|kyc(?:\/|$)|loyalty(?:\/|$)|settings(?:\/|$)|public\/statements(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
     path,
   );
 }
@@ -164,5 +164,6 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     linkSecret: options.linkSecret,
     baseURL: options.baseURL,
     kyc: options.kyc,
+    storeDays: options.storeDays,
   }).fetch(request);
 }

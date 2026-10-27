@@ -41,8 +41,8 @@ export function TopNav({ shops, currentId, user }: Props) {
       <div className="flex min-w-0 flex-1 items-center gap-x-6 2xl:flex-initial">
         <ShopSwitcher shops={shops} currentId={currentId} />
       </div>
-      {/* Thirteen links share one row with the rest only from 2xl; below it they take their own row. */}
-      <div className="order-last flex w-full flex-wrap gap-x-6 gap-y-1 2xl:order-none 2xl:w-auto 2xl:flex-nowrap 2xl:gap-x-3">
+      {/* The links share one row with the rest only from 2xl; below it they take their own row, tighter on a phone so they wrap to three rows. */}
+      <div className="order-last flex w-full flex-wrap gap-x-4 gap-y-1 md:gap-x-6 2xl:order-none 2xl:w-auto 2xl:flex-nowrap 2xl:gap-x-3">
         {navItems.map(({ to, label, also }) => {
           const here = [to, ...(also ?? [])].some(
             (page) => path === page || path.startsWith(`${page}/`),

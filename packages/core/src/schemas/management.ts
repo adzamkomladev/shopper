@@ -4,11 +4,15 @@ import { ghanaPhone, name } from "./fields";
 
 export { managementId };
 const rounding = v.pipe(v.number(), v.safeInteger(), v.minValue(1));
-export const storeInput = v.strictObject({ name, cashRoundingStep: v.optional(rounding) });
-export const storePatch = v.strictObject({
-  name: v.optional(name),
+/** A time of day in Accra (UTC all year), to the minute. */
+const hour = v.pipe(v.string(), v.regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:MM"));
+const storeFields = {
   cashRoundingStep: v.optional(rounding),
-});
+  opensAt: v.optional(hour),
+  closesAt: v.optional(hour),
+};
+export const storeInput = v.strictObject({ name, ...storeFields });
+export const storePatch = v.strictObject({ name: v.optional(name), ...storeFields });
 /** Who is texted when stock runs low: up to three distinct numbers. */
 const alertPhones = v.pipe(
   v.array(ghanaPhone),

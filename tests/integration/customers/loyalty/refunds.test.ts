@@ -70,7 +70,8 @@ test("a refund goes to the account first, then to redeemed points, then out in i
         async () => {
           await counter!.sync();
           const { rows } = await databases().db.execute<Record<string, any>>(sql`
-            SELECT gross::int AS gross, account_credit::int AS account_credit, total::int AS total, points_returned
+            SELECT gross::int AS gross, account_credit::int AS account_credit, total::int AS total, points_returned,
+              points_value::int AS points_value
             FROM refund WHERE org_id = ${ids.org} AND id = ${reply.refund.id}`);
           refunds[index] = rows[0]!;
           return rows[0];
@@ -80,8 +81,14 @@ test("a refund goes to the account first, then to redeemed points, then out in i
       .toBeDefined();
   }
   expect(refunds).toEqual([
-    { gross: 600_000, account_credit: 600_000, total: 0, points_returned: 0 },
-    { gross: 600_000, account_credit: 200_000, total: 390_000, points_returned: 100 },
+    { gross: 600_000, account_credit: 600_000, total: 0, points_returned: 0, points_value: 0 },
+    {
+      gross: 600_000,
+      account_credit: 200_000,
+      total: 390_000,
+      points_returned: 100,
+      points_value: 10_000,
+    },
   ]);
   expect((await entries(customerId)).map((e) => [e.kind, e.amount])).toEqual([
     ["charge", 800_000],
@@ -124,7 +131,7 @@ test("a refund of a part-points sale reverses the earn only on the money it pays
         async () => {
           await counter!.sync();
           const { rows } = await databases().db.execute<Record<string, any>>(sql`
-            SELECT id, total::int AS total, points_returned FROM refund
+            SELECT id, total::int AS total, points_returned, points_value::int AS points_value FROM refund
             WHERE org_id = ${ids.org} AND id = ${reply.refund.id}`);
           refunded[index] = rows[0]!;
           return rows[0];
@@ -134,8 +141,8 @@ test("a refund of a part-points sale reverses the earn only on the money it pays
       .toBeDefined();
   }
   expect(refunded).toEqual([
-    { id: expect.any(String), total: 0, points_returned: 6000 },
-    { id: expect.any(String), total: 600_000, points_returned: 0 },
+    { id: expect.any(String), total: 0, points_returned: 6000, points_value: 600_000 },
+    { id: expect.any(String), total: 600_000, points_returned: 0, points_value: 0 },
   ]);
   const ofRefunds = (await pointEntries(customerId)).filter((e) => e.refund_id);
   expect(ofRefunds.map((e) => [e.refund_id, e.points])).toEqual([

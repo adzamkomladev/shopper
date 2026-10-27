@@ -74,6 +74,11 @@ export default defineConfig(({ mode }) => {
           worker: edge,
           exportName: "KycWorkflow",
         }),
+        STORE_DAY: bindings.workflow({
+          name: workflow("store-day"),
+          worker: edge,
+          exportName: "StoreDayWorkflow",
+        }),
         MOMO_PAYMENT: bindings.workflow({
           name: workflow("momo-payment"),
           worker: edge,

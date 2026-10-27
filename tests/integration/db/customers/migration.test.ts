@@ -28,7 +28,9 @@ beforeAll(async () => {
   );
   later = (
     await Promise.all(
-      ["0026_tax.sql", "0027_fiscal.sql"].map((f) => readFile(new URL(f, dir), "utf8")),
+      ["0026_tax.sql", "0027_fiscal.sql", "0030_reports.sql"].map((f) =>
+        readFile(new URL(f, dir), "utf8"),
+      ),
     )
   )
     .join("\n")

@@ -30,3 +30,4 @@ export * from "./customers/accounts";
 export * from "./tax/settings";
 export * from "./tax/rules";
 export * from "./tax/returns";
+export * from "./reports/query";

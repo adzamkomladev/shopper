@@ -2,32 +2,16 @@ import { and, asc, eq, sql } from "drizzle-orm";
 import { v7 } from "uuid";
 import * as v from "valibot";
 import { defineCommand, enqueueAfterCommit } from "@shopper/audit";
-import { auditAnchor, device, member, org, role, user, type ShopperDatabase } from "@shopper/db-pg";
-import type { Delivery, WorkflowLauncher } from "@shopper/ports";
+import { auditAnchor, device, member, role, user } from "@shopper/db-pg";
+import type { Delivery } from "@shopper/ports";
 import { formatDay } from "@shopper/utils";
 import type { StatementDeliveryDeps } from "../customers";
 import { auditAnchorMessage } from "../schemas/audit/anchor";
+import type { Queryable } from "../types";
 import { auditStreams } from "./streams";
 
 /** The anchor workflow's business key: one per org and UTC day (Accra keeps UTC all year). */
 export const auditAnchorId = (orgId: string, day: string) => `anchor-${orgId}-${day}`;
-
-/**
- * The one daily watchdog (the cron at 23:59 UTC on Cloudflare, a timer on the box): starts the day's anchor for every
- * org. Starting an id that already exists does nothing, so a second firing the same day is harmless.
- */
-export async function runWatchdog(
-  deps: {
-    withDatabase<T>(run: (db: ShopperDatabase) => Promise<T>): Promise<T>;
-    anchors: WorkflowLauncher;
-  },
-  at: Date,
-) {
-  const day = at.toISOString().slice(0, 10);
-  const orgs = await deps.withDatabase((db) => db.select({ id: org.id }).from(org));
-  for (const row of orgs)
-    await deps.anchors.start(auditAnchorId(row.id, day), { orgId: row.id, day });
-}
 
 /**
  * Publishes the head of the org chain (before this command's own row) and of every register chain as the day's
@@ -49,12 +33,7 @@ export const publishAnchors = defineCommand({
           hash: h.hash,
         })),
       );
-    const owners = await tx
-      .select({ id: member.userId })
-      .from(member)
-      .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
-      .where(and(eq(member.orgId, ctx.orgId), eq(role.protectedOwner, true)))
-      .orderBy(asc(member.userId));
+    const owners = await orgOwners(tx, ctx.orgId);
     for (const owner of owners)
       enqueueAfterCommit(tx, {
         id: v7(),
@@ -70,6 +49,15 @@ export const publishAnchors = defineCommand({
   // audit_log.entity_id is a uuid; the day is in the payload.
   details: () => ({ entity: "audit_anchor" }),
 });
+
+/** The org's owners (the protected owner role), in a stable order: who the daily emails go to. */
+export const orgOwners = (db: Queryable, orgId: string) =>
+  db
+    .select({ id: member.userId })
+    .from(member)
+    .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
+    .where(and(eq(member.orgId, orgId), eq(role.protectedOwner, true)))
+    .orderBy(asc(member.userId));
 
 /** Emails one owner the day's anchors; without mail or a portal origin the message retries rather than vanish. */
 export async function deliverAuditAnchor(

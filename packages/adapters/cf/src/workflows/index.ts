@@ -6,3 +6,4 @@ export { AccountWorkflow } from "./account";
 export { StatementWorkflow } from "./statements";
 export { FiscalArchiveWorkflow } from "./fiscal";
 export { AuditAnchorWorkflow } from "./anchor";
+export { StoreDayWorkflow } from "./day";

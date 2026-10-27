@@ -165,10 +165,14 @@ test("the CSV is the filtered log with quoting kept, and no PIN or password reac
   ).text();
   const rows = await world.db.select().from(auditLog).where(eq(auditLog.orgId, ids.org));
   const local = await world.local.read((tx) => tx.select().from(tillAudit));
-  for (const secret of [managerPin, "Shopper-test-password-123"]) {
-    expect(everything).not.toContain(secret);
-    expect(JSON.stringify(rows)).not.toContain(secret);
-    expect(JSON.stringify(local)).not.toContain(secret);
+  // Ids and digests are hex (and hyphenated), so the PIN's digits can turn up inside one by chance; a leaked PIN stands alone.
+  for (const secret of [
+    new RegExp(`(?<![0-9a-f-])${managerPin}(?![0-9a-f-])`, "i"),
+    /Shopper-test-password-123/,
+  ]) {
+    expect(everything).not.toMatch(secret);
+    expect(JSON.stringify(rows)).not.toMatch(secret);
+    expect(JSON.stringify(local)).not.toMatch(secret);
   }
 });
 

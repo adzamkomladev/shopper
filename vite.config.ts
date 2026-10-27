@@ -9,6 +9,8 @@ const heavy = [
   "tests/integration/catalogue/import/large.test.ts",
   "tests/integration/sales/customers/order.test.ts",
   "tests/integration/till/refunds/cross.test.ts",
+  "tests/integration/reports/rollup.test.ts",
+  "tests/integration/reports/speed.test.ts",
 ];
 // Release builds: packaging rebuilds the till host and Electron into the dist/ other files run from.
 const solo = [

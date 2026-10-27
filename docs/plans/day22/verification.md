@@ -58,6 +58,16 @@ Each was broken on purpose, watched go red, then restored:
 - Whole branch: the portal Worker had no `STORE_DAY` binding, so a store added in the cloud portal waited for the
   watchdog; it is now bound from the edge, pinned by `tooling/cloudflare/portal.test.ts`.
 
+## CI fixes
+
+- The year's rollup timed out on CI (over 15 minutes). `EXPLAIN ANALYZE` showed the products fold reading
+  every sale line once per sale (73 s for 30 days): `sale_line` had no index by sale. With
+  `sale_line_sale (org_id, sale_id)` the fold takes 0.3 s and the speed test runs in 2 min 20 s, seeding included.
+- The Reports link wrapped the phone nav to a fourth row, which pushed the stock movements table under the fold
+  and let the shifts skeleton scroll its `main` (axe `scrollable-region-focusable`). Links sit 16 px apart below
+  `md`, so the phone keeps three rows; wider sizes are unchanged.
+- Migration-pinned tests now name `0030`.
+
 Rejected: a forward migration and a backfill of `refund.points_value` for `0030_reports` (unreleased, data
 disposable); filtering the store summary by branch reassignment mid-day; cumulative cost allocation for
 fractional refunds split across days (an unlikely edge, see the limits).

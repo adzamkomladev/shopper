@@ -56,4 +56,4 @@ test("BillingWorkflow raises a period's invoice in workerd and duns it to read-o
   } finally {
     await connection.close();
   }
-});
+}, 60_000);

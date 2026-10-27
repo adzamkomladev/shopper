@@ -131,6 +131,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
           baseUrl: SHOPPER_AUTH_URL,
           accounts: accountFlows,
           statements: statementFlows,
+          refunds: payments?.momoRefund,
           queue: notifications,
         },
         delivery,

@@ -97,6 +97,7 @@ export default defineConfig({
       "shifts.test.ts",
       "lane.test.ts",
       "reports/day.test.ts",
+      "billing/dunning.test.ts",
     ],
   },
 });

@@ -160,6 +160,7 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     momoRefund: options.momoRefund,
     paystackSecret: options.paystackSecret,
     hubtel: options.hubtel,
+    settlements: options.settlements,
     realtime: options.realtime,
     invitations,
     blobs: options.blobs,

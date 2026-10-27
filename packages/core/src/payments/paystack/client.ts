@@ -9,28 +9,18 @@ import {
   type ChargeResult,
   type RefundResult,
 } from "./schemas/base";
+import { PaystackError } from "./errors";
+import { fetchSettlements } from "./settlements";
 import type { PaystackCharge, PaystackOptions } from "./types";
+
+export { PaystackError };
 
 const PESEWA = 100;
 
-export class PaystackError extends Error {
-  constructor(
-    message: string,
-    readonly httpStatus: number,
-    readonly code?: string,
-  ) {
-    super(message);
-    this.name = "PaystackError";
-  }
-}
-
 type Reply = { status: number; json: unknown };
 
-export function createPaystack({
-  secretKey,
-  baseUrl = "https://api.paystack.co",
-  fetch: fetcher = fetch,
-}: PaystackOptions) {
+export function createPaystack(options: PaystackOptions) {
+  const { secretKey, baseUrl = "https://api.paystack.co", fetch: fetcher = fetch } = options;
   async function call(path: string, body?: object): Promise<Reply> {
     const response = await fetcher(`${baseUrl}${path}`, {
       method: body ? "POST" : "GET",
@@ -44,6 +34,9 @@ export function createPaystack({
   }
 
   return {
+    /** Payouts settled between two dates, with the charges each one paid out. */
+    settlements: (range: { from: string; to: string }) => fetchSettlements(options, range),
+
     async charge(input: PaystackCharge): Promise<ChargeResult> {
       if (money(input.amount) % PESEWA !== 0)
         throw new RangeError("Mobile money amounts must be whole pesewas");

@@ -53,6 +53,8 @@ export interface ApiOptions {
   paystackSecret?: string;
   /** Confirms Hubtel callbacks through its status API; without it Hubtel callbacks are refused. */
   hubtel?: ReturnType<typeof createHubtel>;
+  /** Fetches a day's Paystack settlements; without it a refresh is unavailable. */
+  settlements?: WorkflowLauncher;
   priceChange?: WorkflowLauncher;
   onboarding?: ReturnType<typeof createOnboarding>;
   invitations?: ReturnType<typeof createInvitations>;
@@ -80,6 +82,7 @@ export interface RuntimeOptions {
   momoRefund?: WorkflowLauncher;
   paystackSecret?: string;
   hubtel?: ReturnType<typeof createHubtel>;
+  settlements?: WorkflowLauncher;
   priceChange?: WorkflowLauncher;
   authFlows?: WorkflowLauncher;
   kyc?: WorkflowLauncher;

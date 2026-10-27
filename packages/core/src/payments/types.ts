@@ -20,3 +20,9 @@ export type MomoUpdate = {
   providerReference?: string;
   message?: string;
 };
+
+export type SettlementDeps = {
+  withDatabase<T>(run: (db: ShopperDatabase) => Promise<T>): Promise<T>;
+  paystack: Pick<ReturnType<typeof createPaystack>, "settlements">;
+  appVersion: string;
+};

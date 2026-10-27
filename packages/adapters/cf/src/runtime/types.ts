@@ -22,6 +22,9 @@ export interface AuthEnvironment {
   SHOPPER_ENVIRONMENT?: string;
   PAYSTACK_SECRET_KEY?: string;
   PAYSTACK_BASE_URL?: string;
+  HUBTEL_CLIENT_ID?: string;
+  HUBTEL_CLIENT_SECRET?: string;
+  HUBTEL_MERCHANT_ACCOUNT?: string;
   ARKESEL_API_KEY?: string;
   ARKESEL_SENDER?: string;
   ARKESEL_BASE_URL?: string;
@@ -48,4 +51,8 @@ export interface CloudflareRuntimeEnvironment extends AuthEnvironment {
   STATEMENT_FLOWS?: Parameters<typeof cloudflareLoopLauncher>[0];
   FISCAL_LANE?: Parameters<typeof cloudflareLane>[0];
   STORE_DAY?: Parameters<typeof cloudflareLauncher>[0];
+  MOMO_REFUND?: Parameters<typeof cloudflareLauncher>[0];
+  SETTLEMENT?: Parameters<typeof cloudflareLauncher>[0];
+  APPROVAL?: Parameters<typeof cloudflareLauncher>[0];
+  BILLING?: Parameters<typeof cloudflareLauncher>[0];
 }

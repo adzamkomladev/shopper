@@ -10,3 +10,17 @@ export async function cloudflareDatabase(connectionString: string) {
   await client.connect();
   return { db: drizzle(client, { schema }), close: () => client.end() };
 }
+
+/** A workflow's `withDatabase`: one Hyperdrive connection per call, closed when the call settles. */
+export function hyperdriveDatabase(hyperdrive: Hyperdrive) {
+  return async <T>(
+    run: (db: Awaited<ReturnType<typeof cloudflareDatabase>>["db"]) => Promise<T>,
+  ) => {
+    const connection = await cloudflareDatabase(hyperdrive.connectionString);
+    try {
+      return await run(connection.db);
+    } finally {
+      await connection.close();
+    }
+  };
+}

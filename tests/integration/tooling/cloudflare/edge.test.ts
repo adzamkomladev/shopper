@@ -47,6 +47,10 @@ test("Durable Objects, Workflows and every resource binding are the staging ones
     ["FiscalArchiveWorkflow", "shopper-fiscal-archive-staging"],
     ["AuditAnchorWorkflow", "shopper-audit-anchor-staging"],
     ["StoreDayWorkflow", "shopper-store-day-staging"],
+    ["MomoRefundWorkflow", "shopper-momo-refund-staging"],
+    ["SettlementWorkflow", "shopper-settlement-staging"],
+    ["ApprovalWorkflow", "shopper-approval-staging"],
+    ["BillingWorkflow", "shopper-billing-staging"],
   ]) {
     expect(exports[exportName]).toMatchObject({ type: "workflow", name });
   }
@@ -141,6 +145,9 @@ test("bucket names and the R2 S3 location are text; credentials are secrets", ()
   expect(bound.ARKESEL_SENDER).toMatchObject({ type: "text", value: "Shopper" });
   expect(secrets).toEqual([
     "ARKESEL_API_KEY",
+    "HUBTEL_CLIENT_ID",
+    "HUBTEL_CLIENT_SECRET",
+    "HUBTEL_MERCHANT_ACCOUNT",
     "MAILEROO_API_KEY",
     "MAILEROO_FROM",
     "PAYSTACK_SECRET_KEY",

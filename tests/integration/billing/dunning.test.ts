@@ -169,6 +169,10 @@ test("an unpaid invoice is reminded at +3 and +7 days and turns the back office 
       })
     ).status,
   ).toBe(200);
+  // Every member's shell reads the state for its banner, without the billing permission.
+  const status = await api.request("/billing/status", { headers: { cookie: owner.cookie } });
+  expect(await status.json()).toEqual({ readOnly: true });
+  expect((await api.request("/billing/status")).status).toBe(401);
   const billing = await api.request("/billing", { headers: { cookie: owner.cookie } });
   expect(billing.status).toBe(200);
   expect(await billing.json()).toMatchObject({
@@ -189,6 +193,9 @@ test("an unpaid invoice is reminded at +3 and +7 days and turns the back office 
   expect(paid.rows).toHaveLength(1);
   expect(sent.filter((s) => s.id === billingId(ids.org, periodStart))).toHaveLength(1);
   expect(await manage(sale.id)).toBe(202);
+  expect(
+    await (await api.request("/billing/status", { headers: { cookie: owner.cookie } })).json(),
+  ).toEqual({ readOnly: false });
 });
 
 test("an invoice paid before its first reminder ends the period's dunning", async () => {

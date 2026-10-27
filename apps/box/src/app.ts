@@ -1,12 +1,12 @@
 import { Hono } from "hono";
 import { buildInfo } from "@shopper/config";
-import { createPaystack } from "@shopper/core/payments/paystack";
 import { deliverNotification } from "@shopper/core/notifications";
 import { runWatchdog } from "@shopper/core/reports";
 import { createArkesel } from "@shopper/core/sms/arkesel";
 import { createSdc } from "@shopper/core/fiscal";
 import { createMaileroo } from "@shopper/auth";
 import type { BoxBindings } from "./types";
+import { boxPayments } from "./payments";
 import {
   boxBlobs,
   boxLive,
@@ -20,7 +20,6 @@ import {
   boxKycFlows,
   boxAccountFlows,
   boxStatementFlows,
-  boxMomoPayment,
   boxQueue,
   boxLane,
   boxFiscalArchive,
@@ -37,7 +36,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
   let cache: ReturnType<typeof boxCache> | undefined;
   let authFlows: ReturnType<typeof boxAuthFlows> | undefined;
   let kycFlows: ReturnType<typeof boxKycFlows> | undefined;
-  let momoPayment: ReturnType<typeof boxMomoPayment> | undefined;
+  let payments: ReturnType<typeof boxPayments> | undefined;
   let priceChange: ReturnType<typeof boxPriceChange> | undefined;
   let notifications: ReturnType<typeof boxQueue> | undefined;
   let accountFlows: ReturnType<typeof boxAccountFlows> | undefined;
@@ -99,16 +98,11 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
               })
             : undefined,
       });
-    if (environment.PAYSTACK_SECRET_KEY)
-      momoPayment ??= boxMomoPayment({
-        withDatabase: (run) => run(workflowDatabase),
-        realtime,
-        appVersion: buildInfo.version,
-        paystack: createPaystack({
-          secretKey: environment.PAYSTACK_SECRET_KEY,
-          baseUrl: environment.PAYSTACK_BASE_URL,
-        }),
-      });
+    payments ??= boxPayments(environment, {
+      database: workflowDatabase,
+      realtime,
+      baseUrl: SHOPPER_AUTH_URL,
+    });
     const sms = environment.ARKESEL_API_KEY
       ? createArkesel({
           apiKey: environment.ARKESEL_API_KEY,
@@ -174,12 +168,15 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
     if (!watchdog) {
       const anchors = boxAuditAnchors({ database: workflowDatabase, queue: notifications });
       const days = storeDays.launcher;
+      const settled = payments.settlements?.launcher;
+      // The box bills nobody: Shopper subscriptions are cloud only, so it starts no billing periods.
       watchdog = boxWatchdog((at) =>
         runWatchdog(
           {
             withDatabase: (run) => run(workflowDatabase),
             anchors: anchors.launcher,
             storeDays: days,
+            settlements: settled,
           },
           at,
         ),
@@ -224,7 +221,11 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
         bootstrapToken: SHOPPER_BOOTSTRAP_TOKEN,
         clientIP: context.env?.requestIP?.(request)?.address ?? "127.0.0.1",
         priceChange: priceChange.launcher,
-        momoPayment,
+        momoPayment: payments.momoPayment,
+        momoRefund: payments.momoRefund,
+        hubtel: payments.hubtel,
+        settlements: payments.settlements?.launcher,
+        approvals: payments.approvals,
         paystackSecret: environment.PAYSTACK_SECRET_KEY,
         authFlows,
         kyc: kycFlows,

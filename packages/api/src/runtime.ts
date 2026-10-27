@@ -16,7 +16,7 @@ import { allowPublicAuth } from "./middleware/public/auth";
 export const publicApi = createApi();
 export function isPublicRequest(request: Request) {
   const path = new URL(request.url).pathname;
-  return !/^\/(?:payments(?:\/|$)|webhooks\/paystack$|api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|tax(?:\/|$)|devices(?:\/|$)|shifts(?:\/|$)|audit(?:\/|$)|stock(?:\/|$)|reports(?:\/|$)|customers(?:\/|$)|kyc(?:\/|$)|loyalty(?:\/|$)|settings(?:\/|$)|public\/statements(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
+  return !/^\/(?:payments(?:\/|$)|webhooks\/(?:paystack|hubtel)$|api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|tax(?:\/|$)|devices(?:\/|$)|shifts(?:\/|$)|audit(?:\/|$)|stock(?:\/|$)|reports(?:\/|$)|customers(?:\/|$)|kyc(?:\/|$)|loyalty(?:\/|$)|settings(?:\/|$)|transactions(?:\/|$)|reconciliation(?:\/|$)|approvals(?:\/|$)|billing(?:\/|$)|public\/statements(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
     path,
   );
 }
@@ -120,12 +120,13 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     if (options.orgId && invitationOrg !== options.orgId.toLowerCase())
       return Response.json({ error: "This invitation belongs to another shop" }, { status: 403 });
   }
-  if (url.pathname === "/webhooks/paystack")
+  if (url.pathname === "/webhooks/paystack" || url.pathname === "/webhooks/hubtel")
     return createApi({
       database: options.database,
       momoPayment: options.momoPayment,
       momoRefund: options.momoRefund,
       paystackSecret: options.paystackSecret,
+      hubtel: options.hubtel,
       realtime: options.realtime,
     }).fetch(request);
   const selected = request.headers.get("X-Shopper-Org");
@@ -158,6 +159,7 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     momoPayment: options.momoPayment,
     momoRefund: options.momoRefund,
     paystackSecret: options.paystackSecret,
+    hubtel: options.hubtel,
     realtime: options.realtime,
     invitations,
     blobs: options.blobs,

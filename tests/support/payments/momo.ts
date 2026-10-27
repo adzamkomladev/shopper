@@ -99,8 +99,13 @@ export async function momoFixture() {
     secret: "integration-secret-at-least-thirty-two-chars",
     baseURL: "http://localhost",
   });
-  const withLauncher = (momoPayment: WorkflowLauncher, live: Realtime = realtime) =>
+  const withLauncher = (
+    momoPayment: WorkflowLauncher,
+    live: Realtime = realtime,
+    extra: Partial<Parameters<typeof createApi>[0]> = {},
+  ) =>
     createApi({
+      ...extra,
       database: db,
       devices: createDeviceService(db, cache.cache, "test"),
       authentication,

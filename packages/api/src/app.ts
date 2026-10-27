@@ -1,4 +1,5 @@
 import { paymentRoutes } from "./payments/routes";
+import { hubtelRoutes } from "./payments/hubtel";
 import { createSyncRoutes } from "./sync/routes";
 import { onboardingRoutes } from "./routes/onboarding";
 import { invitationRoutes } from "./routes/invitations";
@@ -31,6 +32,7 @@ export function createApi(options: ApiOptions = {}) {
   });
   app.route("/", systemRoutes());
   app.route("/", paymentRoutes(options));
+  app.route("/", hubtelRoutes(options));
   if (options.database && options.devices && options.sequencer)
     app.route(
       "/",
@@ -84,7 +86,13 @@ export function createApi(options: ApiOptions = {}) {
   if (options.database)
     app.route("/", loyaltyRoutes(options.database, options.authentication, options.notifications));
   if (options.database)
-    app.route("/", settingsRoutes(options.database, options.authentication, options.notifications));
+    app.route(
+      "/",
+      settingsRoutes(options.database, options.authentication, options.notifications, {
+        paystack: !!options.momoPayment,
+        hubtel: !!options.hubtel,
+      }),
+    );
   if (options.database) app.route("/", kycRoutes(options));
   if (options.database) app.route("/", reportRoutes(options.database, options.authentication));
   if (options.database)

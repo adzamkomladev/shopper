@@ -4,6 +4,7 @@ import * as v from "valibot";
 import { defineCommand, type CommandContext } from "@shopper/audit";
 import {
   branch,
+  org,
   payment,
   workflowRun,
   type ShopperDatabase,
@@ -54,9 +55,14 @@ const createPayment = defineCommand({
   ) {
     if (!context.actorId || !context.deviceId || !context.branchId)
       throw new Error("A cashier and device are required");
+    const [shop] = await tx
+      .select({ provider: org.momoProvider })
+      .from(org)
+      .where(eq(org.id, context.orgId));
     const [row] = await tx
       .insert(payment)
       .values({
+        provider: shop!.provider,
         id: input.reference,
         reference: input.reference,
         orgId: context.orgId,

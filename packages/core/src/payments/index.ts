@@ -9,3 +9,4 @@ export { allocateMomoRefund } from "./refunds/allocate";
 export { updatePaymentRefund, refundView } from "./refunds/commands";
 export { applyRefundEvent, findOpenRefund } from "./refunds/events";
 export { refundParams } from "./schemas/refunds";
+export { readPaymentSettings, setPaymentSettings } from "./settings";

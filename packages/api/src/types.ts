@@ -1,3 +1,4 @@
+import type { createHubtel } from "@shopper/core/payments/hubtel";
 import type {
   AuthPrincipal,
   createDeviceService,
@@ -50,6 +51,8 @@ export interface ApiOptions {
   /** Wakes the MoMo refund workflow when Paystack reports a refund's outcome. */
   momoRefund?: WorkflowLauncher;
   paystackSecret?: string;
+  /** Confirms Hubtel callbacks through its status API; without it Hubtel callbacks are refused. */
+  hubtel?: ReturnType<typeof createHubtel>;
   priceChange?: WorkflowLauncher;
   onboarding?: ReturnType<typeof createOnboarding>;
   invitations?: ReturnType<typeof createInvitations>;
@@ -76,6 +79,7 @@ export interface RuntimeOptions {
   momoPayment?: WorkflowLauncher;
   momoRefund?: WorkflowLauncher;
   paystackSecret?: string;
+  hubtel?: ReturnType<typeof createHubtel>;
   priceChange?: WorkflowLauncher;
   authFlows?: WorkflowLauncher;
   kyc?: WorkflowLauncher;

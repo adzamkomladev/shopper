@@ -95,14 +95,22 @@ export async function runMomoPayment(
       await perform("already-settled", async () => ({ status: initial.status }));
       return;
     }
-    let state = await perform("charge", () =>
-      deps.paystack.charge({
-        reference: params.reference,
-        amount: initial.amount,
-        phone: params.phone,
-        network: initial.network,
-        email: params.email,
-      }),
+    // Resolved at each call: deps are the shell's live clients.
+    const providerOf = () => (initial.provider === "hubtel" ? deps.hubtel : deps.paystack);
+    const provider = providerOf();
+    let state = await perform("charge", async () =>
+      !provider
+        ? {
+            status: "failed" as const,
+            message: "Hubtel is not set up for this shop. Pay another way.",
+          }
+        : provider.charge({
+            reference: params.reference,
+            amount: initial.amount,
+            phone: params.phone,
+            network: initial.network,
+            email: params.email,
+          }),
     );
     let index = 0;
     while (!["confirmed", "failed", "expired"].includes(state.status)) {
@@ -119,6 +127,7 @@ export async function runMomoPayment(
           await perform("settled", async () => ({ status: (await read()).status }));
           return;
         }
+        // Only Paystack asks for an OTP; Hubtel payers approve on the phone.
         if (state.status === "otp")
           state = await perform(`otp-${index}`, () =>
             deps.paystack.submitOtp({ reference: params.reference, otp: event.otp }),
@@ -129,7 +138,18 @@ export async function runMomoPayment(
         await perform(
           "verify",
           async () => {
-            const verified = await deps.paystack.verify(params.reference);
+            const verified = await (providerOf() ?? deps.paystack).verify(params.reference);
+            // Hubtel reports what it collected; money short of the intent never becomes a paid tender.
+            if (
+              "amount" in verified &&
+              verified.amount !== undefined &&
+              verified.amount !== initial.amount
+            )
+              return {
+                status: "failed" as const,
+                providerReference: verified.providerReference,
+                message: "Hubtel collected a different amount. Check the Hubtel dashboard.",
+              };
             return {
               ...verified,
               status: ["pending", "otp"].includes(verified.status) ? "expired" : verified.status,

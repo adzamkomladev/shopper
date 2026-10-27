@@ -40,6 +40,10 @@
       "types": "./src/sms/arkesel.ts",
       "default": "./src/sms/arkesel.ts"
     },
+    "./payments/hubtel": {
+      "types": "./src/payments/hubtel/index.ts",
+      "default": "./src/payments/hubtel/index.ts"
+    },
     "./payments/paystack": {
       "types": "./src/payments/paystack/index.ts",
       "default": "./src/payments/paystack/index.ts"

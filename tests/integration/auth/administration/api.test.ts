@@ -85,8 +85,6 @@ test("role API rejects invalid inputs, immutable owners and cross-tenant edits",
     (await request(api, cookie, `/roles/${otherRoles[0].id}`, "PATCH", { name: "cross-tenant" }))
       .status,
   ).toBe(404);
-  expect((await request(api, cookie, `/roles/${roleIds.get("cashier")}`, "DELETE")).status).toBe(
-    404,
-  );
+  expect((await request(api, cookie, `/roles/${otherRoles[0].id}`, "DELETE")).status).toBe(404);
   expect(context.orgId).not.toBe(otherContext.orgId);
 });

@@ -3,19 +3,18 @@ import * as v from "valibot";
 import { buildInfo } from "@shopper/config";
 import {
   AdministrationError,
-  assignMemberRole,
-  createRole,
-  updateRole,
   listUsers,
   listRoles,
   listPermissions,
   grantedCodes,
 } from "@shopper/auth";
-import { roleAssignmentInput } from "@shopper/auth/schemas";
+import { stockBranches } from "@shopper/core/stock";
 import { uuidV7Schema } from "@shopper/ports";
+import { branchScope } from "../middleware/require/branches";
 import { requirePermission } from "../middleware/require/permission";
 import { problem } from "../middleware/problem";
 import type { ApiEnvironment, ApiOptions } from "../types";
+import { administrationWrites } from "./administration/writes";
 
 export function administrationRoutes(options: ApiOptions) {
   const app = new Hono<ApiEnvironment>();
@@ -33,6 +32,12 @@ export function administrationRoutes(options: ApiOptions) {
       return c.json(await read(options.database, c.get("principal").orgId));
     });
   }
+  // The branches someone managing access may grant: their own, or every branch.
+  app.get("/users/branches", requirePermission(options.authentication, "role.write"), async (c) => {
+    if (!options.database) return c.json({ error: "Database unavailable" }, 503);
+    const principal = c.get("principal");
+    return c.json(await stockBranches(options.database, principal.orgId, branchScope(principal)));
+  });
   app.get("/session/permissions", async (c) => {
     const principal = await options.authentication?.resolvePrincipal(c.req.raw);
     if (!principal) return c.json({ error: "Authentication required" }, 401);
@@ -43,40 +48,38 @@ export function administrationRoutes(options: ApiOptions) {
     });
     return c.json(codes.map(({ code }) => code).sort());
   });
-  for (const [method, path] of [
-    ["POST", "/roles"],
-    ["PATCH", "/roles/:id"],
-    ["PATCH", "/users/:id/role"],
-  ] as const) {
-    app.on(method, path, requirePermission(options.authentication, "role.write"), async (c) => {
-      if (!options.database) return c.json({ error: "Database unavailable" }, 503);
-      const principal = c.get("principal");
-      const context = {
-        orgId: principal.orgId,
-        actorId: principal.userId,
-        role: principal.roleName,
-        deviceId: principal.deviceId,
-        branchId: principal.branchId,
-        appVersion: buildInfo.version,
-      };
-      let body: unknown;
-      try {
-        body = await c.req.json();
-      } catch {
-        return c.json({ error: "Invalid JSON" }, 400);
-      }
-      if (method === "POST") {
-        const result = await createRole(options.database, context, body);
-        return c.json(result.after, 201);
-      }
-      const id = v.parse(uuidV7Schema, c.req.param("id"));
-      if (path === "/users/:id/role") {
-        const input = v.parse(roleAssignmentInput, body);
-        return c.json(await assignMemberRole(options.database, context, { userId: id, ...input }));
-      }
-      const result = await updateRole(options.database, context, { id, data: body });
-      return c.json(result.after);
-    });
+  for (const write of administrationWrites) {
+    app.on(
+      write.method,
+      write.path,
+      requirePermission(options.authentication, write.code),
+      async (c) => {
+        if (!options.database) return c.json({ error: "Database unavailable" }, 503);
+        const principal = c.get("principal");
+        let body: unknown;
+        if (write.json)
+          try {
+            body = await c.req.json();
+          } catch {
+            return c.json({ error: "Invalid JSON" }, 400);
+          }
+        const id = write.path.includes(":id") ? v.parse(uuidV7Schema, c.req.param("id")) : "";
+        const result = await write.run(
+          options.database,
+          {
+            orgId: principal.orgId,
+            actorId: principal.userId,
+            role: principal.roleName,
+            deviceId: principal.deviceId,
+            branchId: principal.branchId,
+            appVersion: buildInfo.version,
+          },
+          id,
+          body,
+        );
+        return result.status === 204 ? c.body(null, 204) : c.json(result.body, result.status);
+      },
+    );
   }
   return app;
 }

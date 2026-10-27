@@ -63,7 +63,8 @@ test.describe("as the owner of E2E Mart", () => {
     await page.getByRole("button", { name: `Edit ${supplier.name}` }).click();
     await dialog(page).getByLabel("Phone").fill("");
     await page.keyboard.press("ControlOrMeta+Enter");
-    await expect(page.getByText("Supplier saved")).toBeVisible();
+    // The first save's toast can still be showing, so the closed sheet and the row prove this one saved.
+    await expect(dialog(page)).toBeHidden();
     await expect(row(page, supplier.name)).not.toContainText("0207654321");
   });
 

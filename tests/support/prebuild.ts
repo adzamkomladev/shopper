@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { e2eRun } from "../../tooling/e2e/run";
 
 const once = globalThis as { shopperPrebuilt?: boolean };
 
@@ -18,6 +19,6 @@ export default function prebuild() {
     execFileSync(
       "vp",
       ["-C", `apps/till/${app}`, "exec", "node", "../../../tooling/build/server.mjs", bundle!],
-      { stdio: "pipe" },
+      { stdio: "pipe", env: { ...process.env, SHOPPER_BUILD_OUT_DIR: e2eRun.outDir } },
     );
 }

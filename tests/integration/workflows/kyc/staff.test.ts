@@ -118,3 +118,50 @@ test("the last-owner rule still holds: approving the sole owner's demotion is re
     200,
   );
 });
+
+test("a deleted role can't be requested, and a role an open case requests can't be deleted", async () => {
+  const owner = as("superadmin");
+  const made = await owner.call("POST", "/roles", { name: "KYC only", permissionCodes: [] });
+  expect(made.status).toBe(201);
+  const opened = await owner.open({
+    subject: { userId: await userIdOf("inventory") },
+    purpose: "role",
+    requestedRoleId: made.body.id,
+    phone: phone(),
+  });
+  expect(opened.status).toBe(201);
+  const blocked = await owner.call("DELETE", `/roles/${made.body.id}`);
+  expect(blocked.status).toBe(409);
+  expect(blocked.body.error).toBe("Used by 1 open identity check");
+
+  const gone = await owner.call("POST", "/roles", { name: "Retired", permissionCodes: [] });
+  expect((await owner.call("DELETE", `/roles/${gone.body.id}`)).status).toBe(204);
+  const refused = await owner.open({
+    subject: { userId: await userIdOf("accountant") },
+    purpose: "role",
+    requestedRoleId: gone.body.id,
+    phone: phone(),
+  });
+  expect(refused.status).toBe(404);
+});
+
+test("a branch-scoped approver can't change the role of a member outside their branches", async () => {
+  const owner = as("superadmin");
+  const store = await owner.call("POST", "/stores", { name: "KYC scope store" });
+  const branch = await owner.call("POST", "/branches", { name: "KYC A", storeId: store.body.id });
+  const made = await inReview("accountant", "inventory");
+  const admin = await userIdOf("admin");
+  expect(
+    (await owner.call("PUT", `/users/${admin}/branches`, { branchIds: [branch.body.id] })).status,
+  ).toBe(200);
+  const refused = await as("admin").decide(made.id, {
+    approve: true,
+    roleId: roleIds.get("inventory"),
+    note: "Moves to stock",
+  });
+  expect(refused.status).toBe(403);
+  expect(await roleOf(made.userId)).toBe(roleIds.get("accountant"));
+  expect((await caseRow(made.id)).status).toBe("review");
+  expect((await owner.call("PUT", `/users/${admin}/branches`, { branchIds: [] })).status).toBe(200);
+  expect((await owner.decide(made.id, { approve: false, note: "No" })).status).toBe(200);
+});

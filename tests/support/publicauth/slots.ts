@@ -1,12 +1,13 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { e2eRun } from "../../../tooling/e2e/run";
 
 // Browser requests share one IP; a quiet window prevents shifted server windows from overlapping groups.
 // Persist the count because Playwright may restart its worker.
 const LIMIT = 3;
 // The request leaves the browser a little after this is called, so the window gets some slack.
 const WINDOW_MS = 10_000 + 3_000;
-const COUNT_FILE = "tests/e2e/.auth/public-requests.json";
+const COUNT_FILE = e2eRun.path("tests/e2e/.auth/public-requests.json", "auth/public-requests.json");
 
 /** Call right before every request that posts to /onboarding or /invitations/:id/accept. */
 export async function waitForPublicSlot(requests = 1) {

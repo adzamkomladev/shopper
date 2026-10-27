@@ -9,8 +9,10 @@ import {
   ManagementError,
   type ManagementKind,
 } from "@shopper/core/management";
+import type { ShopperDatabase } from "@shopper/db-pg";
+import { branchScope } from "../middleware/require/branches";
 import { requirePermission } from "../middleware/require/permission";
-import type { ApiEnvironment, ApiOptions } from "../types";
+import type { ApiEnvironment, ApiOptions, ApiPrincipal } from "../types";
 
 // Stores and branches: one CRUD surface per management kind.
 export function managementRoutes(options: ApiOptions) {
@@ -34,13 +36,16 @@ export function managementRoutes(options: ApiOptions) {
             return c.json({ error: "Method not allowed" }, 405);
           if (id && !v.safeParse(managementId, id).success)
             return c.json({ error: "Invalid UUIDv7" }, 400);
+          // Stores and branches are org-wide records: a branch-scoped member reads their own and changes none.
+          if (action !== "GET" && branchScope(principal))
+            return c.json({ error: "That branch is outside your access" }, 403);
           try {
             if (action === "GET") {
-              const rows = await readManagement(
+              const rows = await visible(
                 options.database,
-                principal.orgId,
-                kind as ManagementKind,
-                id,
+                principal,
+                kind,
+                await readManagement(options.database, principal.orgId, kind as ManagementKind, id),
               );
               if (id && !rows.length) return c.json({ error: "Record not found" }, 404);
               return c.json(managementJson(id ? rows[0] : rows));
@@ -86,4 +91,22 @@ export function managementRoutes(options: ApiOptions) {
     }
   }
   return app;
+}
+
+/** A branch-scoped member sees only their branches and the stores those belong to. */
+async function visible<T extends { id: string }>(
+  database: ShopperDatabase,
+  principal: ApiPrincipal,
+  kind: "store" | "branch",
+  rows: T[],
+) {
+  const scope = branchScope(principal);
+  if (!scope) return rows;
+  if (kind === "branch") return rows.filter((row) => scope.includes(row.id));
+  const branches = (await readManagement(database, principal.orgId, "branch")) as {
+    id: string;
+    storeId: string;
+  }[];
+  const stores = branches.filter((row) => scope.includes(row.id)).map((row) => row.storeId);
+  return rows.filter((row) => stores.includes(row.id));
 }

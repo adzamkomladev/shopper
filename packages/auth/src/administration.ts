@@ -1,6 +1,7 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, count, eq, isNull } from "drizzle-orm";
 import {
   member,
+  memberBranch,
   permission,
   role,
   rolePermission,
@@ -12,9 +13,10 @@ import { AdministrationError } from "./roles/service";
 
 type Database = ShopperDatabase | ShopperTransaction;
 
-export function listUsers(db: Database, orgId: string) {
-  return db
+export async function listUsers(db: Database, orgId: string) {
+  const rows = await db
     .select({
+      memberId: member.id,
       id: user.id,
       name: user.name,
       email: user.email,
@@ -22,19 +24,29 @@ export function listUsers(db: Database, orgId: string) {
       roleId: role.id,
       roleName: role.name,
       protectedOwner: role.protectedOwner,
+      deactivatedAt: member.deactivatedAt,
     })
     .from(user)
     .innerJoin(member, and(eq(member.orgId, user.orgId), eq(member.userId, user.id)))
     .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
     .where(eq(user.orgId, orgId))
     .orderBy(asc(user.name), asc(user.id));
+  const scopes = await db
+    .select({ memberId: memberBranch.memberId, branchId: memberBranch.branchId })
+    .from(memberBranch)
+    .where(eq(memberBranch.orgId, orgId))
+    .orderBy(asc(memberBranch.branchId));
+  return rows.map(({ memberId, ...row }) => ({
+    ...row,
+    branchIds: scopes.filter((scope) => scope.memberId === memberId).map((scope) => scope.branchId),
+  }));
 }
 
 export async function listRoles(db: Database, orgId: string) {
   const rows = await db
     .select({ id: role.id, name: role.name, protectedOwner: role.protectedOwner })
     .from(role)
-    .where(eq(role.orgId, orgId))
+    .where(and(eq(role.orgId, orgId), isNull(role.archivedAt)))
     .orderBy(asc(role.name), asc(role.id));
   const grants = await db
     .select({ roleId: rolePermission.roleId, code: permission.code })
@@ -48,9 +60,15 @@ export async function listRoles(db: Database, orgId: string) {
     )
     .where(eq(rolePermission.orgId, orgId))
     .orderBy(asc(permission.code));
+  const holders = await db
+    .select({ roleId: member.roleId, n: count() })
+    .from(member)
+    .where(eq(member.orgId, orgId))
+    .groupBy(member.roleId);
   return rows.map((row) => ({
     ...row,
     permissionCodes: grants.filter((grant) => grant.roleId === row.id).map(({ code }) => code),
+    memberCount: holders.find((holder) => holder.roleId === row.id)?.n ?? 0,
   }));
 }
 

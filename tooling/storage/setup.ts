@@ -1,26 +1,13 @@
-import { AwsClient } from "aws4fetch";
+import { createBucket, rustfs } from "./buckets";
 
-// Development-only credentials match the isolated RustFS service; no production provisioning.
-const endpoint = "http://127.0.0.1:9200";
-const client = new AwsClient({
-  accessKeyId: "shopper_dev_access",
-  secretAccessKey: "shopper_dev_secret_at_least_32_chars",
-  region: "us-east-1",
-  service: "s3",
-});
 const bucket = "shopper-imports-dev";
-for (const name of [bucket, "shopper-receipts-dev"]) {
-  const created = await client.fetch(`${endpoint}/${name}`, { method: "PUT" });
-  if (!created.ok && created.status !== 409)
-    throw new Error(`RustFS bucket creation failed: ${created.status} ${await created.text()}`);
-}
-const cors = await client.fetch(`${endpoint}/${bucket}?cors`, {
-  method: "PUT",
-  headers: { "content-type": "application/xml" },
-  body: `<CORSConfiguration><CORSRule><AllowedOrigin>http://localhost:5183</AllowedOrigin><AllowedOrigin>http://127.0.0.1:5183</AllowedOrigin><AllowedOrigin>http://localhost:5173</AllowedOrigin><AllowedMethod>PUT</AllowedMethod><AllowedMethod>GET</AllowedMethod><AllowedMethod>HEAD</AllowedMethod><AllowedHeader>Content-Type</AllowedHeader><ExposeHeader>ETag</ExposeHeader><MaxAgeSeconds>3600</MaxAgeSeconds></CORSRule></CORSConfiguration>`,
-});
-if (!cors.ok) throw new Error(`RustFS CORS setup failed: ${cors.status} ${await cors.text()}`);
-const preflight = await fetch(`${endpoint}/${bucket}/check`, {
+await createBucket(bucket, [
+  "http://localhost:5183",
+  "http://127.0.0.1:5183",
+  "http://localhost:5173",
+]);
+await createBucket("shopper-receipts-dev");
+const preflight = await fetch(`${rustfs.endpoint}/${bucket}/check`, {
   method: "OPTIONS",
   headers: {
     Origin: "http://localhost:5183",

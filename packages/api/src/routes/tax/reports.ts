@@ -6,6 +6,7 @@ import type { Queue } from "@shopper/ports";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import { commandContext } from "../stock/context";
 import { problem } from "../../middleware/problem";
+import { assertBranch, branchScope, requireOrgWide } from "../../middleware/require/branches";
 import { requirePermission } from "../../middleware/require/permission";
 import type { ApiAuthentication, ApiEnvironment } from "../../types";
 
@@ -24,11 +25,15 @@ export function taxReportRoutes(
   app.get("/tax/returns/:period", read);
   app.get("/tax/returns/:period/export.xlsx", read);
   app.put("/tax/returns/:period/input", requirePermission(authentication, "tax.return"));
+  // A VAT return covers the whole organisation: org-wide members only.
+  app.use("/tax/returns/*", requireOrgWide);
   const org = (c: Context<ApiEnvironment>) => c.get("principal").orgId;
 
-  app.get("/tax/summary", async (c) =>
-    c.json(await taxSummary(database, org(c), v.parse(taxSummaryQuery, c.req.query()))),
-  );
+  app.get("/tax/summary", async (c) => {
+    const range = v.parse(taxSummaryQuery, c.req.query());
+    assertBranch(c.get("principal"), range.branchId);
+    return c.json(await taxSummary(database, org(c), range, branchScope(c.get("principal"))));
+  });
   app.get("/tax/returns/:period", async (c) =>
     c.json(await readVatReturn(database, org(c), c.req.param("period"))),
   );

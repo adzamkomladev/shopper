@@ -30,10 +30,30 @@ test.describe("role choices respect the signed-in member's grant policy", () => 
     await page.keyboard.press("Escape");
     await dialog(page).getByRole("button", { name: "Cancel" }).click();
 
-    await page.getByRole("button", { name: `Change role for ${member.name}` }).click();
+    await page.getByRole("button", { name: `Edit access for ${member.name}` }).click();
     await dialog(page).getByRole("combobox", { name: "Role" }).click();
     await expect(page.getByRole("option", { name: "Owner", exact: true })).toHaveCount(0);
     await expect(page.getByRole("option", { name: wide.name, exact: true })).toHaveCount(0);
+  });
+
+  test("a member above the ceiling keeps their role as a choice and can be moved to a grantable one", async ({
+    page,
+    request,
+  }) => {
+    const wide = await createCustomRole(request, `Wide${unique()}`, ["store.write"]);
+    const manager = await createStaff(request, "admin", "Mover");
+    const member = await createStaff(request, wide.name, "Above");
+    await page.context().clearCookies();
+    await signInAs(page, manager);
+    await page.goto("/users");
+    await page.getByRole("button", { name: `Edit access for ${member.name}` }).click();
+    const role = dialog(page).getByRole("combobox", { name: "Role" });
+    await expect(role).toContainText(wide.name);
+    await role.click();
+    await expect(page.getByRole("option", { name: wide.name, exact: true })).toHaveCount(1);
+    await page.getByRole("option", { name: "cashier", exact: true }).click();
+    await dialog(page).getByRole("button", { name: "Save access" }).click();
+    await expect(page.getByText("Access updated")).toBeVisible();
   });
 
   test("a non-owner with every permission still can't grant the protected owner role", async ({
@@ -62,7 +82,7 @@ test.describe("role choices respect the signed-in member's grant policy", () => 
     const members = page.getByRole("region", { name: "Members" });
     await members.focus();
     await page.keyboard.press("End");
-    await page.getByRole("button", { name: `Change role for ${member.name}` }).click();
+    await page.getByRole("button", { name: `Edit access for ${member.name}` }).click();
     await dialog(page).getByRole("combobox", { name: "Role" }).click();
     await expect(page.getByRole("option", { name: "Owner", exact: true })).toHaveCount(0);
   });

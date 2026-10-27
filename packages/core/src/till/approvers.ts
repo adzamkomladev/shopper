@@ -11,7 +11,7 @@ import { APPROVER_LIST_MS } from "./approvals";
  */
 export const refreshApprovers = defineCommand({
   name: "till.approvers.refresh",
-  async run(tx, context, input: ApproverList & { at: Date }) {
+  async run(tx, context, input: Pick<ApproverList, "approvers"> & { at: Date }) {
     const existing = new Map(
       (await tx.select().from(tillApprover).where(eq(tillApprover.orgId, context.orgId))).map(
         (row) => [row.userId, row],

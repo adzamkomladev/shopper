@@ -1,7 +1,7 @@
 name = "checker"
 description = "Runs vp check, vp run guard and the test suite and returns only the failures."
-model = "gpt-6.1-sol"
-model_reasoning_effort = "low"
+model = "gpt-6-luna"
+model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 Read .agents/roles/checker.md and AGENTS.md first, then follow the role exactly. The parent's message is your task.

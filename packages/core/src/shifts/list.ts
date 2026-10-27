@@ -11,8 +11,8 @@ import { shiftChecks } from "./checks";
  * tenders that came up short (≤ 0) and `over` those that came up over (≥ 0), so offsetting tenders never net to zero.
  */
 // ponytail: the newest SHIFT_LIST_LIMIT shifts only; add a cursor when a store keeps more on screen.
-export async function listShifts(db: ShopperDatabase, orgId: string) {
-  const rows = await summaries(db, orgId);
+export async function listShifts(db: ShopperDatabase, orgId: string, scope?: string[]) {
+  const rows = await summaries(db, orgId, undefined, scope);
   return { shifts: rows };
 }
 
@@ -20,8 +20,8 @@ export async function listShifts(db: ShopperDatabase, orgId: string) {
  * One closed shift with its stored Z (never recomputed), its checks against the server's records, and the names of
  * everyone the Z mentions.
  */
-export async function readShift(db: ShopperDatabase, orgId: string, id: string) {
-  const [row] = await summaries(db, orgId, id);
+export async function readShift(db: ShopperDatabase, orgId: string, id: string, scope?: string[]) {
+  const [row] = await summaries(db, orgId, id, scope);
   if (!row) return null;
   const [saved] = await db
     .select({ report: shift.report })
@@ -42,7 +42,8 @@ export async function readShift(db: ShopperDatabase, orgId: string, id: string) 
   return { ...row, report, names: Object.fromEntries(people.map((p) => [p.id, p.name])) };
 }
 
-async function summaries(db: ShopperDatabase, orgId: string, id?: string) {
+/** `scope`, when given, keeps to those branches (a branch-scoped member's). */
+async function summaries(db: ShopperDatabase, orgId: string, id?: string, scope?: string[]) {
   const closer = alias(user, "closer");
   const approver = alias(user, "approver");
   const rows = await db
@@ -69,7 +70,13 @@ async function summaries(db: ShopperDatabase, orgId: string, id?: string) {
     .innerJoin(branch, and(eq(branch.orgId, shift.orgId), eq(branch.id, shift.branchId)))
     .innerJoin(closer, and(eq(closer.orgId, shift.orgId), eq(closer.id, shift.closedBy)))
     .leftJoin(approver, and(eq(approver.orgId, shift.orgId), eq(approver.id, shift.approverId)))
-    .where(and(eq(shift.orgId, orgId), id ? eq(shift.id, id) : undefined))
+    .where(
+      and(
+        eq(shift.orgId, orgId),
+        id ? eq(shift.id, id) : undefined,
+        scope ? inArray(shift.branchId, scope) : undefined,
+      ),
+    )
     .orderBy(desc(shift.closedAt), desc(shift.id))
     .limit(SHIFT_LIST_LIMIT);
   const tenders = rows.length

@@ -3,11 +3,12 @@ import { Client, escapeIdentifier } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "../../packages/db/pg/src/schemas";
 import { migrateDatabase } from "./migrate";
+import { e2eRun } from "../e2e/run";
 import { provisionOrg, provisioningContext } from "./seed";
 
 export const E2E_DATABASE_URL =
   process.env.E2E_DATABASE_URL ??
-  "postgresql://shopper:shopper_dev_only@127.0.0.1:5432/shopper_e2e";
+  `postgresql://shopper:shopper_dev_only@127.0.0.1:5432/${e2eRun.database}`;
 const SHOPS = [
   { name: "E2E Mart", slug: "e2e-mart" },
   { name: "E2E Annex", slug: "e2e-annex" },
@@ -15,19 +16,10 @@ const SHOPS = [
 
 /** Drops and recreates the e2e database, migrates it and provisions the two e2e shops. */
 export async function resetE2eDatabase(url = E2E_DATABASE_URL) {
-  const target = new URL(url);
-  const name = target.pathname.slice(1);
-  assertDisposable(target, name);
-  target.pathname = "/postgres";
-  const quoted = escapeIdentifier(name);
-  const admin = new Client({ connectionString: target.toString() });
-  await admin.connect();
-  try {
-    await admin.query(`DROP DATABASE IF EXISTS ${quoted} WITH (FORCE)`);
-    await admin.query(`CREATE DATABASE ${quoted}`);
-  } finally {
-    await admin.end();
-  }
+  await administer(url, (quoted) => [
+    `DROP DATABASE IF EXISTS ${quoted} WITH (FORCE)`,
+    `CREATE DATABASE ${quoted}`,
+  ]);
   const client = new Client({ connectionString: url });
   await client.connect();
   try {
@@ -36,6 +28,25 @@ export async function resetE2eDatabase(url = E2E_DATABASE_URL) {
     for (const shop of SHOPS) await provisionOrg(db, provisioningContext(), shop);
   } finally {
     await client.end();
+  }
+}
+
+/** Drops the e2e database once its run is over. */
+export async function dropE2eDatabase(url = E2E_DATABASE_URL) {
+  await administer(url, (quoted) => [`DROP DATABASE IF EXISTS ${quoted} WITH (FORCE)`]);
+}
+
+async function administer(url: string, statements: (quoted: string) => string[]) {
+  const target = new URL(url);
+  const name = target.pathname.slice(1);
+  assertDisposable(target, name);
+  target.pathname = "/postgres";
+  const admin = new Client({ connectionString: target.toString() });
+  await admin.connect();
+  try {
+    for (const statement of statements(escapeIdentifier(name))) await admin.query(statement);
+  } finally {
+    await admin.end();
   }
 }
 

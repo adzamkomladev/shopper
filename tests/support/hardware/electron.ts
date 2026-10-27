@@ -3,9 +3,10 @@ import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { parentRenderer } from "@shopper/adapters-box/till";
 import type { Json } from "@shopper/ports";
+import { e2eRun } from "../../../tooling/e2e/run";
 
 const root = process.cwd();
-export const electronMain = resolve(root, "apps/till/electron/dist/main.js");
+export const electronMain = resolve(root, `apps/till/electron/${e2eRun.outDir}/main.js`);
 // The `electron` package default export is the binary path; it downloads the binary on first use.
 const binary = createRequire(import.meta.url)("electron") as string;
 

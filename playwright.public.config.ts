@@ -1,11 +1,14 @@
 import { defineConfig } from "@playwright/test";
 import base from "./playwright.config";
 import { E2E_DATABASE_URL } from "./tooling/database/e2e";
+import { e2eRun } from "./tooling/e2e/run";
 
 // Public onboarding runs against its own API shell (3102, with captured Maileroo on 3103) and its own
 // portal (5185), so the registration routes are open while the standard box (3101) stays unchanged.
 // The standard box entry is reused when it is up and only starts, and resets the database, when not.
+// SHOPPER_RUN_ID shifts every port by the run's offset (tooling/e2e/run.ts).
 const reuseExistingServer = !process.env.CI;
+const portal = e2eRun.url(5185);
 const box = Array.isArray(base.webServer) ? base.webServer[0] : base.webServer;
 if (!box) throw new Error("The public harness needs the standard box server configuration.");
 
@@ -20,24 +23,24 @@ export default defineConfig({
     {
       name: "public",
       testMatch: /(?:onboarding|public\/states|invitations\/(?:accept|states))\.spec\.ts/,
-      use: { baseURL: "http://localhost:5185", navigationTimeout: 60_000 },
+      use: { baseURL: portal, navigationTimeout: 60_000 },
     },
   ],
   webServer: [
     box,
     {
-      command: "node tooling/build/public/e2e.mjs && bun .shopper/public-e2e/server.js",
-      url: "http://localhost:3102/orgs/e2e-mart",
-      env: { E2E_DATABASE_URL, SHOPPER_AUTH_URL: "http://localhost:5185" },
+      command: `node tooling/build/public/e2e.mjs && bun ${e2eRun.publicHost}/server.js`,
+      url: `${e2eRun.url(3102)}/orgs/e2e-mart`,
+      env: { E2E_DATABASE_URL, SHOPPER_AUTH_URL: portal },
       reuseExistingServer,
       timeout: 60_000,
     },
     {
-      command: "node tooling/build/portal/e2e.mjs && bun .shopper/portal/e2e/server.js",
-      url: "http://localhost:5185/api/orgs/e2e-mart",
+      command: `node tooling/build/portal/e2e.mjs && bun ${e2eRun.portalHost}/server.js`,
+      url: `${portal}/api/orgs/e2e-mart`,
       env: {
         E2E_DATABASE_URL,
-        SHOPPER_AUTH_URL: "http://localhost:5185",
+        SHOPPER_AUTH_URL: portal,
         E2E_PUBLIC_ONBOARDING: "1",
       },
       timeout: 180_000,

@@ -1,11 +1,15 @@
-// GET /sync/approvers -> { approvers: [{ userId, name, pinHash, permissions }] } (device credential required) and
+// GET /sync/approvers -> { approvers: [{ userId, name, pinHash, permissions }], staff: [userId] } (device credential required) and
 // refreshApprovers({ database, config }) -> boolean, which replaces the till's approver list from it.
 import { expect, test } from "vite-plus/test";
+import { eq } from "drizzle-orm";
+import { v7 } from "uuid";
+import { branch, member, memberBranch } from "@shopper/db-pg";
 import { refreshApprovers } from "@shopper/sync";
 import { verifyPin } from "@shopper/auth/devices";
 import { approve } from "@shopper/core/till";
-import { tillApprover, type TillDatabase } from "@shopper/db-sqlite";
+import { tillApprover, tillStaff, type TillDatabase } from "@shopper/db-sqlite";
 import { foreignManagerWithPin, memberWithPin } from "../../../support/sync/members";
+import { addStaff } from "../../../support/till/cash";
 import { auditRows, fails, withTill } from "../../../support/till/drafts";
 import { ids } from "../../../support/till/sales";
 import { syncHeaders } from "../../../support/till/requests";
@@ -13,6 +17,7 @@ import {
   api,
   appVersion,
   context,
+  databases,
   deviceId,
   deviceToken,
   devices,
@@ -69,6 +74,59 @@ test("shift.approve reaches the till for a manager who holds it and approves a s
       verifyPin,
     );
     expect(approved).toBe(managerId);
+  });
+});
+
+test("a deactivated manager drops off the till's approvers at its next refresh", async () => {
+  const managerId = await memberWithPin("Efua Manager", "admin", "2468");
+  const { db } = databases();
+  await withTill(async (database) => {
+    await refresh(database);
+    expect((await stored(database)).map((row) => row.userId)).toContain(managerId);
+    await db.update(member).set({ deactivatedAt: new Date() }).where(eq(member.userId, managerId));
+    await refresh(database);
+    expect((await stored(database)).map((row) => row.userId)).not.toContain(managerId);
+  });
+});
+
+test("the till forgets members deactivated or scoped away from its branch, and keeps the rest", async () => {
+  const kept = await memberWithPin("Kofi Manager", "admin", "1357");
+  const gone = await memberWithPin("Akua Manager", "admin", "1357");
+  const away = await memberWithPin("Yaa Manager", "admin", "1357");
+  const { db } = databases();
+  const [store] = await db
+    .select({ storeId: branch.storeId })
+    .from(branch)
+    .where(eq(branch.id, ids.branch));
+  const elsewhere = v7();
+  await db
+    .insert(branch)
+    .values({ id: elsewhere, orgId: ids.org, storeId: store!.storeId, name: "Elsewhere" });
+  const scopeTo = async (userId: string, branchId: string) => {
+    const [row] = await db.select({ id: member.id }).from(member).where(eq(member.userId, userId));
+    await db.insert(memberBranch).values({ orgId: ids.org, memberId: row!.id, branchId });
+  };
+  await scopeTo(kept, ids.branch);
+  await scopeTo(away, elsewhere);
+  await db.update(member).set({ deactivatedAt: new Date() }).where(eq(member.userId, gone));
+
+  const response = await api.request("/sync/approvers", { headers: syncHeaders() });
+  const body = (await response.json()) as { approvers: { userId: string }[]; staff: string[] };
+  expect(body.staff).toContain(kept);
+  expect(body.staff).not.toContain(gone);
+  expect(body.staff).not.toContain(away);
+  expect(body.approvers.map((row) => row.userId)).not.toContain(away);
+  await withTill(async (database) => {
+    for (const [userId, name] of [
+      [kept, "Kofi"],
+      [gone, "Akua"],
+      [away, "Yaa"],
+    ] as const)
+      await addStaff(database, userId, name);
+    await refresh(database);
+    const staff = await database.read((tx) => tx.select().from(tillStaff));
+    expect(staff.map((row) => row.userId)).toEqual([kept]);
+    expect((await stored(database)).map((row) => row.userId)).toContain(kept);
   });
 });
 

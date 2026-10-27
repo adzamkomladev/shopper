@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, exists, gt, isNull, notExists, or, type SQL } from "drizzle-orm";
 import type { CommandContext } from "@shopper/audit";
 import {
   branch,
@@ -6,6 +6,7 @@ import {
   device,
   deviceCredential,
   member,
+  memberBranch,
   permission,
   rolePermission,
   type ShopperTransaction,
@@ -69,12 +70,17 @@ export async function sessionAuthority(
   return session;
 }
 
-/** Whether the member's role holds `code` right now, from role_permission rather than the session snapshot. */
+/**
+ * Whether the member's role holds `code` right now, from role_permission rather than the session snapshot, and
+ * whether they were allowed at `branchId` when they used it (at `at`).
+ */
 export async function hasGrant(
   tx: ShopperTransaction,
   orgId: string,
   userId: string,
   code: string,
+  at: Date,
+  branchId: string | undefined,
 ) {
   const [granted] = await tx
     .select({ id: permission.id })
@@ -90,7 +96,16 @@ export async function hasGrant(
         eq(permission.id, rolePermission.permissionId),
       ),
     )
-    .where(and(eq(member.orgId, orgId), eq(member.userId, userId), eq(permission.code, code)));
+    .where(
+      and(
+        eq(member.orgId, orgId),
+        eq(member.userId, userId),
+        eq(permission.code, code),
+        // Historical: a grant used before the member was deactivated still holds when it uploads later.
+        or(isNull(member.deactivatedAt), gt(member.deactivatedAt, at)),
+        branchId ? allowedAt(tx, branchId, at) : undefined,
+      ),
+    );
   return !!granted;
 }
 
@@ -103,12 +118,20 @@ export async function overrideAuthority(
   ctx: CommandContext,
   session: { permissions: string[] },
   snapshot: SaleSnapshot,
+  at: Date,
 ) {
   for (const { approverId } of overrideList(snapshot)) {
     const allowed = approverId
-      ? await hasGrant(tx, ctx.orgId, approverId, "sale.price_override")
+      ? await hasGrant(tx, ctx.orgId, approverId, "sale.price_override", at, snapshot.branchId)
       : session.permissions.includes("sale.price_override") &&
-        (await hasGrant(tx, ctx.orgId, snapshot.cashierId, "sale.price_override"));
+        (await hasGrant(
+          tx,
+          ctx.orgId,
+          snapshot.cashierId,
+          "sale.price_override",
+          at,
+          snapshot.branchId,
+        ));
     if (!allowed)
       throw new SaleError("INVALID_SESSION", "Price override lacks approver permission");
   }
@@ -128,4 +151,23 @@ export function overrideAudit(snapshot: SaleSnapshot) {
   const overrides = overrideList(snapshot);
   if (!overrides.length) return {};
   return { overrides: overrides.map(({ lineId, approverId }) => ({ lineId, approverId })) };
+}
+
+/**
+ * The member was allowed at `branchId` at `at`: unscoped, scoped to include it, or scoped only later. A scope
+ * replaces all its rows at once, so their `created_at` is when it took effect.
+ */
+function allowedAt(tx: ShopperTransaction, branchId: string, at: Date) {
+  const scope = (extra?: SQL) =>
+    tx
+      .select({ id: memberBranch.id })
+      .from(memberBranch)
+      .where(
+        and(eq(memberBranch.orgId, member.orgId), eq(memberBranch.memberId, member.id), extra),
+      );
+  return or(
+    notExists(scope()),
+    exists(scope(eq(memberBranch.branchId, branchId))),
+    exists(scope(gt(memberBranch.createdAt, at))),
+  );
 }

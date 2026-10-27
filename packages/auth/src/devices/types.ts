@@ -4,7 +4,7 @@ export type DevicePrincipal = AuthPrincipal;
 
 export type Rejected = {
   error: string;
-  status: 401 | 429;
+  status: 401 | 403 | 429;
   attempts?: number;
   lockedUntil?: string | null;
 };

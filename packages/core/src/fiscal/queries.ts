@@ -21,11 +21,17 @@ const SEGMENT_STATUSES = {
 } as const;
 
 /** The fiscal dashboard: counts per segment and the documents of one, with why each stopped. */
-export async function listFiscalDocs(db: ShopperDatabase, orgId: string, raw: unknown) {
+export async function listFiscalDocs(
+  db: ShopperDatabase,
+  orgId: string,
+  raw: unknown,
+  branches?: string[],
+) {
   const query = v.parse(fiscalListQuery, raw);
   const scope = and(
     eq(fiscalDoc.orgId, orgId),
     query.branch ? eq(fiscalDoc.branchId, query.branch) : undefined,
+    branches ? inArray(fiscalDoc.branchId, branches) : undefined,
     query.q ? ilike(fiscalDoc.invoiceNumber, `%${query.q.replace(/[%_\\]/g, "\\$&")}%`) : undefined,
   );
   const totals = await db
@@ -72,13 +78,24 @@ export async function listFiscalDocs(db: ShopperDatabase, orgId: string, raw: un
   };
 }
 
-/** One document with its payload and what the SDC said about it. */
-export async function readFiscalDoc(db: ShopperDatabase, orgId: string, id: string) {
+/** One document with its payload and what the SDC said about it; outside `scope` it reads as not found. */
+export async function readFiscalDoc(
+  db: ShopperDatabase,
+  orgId: string,
+  id: string,
+  scope?: string[],
+) {
   const [row] = await db
     .select({ doc: fiscalDoc, branchName: branch.name })
     .from(fiscalDoc)
     .innerJoin(branch, and(eq(branch.orgId, fiscalDoc.orgId), eq(branch.id, fiscalDoc.branchId)))
-    .where(and(eq(fiscalDoc.orgId, orgId), eq(fiscalDoc.id, v.parse(fiscalDocId, id))));
+    .where(
+      and(
+        eq(fiscalDoc.orgId, orgId),
+        eq(fiscalDoc.id, v.parse(fiscalDocId, id)),
+        scope ? inArray(fiscalDoc.branchId, scope) : undefined,
+      ),
+    );
   if (!row) throw new FiscalError("NOT_FOUND", "Fiscal document not found");
   const { doc } = row;
   return {

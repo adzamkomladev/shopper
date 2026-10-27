@@ -161,10 +161,10 @@ test("Stock records list newest first, filter by kind and open with their lines"
     expect.objectContaining({ productId: rice, quantityThousandths: 5_000, unitCost: 95_000 }),
     expect.objectContaining({ productId: tomatoes, quantityThousandths: 2_000, unitCost: 280_000 }),
   ]);
-  await expect(readDocument(db(), ids.org, receipt, ids.otherProduct)).rejects.toMatchObject({
+  await expect(readDocument(db(), ids.org, receipt, [ids.otherProduct])).rejects.toMatchObject({
     code: "NOT_FOUND",
   });
-  await expect(readDocument(db(), ids.org, receipt, branchId)).resolves.toMatchObject({
+  await expect(readDocument(db(), ids.org, receipt, [branchId])).resolves.toMatchObject({
     id: receipt,
   });
   await expect(readDocument(db(), ids.otherOrg, receipt)).rejects.toMatchObject({

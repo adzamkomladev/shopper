@@ -8,7 +8,7 @@ import { boxRenderer } from "@shopper/adapters-box/renderer";
 import { createApi } from "@shopper/api";
 import { createAuth, registerOrganizationUser } from "@shopper/auth";
 import { role } from "@shopper/db-pg";
-import { appVersion, databases } from "../till/server";
+import { appVersion, databases, devices } from "../till/server";
 import { notifications } from "../stock/queue";
 
 export const baseURL = "http://localhost:8787";
@@ -46,6 +46,7 @@ export async function portalOwner(orgId: string, actorId?: string) {
     api: createApi({
       database: db,
       authentication: auth,
+      devices,
       notifications,
       linkSecret,
       baseURL,

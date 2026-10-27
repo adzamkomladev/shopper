@@ -43,6 +43,19 @@ test("a sale is refused once its device credential, cashier membership or sessio
   await refused();
   await db.update(cashierSession).set({ revokedAt: null }).where(session);
 
+  // Deactivation cuts the session instead of revoking it: a sale made before the cut keeps its authority,
+  // one after it does not, even though the member is deactivated by the time either uploads.
+  await db.update(member).set({ deactivatedAt: new Date() }).where(membership);
+  await db
+    .update(cashierSession)
+    .set({ expiresAt: new Date("2025-12-31T23:00:00Z") })
+    .where(session);
+  await refused();
+  await db
+    .update(cashierSession)
+    .set({ expiresAt: new Date("2025-12-31T23:31:00Z") })
+    .where(session);
+
   await expect(accept("not-the-session-proof")).rejects.toMatchObject({ code: "INVALID_SESSION" });
   await expect(accept()).resolves.toMatchObject({ localId: created.event.sale.localId });
 });

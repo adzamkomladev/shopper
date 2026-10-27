@@ -1,6 +1,6 @@
-# Project defaults for Codex. Roles and models: docs/engineering/ai-workflow.md
+# Project defaults for Codex. Model per kind of work and its effort band: docs/engineering/ai-workflow.md ("Picking a Codex model").
 model = "gpt-6.1-sol"
-model_reasoning_effort = "low" # raise to "medium" for complex work
+model_reasoning_effort = "low" # Sol stays light: "medium" for complex work, never higher
 plan_mode_reasoning_effort = "medium"
 
 [agents]

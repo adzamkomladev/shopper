@@ -9,6 +9,7 @@ import { v7 } from "uuid";
 import { BOX_API, BRANCH_NAME } from "../e2e";
 import { post, shopHeaders, unique } from "../admin";
 import { createCustomRole, createStaff, type Staff } from "./people";
+import { e2eRun } from "../../../tooling/e2e/run";
 
 type Row = { id: string; name: string };
 type Branch = Row & { storeId: string };
@@ -18,7 +19,7 @@ export const seedStock = () => (seeded ??= seed());
 
 /** Runs `use` with an API client signed in as the E2E Mart owner. */
 export async function asOwner<T>(use: (request: APIRequestContext) => Promise<T>) {
-  const request = await playwright.newContext({ storageState: "tests/e2e/.auth/owner.json" });
+  const request = await playwright.newContext({ storageState: e2eRun.ownerState });
   try {
     return await use(request);
   } finally {

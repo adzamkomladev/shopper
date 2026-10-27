@@ -24,7 +24,13 @@ export {
   sessionPermissionsResponse,
   updateRoleInput,
 } from "./roles";
-export { assignRoleInput, registerUserInput, userListItem, userListResponse } from "./users";
+export {
+  assignRoleInput,
+  memberBranchesInput,
+  registerUserInput,
+  userListItem,
+  userListResponse,
+} from "./users";
 export {
   invitationIssueSchema,
   invitationAcceptSchema,

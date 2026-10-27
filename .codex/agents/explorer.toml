@@ -1,7 +1,7 @@
 name = "explorer"
 description = "Fast read-only repo search: where something lives, how a flow works, whether a helper already exists."
-model = "gpt-6.1-sol"
-model_reasoning_effort = "low"
+model = "gpt-6-luna"
+model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = """
 Read .agents/roles/explorer.md and AGENTS.md first, then follow the role exactly. The parent's message is your task.

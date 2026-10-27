@@ -5,4 +5,6 @@ export interface AuthPrincipal {
   roleName: string;
   deviceId?: string;
   branchId?: string;
+  /** A back-office member's branches; null when they work at every branch. Unset for a till session. */
+  branchIds?: string[] | null;
 }

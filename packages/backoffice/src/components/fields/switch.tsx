@@ -8,16 +8,18 @@ type Props = {
   /** Says what the switch does when it is on, tied to it for screen readers. */
   description?: string;
   onChange?: () => void;
+  disabled?: boolean;
 };
 
 /** A labelled on/off switch bound to a TanStack Form field. */
-export function SwitchField({ field, label, description, onChange }: Props) {
+export function SwitchField({ field, label, description, onChange, disabled }: Props) {
   const descriptionId = `${field.name}-description`;
   return (
     <Field orientation="horizontal">
       <Switch
         id={field.name}
         checked={field.state.value}
+        disabled={disabled}
         aria-describedby={description ? descriptionId : undefined}
         onCheckedChange={(checked) => {
           field.handleChange(checked);

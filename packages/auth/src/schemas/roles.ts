@@ -19,6 +19,7 @@ export const roleListItem = v.object({
   name: v.string(),
   protectedOwner: v.boolean(),
   permissionCodes: v.array(permissionCode),
+  memberCount: v.number(),
 });
 export const roleListResponse = v.array(roleListItem);
 export const permissionListItem = v.object({

@@ -1,9 +1,10 @@
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import { v7 } from "uuid";
+import { e2eRun } from "../../../../tooling/e2e/run";
 
 const root = process.cwd();
-const entry = resolve(root, "apps/till/host/dist/server.js");
+const entry = resolve(root, `apps/till/host/${e2eRun.outDir}/server.js`);
 type Message = Record<string, unknown>;
 type Ready = Message & {
   type: "ready";

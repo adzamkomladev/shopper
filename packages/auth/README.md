@@ -57,6 +57,55 @@ Ordinary seeded roles receive defaults only when first created; reseeding
 preserves matrix edits. Migration 0008 adds user, role and device read grants to
 existing owners/admins without restoring other removed grants.
 
+`deleteRole(database, context, roleId)` (`auth.role.delete`, `role.write` plus the grant ceiling)
+removes a custom role nobody uses: no member, no pending unexpired invitation and no open KYC case
+that requests it. Otherwise it answers 409 with what still uses it ("Used by 2 members and 1 pending
+invitation"). The owner role answers 403. Deleting archives the row (`role.archived_at`) and drops
+its `role_permission` rows, because past cashier sessions, KYC cases and invitations keep foreign keys
+to it. An archived role is hidden from `listRoles`, can never be granted again (`assertCanGrantRole`
+and KYC open answer 404), and frees its name through a partial unique index.
+
+### Deactivation
+
+`deactivateMember` and `reactivateMember` (`auth.member.deactivate` / `reactivate`, `user.write`)
+set or clear `member.deactivated_at`. Both check the grant ceiling on the target's role and the
+branch ceiling below. You can't deactivate yourself, and the last active owner can't be deactivated
+(409). Deactivation lives on the org membership, not on `user`, so one filter refuses every path:
+`grantedCodes` counts active members only (`hasPermission`, `assertHasPermission` and
+`/session/permissions`), `resolvePrincipal` returns null, browser sign-in rolls back with 403 "This
+account is deactivated", and till password and PIN logins answer 403 once the credential verifies
+(failure counters are untouched).
+
+Deactivation deletes the member's Better Auth sessions but **cuts** their cashier sessions instead
+of revoking them: `expires_at = least(expires_at, now())`. `sessionAuthority` refuses a revoked
+session outright, so revoking would also throw away offline sales made _before_ deactivation. With
+the cut, a sale stamped before the moment still uploads with its historical authority, and one after
+it is refused (`INVALID_SESSION`). `hasGrant(..., at)` stays historical, so past manager approvals
+upload too. Reactivating restores the role and branches the member had.
+
+### Branch scope
+
+`setMemberBranches` (`auth.member.branches.set`, `role.write`, input `{ branchIds }`) stores the
+branches a member works at in `member_branch`. No rows means every branch, and the owner is always
+org-wide (409). Every branch must exist in the org (404). A scoped actor may hand out only a
+non-empty subset of their own branches, and may manage only members already inside their branches
+(403). The same branch ceiling guards every role change (`grantMemberRole`: direct assignment, KYC
+approval and invitation acceptance) and deactivation. Someone who joins through a scoped inviter joins
+at the inviter's branches, and granting the owner role lifts any scope. Narrowing the scope cuts the
+member's live cashier sessions at other branches, like deactivation. A manager approval uploaded from
+a till (price override, refund, shift close) also needs the approver to have been allowed at that
+branch when they approved: `hasGrant` reads `member_branch.created_at`, because a new scope replaces
+all its rows at once.
+
+`AuthPrincipal.branchIds` is resolved once in `resolvePrincipal` (`null` for org-wide members). Till
+login refuses a scoped member at another branch's register (403 "Not allowed at this branch"), and
+`GET /sync/approvers` lists only active members allowed at the register's branch, plus `staff`, the
+user ids allowed to sign in there. The till deletes cached `till_staff` rows that are not in `staff`,
+so an offline register forgets a deactivated or out-of-scope member at its next approvers refresh.
+Until then it still admits them offline. The portal API applies the scope through `branchScope` and
+`assertBranch` in `@shopper/api` (see [architecture.md](../../docs/engineering/architecture.md)).
+Roles stay org-wide: a scoped member's role applies the same at each of their branches.
+
 `listUsers`, `listRoles` and `listPermissions` take a trusted tenant ID. HTTP
 routes require `user.read` or `role.read`; `/session/permissions` returns the
 current authenticated session's permission code array. Browser-safe Valibot

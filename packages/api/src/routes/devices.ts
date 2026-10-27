@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import * as v from "valibot";
 import { DeviceError, type createDeviceService } from "@shopper/auth/devices";
+import { assertBranch, branchScope } from "../middleware/require/branches";
 import { requirePermission } from "../middleware/require/permission";
 import type { ApiAuthentication, ApiEnvironment } from "../types";
 
@@ -10,7 +11,9 @@ export function deviceRoutes(
 ) {
   const app = new Hono<ApiEnvironment>();
   app.get("/devices", requirePermission(authentication, "device.read"), async (c) => {
-    return c.json(await devices.list(c.get("principal")));
+    const scope = branchScope(c.get("principal"));
+    const rows = await devices.list(c.get("principal"));
+    return c.json(scope ? rows.filter((row) => scope.includes(row.branchId)) : rows);
   });
   for (const [path, operation, permission] of [
     ["/devices/enrollment", "issueEnrollment", "device.enroll"],
@@ -27,6 +30,16 @@ export function deviceRoutes(
         data = await c.req.json();
       } catch {
         return c.json({ error: "Invalid JSON" }, 400);
+      }
+      // A scoped member enrolls and revokes registers at their own branches only.
+      if (operation === "issueEnrollment")
+        assertBranch(principal!, (data as { branchId?: unknown })?.branchId);
+      if (operation === "revoke" && branchScope(principal!)) {
+        const { deviceId } = (data ?? {}) as { deviceId?: unknown };
+        const id = typeof deviceId === "string" ? deviceId.toLowerCase() : deviceId;
+        const target = (await devices.list(principal!)).find((row) => row.id === id);
+        // Unknown here is refused too: only a register checked to be in scope is revoked.
+        assertBranch(principal!, target?.branchId ?? "");
       }
       try {
         const result =

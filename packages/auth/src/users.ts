@@ -1,10 +1,11 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { hashPassword } from "better-auth/crypto";
 import * as v from "valibot";
 import { defineCommand, type CommandContext } from "@shopper/audit";
-import { account, member, role, user, type ShopperTransaction } from "@shopper/db-pg";
+import { account, member, memberBranch, role, user, type ShopperTransaction } from "@shopper/db-pg";
 import { assignRoleInput, registerUserInput } from "./schemas/users";
 import { assertCanGrantRole, assertHasPermission, AdministrationError } from "./roles/service";
+import { assertWithin, memberBranchIds } from "./members/target";
 
 export const assignMemberRole = defineCommand({
   name: "auth.member.assign-role",
@@ -19,7 +20,9 @@ export const assignMemberRole = defineCommand({
 
 /**
  * Gives a member a role inside the caller's command: the role must exist, the actor must hold every
- * permission it carries, and the last owner stays an owner. Shared by role assignment and KYC approval.
+ * permission it carries, and the last owner stays an owner. A branch-scoped actor reaches only members inside
+ * their branches, and someone joining through them joins there. An owner works everywhere. Shared by role
+ * assignment, KYC approval and invitation acceptance.
  */
 export async function grantMemberRole(
   tx: ShopperTransaction,
@@ -45,13 +48,27 @@ export async function grantMemberRole(
     .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
     .where(and(eq(member.orgId, context.orgId), eq(member.userId, input.userId)));
   if (previous?.protectedOwner && !targetRole.protectedOwner) {
-    const owners = await tx
+    // Another active owner must remain: a deactivated one can't run the organization.
+    const [other] = await tx
       .select({ id: member.id })
       .from(member)
       .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
-      .where(and(eq(member.orgId, context.orgId), eq(role.protectedOwner, true)));
-    if (owners.length <= 1) throw new AdministrationError("The last owner cannot be demoted", 409);
+      .where(
+        and(
+          eq(member.orgId, context.orgId),
+          eq(role.protectedOwner, true),
+          isNull(member.deactivatedAt),
+          ne(member.userId, input.userId),
+        ),
+      )
+      .limit(1);
+    if (!other) throw new AdministrationError("The last owner cannot be demoted", 409);
   }
+  const actorScope = context.actorId
+    ? await memberBranchIds(tx, context.orgId, context.actorId)
+    : [];
+  if (previous && actorScope.length)
+    assertWithin(actorScope, await memberBranchIds(tx, context.orgId, input.userId));
   const [assigned] = await tx
     .insert(member)
     .values({
@@ -66,6 +83,16 @@ export async function grantMemberRole(
       set: { role: targetRole.protectedOwner ? "owner" : "member", roleId: input.roleId },
     })
     .returning({ id: member.id });
+  if (targetRole.protectedOwner)
+    await tx
+      .delete(memberBranch)
+      .where(and(eq(memberBranch.orgId, context.orgId), eq(memberBranch.memberId, assigned!.id)));
+  else if (!previous && actorScope.length)
+    await tx
+      .insert(memberBranch)
+      .values(
+        actorScope.map((branchId) => ({ orgId: context.orgId, memberId: assigned!.id, branchId })),
+      );
   return {
     memberId: assigned!.id,
     userId: input.userId,

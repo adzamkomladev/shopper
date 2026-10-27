@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { and, asc, desc, eq, ilike, isNull, lt, or, sql, type SQL } from "drizzle-orm";
+import { type SQL, and, asc, desc, eq, ilike, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { branch, product, productBarcode, reorderPoint, stockMovement } from "@shopper/db-pg";
 import { productStockQuery, stockQuery } from "../schemas/stock/views";
 import type { Queryable } from "../types";
@@ -22,11 +22,11 @@ export async function requireBranch(db: Queryable, orgId: string, branchId: stri
   if (!found) throw notFound("Branch");
 }
 
-export async function stockBranches(db: Queryable, orgId: string, only?: string) {
+export async function stockBranches(db: Queryable, orgId: string, scope?: string[]) {
   const rows = await db
     .select({ id: branch.id, name: branch.name })
     .from(branch)
-    .where(and(eq(branch.orgId, orgId), only ? eq(branch.id, only) : undefined))
+    .where(and(eq(branch.orgId, orgId), scope ? inArray(branch.id, scope) : undefined))
     .orderBy(asc(branch.name), asc(branch.id));
   return { branches: rows };
 }

@@ -1,5 +1,5 @@
 export type { AuthPrincipal } from "./types";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { defineCommand, type CommandContext } from "@shopper/audit";
 import {
   member,
@@ -84,14 +84,21 @@ export const seedAuthRoles = defineCommand({
   audit: (_input, output) => output,
 });
 
-/** Permission codes a member holds through role_permission. Till sessions only get till-allowed codes. */
+/**
+ * Permission codes an active member holds through role_permission; a deactivated member holds none. Till sessions
+ * only get till-allowed codes.
+ */
 export function grantedCodes(
   db: ShopperDatabase | ShopperTransaction,
   orgId: string,
   userId: string,
   options: { deviceId?: string; roleId?: string; code?: string } = {},
 ) {
-  const conditions = [eq(member.orgId, orgId), eq(member.userId, userId)];
+  const conditions = [
+    eq(member.orgId, orgId),
+    eq(member.userId, userId),
+    isNull(member.deactivatedAt),
+  ];
   if (options.roleId) conditions.push(eq(member.roleId, options.roleId));
   if (options.code) conditions.push(eq(permission.code, options.code));
   if (options.deviceId) conditions.push(eq(permission.tillAllowed, true));
@@ -149,7 +156,8 @@ export async function assertCanGrantRole(
   const [target] = await tx
     .select({ protectedOwner: role.protectedOwner })
     .from(role)
-    .where(and(eq(role.orgId, context.orgId), eq(role.id, targetRoleId)));
+    .where(and(eq(role.orgId, context.orgId), eq(role.id, targetRoleId), isNull(role.archivedAt)));
+  if (!target) throw new AdministrationError("Role not found in this organization", 404);
   const [owner] = await tx
     .select({ id: member.id })
     .from(member)
@@ -163,7 +171,7 @@ export async function assertCanGrantRole(
     );
   if (grantRows.some(({ code }) => !actorCodes.has(code)))
     throw new AdministrationError("Cannot grant permissions you do not hold", 403);
-  if (target?.protectedOwner && !owner)
+  if (target.protectedOwner && !owner)
     throw new AdministrationError("Only an owner can grant the owner role", 403);
 }
 

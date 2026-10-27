@@ -18,6 +18,8 @@ export default defineConfig(({ command, isPreview }) => ({
           cloudflare({
             viteEnvironment: { name: "ssr" },
             remoteBindings: command === "serve" && !isPreview,
+            // Each dev Worker owns an inspector port (edge 9229, shop 9231); `vp run dev` starts them together.
+            inspectorPort: 9230,
             // Start reads this flag while prerendering the SPA shell; it never reaches a deploy.
             prerenderWorker: {
               // Assets belong to the default Worker only, and prerendering needs no credentials.
@@ -44,6 +46,9 @@ export default defineConfig(({ command, isPreview }) => ({
     babel({ presets: [reactCompilerPreset()] }),
   ],
   define: buildDefines,
+  // An e2e run builds into its own folder. Start's prerender reloads this file for `vite preview`,
+  // so an inline outDir would not reach it.
+  build: { outDir: process.env.SHOPPER_BUILD_OUT_DIR },
   server: { port: 5173 },
 }));
 

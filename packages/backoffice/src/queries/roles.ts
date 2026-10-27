@@ -2,6 +2,7 @@ import type { RoleView, RoleValues } from "./types";
 export type { RoleView, RoleValues } from "./types";
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { deletedRole } from "../schemas/roles/deleted";
 
 import { permissionListResponse, roleListItem, roleListResponse } from "@shopper/auth/schemas";
 import { apiFetch } from "../api/client";
@@ -47,6 +48,19 @@ export function useSaveRole(editing: RoleView | undefined, onSaved: () => void) 
         queryClient.invalidateQueries({ queryKey: ["users"] }),
         queryClient.invalidateQueries({ queryKey: ["session"] }),
       ]);
+    },
+  });
+}
+
+/** Deletes an unused role; the server refuses one a member, invitation or identity check still holds. */
+export function useDeleteRole(role: RoleView | undefined, onDeleted: () => void) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiFetch(`/roles/${role!.id}`, deletedRole, { method: "DELETE" }),
+    onSuccess: async () => {
+      toast.success("Role deleted");
+      onDeleted();
+      await queryClient.invalidateQueries({ queryKey: ["roles"] });
     },
   });
 }

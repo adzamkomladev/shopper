@@ -31,7 +31,16 @@ export async function validateRefundAuthority(
     "refund.request",
   );
   if (refund.approverId) {
-    if (!(await hasGrant(tx, ctx.orgId, refund.approverId, "refund.approve")))
+    if (
+      !(await hasGrant(
+        tx,
+        ctx.orgId,
+        refund.approverId,
+        "refund.approve",
+        occurredAt,
+        refund.branchId,
+      ))
+    )
       throw new SaleError("INVALID_SESSION", "Refund approver lacks refund.approve");
     ctx.approverId = refund.approverId;
   }

@@ -7,10 +7,12 @@ import type { TaxRange } from "../../schemas/tax/returns";
 
 /**
  * Tax by period, branch and class for an Accra date range: what sales charged, what credit notes gave back, and the
- * net of the two.
+ * net of the two. `scope` keeps to a branch-scoped caller's branches.
  */
-export async function taxSummary(db: Queryable, orgId: string, range: TaxRange) {
-  const lines = await foldTax(db, orgId, range);
+export async function taxSummary(db: Queryable, orgId: string, range: TaxRange, scope?: string[]) {
+  const lines = (await foldTax(db, orgId, range)).filter(
+    (line) => !scope || scope.includes(line.branchId),
+  );
   const keys = [
     ...new Set(lines.map((line) => `${line.period}|${line.branchId}|${line.taxClass}`)),
   ];

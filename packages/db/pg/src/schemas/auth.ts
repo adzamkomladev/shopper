@@ -1,14 +1,17 @@
 import {
   boolean,
   foreignKey,
+  index,
   integer,
   pgTable,
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-import { org, tenant } from "./base";
+import { sql } from "drizzle-orm";
+import { branch, org, tenant } from "./base";
 
 export const user = pgTable(
   "user",
@@ -29,8 +32,15 @@ export const role = pgTable(
     ...tenant(),
     name: text("name").notNull(),
     protectedOwner: boolean("protected_owner").notNull().default(false),
+    /** A deleted role: kept because sessions, KYC cases and invitations still name it, never granted again. */
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
   },
-  (t) => [unique().on(t.orgId, t.id), unique().on(t.orgId, t.name)],
+  (t) => [
+    unique().on(t.orgId, t.id),
+    uniqueIndex("role_org_id_name_active")
+      .on(t.orgId, t.name)
+      .where(sql`${t.archivedAt} IS NULL`),
+  ],
 );
 export const permission = pgTable(
   "permission",
@@ -109,12 +119,33 @@ export const member = pgTable(
     userId: uuid("user_id").notNull(),
     role: text("role").notNull().default("member"),
     roleId: uuid("role_id").notNull(),
+    /** Set while the member may not sign in or act anywhere; history and past sales stay theirs. */
+    deactivatedAt: timestamp("deactivated_at", { withTimezone: true }),
   },
   (t) => [
+    unique().on(t.orgId, t.id),
     unique().on(t.orgId, t.organizationId, t.userId),
+    index("member_org_id_deactivated_at_idx").on(t.orgId, t.deactivatedAt),
     foreignKey({ columns: [t.orgId, t.organizationId], foreignColumns: [org.orgId, org.id] }),
     foreignKey({ columns: [t.orgId, t.userId], foreignColumns: [user.orgId, user.id] }),
     foreignKey({ columns: [t.orgId, t.roleId], foreignColumns: [role.orgId, role.id] }),
+  ],
+);
+/** The branches a member works at. A member with no rows works at every branch. */
+export const memberBranch = pgTable(
+  "member_branch",
+  {
+    ...tenant(),
+    memberId: uuid("member_id").notNull(),
+    branchId: uuid("branch_id").notNull(),
+  },
+  (t) => [
+    unique().on(t.orgId, t.memberId, t.branchId),
+    foreignKey({
+      columns: [t.orgId, t.memberId],
+      foreignColumns: [member.orgId, member.id],
+    }).onDelete("cascade"),
+    foreignKey({ columns: [t.orgId, t.branchId], foreignColumns: [branch.orgId, branch.id] }),
   ],
 );
 export const invitation = pgTable(

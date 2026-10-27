@@ -26,6 +26,12 @@ Hono API (it strips `/api` except for `/api/auth`, which Better Auth serves unde
 edge dev Worker on :8787. `apps/edge/.dev.vars` holds the local secrets (`.dev.vars.example` is
 the template). Portal = TanStack Start in SPA mode: a prerendered static shell served by Workers Static Assets; one Worker runs only for `/api/*` (the shared Hono API through native Hyperdrive, D1, R2, Durable Object and Workflow bindings) and `/_serverFn/*` (host-only server functions). Backoffice data stays on the shared API so the box SPA and Electron reuse it.
 
+The remote `IMPORTS` and `RECEIPTS` bindings need Cloudflare credentials. Interactive shells use the
+`cf` login. A non-interactive shell (an agent, CI or a remote box) has no prompt, so export the `cf`
+OAuth token first: `cf auth whoami` checks it, and then
+`export CLOUDFLARE_API_TOKEN=$(jq -r .oauth_token ~/.config/cloudflare/config/default.json)`.
+Copy `apps/edge/.dev.vars` to `apps/portal/.dev.vars` too: the portal Worker reads the same secrets.
+
 On Windows: `.gitattributes` checks every text file out with LF (pnpm 12 cannot parse a CRLF
 `pnpm-lock.yaml`, and fixtures are byte-exact). If an older global pnpm on `PATH` makes `vp install`
 fail with `ERR_PNPM_BROKEN_LOCKFILE`, run `vp exec pnpm install --frozen-lockfile`. If a native
@@ -83,6 +89,40 @@ Not seeded: branch address, phone and TIN (no columns exist), user phone numbers
 `vp run e2e` uses its own ports so it never clashes with `vp run dev`: box 3101, portal 5183,
 till-ui 5184. It builds and starts the box with Bun, so Bun must be installed. See
 [testing.md](testing.md).
+
+## Sharing the dev containers between sessions
+
+Several sessions and test runs can share one `services:up` stack (Postgres 18, RustFS, Rivet). Each
+task works in its own database and buckets and drops them when it finishes; never add a container
+per task.
+
+- **Integration tests** need nothing: each file creates and drops a `shopper_test_<uuid>` database
+  (`tests/fixtures/postgres.ts`) and, when it stores objects, its own `shopper-test-<uuid>` buckets
+  (`fileBucket()` in `tests/support/assets/buckets.ts`; the helpers live in
+  `tooling/storage/buckets.ts`).
+- **e2e runs** take a run id: `SHOPPER_RUN_ID=<1-20 lowercase letters or digits> vp run e2e`.
+  `tooling/e2e/run.ts` derives everything from it:
+
+  | Resource        | Without a run id                   | With run id `abc`                                       |
+  | --------------- | ---------------------------------- | ------------------------------------------------------- |
+  | Database        | `shopper_e2e`                      | `shopper_abc_e2e`                                       |
+  | Imports bucket  | `shopper-imports-dev`              | `shopper-e2e-abc` (CORS for the run's portal origins)   |
+  | Ports           | 3101-3104, 5183-5187               | the same plus a fixed offset (10-900) hashed from `abc` |
+  | App builds      | `apps/<app>/dist`                  | `apps/<app>/.runs/abc`                                  |
+  | Hosts and state | `.shopper/...`, `tests/e2e/.auth/` | `.shopper/runs/abc/`                                    |
+  | Results         | `test-results/`                    | `test-results/abc/`                                     |
+
+  The run's teardown drops its database, bucket and folders; only `test-results/abc/` stays for
+  failure traces. Two ids land on the same ports about once in 90 tries; if a port is taken, pick
+  another id. `playwright.public.config.ts` and `playwright.connection.config.ts` honour the same id.
+
+- **Leftovers** from a crashed or interrupted run: `vp run services:clean -- --list` shows them and
+  `vp run services:clean` drops them. It removes `shopper_test_*` and `shopper_<id>_e2e` databases
+  and `shopper-test-*` and `shopper-e2e-*` buckets older than an hour (databases also need no open
+  connection), and run folders with no database left. It only touches a local server (or CI), and never the fixed
+  `shopper`, `shopper_e2e`, `shopper-imports-dev` or `shopper-receipts-dev`.
+
+Redis is not part of the stack; nothing uses it.
 
 Before you push, run: `vp check && vp run guard && vp test --run`.
 

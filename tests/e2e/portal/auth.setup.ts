@@ -12,6 +12,7 @@ import {
   type Shop,
   waitForAuthSlot,
 } from "../../support/e2e";
+import { e2eRun } from "../../../tooling/e2e/run";
 
 type Row = { id: string; name: string };
 
@@ -68,6 +69,6 @@ setup("sign in to E2E Mart through the portal and save the session", async ({ pa
   await signInWithKeyboard(page, MART);
   await expect(page.getByRole("heading", { name: "Products" })).toBeVisible();
   await page.context().storageState({
-    path: process.env.E2E_STORAGE_STATE ?? "tests/e2e/.auth/owner.json",
+    path: process.env.E2E_STORAGE_STATE ?? e2eRun.ownerState,
   });
 });

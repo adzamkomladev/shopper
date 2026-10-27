@@ -55,8 +55,12 @@ Each was broken on purpose, watched go red, then restored:
 - Portal: a range over a year trapped the page on an error (now pulled in to 366 days); hours that refunded more
   than they sold drew no bar (now drawn in the destructive colour).
 
-Rejected: a forward migration for `0030_reports` (unreleased, data disposable); filtering the store summary by
-branch reassignment mid-day (an unlikely edge, noted as a limit).
+- Whole branch: the portal Worker had no `STORE_DAY` binding, so a store added in the cloud portal waited for the
+  watchdog; it is now bound from the edge, pinned by `tooling/cloudflare/portal.test.ts`.
+
+Rejected: a forward migration and a backfill of `refund.points_value` for `0030_reports` (unreleased, data
+disposable); filtering the store summary by branch reassignment mid-day; cumulative cost allocation for
+fractional refunds split across days (an unlikely edge, see the limits).
 
 ## Known limits
 
@@ -65,4 +69,6 @@ branch reassignment mid-day (an unlikely edge, noted as a limit).
 - The box runs the store day on its in-process engine until Rivet (Day 36).
 - No report frames exist in Figma; the dashboard follows 339:9672 and the tables the list pattern.
 - No worker test drives the scheduled handler itself.
+- A fractional quantity refunded in parts on different days can leave a 1/10000 cedi cost residual, since each
+  day's refund cost is rounded on its own.
 - On a 390 px phone the journal's amount sits close to the table edge.

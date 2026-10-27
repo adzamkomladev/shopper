@@ -61,7 +61,9 @@ test("the portal binds the edge's Durable Objects and Workflows by Worker name",
   const bound = Object.values(worker().env) as Array<{ type: string; worker?: string }>;
   const ofType = (type: string) => bound.filter((binding) => binding.type === type);
   expect(ofType("durable-object")).toHaveLength(2);
-  expect(ofType("workflow")).toHaveLength(4);
+  expect(ofType("workflow")).toHaveLength(5);
+  // A store added in the portal starts its store day at once, not at the next watchdog.
+  expect(worker().env.STORE_DAY).toMatchObject({ type: "workflow", exportName: "StoreDayWorkflow" });
   for (const binding of [...ofType("durable-object"), ...ofType("workflow")])
     expect(binding.worker).toBe("shopper-edge-staging");
   expect(ofType("queue")).toHaveLength(1);

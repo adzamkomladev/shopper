@@ -4,7 +4,7 @@ import { v7 } from "uuid";
 import { hashPin } from "@shopper/auth/devices";
 import { refreshApprovers } from "@shopper/core/till";
 import { refund as serverRefund } from "@shopper/db-pg";
-import { refund as tillRefund } from "@shopper/db-sqlite";
+import { refund as tillRefund, tillState } from "@shopper/db-sqlite";
 import type { GoldenSale } from "../../../fixtures/sales/golden/types";
 import { goldenWorld } from "../../../support/sales/golden/setup";
 import { runGolden } from "../../../support/sales/golden/run";
@@ -49,6 +49,15 @@ async function start() {
   upstream = await startHostUpstream(api);
   register = await startRegister({ upstream: upstream.url });
   printer = await startPrinter();
+  // Only this process has the fixed clock. The host runs on the real one until its handshake learns the
+  // offset to the server, and until then the session issued at the fixed time reads as expired.
+  await expect
+    .poll(
+      async () =>
+        (await register!.fixture.database.read((tx) => tx.select().from(tillState)))[0]
+          ?.clockOffsetMs,
+    )
+    .toBeGreaterThan(0);
   await register.configure(registerSettings(printer.port));
 }
 const localRefunds = () => register!.fixture.database.read((tx) => tx.select().from(tillRefund));

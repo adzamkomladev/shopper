@@ -9,6 +9,7 @@ import {
   ManagementError,
   type ManagementKind,
 } from "@shopper/core/management";
+import { storeDayId } from "@shopper/core/reports";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import { branchScope } from "../middleware/require/branches";
 import { requirePermission } from "../middleware/require/permission";
@@ -76,6 +77,14 @@ export function managementRoutes(options: ApiOptions) {
               },
             );
             if (action === "DELETE") return c.body(null, 204);
+            if (kind === "store" && action === "POST") {
+              const day = new Date().toISOString().slice(0, 10);
+              await options.storeDays?.start(storeDayId(principal.orgId, result.id, day), {
+                orgId: principal.orgId,
+                storeId: result.id,
+                day,
+              });
+            }
             return c.json(result.after, action === "POST" ? 201 : 200);
           } catch (error) {
             if (v.isValiError(error)) return c.json({ error: "Invalid request data" }, 400);

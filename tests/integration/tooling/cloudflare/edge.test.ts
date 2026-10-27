@@ -46,6 +46,7 @@ test("Durable Objects, Workflows and every resource binding are the staging ones
     ["StatementWorkflow", "shopper-statements-staging"],
     ["FiscalArchiveWorkflow", "shopper-fiscal-archive-staging"],
     ["AuditAnchorWorkflow", "shopper-audit-anchor-staging"],
+    ["StoreDayWorkflow", "shopper-store-day-staging"],
   ]) {
     expect(exports[exportName]).toMatchObject({ type: "workflow", name });
   }
@@ -64,6 +65,11 @@ test("Durable Objects, Workflows and every resource binding are the staging ones
     type: "workflow",
     name: "shopper-audit-anchor-staging",
     exportName: "AuditAnchorWorkflow",
+  });
+  expect(bound.STORE_DAY).toMatchObject({
+    type: "workflow",
+    name: "shopper-store-day-staging",
+    exportName: "StoreDayWorkflow",
   });
   expect(bound.CACHE_DB).toMatchObject({ type: "d1", id: "44230678-333c-446c-af51-22fe0c8eb20e" });
   expect(bound.HYPERDRIVE).toMatchObject({

@@ -47,4 +47,5 @@ export interface CloudflareRuntimeEnvironment extends AuthEnvironment {
   ACCOUNT_FLOWS?: Parameters<typeof cloudflareLoopLauncher>[0];
   STATEMENT_FLOWS?: Parameters<typeof cloudflareLoopLauncher>[0];
   FISCAL_LANE?: Parameters<typeof cloudflareLane>[0];
+  STORE_DAY?: Parameters<typeof cloudflareLauncher>[0];
 }

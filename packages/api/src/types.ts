@@ -52,6 +52,8 @@ export interface ApiOptions {
   onboarding?: ReturnType<typeof createOnboarding>;
   invitations?: ReturnType<typeof createInvitations>;
   kyc?: WorkflowLauncher;
+  /** Starts a store's day; a new store's chain starts today rather than at the night's watchdog. */
+  storeDays?: WorkflowLauncher;
 }
 
 export interface RuntimeOptions {
@@ -74,6 +76,7 @@ export interface RuntimeOptions {
   priceChange?: WorkflowLauncher;
   authFlows?: WorkflowLauncher;
   kyc?: WorkflowLauncher;
+  storeDays?: WorkflowLauncher;
   linkSecret?: string;
   publicOnboarding?: boolean;
 }

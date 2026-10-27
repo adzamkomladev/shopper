@@ -96,6 +96,7 @@ export default defineConfig({
       "refunds.test.ts",
       "shifts.test.ts",
       "lane.test.ts",
+      "reports/day.test.ts",
     ],
   },
 });

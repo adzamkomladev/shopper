@@ -7,7 +7,9 @@ import { v7 } from "uuid";
 import { auditAnchor, auditLog, deviceAudit, member, role, user } from "@shopper/db-pg";
 import { tillAudit } from "@shopper/db-sqlite";
 import { boxAuditAnchors, boxWatchdog } from "@shopper/adapters-box";
-import { auditAnchorId, deliverAuditAnchor, runWatchdog, verifyStream } from "@shopper/core/audit";
+import { auditAnchorId, deliverAuditAnchor, verifyStream } from "@shopper/core/audit";
+import { runWatchdog } from "@shopper/core/reports";
+import { recordingLauncher } from "../../support/reports/day";
 import { goldenWorld } from "../../support/sales/golden/setup";
 import { ids } from "../../support/till/sales";
 import { api, deviceId } from "../../support/till/server";
@@ -18,6 +20,8 @@ import { appVersion } from "../../support/till/server/data";
 
 let world: Awaited<ReturnType<typeof goldenWorld>>;
 const at = new Date("2026-10-25T23:59:00.000Z");
+// Store days are the watchdog's other chain (reports/day/watchdog.test.ts); here they are only recorded.
+const storeDays = recordingLauncher().launcher;
 
 beforeAll(async () => {
   world = await goldenWorld();
@@ -47,7 +51,10 @@ afterAll(async () => {
 test("the watchdog anchors every stream once a day and queues one email per owner", async () => {
   const before = await heads();
   const anchors = boxAuditAnchors({ database: world.db, queue: notifications });
-  await runWatchdog({ withDatabase: (run) => run(world.db), anchors: anchors.launcher }, at);
+  await runWatchdog(
+    { withDatabase: (run) => run(world.db), anchors: anchors.launcher, storeDays },
+    at,
+  );
   await anchors.idle();
   const published = await world.db
     .select()
@@ -73,7 +80,10 @@ test("the watchdog anchors every stream once a day and queues one email per owne
   );
 
   // The same day again, from the cron or a restarted box: nothing more is published, audited or sent.
-  await runWatchdog({ withDatabase: (run) => run(world.db), anchors: anchors.launcher }, at);
+  await runWatchdog(
+    { withDatabase: (run) => run(world.db), anchors: anchors.launcher, storeDays },
+    at,
+  );
   const again = boxAuditAnchors({ database: world.db, queue: notifications });
   await again.launcher.start(auditAnchorId(ids.org, "2026-10-25"), {
     orgId: ids.org,

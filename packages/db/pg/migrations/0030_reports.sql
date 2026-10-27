@@ -143,7 +143,7 @@ EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL;
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
-  ALTER TABLE "store_day" ADD CONSTRAINT "store_day_org_id_store_id_store_org_id_id_fk" FOREIGN KEY ("org_id","store_id") REFERENCES "public"."store"("org_id","id") ON DELETE no action ON UPDATE no action;
+  ALTER TABLE "store_day" ADD CONSTRAINT "store_day_org_id_store_id_store_org_id_id_fk" FOREIGN KEY ("org_id","store_id") REFERENCES "public"."store"("org_id","id") ON DELETE cascade ON UPDATE no action;
 EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL;
 END $$;
 --> statement-breakpoint

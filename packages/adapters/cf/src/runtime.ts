@@ -70,6 +70,7 @@ export async function cloudflareRuntime(
       env.KYC_FLOWS && env.ARKESEL_API_KEY && env.ARKESEL_SENDER
         ? cloudflareLauncher(env.KYC_FLOWS)
         : undefined,
+    storeDays: env.STORE_DAY ? cloudflareLauncher(env.STORE_DAY) : undefined,
     linkSecret: env.SHOPPER_LINK_SECRET,
     publicOnboarding: true,
   }).catch(async (error: unknown) => {

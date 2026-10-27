@@ -1,5 +1,5 @@
 {
-  "id": "dcd78669-f303-4a98-b367-ae82e7ef69c4",
+  "id": "43624fa0-6e09-4c30-90a9-d777bc357468",
   "prevId": "2979fde1-10b8-4224-ab58-6cc152553b94",
   "version": "7",
   "dialect": "postgresql",
@@ -10672,7 +10672,7 @@
           "tableTo": "store",
           "columnsFrom": ["org_id", "store_id"],
           "columnsTo": ["org_id", "id"],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },

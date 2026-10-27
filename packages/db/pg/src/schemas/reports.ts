@@ -41,7 +41,10 @@ export const storeDay = pgTable(
     unique().on(t.orgId, t.id),
     unique().on(t.orgId, t.storeId, t.day),
     index("store_day_rolled").on(t.orgId, t.day),
-    foreignKey({ columns: [t.orgId, t.storeId], foreignColumns: [store.orgId, store.id] }),
+    // A store that never traded can still be deleted; one with sales is held by them.
+    foreignKey({ columns: [t.orgId, t.storeId], foreignColumns: [store.orgId, store.id] }).onDelete(
+      "cascade",
+    ),
     check("store_day_status", sql`${t.status} IN ('pending', 'open', 'closed')`),
   ],
 );

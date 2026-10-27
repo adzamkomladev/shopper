@@ -4,7 +4,9 @@ import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { eq } from "drizzle-orm";
 import { member, memberBranch } from "@shopper/db-pg";
 import { ids } from "../../fixtures/sales/golden";
-import { get, portalMember } from "../../support/api/portal";
+import { boxCache } from "@shopper/adapters-box";
+import { serveRuntime } from "@shopper/api/runtime";
+import { baseURL, get, portalMember, secret } from "../../support/api/portal";
 import { copied, figure, reportWorld } from "../../support/reports/world";
 
 let w: Awaited<ReturnType<typeof reportWorld>>;
@@ -89,4 +91,21 @@ test("bad queries are 400s: reversed or over-long ranges, unknown groupings, mal
   expect((await as(w.owner.cookie, "/reports/dashboard?day=yesterday")).status).toBe(400);
   expect((await as(w.owner.cookie, "/reports/dashboard?day=2026-02-29")).status).toBe(400);
   expect((await as(w.owner.cookie, "/reports/stock/dead?on=2026-04-31")).status).toBe(400);
+});
+
+test("the shared runtime (Worker and box) serves /reports behind the session, not the public API", async () => {
+  const cache = boxCache(":memory:");
+  try {
+    const options = { database: w.world.db, cache: cache.cache, secret, baseURL, orgId: ids.org };
+    const send = (path: string, headers: Record<string, string>) =>
+      serveRuntime(new Request(`${baseURL}${path}`, { headers }), options);
+    expect((await send(`/reports/sales?${range}`, {})).status).toBe(401);
+    const signedIn = await send(`/reports/sales?${range}`, { cookie: w.owner.cookie! });
+    expect(signedIn.status).toBe(200);
+    expect((await signedIn.json()).total.transactions).toBe(7);
+    const csv = await send(`/reports/journal/export.csv?${range}`, { cookie: w.owner.cookie! });
+    expect(csv.headers.get("content-type")).toContain("text/csv");
+  } finally {
+    cache.close();
+  }
 });

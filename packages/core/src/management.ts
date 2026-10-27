@@ -80,7 +80,21 @@ export const mutateManagement = defineCommand({
         ...(data.cashRoundingStep !== undefined
           ? { cashRoundingStep: money(data.cashRoundingStep) }
           : {}),
+        ...(data.opensAt !== undefined ? { opensAt: data.opensAt } : {}),
+        ...(data.closesAt !== undefined ? { closesAt: data.closesAt } : {}),
       };
+      // The hours as they will stand (the database keeps seconds): closing must come after opening.
+      const opens = (
+        data.opensAt ??
+        (before as typeof store.$inferSelect | undefined)?.opensAt ??
+        "07:00"
+      ).slice(0, 5);
+      const closes = (
+        data.closesAt ??
+        (before as typeof store.$inferSelect | undefined)?.closesAt ??
+        "21:00"
+      ).slice(0, 5);
+      if (closes <= opens) throw new ManagementError("The store must close after it opens", 400);
       [after] =
         action === "create"
           ? await tx

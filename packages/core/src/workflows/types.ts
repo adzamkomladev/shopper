@@ -1,5 +1,5 @@
 import { type ShopperDatabase } from "@shopper/db-pg";
-import { type Blobs, type Queue, type Realtime } from "@shopper/ports";
+import { type Blobs, type Queue, type Realtime, type WorkflowLauncher } from "@shopper/ports";
 
 export interface PriceChangeDeps {
   // Each step opens its own connection: workflows outlive the request that started them.
@@ -35,4 +35,13 @@ export interface AuditAnchorDeps {
   appVersion: string;
   /** Carries the owners' anchor emails to the notification consumer. */
   queue?: Queue;
+}
+
+export interface StoreDayDeps {
+  withDatabase<T>(run: (db: ShopperDatabase) => Promise<T>): Promise<T>;
+  appVersion: string;
+  /** Carries the owners' reminder and summary emails to the notification consumer. */
+  queue?: Queue;
+  /** Starts the store's next day, so the chain goes on by itself. */
+  storeDays: WorkflowLauncher;
 }

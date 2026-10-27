@@ -9,4 +9,5 @@ export {
   StatementWorkflow,
   FiscalArchiveWorkflow,
   AuditAnchorWorkflow,
+  StoreDayWorkflow,
 } from "@shopper/adapters-cf/workflows";

@@ -6,6 +6,7 @@ import { ShortcutRoot } from "@shopper/ui/hooks/shortcuts";
 import { focusIfIdle } from "../../lib/focus";
 import { sessionQuery } from "../../queries/session/session";
 import { currentShop, useShops } from "../../stores/shops";
+import { ReadOnlyBanner } from "../../components/shell/billing/banner";
 import { OfflineBanner } from "../../components/shell/offline/banner";
 import { TopNav } from "../../components/shell/top/nav";
 
@@ -18,6 +19,7 @@ export function ShellScreen() {
       <AppBackdrop fill className="flex flex-col gap-8 px-5 py-6 md:px-13 md:py-10">
         <OfflineBanner />
         <TopNav shops={shops} currentId={currentId} user={session.user} />
+        <ReadOnlyBanner />
         <main className="-mx-1 flex min-h-0 flex-1 flex-col overflow-y-auto px-1">
           <Outlet />
         </main>

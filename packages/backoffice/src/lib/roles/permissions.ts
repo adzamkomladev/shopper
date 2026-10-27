@@ -1,5 +1,6 @@
+import type { PermissionNeed } from "./types";
 import type { PermissionCode } from "./types";
-export type { PermissionCode } from "./types";
+export type { PermissionCode, PermissionNeed } from "./types";
 
 /** What each permission lets a member do, in the words an owner would use. */
 export const PERMISSION_LABELS: Record<PermissionCode, string> = {
@@ -88,3 +89,6 @@ export const PERMISSION_GROUPS: readonly { name: string; codes: readonly Permiss
     ],
   },
 ];
+
+export const holds = (granted: readonly string[] | undefined, need: PermissionNeed) =>
+  [need].flat().some((code) => granted?.includes(code));

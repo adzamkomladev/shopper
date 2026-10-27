@@ -90,6 +90,16 @@ Not seeded: branch address, phone and TIN (no columns exist), user phone numbers
 till-ui 5184. It builds and starts the box with Bun, so Bun must be installed. See
 [testing.md](testing.md).
 
+To run one folder of specs, call Playwright directly: `pnpm exec playwright test --project=portal tests/e2e/portal/payments`.
+`vp run e2e -- <path>` runs the whole suite. Hubtel has a fake like Paystack's (`tooling/hubtel/server.ts`).
+
+### CI layout
+
+`.github/workflows/ci.yml` runs every job on its own runner: `check`, `guard`, `typecheck` and `build`, integration in
+four shards (`vp test --run --shard=<n>/4`, each with Postgres and RustFS), e2e in three Playwright shards each
+uploading its own report, and the public e2e config. The final `ci` job needs all of them; branch protection points
+at it alone. A newer push to the same ref cancels the running workflow.
+
 ## Sharing the dev containers between sessions
 
 Several sessions and test runs can share one `services:up` stack (Postgres 18, RustFS, Rivet). Each

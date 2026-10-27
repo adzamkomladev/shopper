@@ -88,6 +88,7 @@ export const saleLine = pgTable(
   },
   (t) => [
     unique().on(t.orgId, t.id),
+    index("sale_line_sale").on(t.orgId, t.saleId),
     foreignKey({ columns: [t.orgId, t.saleId], foreignColumns: [sale.orgId, sale.id] }),
     foreignKey({ columns: [t.orgId, t.productId], foreignColumns: [product.orgId, product.id] }),
     foreignKey({ columns: [t.orgId, t.priceId], foreignColumns: [price.orgId, price.id] }),

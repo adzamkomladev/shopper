@@ -159,6 +159,8 @@ CREATE INDEX IF NOT EXISTS "sale_occurred" ON "sale" USING btree ("org_id","occu
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "refund_occurred" ON "refund" USING btree ("org_id","occurred_at");
 --> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "sale_line_sale" ON "sale_line" USING btree ("org_id","sale_id");
+--> statement-breakpoint
 DO $$ BEGIN
   ALTER TABLE "store" ADD CONSTRAINT "store_hours" CHECK ("store"."closes_at" > "store"."opens_at");
 EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL;

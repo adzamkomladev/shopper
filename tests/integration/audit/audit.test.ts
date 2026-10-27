@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import { v7 } from "uuid";
 import * as schema from "@shopper/db-pg";
 import { defineCommand, verifyChain } from "@shopper/audit";
@@ -27,10 +27,12 @@ afterAll(async () => {
 const create = defineCommand({
   name: "store.create",
   async run(tx, ctx, input: { name: string; pin?: string; metadata?: Record<string, unknown> }) {
-    const [row] = await tx
-      .insert(schema.store)
-      .values({ orgId: ctx.orgId, name: input.name })
-      .returning();
+    // Only the columns every migration has had: the forward-migration test runs this on a database at 0002.
+    const [row] = (
+      await tx.execute<{ id: string; name: string }>(
+        sql`INSERT INTO store (org_id, name) VALUES (${ctx.orgId}, ${input.name}) RETURNING id, name`,
+      )
+    ).rows;
     return { id: row!.id, name: row!.name };
   },
   audit: (input, output) => ({ ...input, storeId: output.id }),

@@ -4668,7 +4668,29 @@
           "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "sale_line_sale": {
+          "name": "sale_line_sale",
+          "columns": [
+            {
+              "expression": "org_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "sale_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
         "sale_line_org_id_org_id_fk": {
           "name": "sale_line_org_id_org_id_fk",

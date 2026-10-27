@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { LogOutIcon } from "lucide-react";
 import { buildInfo } from "@shopper/config";
 import { Avatar, AvatarFallback } from "@shopper/ui/components/avatar";
@@ -10,12 +11,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@shopper/ui/components/dropdown-menu";
+import { useNavItems } from "../../../hooks/shell/nav/items";
 import { useSignOut } from "../../../queries/shell";
 
 type Props = { user: { name: string; email: string } };
 
 export function UserMenu({ user }: Props) {
   const signOut = useSignOut();
+  const account = useNavItems().filter((item) => item.account);
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
@@ -31,6 +34,14 @@ export function UserMenu({ user }: Props) {
           <span className="truncate text-muted-foreground">{user.email}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {account.map(({ to, label, icon: Icon }) => (
+          <DropdownMenuItem key={to} asChild>
+            <Link to={to}>
+              <Icon aria-hidden />
+              {label}
+            </Link>
+          </DropdownMenuItem>
+        ))}
         <DropdownMenuItem onSelect={() => signOut.mutate()}>
           <LogOutIcon aria-hidden />
           Sign out

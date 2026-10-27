@@ -96,6 +96,8 @@ test.describe("as the owner of E2E Mart", () => {
     await page.goto(`/stock/products/${rice.id}?branch=${branch.id}`);
     const region = page.getByRole("region", { name: "Stock movements" });
     await expect(region).toBeVisible();
+    // The nav wraps on a phone, so the table may start below the fold: the check is that it fits across.
+    await region.scrollIntoViewIfNeeded();
     await expect(region.getByRole("columnheader", { name: "Balance" })).toBeInViewport({
       ratio: 1,
     });

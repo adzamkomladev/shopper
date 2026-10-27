@@ -34,7 +34,13 @@ test("a read-only org sees the banner everywhere and pays the overdue invoice fr
 
 test("an org with no invoices yet says so", async ({ page }, info) => {
   await replay(page, "/billing", { subscription: null, invoices: [] });
-  await page.goto("/billing");
+  await page.goto("/products");
+  // Billing is an account page: it sits in the user menu, not the bar.
+  await expect(
+    page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Billing" }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "E2E Owner" }).click();
+  await page.getByRole("menuitem", { name: "Billing" }).click();
   await expect(heading(page, "Billing")).toBeVisible();
   await expect(page.getByRole("main")).toContainText("No invoices yet");
   await shoot(page, info, "billing-empty", {

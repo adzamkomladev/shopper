@@ -29,6 +29,8 @@ type NavItem = {
   permission?: PermissionNeed;
   /** Other pages of the same area: the link stays highlighted on them. */
   also?: readonly string[];
+  /** An account page: listed in the user menu and the palette, not the bar. */
+  account?: true;
 };
 
 export const NAV_ITEMS: readonly NavItem[] = [
@@ -77,5 +79,11 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { to: "/devices", label: "Devices", icon: MonitorSmartphoneIcon, permission: "device.read" },
   { to: "/shifts", label: "Shifts", icon: ClockIcon, permission: "shift.read" },
   { to: "/audit", label: "Audit", icon: ScrollTextIcon, permission: "audit.read" },
-  { to: "/billing", label: "Billing", icon: CreditCardIcon, permission: "billing.manage" },
+  {
+    to: "/billing",
+    label: "Billing",
+    icon: CreditCardIcon,
+    permission: "billing.manage",
+    account: true,
+  },
 ];

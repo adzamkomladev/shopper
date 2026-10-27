@@ -20,7 +20,11 @@ export function ShellScreen() {
         <OfflineBanner />
         <TopNav shops={shops} currentId={currentId} user={session.user} />
         <ReadOnlyBanner />
-        <main className="-mx-1 flex min-h-0 flex-1 flex-col overflow-y-auto px-1">
+        {/* The page scrolls here, not the window: focusable, so the keyboard can scroll a page with no controls yet. */}
+        <main
+          tabIndex={0}
+          className="-mx-1 flex min-h-0 flex-1 flex-col overflow-y-auto rounded-md px-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
           <Outlet />
         </main>
       </AppBackdrop>

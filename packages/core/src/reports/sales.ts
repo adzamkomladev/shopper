@@ -5,18 +5,21 @@ import type { ShopperDatabase, ShopperTransaction } from "@shopper/db-pg";
 import { salesQuery } from "../schemas/reports/query";
 import { datesBetween } from "./days";
 import { inSnapshot, reportSource } from "./read";
-import { amount, count, grouped, namesOf, perSale, reportRange, shareBps, sums } from "./sums";
+import {
+  amount,
+  count,
+  grouped,
+  namesOf,
+  perSale,
+  reportRange,
+  shareBps,
+  sums,
+  tenderLabels,
+} from "./sums";
 import type { ReportRange } from "./types";
 
 const metrics = ["sales", "items", "gross", "discount", "tax", "net", "refunds", "refund_gross"];
 const keys = { day: sql`day`, hour: sql`hour`, branch: sql`branch_id`, cashier: sql`cashier_id` };
-const tenderLabels: Record<string, string> = {
-  cash: "Cash",
-  momo: "MoMo",
-  card: "Card",
-  credit: "Customer credit",
-  loyalty: "Loyalty points",
-};
 
 /**
  * Sales by day (every day of the range, empty ones included), Accra hour, branch, cashier or tender, with a total.

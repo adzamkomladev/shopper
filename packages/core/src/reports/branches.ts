@@ -54,14 +54,21 @@ export async function branchComparison(
       };
     });
     const whole = lines.reduce((sum, line) => add(sum, line.netSales), money(0));
+    const gross = lines.reduce((sum, line) => add(sum, line.gross), money(0));
+    const transactions = lines.reduce((sum, line) => sum + line.transactions, 0);
     return {
       rows: lines
         .map((line) => ({ ...line, shareBps: shareBps(line.netSales, whole) }))
         .sort((a, b) => b.netSales - a.netSales || a.name.localeCompare(b.name)),
       total: {
-        transactions: lines.reduce((sum, line) => sum + line.transactions, 0),
+        transactions,
+        gross,
+        refunds: lines.reduce((sum, line) => sum + line.refunds, 0),
+        refundGross: lines.reduce((sum, line) => add(sum, line.refundGross), money(0)),
         netSales: whole,
+        basket: perSale(gross, transactions),
         margin: lines.reduce((sum, line) => add(sum, line.margin), money(0)),
+        shareBps: whole === 0 ? 0 : 10_000,
       },
     };
   });

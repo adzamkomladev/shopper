@@ -1,5 +1,5 @@
 {
-  "id": "ac9549cb-b645-4559-93a3-ee0448c3b4ec",
+  "id": "dcd78669-f303-4a98-b367-ae82e7ef69c4",
   "prevId": "2979fde1-10b8-4224-ab58-6cc152553b94",
   "version": "7",
   "dialect": "postgresql",
@@ -10269,6 +10269,30 @@
           "primaryKey": false,
           "notNull": true
         },
+        "vat": {
+          "name": "vat",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nhil": {
+          "name": "nhil",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "getfund": {
+          "name": "getfund",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "covid": {
+          "name": "covid",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
         "net": {
           "name": "net",
           "type": "bigint",
@@ -10299,8 +10323,38 @@
           "primaryKey": false,
           "notNull": true
         },
+        "refund_vat": {
+          "name": "refund_vat",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refund_nhil": {
+          "name": "refund_nhil",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refund_getfund": {
+          "name": "refund_getfund",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refund_covid": {
+          "name": "refund_covid",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
         "refund_net": {
           "name": "refund_net",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refund_rounding": {
+          "name": "refund_rounding",
           "type": "bigint",
           "primaryKey": false,
           "notNull": true

@@ -1,8 +1,11 @@
 export { rollStoreDays, touchStoreDay } from "./rollup";
 export { inSnapshot, reportSource } from "./read";
-export type { ReportRange, StoreDays } from "./types";
+export type { ReportCell, ReportRange, ReportTable, StoreDays } from "./types";
 export { salesReport } from "./sales";
 export { productReport } from "./products";
 export { dashboard } from "./dashboard";
 export { branchComparison } from "./branches";
 export { deadStock } from "./dead";
+export { journalReport } from "./journal";
+export { reportTables } from "./export/tables";
+export { reportCsv, reportWorkbook } from "./export/files";

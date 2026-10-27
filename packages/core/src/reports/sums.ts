@@ -4,6 +4,15 @@ import { branch, product, user } from "@shopper/db-pg";
 import type { Queryable } from "../types";
 import type { ReportRange } from "./types";
 
+/** How each tender kind reads on a report, in the order reports list them. */
+export const tenderLabels: Record<string, string> = {
+  cash: "Cash",
+  momo: "MoMo",
+  card: "Card",
+  credit: "Customer credit",
+  loyalty: "Loyalty points",
+};
+
 /** `sum(column)::text AS column` for each column: bigint sums come back exact, as text. */
 export const sums = (columns: readonly string[]) =>
   sql.raw(columns.map((column) => `coalesce(sum(${column}), 0)::text AS ${column}`).join(", "));

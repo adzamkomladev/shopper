@@ -15,3 +15,15 @@ export interface ReportRange {
   to: string;
   branchIds?: string[];
 }
+
+/** How an export column reads: text, money (1 GHS = 10000), a count, thousandths of a unit, or basis points. */
+export type ReportCell =
+  | { kind: "text"; value: string }
+  | { kind: "money" | "count" | "quantity" | "bps"; value: number | null };
+
+/** A report laid out for export: its file name, its column headers, then the rows (data rows, then any total). */
+export interface ReportTable {
+  name: string;
+  headers: string[];
+  rows: ReportCell[][];
+}

@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { paystackRefunds } from "./refunds";
 
 /** Paystack's documented sandbox OTP; the fake accepts nothing else. */
 export const FAKE_OTP = "123456";
@@ -17,6 +18,11 @@ export async function startPaystackFake({ port = 0, secretKey = "sk_test_fake" }
   const charges = new Map<string, Charge>();
   const otpOutcomes = new Map<string, "success" | "pending">();
   const requests: Array<{ path: string; body: unknown }> = [];
+  const refunds = paystackRefunds(
+    reply,
+    (reference) => charges.get(reference),
+    (body) => signWebhook(secretKey, body),
+  );
 
   const server = createServer(async (request, response) => {
     const url = new URL(request.url ?? "/", "http://localhost");
@@ -41,6 +47,7 @@ export async function startPaystackFake({ port = 0, secretKey = "sk_test_fake" }
             (entry.body as { reference?: string })?.reference === countMatch[1],
         ).length,
       });
+    if (refunds.handle(request.method ?? "GET", url.pathname, body, response)) return;
     const verifyMatch = /^\/transaction\/verify\/([^/]+)$/.exec(url.pathname);
     if (request.method === "GET" && verifyMatch) return verify(response, verifyMatch[1]!);
     reply(response, 404, { status: false, message: "Not found" });
@@ -150,6 +157,7 @@ export async function startPaystackFake({ port = 0, secretKey = "sk_test_fake" }
     secretKey,
     baseUrl: `http://127.0.0.1:${address.port}`,
     requests,
+    ...refunds.controls,
     /** Sets how a phone number behaves when charged. */
     behave(
       phone: string,
@@ -158,6 +166,15 @@ export async function startPaystackFake({ port = 0, secretKey = "sk_test_fake" }
     ) {
       behaviours.set(phone, behaviour);
       otpOutcomes.set(phone, otpOutcome);
+    },
+    /** Registers a charge collected elsewhere (a fixture's confirmed payment) as settled. */
+    knownCharge(reference: string, amount: number) {
+      charges.set(reference, {
+        phone: "0241234567",
+        amount,
+        outcome: "success",
+        behaviour: "success",
+      });
     },
     /** Resolves a charge that was left pending, so a later verify agrees with the webhook. */
     settle(reference: string, outcome: "success" | "failed") {

@@ -2,13 +2,20 @@ import { and, eq } from "drizzle-orm";
 import { v7 } from "uuid";
 import * as v from "valibot";
 import { defineCommand, type CommandContext } from "@shopper/audit";
-import { branch, payment, workflowRun, type ShopperDatabase } from "@shopper/db-pg";
+import {
+  branch,
+  payment,
+  workflowRun,
+  type ShopperDatabase,
+  type ShopperTransaction,
+} from "@shopper/db-pg";
 import { money } from "@shopper/money";
 import type { WorkflowCheckpoint } from "@shopper/ports";
 import { ManagementError } from "../management";
 import { allocateStoreSequence } from "../sequence";
 import { momoPhoneFingerprint } from "./phone";
 import { momoInput } from "./schemas/momo";
+import type { MomoUpdate } from "./types";
 
 export async function startMomo(db: ShopperDatabase, context: CommandContext, raw: unknown) {
   const data = v.parse(momoInput, raw);
@@ -78,61 +85,59 @@ const createPayment = defineCommand({
 
 export const updateMomo = defineCommand({
   name: "payment.momo.updated",
-  async run(
-    tx,
-    context,
-    input: {
-      reference: string;
-      status: typeof payment.$inferSelect.status;
-      providerReference?: string;
-      message?: string;
-    },
-  ) {
-    const where = and(eq(payment.orgId, context.orgId), eq(payment.reference, input.reference));
-    const [current] = await tx.select().from(payment).where(where);
-    if (!current) throw new Error("Payment not found");
-    // Success is irreversible; a delayed provider reply must never erase collected money.
-    let saved = current;
-    if (
-      current.status !== "confirmed" &&
-      (!["failed", "expired"].includes(current.status) || input.status === "confirmed")
-    ) {
-      const [row] = await tx
-        .update(payment)
-        .set({
-          status: input.status,
-          providerReference: input.providerReference ?? current.providerReference,
-          failureReason: ["failed", "expired", "otp"].includes(input.status)
-            ? (input.message ?? null)
-            : null,
-          updatedAt: new Date(),
-        })
-        .where(where)
-        .returning();
-      // The tenant command lock preserves the payment selected above.
-      saved = row!;
-    }
-    const [store] = await tx
-      .select({ id: branch.storeId })
-      .from(branch)
-      .where(and(eq(branch.orgId, context.orgId), eq(branch.id, saved.branchId)));
-    if (!store) throw new Error("Payment branch not found");
-    const view = paymentView(saved);
-    return {
-      ...view,
-      storeId: store.id,
-      envelope: {
-        id: v7(),
-        orgId: context.orgId,
-        v: 1,
-        sequence: (await allocateStoreSequence(tx, context.orgId, store.id)).toString(),
-        type: "payment.updated",
-        payload: view,
-      },
-    };
-  },
+  run: changeMomo,
   audit: (input, output) => ({ reference: input.reference, status: output.status }),
 });
+
+/** Moves a payment to `input.status` unless it is already settled, and builds the till's `payment.updated` push. */
+export async function changeMomo(
+  tx: ShopperTransaction,
+  context: CommandContext,
+  input: MomoUpdate,
+) {
+  const where = and(eq(payment.orgId, context.orgId), eq(payment.reference, input.reference));
+  const [current] = await tx.select().from(payment).where(where);
+  if (!current) throw new Error("Payment not found");
+  // Success is irreversible; a delayed provider reply must never erase collected money.
+  let saved = current;
+  if (
+    current.status !== "confirmed" &&
+    (!["failed", "expired"].includes(current.status) || input.status === "confirmed")
+  ) {
+    const [row] = await tx
+      .update(payment)
+      .set({
+        status: input.status,
+        providerReference: input.providerReference ?? current.providerReference,
+        failureReason: ["failed", "expired", "otp"].includes(input.status)
+          ? (input.message ?? null)
+          : null,
+        updatedAt: new Date(),
+      })
+      .where(where)
+      .returning();
+    // The tenant command lock preserves the payment selected above.
+    saved = row!;
+  }
+  const [store] = await tx
+    .select({ id: branch.storeId })
+    .from(branch)
+    .where(and(eq(branch.orgId, context.orgId), eq(branch.id, saved.branchId)));
+  if (!store) throw new Error("Payment branch not found");
+  const view = paymentView(saved);
+  return {
+    ...view,
+    storeId: store.id,
+    envelope: {
+      id: v7(),
+      orgId: context.orgId,
+      v: 1,
+      sequence: (await allocateStoreSequence(tx, context.orgId, store.id)).toString(),
+      type: "payment.updated",
+      payload: view,
+    },
+  };
+}
 
 export function paymentView(row: typeof payment.$inferSelect) {
   return {

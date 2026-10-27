@@ -7,14 +7,15 @@ import { payment, saleTender, user } from "@shopper/db-pg";
 import { uuidV7Schema } from "@shopper/ports";
 import { money, toPesewas } from "@shopper/money";
 import {
-  momoCheckpoint,
+  applyMomoEvent,
+  applyRefundEvent,
+  findOpenRefund,
   momoInput,
   momoOtp,
   paymentView,
   startMomo,
-  updateMomo,
 } from "@shopper/core/payments";
-import { verifyWebhook } from "@shopper/core/payments/paystack";
+import { verifyWebhook, type PaystackWebhook } from "@shopper/core/payments/paystack";
 import { ManagementError } from "@shopper/core/management";
 import type { ApiOptions } from "../types";
 
@@ -39,23 +40,37 @@ export function paymentRoutes(options: ApiOptions) {
     if (!event) return c.json({ error: "Invalid Paystack signature" }, 401);
     if (!options.database || !options.momoPayment)
       return c.json({ error: "Payments unavailable" }, 503);
-    if (!v.safeParse(uuidV7Schema, event.data.reference).success) return c.json({ received: true });
+    if (event.event === "refund.processed" || event.event === "refund.failed") {
+      await refundWebhook(options, options.database, event);
+      return c.json({ received: true });
+    }
+    const charge =
+      event.event === "charge.success" || event.event === "charge.failed" ? event : undefined;
+    if (!charge) return c.json({ received: true });
+    if (!v.safeParse(uuidV7Schema, charge.data.reference).success)
+      return c.json({ received: true });
     const [row] = await options.database
       .select()
       .from(payment)
       .where(
-        and(eq(payment.id, event.data.reference), eq(payment.reference, event.data.reference)),
+        and(eq(payment.id, charge.data.reference), eq(payment.reference, charge.data.reference)),
       );
     if (!row) return c.json({ received: true });
-    if (toPesewas(money(row.amount)) !== event.data.amount)
+    if (toPesewas(money(row.amount)) !== charge.data.amount)
       return c.json({ error: "Payment amount mismatch" }, 400);
-    const status = event.event === "charge.success" ? "confirmed" : "failed";
-    const saved = await updateMomo(
+    const saved = await applyMomoEvent(
       options.database,
       { orgId: row.orgId, appVersion: buildInfo.version },
-      { reference: row.reference, status, message: event.data.gateway_response ?? undefined },
-      momoCheckpoint(row.reference, `webhook-${status}`, "completed"),
+      {
+        provider: "paystack",
+        key: `${charge.event}:${row.reference}`,
+        kind: charge.event,
+        reference: row.reference,
+        status: charge.event === "charge.success" ? "confirmed" : "failed",
+        message: charge.data.gateway_response ?? undefined,
+      },
     );
+    if (saved.duplicate) return c.json({ received: true });
     // The table survives an expired engine instance; late confirmations remain recoverable.
     if (options.realtime) await options.realtime.publish(row.orgId, saved.storeId, saved.envelope);
     await options.momoPayment.send(row.reference, "payment", { type: "settled" });
@@ -154,4 +169,29 @@ export function paymentRoutes(options: ApiOptions) {
     },
   );
   return app;
+}
+
+/** A `refund.*` webhook: records its outcome on the open refund once, then wakes that refund's workflow. */
+async function refundWebhook(
+  options: ApiOptions,
+  database: NonNullable<ApiOptions["database"]>,
+  event: Extract<PaystackWebhook, { event: "refund.processed" | "refund.failed" }>,
+) {
+  const found = await findOpenRefund(database, {
+    reference: event.data.transaction_reference,
+    pesewas: event.data.amount,
+    providerId: event.data.id === undefined ? undefined : String(event.data.id),
+  });
+  if (!found) return;
+  const applied = await applyRefundEvent(
+    database,
+    { orgId: found.orgId, appVersion: buildInfo.version },
+    {
+      key: `${event.event}:${event.data.id ?? event.data.refund_reference ?? found.id}`,
+      kind: event.event,
+      reference: event.data.transaction_reference,
+      id: found.id,
+    },
+  );
+  if (!applied.duplicate) await options.momoRefund?.send(found.id, "refund", { type: "settled" });
 }

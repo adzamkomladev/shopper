@@ -2,7 +2,11 @@ import { permissionNames } from "../schemas/permissions";
 export const rolePermissions: Record<string, readonly string[]> = {
   superadmin: permissionNames,
   admin: permissionNames.filter(
-    (code) => !code.startsWith("store.") && !code.startsWith("branch.") && code !== "tax.write",
+    (code) =>
+      !code.startsWith("store.") &&
+      !code.startsWith("branch.") &&
+      code !== "tax.write" &&
+      code !== "billing.manage",
   ),
   accountant: [
     "product.read",
@@ -12,6 +16,7 @@ export const rolePermissions: Record<string, readonly string[]> = {
     "tax.return",
     "report.read",
     "audit.read",
+    "payment.reconcile",
     "customer.read",
     "customer.manage",
   ],

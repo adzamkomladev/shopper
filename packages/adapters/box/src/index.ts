@@ -8,6 +8,7 @@ export { boxAuthFlows } from "./workflows/auth";
 export { openTillDatabase, TillDatabaseKeyError } from "./till/database";
 export { boxLive, type BoxWebSocketServer } from "./live";
 export { boxMomoPayment } from "./workflows/payments";
+export { boxMomoRefund } from "./workflows/refunds";
 export { boxQueue } from "./queue";
 export { boxKycFlows } from "./workflows/kyc";
 export { boxAccountFlows } from "./workflows/account";

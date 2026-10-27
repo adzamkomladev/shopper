@@ -94,14 +94,13 @@ test("a signed webhook confirms pending money once and rejects a different amoun
     .select()
     .from(schema.auditLog)
     .where(
-      and(eq(schema.auditLog.orgId, f.orgId), eq(schema.auditLog.command, "payment.momo.updated")),
+      and(
+        eq(schema.auditLog.orgId, f.orgId),
+        eq(schema.auditLog.command, "payment.webhook.applied"),
+      ),
     );
   expect(
-    rows.filter(
-      (r) =>
-        (r.payload as { workflow?: { step: string } }).workflow?.step === "webhook-confirmed" &&
-        r.payload.reference === reference,
-    ),
+    rows.filter((r) => r.payload.kind === "charge.success" && r.payload.reference === reference),
   ).toHaveLength(1);
 });
 test("an expired payment verifies once, then late success remains in recovery", async () => {

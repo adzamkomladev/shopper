@@ -18,6 +18,7 @@ import { salePoints, settleRefundPoints } from "../customers/loyalty/ledger";
 import type { Queue } from "@shopper/ports";
 import { fiscalDocOf, recordFiscalDoc } from "../fiscal/documents";
 import { touchStoreDay } from "../reports/rollup";
+import { allocateMomoRefund } from "../payments/refunds/allocate";
 
 type Input = {
   principal: UploadPrincipal;
@@ -209,6 +210,12 @@ const accept = defineCommand({
       snapshot.branchId,
       snapshot.lines.map((line) => line.productId),
     );
+    if (snapshot.tender.kind === "momo")
+      await allocateMomoRefund(tx, ctx, {
+        refundId: snapshot.id,
+        saleId: original.id,
+        total: snapshot.total,
+      });
     await touchStoreDay(tx, ctx.orgId, snapshot.storeId, input.occurredAt);
     return { ...output(saved!), fiscalDocId, excess };
   },

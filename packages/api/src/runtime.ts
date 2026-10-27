@@ -124,6 +124,7 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     return createApi({
       database: options.database,
       momoPayment: options.momoPayment,
+      momoRefund: options.momoRefund,
       paystackSecret: options.paystackSecret,
       realtime: options.realtime,
     }).fetch(request);
@@ -155,6 +156,7 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     devices,
     priceChange: options.priceChange,
     momoPayment: options.momoPayment,
+    momoRefund: options.momoRefund,
     paystackSecret: options.paystackSecret,
     realtime: options.realtime,
     invitations,

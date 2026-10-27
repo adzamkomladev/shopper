@@ -1,4 +1,6 @@
+import * as v from "valibot";
 import type { Delivery } from "@shopper/ports";
+import { refundMessage } from "../payments/schemas/refunds";
 import {
   deliverAccountMessage,
   deliverSchedule,
@@ -36,8 +38,18 @@ export async function deliverNotification(deps: NotificationDeps, delivery: Deli
       return await deliverStoreDayReminder(deps, delivery);
     case "store-day.summary":
       return await deliverStoreDaySummary(deps, delivery);
+    case "payment.refund":
+      return await startRefund(deps, delivery);
     default:
       console.error({ event: "notification.unknown_type", type: delivery.message.type });
       return await delivery.retry();
   }
+}
+
+async function startRefund(deps: NotificationDeps, delivery: Delivery) {
+  if (!deps.refunds) return await delivery.retry();
+  const { id } = v.parse(refundMessage, delivery.message.payload);
+  // Starting an id that exists does nothing, so a redelivered message never refunds twice.
+  await deps.refunds.start(id, { orgId: delivery.message.orgId, id });
+  await delivery.ack();
 }

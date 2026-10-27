@@ -1,11 +1,13 @@
-import { money, toPesewas } from "@shopper/money";
+import { money, toPesewas, wholePesewas, type Money } from "@shopper/money";
 import * as v from "valibot";
 import {
   chargeResponseSchema,
   errorResponseSchema,
   PROVIDER_CODES,
+  refundResponseSchema,
   verifyResponseSchema,
   type ChargeResult,
+  type RefundResult,
 } from "./schemas/base";
 import type { PaystackCharge, PaystackOptions } from "./types";
 
@@ -71,8 +73,39 @@ export function createPaystack({
         ...(data.gateway_response ? { message: data.gateway_response } : {}),
       };
     },
+
+    /** Refunds part or all of a settled charge back to the payer's wallet. */
+    async refund(input: { reference: string; amount: Money }): Promise<RefundResult> {
+      const { data } = parseOrThrow(
+        refundResponseSchema,
+        await call("/refund", {
+          transaction: input.reference,
+          amount: toPesewas(wholePesewas(input.amount)),
+        }),
+      );
+      return {
+        status: refundStatuses[data.status] ?? "pending",
+        providerReference: String(data.id),
+      };
+    },
+
+    async verifyRefund(id: string): Promise<RefundResult> {
+      const { data } = parseOrThrow(
+        refundResponseSchema,
+        await call(`/refund/${encodeURIComponent(id)}`),
+      );
+      return {
+        status: refundStatuses[data.status] ?? "pending",
+        providerReference: String(data.id),
+      };
+    },
   };
 }
+
+const refundStatuses: Partial<Record<string, RefundResult["status"]>> = {
+  processed: "processed",
+  failed: "failed",
+};
 
 // Anything else (abandoned, ongoing, queued, processing) is still unsettled.
 const verifiedStatuses: Partial<Record<string, ChargeResult["status"]>> = {

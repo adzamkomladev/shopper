@@ -47,6 +47,8 @@ export interface ApiOptions {
   // Populated by the authenticated session adapter; never derive this from request parameters.
   resolveOrgId?: (request: Request) => Promise<string | null>;
   momoPayment?: WorkflowLauncher;
+  /** Wakes the MoMo refund workflow when Paystack reports a refund's outcome. */
+  momoRefund?: WorkflowLauncher;
   paystackSecret?: string;
   priceChange?: WorkflowLauncher;
   onboarding?: ReturnType<typeof createOnboarding>;
@@ -72,6 +74,7 @@ export interface RuntimeOptions {
   bootstrapToken?: string;
   clientIP?: string;
   momoPayment?: WorkflowLauncher;
+  momoRefund?: WorkflowLauncher;
   paystackSecret?: string;
   priceChange?: WorkflowLauncher;
   authFlows?: WorkflowLauncher;

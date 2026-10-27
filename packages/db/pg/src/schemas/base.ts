@@ -34,6 +34,7 @@ const times = () => ({
 export const cashRoundingModes = ["none", "10p"] as const;
 export const priceModes = ["inclusive", "exclusive"] as const;
 export const statementSchedules = ["off", "monthly"] as const;
+export const momoProviders = ["paystack", "hubtel"] as const;
 export const org = pgTable(
   "org",
   {
@@ -87,6 +88,8 @@ export const org = pgTable(
       .array()
       .notNull()
       .default(sql`'{ghana_card,passport,voter_id,drivers_licence}'`),
+    /** Who collects the org's till MoMo; each payment snapshots it when it starts. */
+    momoProvider: text("momo_provider", { enum: momoProviders }).notNull().default("paystack"),
     ...times(),
   },
   (t) => [
@@ -107,6 +110,7 @@ export const org = pgTable(
       "org_statements",
       sql`${t.statementSchedule} IN ('off', 'monthly') AND ${t.statementDay} BETWEEN 1 AND 28 AND ${t.statementChannels} <@ ARRAY['sms', 'email']::text[] AND ${t.statementMinBalance} >= 0 AND (${t.statementSchedule} = 'off' OR cardinality(${t.statementChannels}) > 0)`,
     ),
+    check("org_momo_provider", sql`${t.momoProvider} IN ('paystack', 'hubtel')`),
     check(
       "org_kyc",
       sql`${t.kycIdTypes} <@ ARRAY['ghana_card', 'passport', 'voter_id', 'drivers_licence']::text[] AND (NOT ${t.kycIdRequired} OR cardinality(${t.kycIdTypes}) > 0)`,

@@ -5,5 +5,7 @@ import type { StatementDeliveryDeps } from "../customers";
 export type NotificationDeps = StatementDeliveryDeps & {
   accounts?: WorkflowLauncher;
   statements?: WorkflowLauncher;
+  /** Starts the MoMo refund workflow for each `payment.refund`. */
+  refunds?: WorkflowLauncher;
   queue?: Queue;
 };

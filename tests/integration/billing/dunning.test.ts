@@ -14,7 +14,7 @@ import { ids } from "../../fixtures/sales/golden";
 import { tradingDay } from "../../fixtures/sales/golden/day";
 import { goldenWorld } from "../../support/sales/golden/setup";
 import { runGolden } from "../../support/sales/golden/run";
-import { portalOwner, type Portal } from "../../support/api/portal";
+import { portalOwner, protectOwner, type Portal } from "../../support/api/portal";
 import { notifications, sentMessages } from "../../support/stock/queue";
 import { devices } from "../../support/till/server";
 import { signWebhook, startPaystackFake } from "../../../tooling/paystack/server";
@@ -28,15 +28,7 @@ const sent: { id: string; type: string; payload: Json }[] = [];
 beforeAll(async () => {
   world = await goldenWorld();
   owner = await portalOwner(ids.org, ids.cashier);
-  // Billing writes to the protected owner, as signup makes the org's first user.
-  const [protectedOwner] = await world.db
-    .select({ id: schema.role.id })
-    .from(schema.role)
-    .where(and(eq(schema.role.orgId, ids.org), eq(schema.role.protectedOwner, true)));
-  await world.db
-    .update(schema.member)
-    .set({ roleId: protectedOwner!.id })
-    .where(and(eq(schema.member.orgId, ids.org), eq(schema.member.userId, owner.principal.userId)));
+  await protectOwner(ids.org, owner);
   fake = await startPaystackFake();
   api = createApi({
     database: world.db,

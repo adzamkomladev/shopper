@@ -2,12 +2,13 @@
 //   portalOwner(orgId)           -> { api, cookie, principal } an owner (superadmin) signed in to that org
 //   portalMember(owner, role)    -> a cookie for a new member holding the named seeded role
 //   get(api, cookie, path)       -> { status, body } for GET path as that session (no cookie = anonymous)
+//   protectOwner(orgId, owner)   -> moves that owner onto the protected owner role, who the owner emails go to
 import { and, eq } from "drizzle-orm";
 import { v7 } from "uuid";
 import { boxRenderer } from "@shopper/adapters-box/renderer";
 import { createApi } from "@shopper/api";
 import { createAuth, registerOrganizationUser } from "@shopper/auth";
-import { role } from "@shopper/db-pg";
+import { member, role } from "@shopper/db-pg";
 import { appVersion, databases, devices } from "../till/server";
 import { notifications } from "../stock/queue";
 
@@ -108,4 +109,17 @@ async function signIn(auth: ReturnType<typeof createAuth>, email: string) {
   )?.[0];
   if (!cookie) throw new Error(`Sign-in failed: ${response.status}`);
   return cookie;
+}
+
+/** The owner on the protected owner role, as signup makes the org's first user: the daily and billing emails go to them. */
+export async function protectOwner(orgId: string, owner: Portal) {
+  const { db } = databases();
+  const [owners] = await db
+    .select({ id: role.id })
+    .from(role)
+    .where(and(eq(role.orgId, orgId), eq(role.protectedOwner, true)));
+  await db
+    .update(member)
+    .set({ roleId: owners!.id })
+    .where(and(eq(member.orgId, orgId), eq(member.userId, owner.principal.userId)));
 }

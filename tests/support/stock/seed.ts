@@ -41,7 +41,8 @@ export async function addSupplier(name: string, orgId: string = ids.org) {
 }
 
 type Line = { productId: string; quantity: number; unitCost?: number };
-type Document = { at: string; lines: Line[]; branchId?: string; deviceId?: string } & (
+/** `on` moves the document off the golden day (a YYYY-MM-DD date); `at` stays its HH:MM time. */
+type Document = { at: string; on?: string; lines: Line[]; branchId?: string; deviceId?: string } & (
   | { kind: "receipt"; supplierId?: string }
   | { kind: "adjustment"; cause: "found" | "damaged" }
 );
@@ -50,7 +51,9 @@ type Document = { at: string; lines: Line[]; branchId?: string; deviceId?: strin
 export async function addDocument(document: Document) {
   const { db } = databases();
   const id = v7();
-  const occurredAt = day(document.at);
+  const occurredAt = document.on
+    ? new Date(`${document.on}T${document.at}:00.000Z`)
+    : day(document.at);
   const branchId = document.branchId ?? ids.branch;
   await db.insert(stockDocument).values({
     id,

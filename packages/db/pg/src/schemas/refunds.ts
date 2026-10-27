@@ -43,6 +43,10 @@ export const refund = pgTable(
       .notNull()
       .default(sql`0`),
     pointsReturned: integer("points_returned").notNull().default(0),
+    /** What the returned points were worth as settled: the refund's loyalty share, which reports and journals read. */
+    pointsValue: moneyColumn("points_value")
+      .notNull()
+      .default(sql`0`),
     appVersion: text("app_version").notNull(),
     eventVersion: bigint("event_version", { mode: "number" }).notNull().default(1),
     deviceTime: timestamp("device_time", { withTimezone: true }).notNull(),
@@ -55,6 +59,7 @@ export const refund = pgTable(
   (t) => [
     unique().on(t.orgId, t.id),
     index("refund_sale").on(t.orgId, t.originalSaleId),
+    index("refund_occurred").on(t.orgId, t.occurredAt),
     unique("refund_credit_note_unique").on(t.orgId, t.creditNoteNumber),
     foreignKey({ columns: [t.orgId, t.deviceId], foreignColumns: [device.orgId, device.id] }),
     foreignKey({ columns: [t.orgId, t.storeId], foreignColumns: [store.orgId, store.id] }),
@@ -72,7 +77,10 @@ export const refund = pgTable(
       sql`${t.tenderKind} = 'cash' OR (${t.tenderReference} IS NOT NULL AND ${t.tenderReference} <> '')`,
     ),
     check("refund_amounts", sql`${t.gross} >= 0 AND ${t.total} >= 0`),
-    check("refund_account", sql`${t.accountCredit} >= 0 AND ${t.pointsReturned} >= 0`),
+    check(
+      "refund_account",
+      sql`${t.accountCredit} >= 0 AND ${t.pointsReturned} >= 0 AND ${t.pointsValue} >= 0`,
+    ),
     check("refund_event_version_positive", sql`${t.eventVersion} > 0`),
   ],
 );

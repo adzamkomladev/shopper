@@ -25,6 +25,7 @@ import { wakeAccount } from "../customers/accounts/wake";
 import { checkReorder } from "../stock/reorder";
 import type { Queue } from "@shopper/ports";
 import { recordFiscalDoc } from "../fiscal/documents";
+import { touchStoreDay } from "../reports/rollup";
 
 export async function acceptSale(
   db: ShopperDatabase,
@@ -180,6 +181,7 @@ const accept = defineCommand({
     if (buyer.created) await publishCustomer(tx, ctx.orgId, buyer.created);
     // Its charge or earn may bring the account's next interest, expiry or tier notice forward.
     if (buyer.id) wakeAccount(tx, ctx.orgId, buyer.id);
+    await touchStoreDay(tx, ctx.orgId, snapshot.storeId, input.occurredAt);
     return {
       localId: saved.localId,
       occurredAt: saved.occurredAt.toISOString(),

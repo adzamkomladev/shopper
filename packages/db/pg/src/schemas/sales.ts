@@ -58,6 +58,8 @@ export const sale = pgTable(
     unique().on(t.orgId, t.id),
     unique().on(t.deviceId, t.localId),
     index("sale_customer").on(t.orgId, t.customerId),
+    // Reports fold the days not yet rolled up straight from the sales.
+    index("sale_occurred").on(t.orgId, t.occurredAt),
     foreignKey({ columns: [t.orgId, t.customerId], foreignColumns: [customer.orgId, customer.id] }),
     foreignKey({ columns: [t.orgId, t.receiptAssetId], foreignColumns: [asset.orgId, asset.id] }),
     uniqueIndex("sale_receipt_unique").on(t.orgId, t.receiptNumber),

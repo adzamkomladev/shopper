@@ -17,6 +17,7 @@ import { creditRefund, saleAccount } from "../customers/credit/refunds";
 import { salePoints, settleRefundPoints } from "../customers/loyalty/ledger";
 import type { Queue } from "@shopper/ports";
 import { fiscalDocOf, recordFiscalDoc } from "../fiscal/documents";
+import { touchStoreDay } from "../reports/rollup";
 
 type Input = {
   principal: UploadPrincipal;
@@ -147,6 +148,7 @@ const accept = defineCommand({
         total: snapshot.total,
         accountCredit: share.account,
         pointsReturned: share.points,
+        pointsValue: share.pointsValue,
         appVersion: snapshot.appVersion,
         eventVersion: input.event.v,
         deviceTime: new Date(snapshot.deviceTime),
@@ -207,6 +209,7 @@ const accept = defineCommand({
       snapshot.branchId,
       snapshot.lines.map((line) => line.productId),
     );
+    await touchStoreDay(tx, ctx.orgId, snapshot.storeId, input.occurredAt);
     return { ...output(saved!), fiscalDocId, excess };
   },
   audit: (input, result) => ({

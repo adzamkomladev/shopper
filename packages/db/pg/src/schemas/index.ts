@@ -15,3 +15,4 @@ export * from "./customers";
 export * from "./tax";
 export * from "./fiscal";
 export * from "./audit";
+export * from "./reports";

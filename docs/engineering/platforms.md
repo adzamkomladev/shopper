@@ -111,8 +111,21 @@ Before using a Cloudflare product that is not in this table, load the `cloudflar
   workflow `sleepUntil` or `waitFor`.
 - **The one watchdog** fires at 23:59 UTC (Accra keeps UTC all year): the edge `scheduled` handler
   (`59 23 * * *`, the only cron trigger) on Cloudflare, a self-re-arming Bun timer on the box until the Rivet
-  schedule lands on Day 36. It only starts one-shot workflows, `audit-anchor` per org per day; starting an
-  instance id that exists is a no-op, so a second firing is harmless. The work happens in the workflow.
+  schedule lands on Day 36. It only starts workflows: `audit-anchor` per org per day, and `store-day` per store
+  for today and tomorrow (`runWatchdog`, `packages/core/src/workflows/watchdog.ts`), so a chain that died is
+  restarted within a day. Starting an instance id that exists is a no-op, so a second firing is harmless. The
+  work happens in the workflow.
+- **The store day** (`runStoreDay`, `packages/core/src/workflows/day.ts`; `StoreDayWorkflow` on the `STORE_DAY`
+  binding, `boxStoreDays` on the box) is one instance per store and shop date: `open` reads the store's hours
+  (an edit applies from the next day), `sleepUntil` opening, `opened`, `sleepUntil` closing, then the Z-report
+  reminder (only when a register sold after its last Z) and the owner summary go out by email, `sleepUntil`
+  00:05 the next day, the nightly rollup, `close`, and the next day's instance. Every step is a
+  `defineCommand` checkpoint, so a rerun replays its output and sends nothing twice. A new store starts its
+  day when it is created; the box relaunches unfinished days on boot, since its memory engine forgets sleeps.
+- **Rollups are a cache with a dirty bit.** `rollStoreDays` folds each store day into `report_sales`,
+  `report_tender` and `report_product` and sets `store_day.rolled_at`; accepting a sale or refund for a day
+  clears it. Reports read the rollup rows of rolled days `UNION ALL` the same fold over raw rows for the rest,
+  in one repeatable-read snapshot, so they are always exact and fast where rolled.
 - **Cache port: never read after write in the same request.** It is not a source of truth.
 - **Cloud-only extras degrade gracefully.** If a Cloudflare feature has no box twin (Analytics Engine,
   Images resizing), the shared code must not depend on it. Put it behind an optional port, and have

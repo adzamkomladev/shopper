@@ -74,7 +74,7 @@ export function receiptUploadConformance(
   test: ConformanceTest,
   fixture: () => Promise<{ blobs: Blobs; orgId: string; otherOrgId: string; bucket: string }>,
 ) {
-  test(`${name}: receipt PDFs upload directly to the receipts store with bounded reads`, async () => {
+  test(`${name}: receipt PDFs upload to and download from the receipts store directly, with bounded reads`, async () => {
     const { blobs, orgId, otherOrgId, bucket } = await fixture();
     const key = `receipts/${crypto.randomUUID()}.pdf`;
     const pdf = new TextEncoder().encode("%PDF-1.4\n%%EOF\n");
@@ -88,6 +88,16 @@ export function receiptUploadConformance(
     assert.equal(put.status, 200);
     assert.deepEqual(await blobs.get(orgId, key, pdf.length), pdf);
     await assert.rejects(blobs.get(orgId, key, pdf.length - 1), RangeError);
+    // A download grant reads that one object straight from the store, and only by GET.
+    const download = await blobs.createDownload(orgId, key, 300);
+    assert.equal(new URL(download).pathname, `/${bucket}/${orgId}/${key}`);
+    const read = await fetch(download);
+    assert.equal(read.status, 200);
+    assert.deepEqual(new Uint8Array(await read.arrayBuffer()), pdf);
+    assert.equal((await fetch(download, { method: "PUT", body: "bad" })).status, 403);
+    const elsewhere = new URL(download);
+    elsewhere.pathname = `/${bucket}/${otherOrgId}/${key}`;
+    assert.equal((await fetch(elsewhere)).status, 403);
     assert.equal(await blobs.get(otherOrgId, key), null);
     const wrongType = await fetch(grant.url, {
       method: "PUT",

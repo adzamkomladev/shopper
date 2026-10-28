@@ -279,3 +279,14 @@ them Hubtel cannot be picked in Payments → Settings and every org stays on Pay
 
 Box: it reads the same Hubtel names from its sealed config, runs refunds, settlements and approvals on its memory
 engine, and has no subscription, so it is never read-only. Billing is cloud only.
+
+## Onboarding, KYB and the admin app (Day 25)
+
+- Migration `0033_onboarding` is additive (onboarding, kyb_case, kyb_director, kyb_document, the new permissions).
+- The edge Worker binds `ONBOARDING_FLOWS` and `KYB_FLOWS`; KYB also needs `PAYSTACK_SECRET_KEY` for the bank list
+  and subaccounts.
+- The admin Worker deploys like the portal (`apps/admin`, staging and production environments) and sets
+  `SHOPPER_PLATFORM_ORG` to the platform org's code. Seed that org with its owner before the first sign-in.
+- `SHOPPER_TILL_DOWNLOAD_URL` is read at build time for the wizard's installer link. Unset, the Till step says the
+  installer is coming soon and still issues enrolment codes. The signed installer is Day 27.
+- KYB documents live in the receipts bucket under `receipts/kyb/`.

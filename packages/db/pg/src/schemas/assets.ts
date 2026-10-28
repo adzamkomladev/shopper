@@ -17,7 +17,7 @@ export const asset = pgTable(
   {
     ...tenant(),
     purpose: text("purpose", {
-      enum: ["catalogue_import", "sync_snapshot", "sale_receipt"],
+      enum: ["catalogue_import", "sync_snapshot", "sale_receipt", "kyb_document"],
     }).notNull(),
     visibility: text("visibility", { enum: ["private"] }).notNull(),
     bucket: text("bucket", { enum: ["imports", "snapshots", "receipts"] }).notNull(),
@@ -37,7 +37,7 @@ export const asset = pgTable(
     foreignKey({ columns: [t.orgId, t.actorId], foreignColumns: [user.orgId, user.id] }),
     check(
       "asset_policy",
-      sql`(${t.purpose} = 'catalogue_import' AND ${t.bucket} = 'imports' AND ${t.expiresAt} IS NOT NULL) OR (${t.purpose} = 'sync_snapshot' AND ${t.bucket} = 'snapshots' AND ${t.expiresAt} IS NULL) OR (${t.purpose} = 'sale_receipt' AND ${t.bucket} = 'receipts' AND ${t.expiresAt} IS NULL)`,
+      sql`(${t.purpose} = 'catalogue_import' AND ${t.bucket} = 'imports' AND ${t.expiresAt} IS NOT NULL) OR (${t.purpose} = 'sync_snapshot' AND ${t.bucket} = 'snapshots' AND ${t.expiresAt} IS NULL) OR (${t.purpose} = 'sale_receipt' AND ${t.bucket} = 'receipts' AND ${t.expiresAt} IS NULL) OR (${t.purpose} = 'kyb_document' AND ${t.bucket} = 'receipts' AND ${t.expiresAt} IS NULL)`,
     ),
     check("asset_private", sql`${t.visibility} = 'private'`),
     check("asset_size", sql`${t.sizeBytes} >= 0`),

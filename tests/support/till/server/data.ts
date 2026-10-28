@@ -108,7 +108,7 @@ const seedForeignProduct = defineCommand({
 
 export async function seedServerDatabase(db: import("@shopper/db-pg").ShopperDatabase) {
   await migrateDatabase(db);
-  await provisionOrg(db, context, { name: "Sync integration" });
+  await provisionOrg(db, context, { name: "Sync integration", slug: "sync-shop" });
   const other = provisioningContext(ids.otherOrg);
   await provisionOrg(db, other, { name: "Other sync tenant" });
   await seedAuthRoles(db, context, undefined);

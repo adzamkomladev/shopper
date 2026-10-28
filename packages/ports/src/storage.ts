@@ -131,6 +131,9 @@ export function storedBlobs(
     async createUpload() {
       throw new BlobUploadUnavailable();
     },
+    async createDownload() {
+      throw new BlobUploadUnavailable();
+    },
     signedUrl: access.sign,
   };
 }

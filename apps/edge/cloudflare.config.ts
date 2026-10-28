@@ -81,6 +81,16 @@ export default defineConfig(({ mode }) => {
           worker: name,
           exportName: "AuthWorkflow",
         }),
+        ONBOARDING_FLOWS: bindings.workflow({
+          name: workflow("onboarding"),
+          worker: name,
+          exportName: "OnboardingWorkflow",
+        }),
+        KYB_FLOWS: bindings.workflow({
+          name: workflow("kyb"),
+          worker: name,
+          exportName: "KybWorkflow",
+        }),
         KYC_FLOWS: bindings.workflow({
           name: workflow("kyc"),
           worker: name,
@@ -165,6 +175,8 @@ export default defineConfig(({ mode }) => {
         SettlementWorkflow: exports.workflow({ name: workflow("settlement") }),
         ApprovalWorkflow: exports.workflow({ name: workflow("approval") }),
         BillingWorkflow: exports.workflow({ name: workflow("billing") }),
+        OnboardingWorkflow: exports.workflow({ name: workflow("onboarding") }),
+        KybWorkflow: exports.workflow({ name: workflow("kyb") }),
       },
     },
   };

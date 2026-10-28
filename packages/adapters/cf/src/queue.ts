@@ -80,6 +80,8 @@ export async function cloudflareNotifications(
     | "NOTIFICATIONS"
     | "MOMO_REFUND"
     | "PAYSTACK_SECRET_KEY"
+    | "ONBOARDING_FLOWS"
+    | "KYB_FLOWS"
   >,
 ): Promise<void> {
   const sms =
@@ -118,6 +120,9 @@ export async function cloudflareNotifications(
         env.MOMO_REFUND && env.PAYSTACK_SECRET_KEY
           ? cloudflareLauncher(env.MOMO_REFUND)
           : undefined,
+      onboarding: env.ONBOARDING_FLOWS ? cloudflareLauncher(env.ONBOARDING_FLOWS) : undefined,
+      // A resubmission after the run ended starts it again.
+      kyb: env.KYB_FLOWS ? cloudflareLoopLauncher(env.KYB_FLOWS, "wake") : undefined,
     };
     await cloudflareDeliver(
       batch,

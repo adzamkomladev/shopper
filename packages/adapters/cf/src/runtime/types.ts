@@ -31,6 +31,8 @@ export interface AuthEnvironment {
   /** The GRA SDC; without both, VAT documents wait as pending and no lane runs. */
   SHOPPER_SDC_URL?: string;
   SHOPPER_SDC_KEY?: string;
+  /** The code of the org whose members are Shopper staff; only the admin Worker sets it. */
+  SHOPPER_PLATFORM_ORG?: string;
 }
 
 export interface CloudflareRuntimeEnvironment extends AuthEnvironment {
@@ -55,4 +57,6 @@ export interface CloudflareRuntimeEnvironment extends AuthEnvironment {
   SETTLEMENT?: Parameters<typeof cloudflareLauncher>[0];
   APPROVAL?: Parameters<typeof cloudflareLauncher>[0];
   BILLING?: Parameters<typeof cloudflareLauncher>[0];
+  ONBOARDING_FLOWS?: Parameters<typeof cloudflareLauncher>[0];
+  KYB_FLOWS?: Parameters<typeof cloudflareLoopLauncher>[0];
 }

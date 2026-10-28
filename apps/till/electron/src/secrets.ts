@@ -7,7 +7,7 @@ import * as v from "valibot";
 import { registerSecrets, type RegisterSecrets } from "./schemas/secrets";
 
 /** Writes, syncs and renames over the target, so a crash never leaves a half-written file. */
-async function writeAtomic(path: string, content: string | Buffer) {
+export async function writeAtomic(path: string, content: string | Buffer) {
   const temporary = `${path}.${process.pid}.tmp`;
   const file = await open(temporary, "w", 0o600);
   try {

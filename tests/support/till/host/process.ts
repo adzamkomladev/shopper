@@ -92,6 +92,10 @@ export async function startTillHost(config: unknown, options: { clockOffsetMs?: 
     child,
     ready,
     output,
+    /** The next message the host sends its parent that `matches`, such as a second ready. */
+    waitForMessage(matches: (message: Message) => boolean, timeoutMs?: number) {
+      return waitFor(matches, timeoutMs);
+    },
     waitForStatus(matches: (status: Record<string, unknown>) => boolean) {
       return waitFor(
         (message) =>

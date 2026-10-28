@@ -14,6 +14,7 @@ import {
   basketRequestTypes,
   bridgeRequest,
   deviceRequestTypes,
+  enrolRequestTypes,
   sessionRequestTypes,
   type BridgeMessage,
   type BridgeRequest,
@@ -35,6 +36,7 @@ const browserRequests: readonly string[] = [
   ...shiftRequestTypes,
   ...customerRequestTypes,
   ...accountRequestTypes,
+  ...enrolRequestTypes,
 ];
 export async function openHostTransport(options: {
   port: number;

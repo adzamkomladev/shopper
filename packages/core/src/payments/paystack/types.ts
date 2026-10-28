@@ -13,6 +13,8 @@ export type PaystackCharge = {
   phone: string;
   network: MomoNetwork;
   email: string;
+  /** The shop's payout subaccount, once its business verification is approved. */
+  subaccount?: string;
 };
 
 export type PaystackSettlement = {

@@ -1,5 +1,6 @@
 export { createAuth } from "./session/create";
 export { seedAuthRoles } from "./roles/service";
+export { platformPermissionNames, seedPlatformRoles } from "./roles/platform";
 export { assignMemberRole, registerOrganizationUser } from "./users";
 export { createDeviceService } from "./devices/service";
 export type { AuthPrincipal, CreateAuthOptions } from "./types";

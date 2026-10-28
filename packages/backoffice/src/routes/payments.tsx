@@ -5,6 +5,8 @@ import { PaymentSettingsSkeleton } from "../components/payments/settings/states"
 import { ReconciliationSkeleton } from "../components/payments/reconciliation/states";
 import { shopToday } from "../lib/tax/dates";
 import { reconciliationQuery } from "../queries/payments/reconciliation";
+import { KybSkeleton } from "../components/kyb/states";
+import { kybBanksQuery, kybQuery } from "../queries/kyb";
 import { paymentSettingsQuery } from "../queries/payments/settings";
 import { reconciliationSearch } from "../schemas/reconciliation";
 import type { BackofficeContext } from "../types";
@@ -13,8 +15,8 @@ import { whenHeld } from "./held";
 type Context = { context: BackofficeContext };
 
 /**
- * A day's tender reconciliation (report.read; refreshing the settlement needs payment.reconcile) and the org's MoMo
- * provider (register.settings).
+ * A day's tender reconciliation (report.read; refreshing the settlement needs payment.reconcile), the org's MoMo
+ * provider (register.settings) and the business verification that turns on payouts (org.kyb.submit).
  */
 export function paymentRoutes(shopRoute: AnyRoute) {
   const reconciliationRoute = createRoute({
@@ -48,5 +50,18 @@ export function paymentRoutes(shopRoute: AnyRoute) {
     ...routeStates,
     pendingComponent: PaymentSettingsSkeleton,
   });
-  return [reconciliationRoute, settingsRoute];
+  const verificationRoute = createRoute({
+    getParentRoute: () => shopRoute,
+    path: "/payments/verification",
+    // Prefetched, not awaited: on the box the case answers 404 and the screen explains it.
+    loader: ({ context }: Context) =>
+      whenHeld(context, "org.kyb.submit", () => {
+        void context.queryClient.prefetchQuery(kybQuery());
+        void context.queryClient.prefetchQuery(kybBanksQuery());
+      }),
+    component: lazyRouteComponent(() => import("../screens/kyb/screen"), "KybScreen"),
+    ...routeStates,
+    pendingComponent: KybSkeleton,
+  });
+  return [reconciliationRoute, settingsRoute, verificationRoute];
 }

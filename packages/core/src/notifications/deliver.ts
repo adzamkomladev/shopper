@@ -13,6 +13,8 @@ import { deliverStoreDayReminder, deliverStoreDaySummary } from "../reports/day/
 import { deliverApprovalRequest } from "../approvals/deliver";
 import { deliverReceiptEmail } from "../receipts/email/deliver";
 import { deliverInvoiceEmail } from "../billing/deliver";
+import { deliverOnboardingEvent, deliverOnboardingNudge } from "../onboarding/deliver";
+import { deliverKybNotice } from "../kyb/deliver";
 import type { NotificationDeps } from "./types";
 export type { NotificationDeps } from "./types";
 
@@ -52,6 +54,12 @@ export async function deliverNotification(deps: NotificationDeps, delivery: Deli
     case "invoice.reminder":
     case "invoice.read_only":
       return await deliverInvoiceEmail(deps, delivery);
+    case "onboarding.event":
+      return await deliverOnboardingEvent(deps, delivery);
+    case "onboarding.nudge":
+      return await deliverOnboardingNudge(deps, delivery);
+    case "kyb.notice":
+      return await deliverKybNotice(deps, delivery);
     default:
       console.error({ event: "notification.unknown_type", type: delivery.message.type });
       return await delivery.retry();

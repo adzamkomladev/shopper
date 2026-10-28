@@ -65,6 +65,10 @@ export interface ApiOptions {
   kyc?: WorkflowLauncher;
   /** Starts a store's day; a new store's chain starts today rather than at the night's watchdog. */
   storeDays?: WorkflowLauncher;
+  /** Business verification for payouts, cloud only: the Paystack banks a payout can settle to. */
+  kyb?: { banks(): Promise<{ name: string; code: string; type: string }[]> };
+  /** The admin app's API, cloud only: the org whose members are Shopper staff, by its code. */
+  platform?: { orgSlug: string };
 }
 
 export interface RuntimeOptions {
@@ -91,8 +95,12 @@ export interface RuntimeOptions {
   billing?: WorkflowLauncher;
   priceChange?: WorkflowLauncher;
   authFlows?: WorkflowLauncher;
+  /** A cloud shop's way from signup to its first sale; the box opens no signup and has none. */
+  onboarding?: WorkflowLauncher;
   kyc?: WorkflowLauncher;
   storeDays?: WorkflowLauncher;
+  kyb?: ApiOptions["kyb"];
+  platform?: ApiOptions["platform"];
   linkSecret?: string;
   publicOnboarding?: boolean;
 }

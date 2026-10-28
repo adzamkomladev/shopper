@@ -21,26 +21,33 @@ import { pathToFileURL } from "node:url";
 import { startArkeselFake } from "../../../tooling/arkesel/server";
 import { e2eRun } from "../../../tooling/e2e/run";
 import { rustfs } from "../../../tooling/storage/buckets";
+import { e2eKyb } from "./kyb";
 
 const databaseURL = process.env.E2E_DATABASE_URL;
 if (!databaseURL || !new URL(databaseURL).pathname.endsWith("_e2e")) {
   throw new Error("The portal browser server requires E2E_DATABASE_URL ending in _e2e");
 }
+// The admin app is built from the same Start server entry and runs the same API, with the platform routes on for
+// the org SHOPPER_PLATFORM_ORG names.
+const platformOrg = process.env.SHOPPER_PLATFORM_ORG;
+const admin = Boolean(platformOrg);
+const app = admin ? "apps/admin" : "apps/portal";
 const database = boxPool(databaseURL);
-const baseURL = process.env.SHOPPER_AUTH_URL ?? e2eRun.url(5183);
+const baseURL = process.env.SHOPPER_AUTH_URL ?? e2eRun.url(admin ? 5187 : 5183);
 const linkSecret = "e2e-only-link-secret-more-than-32-characters";
 const port = new URL(baseURL).port;
 const cache = boxCache(e2eRun.path(`.shopper/portal/${port}.sqlite`, `portal/${port}.sqlite`));
 const publicOnboarding = process.env.E2E_PUBLIC_ONBOARDING === "1";
+const mail = createMaileroo({
+  apiKey: "local-maileroo-contract-key",
+  from: "noreply@shopper.test",
+  endpoint: `http://127.0.0.1:${e2eRun.port(3103)}/api/v2/emails`,
+});
 const authFlows = boxAuthFlows({
   withDatabase: (run) => run(database.db),
   baseURL,
   linkSecret,
-  mail: createMaileroo({
-    apiKey: "local-maileroo-contract-key",
-    from: "noreply@shopper.test",
-    endpoint: `http://127.0.0.1:${e2eRun.port(3103)}/api/v2/emails`,
-  }),
+  mail,
 });
 // Identity checks send their one-time codes through an Arkesel fake: a spec reads the code from
 // http://127.0.0.1:3104/test/requests (shifted by the run's port offset), as a person would read it from their phone.
@@ -60,9 +67,12 @@ const blobs = await boxBlobs(e2eRun.path(".shopper/portal/blobs", "portal/blobs"
     ...rustfs,
     bucket: e2eRun.bucket,
   },
+  // KYB scans and receipt PDFs live under receipts/; the run's one bucket keeps them too.
+  receiptsObjectStorage: { ...rustfs, bucket: e2eRun.bucket },
 });
+const kyb = await e2eKyb({ database: database.db, blobs: blobs.blobs, mail, baseUrl: baseURL });
 const server = await import(
-  pathToFileURL(resolve(`apps/portal/${e2eRun.outDir}/server/server.js`)).href
+  pathToFileURL(resolve(`${app}/${e2eRun.outDir}/server/server.js`)).href
 );
 // Satori and resvg read their wasm from their own folders, which a bundle in .shopper/ cannot reach, so this
 // server has no renderer. A statement's PDF comes from the box on the same database and link secret.
@@ -86,6 +96,9 @@ const portalRuntime = async (request: Request) => {
       publicOnboarding,
       clientIP,
       blobs: blobs.blobs,
+      kyb: kyb.kyb,
+      notifications: kyb.notifications,
+      platform: platformOrg ? { orgSlug: platformOrg } : undefined,
     }),
   );
 };
@@ -120,7 +133,7 @@ async function clientAddress(request: Request) {
   return `10.${octet(0)}.${octet(1)}.${octet(2)}`;
 }
 
-const assets = resolve(`apps/portal/${e2eRun.outDir}/client`);
+const assets = resolve(`${app}/${e2eRun.outDir}/client`);
 const contentTypes: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",

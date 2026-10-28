@@ -13,7 +13,7 @@ export function AcceptInvitationScreen() {
   return (
     <AuthFrame>
       {joined ? (
-        <LoginSuccess onContinue={() => void navigate({ to: "/products" })} />
+        <LoginSuccess onContinue={() => void navigate({ to: "/" })} />
       ) : (
         <Invitation onJoined={() => setJoined(true)} />
       )}

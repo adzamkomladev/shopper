@@ -10,6 +10,7 @@ export {
   deviceListResponse,
   enrollmentInput,
   enrollmentIssueInput,
+  enrollmentResult,
   pinInput,
   revokeDeviceInput,
 } from "./devices";

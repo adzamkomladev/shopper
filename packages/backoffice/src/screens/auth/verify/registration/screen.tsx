@@ -15,7 +15,7 @@ export function VerifyRegistrationScreen() {
   return (
     <AuthFrame>
       {signedIn ? (
-        <LoginSuccess onContinue={() => void navigate({ to: "/products" })} />
+        <LoginSuccess onContinue={() => void navigate({ to: "/" })} />
       ) : (
         <Steps onSignedIn={() => setSignedIn(true)} />
       )}

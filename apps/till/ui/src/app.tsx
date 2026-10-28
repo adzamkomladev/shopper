@@ -17,6 +17,8 @@ import { PurchasesScreen } from "./screens/purchases/screen";
 import { SettingsScreen } from "./screens/settings/screen";
 import { ShiftScreen } from "./screens/shift/screen";
 import { SignInScreen } from "./screens/signin/screen";
+import { EnrolScreen } from "./screens/enrol/screen";
+import { enrolTill } from "./enrol/store";
 import { ShellFrame } from "./components/shell/frame";
 import { shellLink } from "./components/shell/link";
 import { RegisterSlot } from "./components/shell/slot";
@@ -46,6 +48,11 @@ function Register() {
   const signing = useSignInSnapshot();
   const [view, setView] = useState<"connection" | "till">("connection");
   const user = connection.status?.user;
+  // A till fresh from the installer has no identity; enrolling it comes before signing anyone in.
+  if (connection.unenrolled)
+    return (
+      <EnrolScreen host={connection.host} onReconnect={connectRegister} onSubmit={enrolTill} />
+    );
   // A register with no signed-in user can do nothing else, so sign-in comes before every other screen.
   if (user === null)
     return (

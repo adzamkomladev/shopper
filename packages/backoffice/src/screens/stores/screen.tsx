@@ -16,6 +16,7 @@ import { DeleteStoreDialog } from "../../components/stores/delete/dialog";
 import { StoreForm } from "../../components/stores/form";
 import { storesQuery } from "../../queries/stores";
 import { StoreTable } from "../../components/stores/table";
+import { SetupStepLink } from "../../components/setup/back";
 
 export function StoresScreen() {
   const { data: stores } = useSuspenseQuery(storesQuery());
@@ -58,6 +59,7 @@ export function StoresScreen() {
               <Kbd aria-hidden>N</Kbd>
             </Button>
           )}
+          <SetupStepLink step="store" />
         </EmptyList>
       ) : (
         <StoreTable

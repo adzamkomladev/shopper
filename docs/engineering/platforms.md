@@ -96,6 +96,22 @@ Before using a Cloudflare product that is not in this table, load the `cloudflar
 `workers-best-practices` skills (Claude) or check the Cloudflare docs MCP. For Rivet, check
 `https://rivet.dev/llms.txt` or the context7 MCP. Never rely on memory for platform APIs.
 
+### Rivet version
+
+The box targets **Rivet 3.0**: `rivetkit` `3.0.0-preview.3` (the npm `next` tag) and the
+`rivetdev/engine:3.0.0-preview.3` image. Pin both to that exact version, never `@next`, `latest` or
+a range, and move them together. 3.0 is one stateless engine binary whose only dependency is an
+object store, which can be the box's disk; each actor gets its own SQLite. It keeps the 2.x SDK and
+protocol, so the adapter code is the same on either line. What 3.0 drops (multi-region, serverless,
+ACLs) the box does not use. It is a preview: bump it deliberately, re-run conformance on each bump,
+and move to the stable 3.0 release as soon as it ships.
+
+The 3.0 engine is configured differently from 2.x (`tooling/docker/compose.dev.yml`):
+`storage.log_directory` for the local log, `object_storage.primary.file_system.path` for the cold
+store, and `storage.auto_provision_partitions` so a single node creates its own storage partitions.
+Without that flag the API answers `routing_unavailable`. 2.x's `file_system` key is rejected, and
+the 3.0 engine starts on its own `rivet3-data` volume rather than a 2.x data directory.
+
 ## Rules that keep both sides honest
 
 - **PostgreSQL is the record.** Every workflow step and every DO/actor write also writes its table
@@ -244,3 +260,29 @@ Four more shells on `cloudflareFlow`, each defined on the edge Worker and bound 
   marks the request consumed in its own transaction, so it redeems once.
 - Paying an invoice restores access in the webhook at once; the billing workflow only stops dunning. On the box there
   is no billing workflow.
+
+## Onboarding and KYB workflows (Day 25)
+
+Two more shells on `cloudflareFlow`, defined on the edge Worker:
+
+| Workflow                     | Instance id | Binding (`<stage>`)          | Runs                                                                |
+| ---------------------------- | ----------- | ---------------------------- | ------------------------------------------------------------------- |
+| Onboarding (`runOnboarding`) | org id      | `shopper-onboarding-<stage>` | verify reminders, catalogue mark, first-sale nudges at +1, +3, +7 d |
+| KYB (`runKyb`)               | org id      | `shopper-kyb-<stage>`        | automated checks, `reviewer_decision` wait, subaccount, expiry      |
+
+- The `onboarding` row and the `kyb_case` row are the record; events (`onboarding.event`, `kyb.notice`) go through
+  the notifications queue after commit and only wake the flow, which re-reads PostgreSQL.
+- The first accepted sale marks the shop `trading` in the sale's own transaction (an update guarded by
+  `first_sale_at IS NULL`), so two tills selling at once mark it once; the workflow only stops the nudges.
+- An approval opens the Paystack subaccount once: the stored code short-circuits any retried or replayed step.
+- On the box the onboarding flow starts at the fixed-org owner setup with the email and KYB steps skipped. KYB is
+  cloud control plane: the box serves no KYB routes and starts no case. `boxKybFlows` exists for parity and tests.
+- The edge needs `ONBOARDING_FLOWS`, `KYB_FLOWS` and `PAYSTACK_SECRET_KEY`; without a launcher the event is retried
+  on the queue and the rows still decide.
+
+### The admin Worker
+
+`apps/admin` is the portal's shape for Shopper staff: a prerendered SPA shell on Workers Static Assets and one Worker
+for `/api/*`, serving the shared Hono API with the `/platform/*` routes on. Only members of the org named by
+`SHOPPER_PLATFORM_ORG` with `platform.tenant.read` or `platform.kyb.review` reach them. It is cloud only and never
+mounted on the box.

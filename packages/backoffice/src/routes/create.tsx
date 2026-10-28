@@ -24,6 +24,8 @@ import { approvalRoutes } from "./approvals";
 import { billingRoutes } from "./billing";
 import { publicStatementRoutes } from "./statements/public";
 import { shiftRoutes } from "./shifts";
+import { setupRoutes } from "./setup";
+import { setupQuery, startsInSetup } from "../queries/setup";
 import { currentOrgQuery, requireSession } from "../queries/session/session";
 import type { BackofficeContext } from "../types";
 
@@ -38,8 +40,14 @@ export function createBackofficeRoutes(
   const indexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: "/",
-    beforeLoad: () => {
-      throw redirect({ to: "/products" });
+    // The front door: an owner still setting up the shop starts in the wizard, everyone else on the products.
+    beforeLoad: async ({ context }: { context: BackofficeContext }) => {
+      await requireSession(context.queryClient);
+      const [progress, held] = await Promise.all([
+        context.queryClient.fetchQuery(setupQuery()),
+        context.queryClient.ensureQueryData(permissionsQuery()),
+      ]);
+      throw redirect({ to: startsInSetup(progress, held) ? "/setup" : "/products" });
     },
   });
   const loginRoute = createRoute({
@@ -144,6 +152,7 @@ export function createBackofficeRoutes(
       ...customerRoutes(shopRoute),
       ...administrationRoutes(shopRoute),
       ...shiftRoutes(shopRoute),
+      ...setupRoutes(shopRoute),
       ...kycRoutes(shopRoute),
       ...settingsRoutes(shopRoute),
       ...reportRoutes(shopRoute),

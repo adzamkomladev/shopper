@@ -7,6 +7,7 @@ import { managementJson, ManagementError } from "../../management";
 import { loadProduct } from "./queries";
 import { barcodeInput, productInput, productPatch } from "../../schemas/catalogue/inputs";
 import { nonEmpty, recordId, taxClassId } from "../records";
+import { markOnboarding } from "../../onboarding/records";
 
 /** Tells every store's till about the product's current state, barcodes included. */
 async function feedProduct(tx: ShopperTransaction, orgId: string, id: string) {
@@ -45,6 +46,7 @@ export const createProduct = defineCommand({
         );
     const after = await loadProduct(tx, context.orgId, row!.id);
     await feedProduct(tx, context.orgId, row!.id);
+    await markOnboarding(tx, context.orgId, "catalogue");
     return { id: row!.id, before: null, after: { ...after, barcodes } };
   },
   audit: (_input, result) => ({ productId: result.id }),

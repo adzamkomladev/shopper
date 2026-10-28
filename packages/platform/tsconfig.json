@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["node", "vite-plus/client"]
+  },
+  "include": ["src"],
+  "references": [{ "path": "../backoffice" }, { "path": "../config" }, { "path": "../ui" }]
+}

@@ -43,6 +43,7 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   "kyc.approve": "Approve identity checks",
   "payment.reconcile": "Reconcile payments",
   "billing.manage": "Manage the Shopper subscription",
+  "org.kyb.submit": "Verify the business for payouts",
 };
 
 /** The matrix reads top to bottom in these groups. */
@@ -63,7 +64,7 @@ export const PERMISSION_GROUPS: readonly { name: string; codes: readonly Permiss
     name: "Customers",
     codes: ["customer.read", "customer.write", "customer.manage", "kyc.approve"],
   },
-  { name: "Payments", codes: ["payment.reconcile", "billing.manage"] },
+  { name: "Payments", codes: ["payment.reconcile", "billing.manage", "org.kyb.submit"] },
   { name: "Shifts", codes: ["shift.read", "shift.write", "shift.approve"] },
   {
     name: "Products and stock",

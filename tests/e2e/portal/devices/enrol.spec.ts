@@ -30,7 +30,7 @@ test("enrol a device from the keyboard: the code shown is real and the new till 
   await page.keyboard.press("ControlOrMeta+Enter");
   const code = dialog(page).getByRole("status", { name: "Enrolment code" });
   await expect(code).toHaveText(DIGITS);
-  await expect(dialog(page)).toContainText(/enter this code on the till/i);
+  await expect(dialog(page)).toContainText(/enter the shop code and this code on the till/i);
   await expect(dialog(page)).toContainText(/expires/i);
   await expect(dialog(page).getByRole("button", { name: "Done" })).toBeFocused();
 

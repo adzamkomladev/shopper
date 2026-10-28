@@ -35,6 +35,10 @@
     "./schemas": {
       "types": "./src/schemas/index.ts",
       "default": "./src/schemas/index.ts"
+    },
+    "./qr": {
+      "types": "./src/qr.ts",
+      "default": "./src/qr.ts"
     }
   },
   "scripts": {

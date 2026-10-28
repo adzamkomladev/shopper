@@ -12,8 +12,10 @@ export const enrollmentInput = v.strictObject({
 export const enrollmentResult = v.object({
   deviceId: id,
   branchId: id,
+  storeId: id,
+  branchName: v.string(),
   deviceToken: v.pipe(v.string(), v.regex(/^[0-9a-f]{64}$/)),
-  receiptCodes: v.unknown(),
+  receiptCodes: v.object({ branchCode: v.string(), deviceCode: v.string() }),
 });
 export const parseEnrollmentResult = (data: unknown) => v.parse(enrollmentResult, data);
 export const isEnrollmentCode = (code: string) => v.is(enrollmentInput.entries.code, code);

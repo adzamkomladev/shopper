@@ -12,6 +12,10 @@
       "types": "./src/register.ts",
       "default": "./src/register.ts"
     },
+    "./kit": {
+      "types": "./src/kit.ts",
+      "default": "./src/kit.ts"
+    },
     "./shifts": {
       "types": "./src/shifts.ts",
       "default": "./src/shifts.ts"
@@ -26,6 +30,7 @@
     "@shopper/auth": "workspace:*",
     "@shopper/config": "workspace:*",
     "@shopper/core": "workspace:*",
+    "@shopper/hardware": "workspace:*",
     "@shopper/money": "workspace:*",
     "@shopper/ui": "workspace:*",
     "@shopper/utils": "workspace:*",

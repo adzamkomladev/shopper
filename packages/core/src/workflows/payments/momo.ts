@@ -5,6 +5,7 @@ import { WorkflowTimeoutError, type Workflow } from "@shopper/ports";
 import { momoCheckpoint, recordMomoDeadline, updateMomo } from "../../payments/commands";
 import { momoEvent, momoParams } from "../../payments/schemas/momo";
 import type { MomoDeps } from "../../payments/types";
+import { payoutSubaccount } from "../../kyb/records";
 
 const policy = { maxAttempts: 3, delayMs: 1000, backoff: "constant" } as const;
 
@@ -110,6 +111,11 @@ export async function runMomoPayment(
             phone: params.phone,
             network: initial.network,
             email: params.email,
+            // Read inside the step: a charge already sent keeps the payout it began with.
+            subaccount:
+              initial.provider === "hubtel"
+                ? undefined
+                : await deps.withDatabase((db) => payoutSubaccount(db, params.orgId)),
           }),
     );
     let index = 0;

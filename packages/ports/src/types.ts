@@ -20,6 +20,8 @@ export interface Blobs {
   put(orgId: string, key: string, value: Uint8Array): Promise<void>;
   get(orgId: string, key: string, maxBytes?: number): Promise<Uint8Array | null>;
   createUpload(orgId: string, key: string, options: BlobUploadOptions): Promise<BlobUpload>;
+  // A short-lived GET grant straight from object storage, so a browser reads the bytes without the API.
+  createDownload(orgId: string, key: string, expiresInSeconds: number): Promise<string>;
   delete(orgId: string, key: string): Promise<void>;
   signedUrl(orgId: string, key: string, expiresInSeconds: number): Promise<string>;
 }

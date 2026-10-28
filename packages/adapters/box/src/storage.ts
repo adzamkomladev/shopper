@@ -70,6 +70,8 @@ export async function boxBlobs(
           throw new Error("Direct uploads require an imports or receipts key");
         return selected(key).createUpload(orgId, key, input);
       },
+      createDownload: (orgId: string, key: string, expiresInSeconds: number) =>
+        selected(key).createDownload(orgId, key, expiresInSeconds),
       signedUrl: access.sign,
     },
     readSigned: access.read,

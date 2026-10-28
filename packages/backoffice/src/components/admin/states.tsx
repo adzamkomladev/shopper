@@ -28,7 +28,9 @@ export function EmptyList({ icon: Icon, title, description, children }: EmptyPro
         <h2 className="text-lg font-medium tracking-tight">{title}</h2>
         <EmptyDescription>{description}</EmptyDescription>
       </EmptyHeader>
-      {children && <EmptyContent className="flex-row justify-center">{children}</EmptyContent>}
+      {children && (
+        <EmptyContent className="flex-row flex-wrap justify-center">{children}</EmptyContent>
+      )}
     </Empty>
   );
 }

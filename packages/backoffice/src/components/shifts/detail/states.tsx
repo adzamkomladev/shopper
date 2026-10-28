@@ -33,7 +33,7 @@ export function ShiftError(props: ErrorComponentProps) {
               : "Try again in a moment."}
         </EmptyDescription>
       </EmptyHeader>
-      <EmptyContent className="flex-row justify-center">
+      <EmptyContent className="flex-row flex-wrap justify-center">
         {!missing && (
           <Button
             variant="outline"

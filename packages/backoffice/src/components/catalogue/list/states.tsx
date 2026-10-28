@@ -11,6 +11,8 @@ import {
 } from "@shopper/ui/components/empty";
 import { Kbd } from "@shopper/ui/components/kbd";
 import { Skeleton } from "@shopper/ui/components/skeleton";
+import { EmptyList } from "../../admin/states";
+import { SetupStepLink } from "../../setup/back";
 
 const SKELETON_ROWS = 6;
 
@@ -22,26 +24,20 @@ export function EmptyCatalogue({
   addRef: React.Ref<HTMLButtonElement>;
 }) {
   return (
-    <Empty className="border">
-      <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <PackageIcon aria-hidden />
-        </EmptyMedia>
-        <EmptyTitle>No products yet</EmptyTitle>
-        <EmptyDescription>
-          Add your first product, or bring in a whole spreadsheet.
-        </EmptyDescription>
-      </EmptyHeader>
-      <EmptyContent className="flex-row justify-center">
-        <Button ref={addRef} onClick={onAdd}>
-          Add product
-          <Kbd aria-hidden>N</Kbd>
-        </Button>
-        <Button asChild variant="outline">
-          <Link to="/imports">Import spreadsheet</Link>
-        </Button>
-      </EmptyContent>
-    </Empty>
+    <EmptyList
+      icon={PackageIcon}
+      title="No products yet"
+      description="Add your first product, or bring in a whole spreadsheet."
+    >
+      <Button ref={addRef} onClick={onAdd}>
+        Add product
+        <Kbd aria-hidden>N</Kbd>
+      </Button>
+      <Button asChild variant="outline">
+        <Link to="/imports">Import spreadsheet</Link>
+      </Button>
+      <SetupStepLink step="products" />
+    </EmptyList>
   );
 }
 

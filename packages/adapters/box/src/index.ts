@@ -13,6 +13,8 @@ export { boxSettlements } from "./workflows/settlements";
 export { boxApprovals } from "./workflows/approvals";
 export { boxQueue } from "./queue";
 export { boxKycFlows } from "./workflows/kyc";
+export { boxOnboardingFlows } from "./workflows/onboarding";
+export { boxKybFlows } from "./workflows/kyb";
 export { boxAccountFlows } from "./workflows/account";
 export { boxStatementFlows } from "./workflows/statements";
 export { boxLane } from "./lane";

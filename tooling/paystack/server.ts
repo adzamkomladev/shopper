@@ -3,6 +3,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { paystackRefunds } from "./refunds";
 import { paystackSettlements } from "./settlements";
 import { paystackCheckout } from "./checkout";
+import { paystackSubaccounts } from "./subaccounts";
 
 /** Paystack's documented sandbox OTP; the fake accepts nothing else. */
 export const FAKE_OTP = "123456";
@@ -27,6 +28,7 @@ export async function startPaystackFake({ port = 0, secretKey = "sk_test_fake" }
   );
   const settlements = paystackSettlements(reply);
   const checkout = paystackCheckout(reply);
+  const subaccounts = paystackSubaccounts(reply);
 
   const server = createServer(async (request, response) => {
     const url = new URL(request.url ?? "/", "http://localhost");
@@ -54,6 +56,7 @@ export async function startPaystackFake({ port = 0, secretKey = "sk_test_fake" }
     if (refunds.handle(request.method ?? "GET", url.pathname, body, response)) return;
     if (settlements.handle(request.method ?? "GET", url, response)) return;
     if (checkout.handle(request.method ?? "GET", url.pathname, body, response)) return;
+    if (subaccounts.handle(request.method ?? "GET", url, body, response)) return;
     const verifyMatch = /^\/transaction\/verify\/([^/]+)$/.exec(url.pathname);
     if (request.method === "GET" && verifyMatch) return verify(response, verifyMatch[1]!);
     reply(response, 404, { status: false, message: "Not found" });
@@ -165,6 +168,7 @@ export async function startPaystackFake({ port = 0, secretKey = "sk_test_fake" }
     requests,
     ...refunds.controls,
     ...settlements.controls,
+    ...subaccounts.controls,
     /** Sets how a phone number behaves when charged. */
     behave(
       phone: string,

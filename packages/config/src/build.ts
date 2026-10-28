@@ -4,6 +4,7 @@ declare const BUILD_DATE: string;
 declare const SCHEMA_VERSION: number;
 declare const SYNC_PROTOCOL: number;
 declare const ARCHIVE_FORMAT: number;
+declare const TILL_DOWNLOAD_URL: string;
 
 export const buildInfo = Object.freeze({
   version: SHOPPER_VERSION,
@@ -12,4 +13,5 @@ export const buildInfo = Object.freeze({
   schemaVersion: SCHEMA_VERSION,
   syncProtocol: SYNC_PROTOCOL,
   archiveFormat: ARCHIVE_FORMAT,
+  tillDownloadUrl: TILL_DOWNLOAD_URL,
 });

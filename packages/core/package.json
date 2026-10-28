@@ -16,6 +16,18 @@
       "types": "./src/schemas/index.ts",
       "default": "./src/schemas/index.ts"
     },
+    "./onboarding": {
+      "types": "./src/onboarding/index.ts",
+      "default": "./src/onboarding/index.ts"
+    },
+    "./kyb": {
+      "types": "./src/kyb/index.ts",
+      "default": "./src/kyb/index.ts"
+    },
+    "./platform": {
+      "types": "./src/platform/index.ts",
+      "default": "./src/platform/index.ts"
+    },
     "./orgs": {
       "types": "./src/orgs.ts",
       "default": "./src/orgs.ts"

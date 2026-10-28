@@ -7,5 +7,9 @@ export type NotificationDeps = StatementDeliveryDeps & {
   statements?: WorkflowLauncher;
   /** Starts the MoMo refund workflow for each `payment.refund`. */
   refunds?: WorkflowLauncher;
+  /** Woken by `onboarding.event` once a shop's first product or sale commits. */
+  onboarding?: WorkflowLauncher;
+  /** Started, or woken, by each `kyb.notice` that moves a business verification on. */
+  kyb?: WorkflowLauncher;
   queue?: Queue;
 };

@@ -6,5 +6,7 @@ export interface OnboardingOptions {
   linkSecret: string;
   baseURL: string;
   launcher: WorkflowLauncher;
+  /** The shop's onboarding: started at signup, woken by verification and completion. */
+  onboarding?: WorkflowLauncher;
   now?: () => number;
 }

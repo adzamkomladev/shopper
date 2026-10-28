@@ -6,7 +6,7 @@ import type { ShopperDatabase } from "@shopper/db-pg";
 import { publishStoreChanged } from "@shopper/core/changes";
 import { assetReference } from "@shopper/assets/schemas";
 import { issueImportUpload, readImportAsset } from "@shopper/assets";
-import type { Blobs, Realtime, WorkflowLauncher } from "@shopper/ports";
+import type { Blobs, Queue, Realtime, WorkflowLauncher } from "@shopper/ports";
 import { ManagementError } from "@shopper/core/management";
 import {
   addBarcode,
@@ -50,6 +50,8 @@ export function catalogueRoutes(options: {
   priceChange?: WorkflowLauncher;
   realtime?: Realtime;
   blobs?: Blobs;
+  /** Carries what a catalogue write wakes once it commits, such as the shop's onboarding. */
+  notifications?: Queue;
 }) {
   const db = options.database;
   const app = new Hono<ApiEnvironment>();
@@ -74,6 +76,7 @@ export function catalogueRoutes(options: {
       branchId: principal.branchId,
       appVersion: buildInfo.version,
       reason,
+      queue: options.notifications,
       onStoreChanged: options.realtime
         ? async (storeId: string, sequence: string) => {
             await publishStoreChanged(options.realtime!, principal.orgId, storeId, sequence);

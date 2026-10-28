@@ -1,3 +1,4 @@
+import { createPaystack } from "@shopper/core/payments/paystack";
 import { isPublicRequest, publicApi, runtimeUnavailable, serveRuntime } from "@shopper/api/runtime";
 import { cloudflareBlobs, cloudflareCache } from "./storage";
 import { cloudflareResponse } from "./response";
@@ -68,12 +69,18 @@ export async function cloudflareRuntime(
     momoRefund:
       env.MOMO_REFUND && env.PAYSTACK_SECRET_KEY ? cloudflareLauncher(env.MOMO_REFUND) : undefined,
     paystackSecret: env.PAYSTACK_SECRET_KEY,
+    // Payouts go through subaccounts under Shopper's own Paystack account.
+    platform: env.SHOPPER_PLATFORM_ORG ? { orgSlug: env.SHOPPER_PLATFORM_ORG } : undefined,
+    kyb: env.PAYSTACK_SECRET_KEY
+      ? createPaystack({ secretKey: env.PAYSTACK_SECRET_KEY, baseUrl: env.PAYSTACK_BASE_URL })
+      : undefined,
     hubtel: cloudflareHubtel(env),
     settlements:
       env.SETTLEMENT && env.PAYSTACK_SECRET_KEY ? cloudflareLauncher(env.SETTLEMENT) : undefined,
     approvals: env.APPROVAL ? cloudflareLauncher(env.APPROVAL) : undefined,
     billing: env.BILLING ? cloudflareLauncher(env.BILLING) : undefined,
     authFlows: env.AUTH_FLOWS ? cloudflareLauncher(env.AUTH_FLOWS) : undefined,
+    onboarding: env.ONBOARDING_FLOWS ? cloudflareLauncher(env.ONBOARDING_FLOWS) : undefined,
     kyc:
       env.KYC_FLOWS && env.ARKESEL_API_KEY && env.ARKESEL_SENDER
         ? cloudflareLauncher(env.KYC_FLOWS)

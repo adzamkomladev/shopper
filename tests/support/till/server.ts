@@ -62,9 +62,20 @@ beforeAll(async () => {
     secret: new Uint8Array(32).fill(7),
   });
   blobs = storage.blobs;
-  api = await serveHono(
-    apiPackage.createApi({ database: db, devices, sequencer, blobs, notifications, lane }),
-  );
+  const app = apiPackage.createApi({
+    database: db,
+    devices,
+    sequencer,
+    blobs,
+    notifications,
+    lane,
+  });
+  const orgs = apiPackage.orgRoutes({ database: db });
+  // The runtime serves the public shop-code lookup beside the API, as here.
+  api = await serveHono({
+    fetch: (request) =>
+      new URL(request.url).pathname.startsWith("/orgs/") ? orgs.fetch(request) : app.fetch(request),
+  });
   local = openTillDatabase(join(localDirectory, "till.sqlite"));
   await provisionReferences(cashier.branchId);
 });

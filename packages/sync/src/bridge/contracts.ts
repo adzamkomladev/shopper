@@ -35,4 +35,5 @@ export {
 export { refundRequestTypes, type EligibilityView } from "../schemas/bridge/refunds";
 export { shiftRequestTypes, type ShiftStatus } from "../schemas/bridge/shifts";
 export { customerRequestTypes } from "../schemas/bridge/customers";
+export { enrolErrors, enrolRequestTypes } from "../schemas/bridge/enrol";
 export { accountRequestTypes, accountView, pointsHoldReply } from "../schemas/bridge/accounts";

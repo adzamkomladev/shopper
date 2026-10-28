@@ -46,7 +46,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: "Payments",
     icon: ScaleIcon,
     permission: "report.read",
-    also: ["/payments/settings"],
+    also: ["/payments/settings", "/payments/verification"],
   },
   {
     to: "/approvals",

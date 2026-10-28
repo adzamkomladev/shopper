@@ -40,7 +40,16 @@ local host availability from server status and shows pending and blocked sales w
 - **About** shows the register application details (`A`).
 
 Sales remain on the register after upload. This screen reports connection and sync status; it does
-not settle payments or enroll devices.
+not settle payments or enroll devices (the enrol screen below does).
+
+## Enrolment (Day 25)
+
+A host with no identity answers `kind: "unenrolled"`, and the UI shows "Set up this till" before
+anything else: the shop code, the one-time code and a till name, sent as `device.enrol`. A scanner
+reading the portal's QR (`shopper:enrol?shop=…&code=…`) types into whichever field has focus; the
+form recognises the payload, fills both codes and its Enter submits. Each refusal has its own message.
+After `kind: "enrolled"` the host restarts on the same bridge, and the UI reconnects (up to 20 s) and
+moves on to sign-in.
 
 ## Sign-in and the desktop shell (Day 13)
 

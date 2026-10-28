@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["node", "vite-plus/client"]
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../../packages/adapters/cf" },
+    { "path": "../../packages/backoffice" },
+    { "path": "../../packages/platform" },
+    { "path": "../../packages/ui" }
+  ]
+}

@@ -119,13 +119,16 @@ export const consume = defineCommand({
       .insert(deviceCredential)
       .values({ orgId: c.orgId, deviceId: row!.id, tokenHash: await sha256(deviceToken) });
     const [location] = await tx
-      .select({ code: branch.code })
+      .select({ code: branch.code, storeId: branch.storeId, name: branch.name })
       .from(branch)
       .where(and(eq(branch.orgId, c.orgId), eq(branch.id, challenge.branchId)));
     if (!row || !location) throw new DeviceError("Enrollment location not found", 404);
     return {
       deviceId: row.id,
       branchId: challenge.branchId,
+      // The till's identity names its store and branch; it has nothing else to read them from yet.
+      storeId: location.storeId,
+      branchName: location.name,
       deviceToken,
       receiptCodes: { branchCode: location.code, deviceCode: row.code },
     };

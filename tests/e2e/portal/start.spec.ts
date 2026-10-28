@@ -19,7 +19,7 @@ test("portal documents are one static SPA shell with host info from a server fun
   expect(lookup.ok()).toBe(true);
   expect(await lookup.json()).toMatchObject({ name: "E2E Mart" });
   await page.goto("/products");
-  await expect(page.getByRole("heading", { name: "Products" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Products", exact: true })).toBeVisible();
   await expect(page.locator('meta[name="shopper-version"]')).toHaveAttribute(
     "content",
     /^\d+\.\d+\.\d+/,

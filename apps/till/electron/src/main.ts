@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { app, BrowserWindow, dialog, Menu, nativeTheme } from "electron";
 import { openDisplay } from "./display";
 import { answerRender } from "./render";
-import { loadSecrets } from "./secrets";
+import { loadSecrets, writeAtomic } from "./secrets";
 import { lockDown } from "./window";
 
 // Chromium must paint at 1 CSS px = 1 device px so a receipt window is exactly `dots` wide.
@@ -52,15 +52,21 @@ async function startRegister() {
     process.env.SHOPPER_TILL_CONFIG ??
     join(userData, "register.json");
   const text = await readFile(configPath, "utf8");
-  let stored: { ui?: string; deviceToken?: unknown; sqlitePath?: unknown };
+  let stored: { ui?: string; deviceToken?: unknown; sqlitePath?: unknown; identity?: unknown };
   try {
     stored = JSON.parse(text);
   } catch {
     // V8's message quotes the JSON around the fault, which may be the device token.
     throw new Error(`${configPath} is not valid JSON`);
   }
-  const { v: _version, ...secrets } = await loadSecrets(userData, stored, configPath);
-  const config = { ...stored, ...(app.isPackaged && { ui: stored.ui ?? here("ui") }), ...secrets };
+  // A fresh install has no identity yet: the host enrols it, then the token is sealed like any other.
+  const prepare = async (register: typeof stored) => {
+    const ui = app.isPackaged && { ui: register.ui ?? here("ui") };
+    if (register.identity === undefined) return { ...register, ...ui };
+    const { v: _version, ...secrets } = await loadSecrets(userData, register, configPath);
+    return { ...register, ...ui, ...secrets };
+  };
+  const config = await prepare(stored);
   const host = fork(hostEntry, [], { env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" } });
   app.on("window-all-closed", () => app.quit());
   let quitting = false;
@@ -87,10 +93,15 @@ async function startRegister() {
         capability?: string;
         port?: number;
         message?: string;
+        registration?: object;
       } | null,
     ) => {
       if (message?.type === "error" && !ready) cause = message.message;
+      else if (message?.type === "enrolled" && message.registration)
+        void enrol(message.registration).catch((error: unknown) => fail("Register stopped", error));
       else if (message?.type === "ready" && message.capability) {
+        // After enrolment the host comes back on the same port and capability; the open window reconnects.
+        if (ready) return;
         ready = true;
         openTill(message.capability, config.ui ? `http://127.0.0.1:${message.port}/` : tillUi);
       } else if (message?.type === "render")
@@ -98,6 +109,13 @@ async function startRegister() {
     },
   );
   host.send({ type: "start", config, renderer: "parent" });
+
+  /** Stores what the host enrolled with, seals its token and starts the host as an enrolled till. */
+  async function enrol(registration: object) {
+    const register = { ...stored, ...registration, session: null };
+    await writeAtomic(configPath, JSON.stringify(register, null, 2));
+    host.send({ type: "start", config: await prepare(register), renderer: "parent" });
+  }
 }
 
 /**

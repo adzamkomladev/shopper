@@ -14,7 +14,7 @@ export function LoginScreen() {
   return (
     <AuthFrame>
       {signedIn ? (
-        <LoginSuccess onContinue={() => void navigate({ to: "/products" })} />
+        <LoginSuccess onContinue={() => void navigate({ to: "/" })} />
       ) : (
         <LoginForm box={box} defaultShopCode={shop ?? ""} onSignedIn={() => setSignedIn(true)} />
       )}

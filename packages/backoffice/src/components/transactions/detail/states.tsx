@@ -58,7 +58,7 @@ export function TransactionError(props: ErrorComponentProps) {
             : "The transaction could not be loaded. Check the connection and try again."}
         </EmptyDescription>
       </EmptyHeader>
-      <EmptyContent className="flex-row justify-center">
+      <EmptyContent className="flex-row flex-wrap justify-center">
         {!missing && (
           <Button
             variant="outline"

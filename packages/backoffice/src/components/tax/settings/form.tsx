@@ -25,13 +25,19 @@ const ROUNDING = [
 ] as const;
 
 /** The business's TIN and VAT registration, how shelf prices treat tax, and how cash is rounded. */
-export function TaxSettingsForm({ settings }: { settings: TaxSettingsView }) {
+export function TaxSettingsForm({
+  settings,
+  onSaved,
+}: {
+  settings: TaxSettingsView;
+  onSaved?: () => void;
+}) {
   const online = useOnline();
   const save = useSaveSettings("tax", "Tax settings saved");
   const form = useForm({
     defaultValues: taxValues(settings),
     validators: { onSubmit: taxFormSchema },
-    onSubmit: ({ value }) => save.mutate(toTaxBody(value)),
+    onSubmit: ({ value }) => save.mutate(toTaxBody(value), { onSuccess: onSaved }),
     onSubmitInvalid: focusFirstInvalid,
   });
   const registered = useStore(form.store, (state) => state.values.registered);

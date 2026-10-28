@@ -12,7 +12,7 @@ import type { UploadPrincipal } from "../sales/types";
 import { validateRefundAuthority } from "./authority";
 import { refundDocument } from "./document";
 import { validateRefund } from "./validate";
-import { checkReorder } from "../stock/reorder";
+import { checkStockAlerts } from "../stock/reorder";
 import { creditRefund, saleAccount } from "../customers/credit/refunds";
 import { salePoints, settleRefundPoints } from "../customers/loyalty/ledger";
 import type { Queue } from "@shopper/ports";
@@ -206,7 +206,7 @@ const accept = defineCommand({
         occurredAt: input.occurredAt,
       })),
     );
-    await checkReorder(
+    await checkStockAlerts(
       tx,
       ctx,
       snapshot.branchId,

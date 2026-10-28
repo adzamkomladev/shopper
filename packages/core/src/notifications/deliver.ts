@@ -23,6 +23,7 @@ export type { NotificationDeps } from "./types";
 export async function deliverNotification(deps: NotificationDeps, delivery: Delivery) {
   switch (delivery.message.type) {
     case "stock.low":
+    case "stock.negative":
       if (!deps.sms) return await delivery.retry();
       return await deliverStockAlert(deps.db, deps.sms, delivery, deps.appVersion);
     case "statement.send":

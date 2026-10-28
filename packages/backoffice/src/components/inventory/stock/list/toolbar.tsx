@@ -22,11 +22,13 @@ type Props = {
   onBranchOpenChange: (open: boolean) => void;
   low: boolean;
   onToggleLow: () => void;
+  negative: boolean;
+  onToggleNegative: () => void;
 };
 
-/** Search, the branch whose stock is shown, and the low stock filter, each with its key. */
+/** Search, the branch whose stock is shown, and the low and negative stock filters, each with its key. */
 export function StockToolbar(props: Props) {
-  const { branches, branchId, low } = props;
+  const { branches, branchId, low, negative } = props;
   return (
     <div className="flex flex-wrap gap-3">
       <InputGroup className="min-w-0 flex-1 basis-64">
@@ -73,6 +75,19 @@ export function StockToolbar(props: Props) {
           className="[[data-slot=button][data-variant=default]_&]:bg-primary-foreground/5"
         >
           L
+        </Kbd>
+      </Button>
+      <Button
+        variant={negative ? "default" : "outline"}
+        aria-pressed={negative}
+        onClick={props.onToggleNegative}
+      >
+        Negative
+        <Kbd
+          aria-hidden
+          className="[[data-slot=button][data-variant=default]_&]:bg-primary-foreground/5"
+        >
+          Z
         </Kbd>
       </Button>
     </div>

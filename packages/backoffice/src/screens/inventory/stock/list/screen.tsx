@@ -16,7 +16,7 @@ import { useStockShortcuts } from "../../../../hooks/inventory/stock/shortcuts";
 import { pickBranch } from "../../../../lib/inventory/format";
 import { stockBranchesQuery } from "../../../../queries/inventory/stock";
 
-/** What is on hand at one branch, with search and the low stock filter; a row opens the product's page. */
+/** What is on hand at one branch, with search and the low and negative stock filters; a row opens the product's page. */
 export function StockScreen() {
   return (
     <InventoryPage active="stock">
@@ -37,6 +37,7 @@ function StockBody() {
   const shortcuts = useStockShortcuts({
     focusSearch: () => searchRef.current?.focus(),
     toggleLow: state.toggleLow,
+    toggleNegative: state.toggleNegative,
     pickBranch: () => setBranchOpen(true),
   });
   const branch = pickBranch(data.branches, search.branch);
@@ -60,6 +61,8 @@ function StockBody() {
         onBranchOpenChange={setBranchOpen}
         low={!!search.low}
         onToggleLow={state.toggleLow}
+        negative={!!search.negative}
+        onToggleNegative={state.toggleNegative}
       />
       <Suspense fallback={<TableSkeleton />}>
         <StockResults
@@ -67,6 +70,7 @@ function StockBody() {
           branchName={branch.name}
           q={search.q}
           low={search.low}
+          negative={search.negative}
           onClear={() => {
             state.clear();
             searchRef.current?.focus();

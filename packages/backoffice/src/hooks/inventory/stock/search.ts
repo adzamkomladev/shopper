@@ -33,7 +33,10 @@ export function useStockSearch(search: StockSearch) {
       setQuery(value);
     },
     onBranchChange: (branch: string) => void update({ branch }),
-    toggleLow: () => void update({ low: search.low ? undefined : true }),
+    // One filter at a time: negative stock is rarely also asked about by reorder level.
+    toggleLow: () => void update({ low: search.low ? undefined : true, negative: undefined }),
+    toggleNegative: () =>
+      void update({ negative: search.negative ? undefined : true, low: undefined }),
     /** Escape in the search box: empties it, or (when already empty) leaves it for the screen so shortcuts work. */
     onSearchKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
       if (event.key !== "Escape") return;
@@ -46,7 +49,7 @@ export function useStockSearch(search: StockSearch) {
     clear: () => {
       setQuery.cancel();
       setText("");
-      void update({ q: undefined, low: undefined });
+      void update({ q: undefined, low: undefined, negative: undefined });
     },
   };
 }

@@ -19,7 +19,7 @@ import {
 } from "../schemas/stock/portal";
 import { validateProducts } from "./authority";
 import { StockError } from "./error";
-import { checkReorder } from "./reorder";
+import { checkStockAlerts } from "./reorder";
 
 type Recorded = { id: string; replayed: boolean };
 type Draft = {
@@ -95,7 +95,7 @@ async function recordDocument(tx: ShopperTransaction, ctx: CommandContext, draft
       occurredAt: draft.occurredAt,
     })),
   );
-  await checkReorder(
+  await checkStockAlerts(
     tx,
     ctx,
     draft.branchId,

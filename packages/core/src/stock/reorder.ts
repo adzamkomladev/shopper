@@ -2,61 +2,102 @@ import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { v7 } from "uuid";
 import * as v from "valibot";
 import { defineCommand, enqueueAfterCommit, type CommandContext } from "@shopper/audit";
-import { branch, reorderPoint, stockAlert, type ShopperTransaction } from "@shopper/db-pg";
+import {
+  branch,
+  reorderPoint,
+  stockAlert,
+  type ShopperTransaction,
+  type stockAlertKinds,
+} from "@shopper/db-pg";
 import { reorderInput } from "../schemas/stock/alerts";
 import { validateProducts } from "./authority";
 import { StockError } from "./error";
 import { onHand } from "./onhand";
 
 /**
- * Raises a low-stock alert for each product at or under its reorder level and clears the ones back
- * above it. The partial unique index makes a crossing raise once, however many writers see it.
+ * Keeps each product's one open alert in step with its on hand. Its kind is the worst condition: `negative`
+ * under zero, for every product (two registers can sell the last unit offline), else `low` at or under its
+ * reorder level; with neither it clears. A raise, or a change of kind, texts again (`sent_at` resets). The
+ * partial unique index keeps one open alert per product, however many writers see the crossing; writers from
+ * before kinds existed keep raising and clearing low alerts against the same index.
  */
-export async function checkReorder(
+export async function checkStockAlerts(
   tx: ShopperTransaction,
   ctx: CommandContext,
   branchId: string,
   productIds: string[],
 ) {
   if (!productIds.length) return;
-  const levels = await tx
-    .select()
-    .from(reorderPoint)
-    .where(
-      and(
-        eq(reorderPoint.orgId, ctx.orgId),
-        eq(reorderPoint.branchId, branchId),
-        inArray(reorderPoint.productId, productIds),
-      ),
-    );
-  if (!levels.length) return;
+  const levels = new Map(
+    (
+      await tx
+        .select()
+        .from(reorderPoint)
+        .where(
+          and(
+            eq(reorderPoint.orgId, ctx.orgId),
+            eq(reorderPoint.branchId, branchId),
+            inArray(reorderPoint.productId, productIds),
+          ),
+        )
+    ).map((level) => [level.productId, level.levelThousandths]),
+  );
+  const unique = [...new Set(productIds)];
   const totals = await onHand(
     tx,
     ctx.orgId,
     branchId,
-    levels.map((level) => ({ productId: level.productId })),
+    unique.map((productId) => ({ productId })),
   );
-  const recovered: string[] = [];
-  for (const level of levels) {
-    const current = totals.get(level.productId)!;
-    if (current > level.levelThousandths) {
-      recovered.push(level.productId);
+  // Read first: a product that stays low or negative writes nothing, so concurrent sales of it take no lock.
+  const open = new Map(
+    (
+      await tx
+        .select({ id: stockAlert.id, productId: stockAlert.productId, kind: stockAlert.kind })
+        .from(stockAlert)
+        .where(
+          and(
+            eq(stockAlert.orgId, ctx.orgId),
+            eq(stockAlert.branchId, branchId),
+            inArray(stockAlert.productId, unique),
+            isNull(stockAlert.clearedAt),
+          ),
+        )
+    ).map((alert) => [alert.productId, alert]),
+  );
+  for (const productId of unique) {
+    const current = totals.get(productId)!;
+    const level = levels.get(productId);
+    const kind: (typeof stockAlertKinds)[number] | undefined =
+      current < 0 ? "negative" : level !== undefined && current <= level ? "low" : undefined;
+    const existing = open.get(productId);
+    if (existing?.kind === kind) continue;
+    if (!kind) {
+      await clearAlert(tx, ctx.orgId, existing!.id);
       continue;
     }
-    const [raised] = await tx
-      .insert(stockAlert)
-      .values({
-        orgId: ctx.orgId,
-        branchId,
-        productId: level.productId,
-        levelThousandths: level.levelThousandths,
-        onHandThousandths: current,
-      })
-      .onConflictDoNothing({
-        target: [stockAlert.orgId, stockAlert.branchId, stockAlert.productId],
-        where: isNull(stockAlert.clearedAt),
-      })
-      .returning({ id: stockAlert.id });
+    const values = { kind, levelThousandths: level ?? 0, onHandThousandths: current };
+    const [raised] = existing
+      ? await tx
+          .update(stockAlert)
+          .set({ ...values, sentAt: null, updatedAt: sql`now()` })
+          .where(
+            and(
+              eq(stockAlert.orgId, ctx.orgId),
+              eq(stockAlert.id, existing.id),
+              isNull(stockAlert.clearedAt),
+              sql`${stockAlert.kind} <> ${kind}`,
+            ),
+          )
+          .returning({ id: stockAlert.id })
+      : await tx
+          .insert(stockAlert)
+          .values({ orgId: ctx.orgId, branchId, productId, ...values })
+          .onConflictDoNothing({
+            target: [stockAlert.orgId, stockAlert.branchId, stockAlert.productId],
+            where: isNull(stockAlert.clearedAt),
+          })
+          .returning({ id: stockAlert.id });
     // Alerts are not store-sequenced; consumers read the row, not the order.
     if (raised)
       enqueueAfterCommit(tx, {
@@ -64,30 +105,18 @@ export async function checkReorder(
         orgId: ctx.orgId,
         v: 1,
         sequence: "0",
-        type: "stock.low",
-        payload: { alertId: raised.id },
+        type: `stock.${kind}`,
+        payload: { alertId: raised.id, kind },
       });
   }
-  await clearAlerts(tx, ctx.orgId, branchId, recovered);
 }
 
-async function clearAlerts(
-  tx: ShopperTransaction,
-  orgId: string,
-  branchId: string,
-  productIds: string[],
-) {
-  if (!productIds.length) return;
+async function clearAlert(tx: ShopperTransaction, orgId: string, alertId: string) {
   await tx
     .update(stockAlert)
     .set({ clearedAt: sql`now()`, updatedAt: sql`now()` })
     .where(
-      and(
-        eq(stockAlert.orgId, orgId),
-        eq(stockAlert.branchId, branchId),
-        inArray(stockAlert.productId, productIds),
-        isNull(stockAlert.clearedAt),
-      ),
+      and(eq(stockAlert.orgId, orgId), eq(stockAlert.id, alertId), isNull(stockAlert.clearedAt)),
     );
 }
 
@@ -112,7 +141,7 @@ export const setReorder = defineCommand({
             eq(reorderPoint.productId, productId),
           ),
         );
-      await clearAlerts(tx, ctx.orgId, branchId, [productId]);
+      await checkStockAlerts(tx, ctx, branchId, [productId]);
     } else {
       await tx
         .insert(reorderPoint)
@@ -121,7 +150,7 @@ export const setReorder = defineCommand({
           target: [reorderPoint.orgId, reorderPoint.branchId, reorderPoint.productId],
           set: { levelThousandths, updatedAt: new Date() },
         });
-      await checkReorder(tx, ctx, branchId, [productId]);
+      await checkStockAlerts(tx, ctx, branchId, [productId]);
     }
     return { branchId, productId, levelThousandths };
   },

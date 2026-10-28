@@ -24,7 +24,7 @@ import { publishCustomer } from "../customers/feed";
 import { consumeHolds } from "../customers/credit/holds";
 import { earnPoints } from "../customers/loyalty/ledger";
 import { wakeAccount } from "../customers/accounts/wake";
-import { checkReorder } from "../stock/reorder";
+import { checkStockAlerts } from "../stock/reorder";
 import type { Queue } from "@shopper/ports";
 import { recordFiscalDoc } from "../fiscal/documents";
 import { touchStoreDay } from "../reports/rollup";
@@ -169,7 +169,7 @@ const accept = defineCommand({
         occurredAt: input.occurredAt,
       })),
     );
-    await checkReorder(
+    await checkStockAlerts(
       tx,
       ctx,
       snapshot.branchId,

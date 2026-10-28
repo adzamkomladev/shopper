@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { DataTable, type DataTableColumn } from "@shopper/ui/components/data-table";
 import { quantityLabel } from "../../../../lib/inventory/format";
 import type { StockItem } from "../../../../queries/inventory/types";
-import { LowBadge } from "../badge";
+import { LowBadge, NegativeBadge } from "../badge";
 
 // A phone keeps the product, what is on hand and whether it is low; the level needs a tablet.
 const FROM_MD = "hidden md:table-cell";
@@ -55,7 +55,8 @@ export function StockTable({ items, branchId, onEndReached }: Props) {
     {
       id: "status",
       header: "Status",
-      cell: ({ row }) => (row.original.low ? <LowBadge /> : null),
+      cell: ({ row }) =>
+        row.original.negative ? <NegativeBadge /> : row.original.low ? <LowBadge /> : null,
     },
   ];
   return (

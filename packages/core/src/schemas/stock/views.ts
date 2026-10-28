@@ -13,6 +13,7 @@ export const stockQuery = v.object({
   ...listQuery.entries,
   branchId: id,
   low: v.optional(v.literal("1")),
+  negative: v.optional(v.literal("1")),
 });
 export const productStockQuery = v.object({ branchId: id });
 export const documentsQuery = v.object({
@@ -35,6 +36,7 @@ export const stockItem = v.object({
   onHandThousandths: int,
   levelThousandths: v.nullable(int),
   low: v.boolean(),
+  negative: v.boolean(),
 });
 export const stockList = page(stockItem);
 

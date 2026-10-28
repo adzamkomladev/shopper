@@ -13,7 +13,7 @@ import { currentShop } from "../../stores/shops";
 export type { StockItem, StockMovement, StockProduct, StockSearch } from "./types";
 
 export const STOCK_PAGE_SIZE = 100;
-type Filters = { branchId: string; q?: string; low?: true };
+type Filters = { branchId: string; q?: string; low?: true; negative?: true };
 
 /** The branches stock can be read at, sorted by name. */
 export function stockBranchesQuery(shop = currentShop()) {
@@ -24,13 +24,22 @@ export function stockBranchesQuery(shop = currentShop()) {
 }
 
 /** One branch's products a page at a time. Keyed by shop, branch and filters, so none share a list. */
-export function stockListQuery({ branchId, q, low }: Filters, shop = currentShop()) {
+export function stockListQuery({ branchId, q, low, negative }: Filters, shop = currentShop()) {
   return infiniteQueryOptions({
-    queryKey: ["stock", shop?.id ?? "box", "list", branchId, q ?? "", low ? "low" : ""],
+    queryKey: [
+      "stock",
+      shop?.id ?? "box",
+      "list",
+      branchId,
+      q ?? "",
+      low ? "low" : "",
+      negative ? "negative" : "",
+    ],
     queryFn: ({ pageParam }) => {
       const params = new URLSearchParams({ branchId, limit: String(STOCK_PAGE_SIZE) });
       if (q) params.set("q", q);
       if (low) params.set("low", "1");
+      if (negative) params.set("negative", "1");
       if (pageParam) params.set("cursor", pageParam);
       return apiFetch(`/stock?${params}`, stockList, { shopId: shop?.id ?? null });
     },

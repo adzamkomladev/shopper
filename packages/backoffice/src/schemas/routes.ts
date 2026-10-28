@@ -11,6 +11,7 @@ export const stockSearch = v.object({
   branch: v.optional(v.string()),
   q: v.optional(v.string()),
   low: v.optional(v.literal(true)),
+  negative: v.optional(v.literal(true)),
 });
 export const stockProductSearch = v.object({ branch: v.optional(v.string()) });
 

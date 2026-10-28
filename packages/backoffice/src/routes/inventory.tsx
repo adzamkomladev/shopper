@@ -36,7 +36,12 @@ export function inventoryRoutes(shopRoute: AnyRoute) {
         // Only started: the screen shows its own skeleton, so the heading and toolbar are there at once.
         if (branch)
           void context.queryClient.prefetchInfiniteQuery(
-            stockListQuery({ branchId: branch.id, q: deps.q, low: deps.low }),
+            stockListQuery({
+              branchId: branch.id,
+              q: deps.q,
+              low: deps.low,
+              negative: deps.negative,
+            }),
           );
       }),
     component: lazyRouteComponent(

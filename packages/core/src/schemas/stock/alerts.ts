@@ -16,11 +16,15 @@ export const reorderInput = v.strictObject({
 export type ReorderInput = v.InferOutput<typeof reorderInput>;
 
 /** The notification payload: the consumer reads everything else from the alert row. */
-export const stockLowPayload = v.strictObject({ alertId: uuidV7Schema });
+// `kind` names the alert's revision; messages queued before it existed carry only the id.
+export const stockLowPayload = v.strictObject({
+  alertId: uuidV7Schema,
+  kind: v.optional(v.picklist(["low", "negative"])),
+});
 
 /** What the queue carries for a raised alert; the consumer reads everything else from the row. */
 export const stockAlertMessage = v.looseObject({
-  type: v.literal("stock.low"),
+  type: v.picklist(["stock.low", "stock.negative"]),
   v: v.literal(1),
   orgId: uuidV7Schema,
   payload: stockLowPayload,

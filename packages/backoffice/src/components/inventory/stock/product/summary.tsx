@@ -5,7 +5,7 @@ import { Money } from "@shopper/ui/components/money";
 import { quantityLabel } from "../../../../lib/inventory/format";
 import type { StockProduct } from "../../../../queries/inventory/types";
 import { Stat } from "../../stat";
-import { LowBadge } from "../badge";
+import { LowBadge, NegativeBadge } from "../badge";
 
 type Props = {
   product: StockProduct;
@@ -26,7 +26,7 @@ export function StockSummary({ product, lastCost, onEdit, editRef }: Props) {
           <p className="text-2xl font-semibold tabular-nums">
             {quantityLabel(product.onHandThousandths, baseUnit)}
           </p>
-          {product.low && <LowBadge />}
+          {product.negative ? <NegativeBadge /> : product.low && <LowBadge />}
         </div>
       </Stat>
       <Stat

@@ -57,16 +57,20 @@ function stockRows(db: Queryable, orgId: string, branchId: string) {
       ),
   };
 }
-const withLow = <T extends { onHandThousandths: number; levelThousandths: number | null }>(
+const withFlags = <T extends { onHandThousandths: number; levelThousandths: number | null }>(
   row: T,
 ) => ({
   ...row,
   low: row.levelThousandths !== null && row.onHandThousandths <= row.levelThousandths,
+  negative: row.onHandThousandths < 0,
 });
 
-/** Active products of a branch, newest id first, keyset-paged; `low` keeps those at or under their reorder level. */
+/**
+ * Active products of a branch, newest id first, keyset-paged; `low` keeps those at or under their reorder
+ * level, `negative` those under zero.
+ */
 export async function listStock(db: Queryable, orgId: string, rawQuery: unknown) {
-  const { branchId, q, categoryId, low, cursor, limit } = v.parse(stockQuery, rawQuery);
+  const { branchId, q, categoryId, low, negative, cursor, limit } = v.parse(stockQuery, rawQuery);
   await requireBranch(db, orgId, branchId);
   const { onHand, select } = stockRows(db, orgId, branchId);
   const filters: (SQL | undefined)[] = [
@@ -75,6 +79,7 @@ export async function listStock(db: Queryable, orgId: string, rawQuery: unknown)
     categoryId ? eq(product.categoryId, categoryId) : undefined,
     cursor ? lt(product.id, cursor) : undefined,
     low ? sql`${onHand} <= ${reorderPoint.levelThousandths}` : undefined,
+    negative ? sql`${onHand} < 0` : undefined,
     q
       ? or(
           ilike(product.name, like(q)),
@@ -87,7 +92,7 @@ export async function listStock(db: Queryable, orgId: string, rawQuery: unknown)
     .where(and(...filters))
     .orderBy(desc(product.id))
     .limit(limit + 1);
-  const items = rows.slice(0, limit).map(withLow);
+  const items = rows.slice(0, limit).map(withFlags);
   return { items, nextCursor: rows.length > limit ? items[limit - 1]!.productId : null };
 }
 
@@ -133,7 +138,7 @@ export async function readStockProduct(
     .orderBy(desc(ledger.occurredAt), desc(ledger.id))
     .limit(MOVEMENT_LIMIT + 1);
   return {
-    ...withLow(item),
+    ...withFlags(item),
     movements: movements.slice(0, MOVEMENT_LIMIT).map(iso),
     truncated: movements.length > MOVEMENT_LIMIT,
   };

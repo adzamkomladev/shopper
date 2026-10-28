@@ -178,7 +178,14 @@ export async function startTillHost(
     uploadAccountPayments: () => worker.uploadAccountPayments(),
     close: () => void close(),
   };
-  const dispatch = createDispatch(host);
+  const route = createDispatch(host);
+  // Each request first re-reads the wall clock against the anchor, so whatever it dates uses a true offset.
+  const dispatch: typeof route = (request, trusted) =>
+    worker.checkClock().then(
+      () => route(request, trusted),
+      () =>
+        error(request, "STORAGE_FAILED", "Register storage is unavailable. Reconnect and retry."),
+    );
   const capability = randomBytes(32).toString("hex");
   try {
     transport = await openHostTransport({

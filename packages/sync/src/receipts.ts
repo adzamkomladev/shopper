@@ -59,6 +59,7 @@ export function createReceiptStorage(options: PushOptions) {
         { orgId: config.orgId, deviceId: config.deviceId, appVersion: config.appVersion },
         { receipts, ...(clockOffsetMs === undefined ? {} : { clockOffsetMs }) },
       );
+      if (clockOffsetMs !== undefined) options.onClockMeasured?.(clockOffsetMs);
     },
   };
 }

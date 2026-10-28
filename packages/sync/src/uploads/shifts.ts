@@ -1,4 +1,5 @@
-import { and, asc, eq, isNull, lte, or } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
+import { retryDue } from "../push/backoff";
 import { decodeZReport } from "@shopper/core/schemas";
 import { markShiftAccepted, markShiftFailed, markShiftRejected } from "@shopper/core/till";
 import { hostSession, shift } from "@shopper/db-sqlite";
@@ -23,7 +24,7 @@ export function createShiftUploadWorker(options: StockUploadOptions) {
             eq(shift.status, "closed"),
             isNull(shift.acceptedAt),
             isNull(shift.blockedCode),
-            force ? undefined : or(isNull(shift.nextAttemptAt), lte(shift.nextAttemptAt, now)),
+            force ? undefined : retryDue(shift.nextAttemptAt, now),
           ),
         )
         .orderBy(asc(shift.id)),

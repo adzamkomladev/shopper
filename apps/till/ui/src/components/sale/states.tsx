@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import {
   CircleAlert,
   CircleCheck,
+  Clock,
   Hourglass,
   Plug,
   ScanLine,
@@ -83,6 +84,15 @@ const failureCopy: Record<SaleFailure, { title: string; body: string; icon: Luci
   },
 };
 
+const clockToleranceMs = 5 * 60_000;
+
+/** "Register clock is 3 h ahead", in whole hours from one hour on and in minutes below that. */
+function clockTitle(skewMs: number) {
+  const minutes = Math.round(Math.abs(skewMs) / 60_000);
+  const amount = minutes >= 60 ? `${Math.round(minutes / 60)} h` : `${minutes} min`;
+  return `Register clock is ${amount} ${skewMs > 0 ? "ahead" : "behind"}`;
+}
+
 /** Why edits are disabled, or the notices that do not block them. Renders nothing when all is well. */
 export function SaleBanners({
   snapshot,
@@ -140,6 +150,11 @@ export function SaleBanners({
       {sync.offline && (
         <Banner icon={ServerOff} title="Server offline" tone="warning">
           Sales are saved on this register and upload when the connection returns.
+        </Banner>
+      )}
+      {Math.abs(sync.clockSkewMs) > clockToleranceMs && (
+        <Banner icon={Clock} title={clockTitle(sync.clockSkewMs)} tone="warning">
+          Sales use the server’s time. Fix the date and time on this computer.
         </Banner>
       )}
       {unpriced > 0 && (

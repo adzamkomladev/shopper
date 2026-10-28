@@ -1,6 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit/sqlite";
 import { hostSession, localSale, outbox } from "@shopper/db-sqlite";
+import { dueBy } from "./backoff";
 import type { PushOptions } from "./types";
 
 type Change = {
@@ -51,7 +52,12 @@ export function createQueueStorage(options: PushOptions) {
   return {
     read: () =>
       database.read(async (tx) => ({
-        rows: await tx.select().from(outbox).where(scope).orderBy(asc(outbox.localSeq)),
+        rows: (await tx.select().from(outbox).where(scope).orderBy(asc(outbox.localSeq))).map(
+          (row) => ({
+            ...row,
+            nextAttemptAt: dueBy(row.nextAttemptAt, (options.now ?? Date.now)()),
+          }),
+        ),
         sessions: await tx
           .select()
           .from(hostSession)

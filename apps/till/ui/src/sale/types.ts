@@ -40,11 +40,11 @@ export type SaleFeedback =
   | { kind: "unknown"; code: string }
   | { kind: "rejected"; message: string };
 export type SaleFailure = "session" | "permission" | "storage";
-export type SaleSync = {
+export type SaleSync = Pick<HostStatus, "pendingCount" | "syncing"> & {
   offline: boolean;
-  pendingCount: number;
   canSync: boolean;
-  syncing: boolean;
+  /** Register clock minus server time; a banner asks for a fix past five minutes. */
+  clockSkewMs: number;
 };
 /** What the sale screen shows when a change is refused: the host's own words, ready to display. */
 export type SaleOutcome = { ok: true } | { ok: false; code: string; message: string };

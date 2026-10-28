@@ -1,4 +1,5 @@
-import { and, asc, eq, isNull, lte, or } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
+import { retryDue } from "../push/backoff";
 import {
   markStockDocumentAccepted,
   markStockDocumentFailed,
@@ -25,9 +26,7 @@ export function createStockUploadWorker(options: StockUploadOptions) {
             eq(stockDocument.deviceId, deviceId),
             isNull(stockDocument.acceptedAt),
             isNull(stockDocument.blockedCode),
-            force
-              ? undefined
-              : or(isNull(stockDocument.nextAttemptAt), lte(stockDocument.nextAttemptAt, now)),
+            force ? undefined : retryDue(stockDocument.nextAttemptAt, now),
           ),
         )
         .orderBy(asc(stockDocument.id)),

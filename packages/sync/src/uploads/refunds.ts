@@ -1,4 +1,5 @@
-import { and, asc, eq, isNull, lte, or } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
+import { retryDue } from "../push/backoff";
 import { markRefundAccepted, markRefundFailed, markRefundRejected } from "@shopper/core/till";
 import { hostSession, refund } from "@shopper/db-sqlite";
 import { createDocumentUploadWorker } from "./documents";
@@ -21,7 +22,7 @@ export function createRefundUploadWorker(options: StockUploadOptions) {
             eq(refund.deviceId, deviceId),
             isNull(refund.acceptedAt),
             isNull(refund.blockedCode),
-            force ? undefined : or(isNull(refund.nextAttemptAt), lte(refund.nextAttemptAt, now)),
+            force ? undefined : retryDue(refund.nextAttemptAt, now),
           ),
         )
         .orderBy(asc(refund.id)),

@@ -1,4 +1,5 @@
-import { and, asc, eq, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { retryDue } from "../push/backoff";
 import { markCustomerAccepted, markCustomerFailed, markCustomerRejected } from "@shopper/core/till";
 import { customerUpload, hostSession } from "@shopper/db-sqlite";
 import { createDocumentUploadWorker } from "./documents";
@@ -21,9 +22,7 @@ export function createCustomerUploadWorker(options: StockUploadOptions) {
             eq(customerUpload.deviceId, deviceId),
             isNull(customerUpload.acceptedAt),
             isNull(customerUpload.blockedCode),
-            force
-              ? undefined
-              : or(isNull(customerUpload.nextAttemptAt), lte(customerUpload.nextAttemptAt, now)),
+            force ? undefined : retryDue(customerUpload.nextAttemptAt, now),
           ),
         )
         // An edit follows the create it edits; ids made in one millisecond are not ordered, rowids are.

@@ -1,4 +1,5 @@
-import { and, asc, eq, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { retryDue } from "../push/backoff";
 import {
   markAccountPaymentAccepted,
   markAccountPaymentFailed,
@@ -31,9 +32,7 @@ export function createAccountPaymentUploadWorker(options: StockUploadOptions) {
             isNull(accountPayment.acceptedAt),
             isNull(accountPayment.blockedCode),
             customerKnown,
-            force
-              ? undefined
-              : or(isNull(accountPayment.nextAttemptAt), lte(accountPayment.nextAttemptAt, now)),
+            force ? undefined : retryDue(accountPayment.nextAttemptAt, now),
           ),
         )
         .orderBy(asc(sql`${accountPayment}.rowid`)),

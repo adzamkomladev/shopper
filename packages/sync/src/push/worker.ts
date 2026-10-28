@@ -3,7 +3,7 @@ import { createReceiptStorage } from "../receipts";
 import { readHandshake } from "../connection";
 import { createBatch } from "./batch";
 import { createPushTransport } from "./http";
-import { retryDeadline } from "./backoff";
+import { dueBy, retryDeadline } from "./backoff";
 import { readAcknowledgment } from "./acknowledgment";
 import { createQueueStorage } from "./storage";
 import type { PushOptions, PushStatus } from "./types";
@@ -70,6 +70,8 @@ export function createPushWorker(options: PushOptions) {
   };
   const run = async () => {
     let saved = await counts();
+    // A wait scheduled before the wall clock went back would otherwise last hours.
+    connectionRetryAt = dueBy(connectionRetryAt, now());
     if (!negotiated) {
       if (
         now() < connectionRetryAt ||

@@ -12,6 +12,7 @@ import {
   createReceiptUploadWorker,
   createStockUploadWorker,
   refreshApprovers,
+  createClockAnchor,
 } from "@shopper/sync";
 import type { TillDatabase } from "@shopper/db-sqlite";
 import { readReceiptStatus } from "@shopper/core/till";
@@ -127,9 +128,11 @@ export function createHostSync(
       void accountPayments.trigger();
     },
   });
+  const clock = createClockAnchor(database, options.config);
   const push = createPushWorker({
     ...options,
     onStatus: notify,
+    onClockMeasured: clock.measured,
     onAcknowledgment: () => {
       void pullAndRefresh();
       void uploads.trigger();
@@ -205,6 +208,8 @@ export function createHostSync(
       await customers.trigger(true);
       await accountPayments.trigger(true);
     },
+    /** Corrects the stored clock offset when the wall clock was set back since the last handshake. */
+    checkClock: clock.check,
     /** Uploads any acknowledged receipt PDFs that are still pending. */
     uploadReceipts: () => uploads.trigger(),
     /** Uploads queued stock counts and receiving once the sale backlog has drained. */

@@ -59,7 +59,9 @@ test("failed checks list every reason, and the owner fixes and resubmits", async
   );
   const view = await (await call("/kyb")).json();
   expect(view.checks.filter((check: { ok: boolean }) => !check.ok).length).toBe(failed.length);
-  expect(kybEmails().some((sent) => /needs attention/i.test(sent.subject))).toBe(true);
+  const attention = kybEmails().find((sent) => /needs attention/i.test(sent.subject));
+  // The link opens the verification form where the portal serves it.
+  expect(attention?.plain).toContain("/payments/verification");
   // The run ended with the case back with the owner, and its record says so.
   await vi.waitFor(async () => {
     const [run] = await db

@@ -49,7 +49,7 @@ export async function deliverKybNotice(deps: Deps, delivery: Delivery) {
     .from(org)
     .leftJoin(kybCase, eq(kybCase.orgId, org.id))
     .where(eq(org.id, orgId));
-  const link = `${deps.baseUrl.replace(/\/$/, "")}/settings/verification`;
+  const link = `${deps.baseUrl.replace(/\/$/, "")}/payments/verification`;
   const owners = await orgOwners(deps.db, orgId);
   for (const owner of owners) {
     const [row] = await deps.db

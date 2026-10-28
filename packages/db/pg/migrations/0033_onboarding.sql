@@ -54,4 +54,14 @@ DO $$ BEGIN
   ALTER TABLE "kyb_case" ADD CONSTRAINT "kyb_case_org_id_org_id_fk" FOREIGN KEY ("org_id") REFERENCES "public"."org"("id") ON DELETE no action ON UPDATE no action;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;--> statement-breakpoint
-ALTER TABLE "asset" ADD CONSTRAINT "asset_policy" CHECK (("asset"."purpose" = 'catalogue_import' AND "asset"."bucket" = 'imports' AND "asset"."expires_at" IS NOT NULL) OR ("asset"."purpose" = 'sync_snapshot' AND "asset"."bucket" = 'snapshots' AND "asset"."expires_at" IS NULL) OR ("asset"."purpose" = 'sale_receipt' AND "asset"."bucket" = 'receipts' AND "asset"."expires_at" IS NULL) OR ("asset"."purpose" = 'kyb_document' AND "asset"."bucket" = 'receipts' AND "asset"."expires_at" IS NULL));
+ALTER TABLE "asset" ADD CONSTRAINT "asset_policy" CHECK (("asset"."purpose" = 'catalogue_import' AND "asset"."bucket" = 'imports' AND "asset"."expires_at" IS NOT NULL) OR ("asset"."purpose" = 'sync_snapshot' AND "asset"."bucket" = 'snapshots' AND "asset"."expires_at" IS NULL) OR ("asset"."purpose" = 'sale_receipt' AND "asset"."bucket" = 'receipts' AND "asset"."expires_at" IS NULL) OR ("asset"."purpose" = 'kyb_document' AND "asset"."bucket" = 'receipts' AND "asset"."expires_at" IS NULL));--> statement-breakpoint
+INSERT INTO permission (org_id, code, till_allowed)
+SELECT o.id, 'org.kyb.submit', false FROM org o
+WHERE EXISTS (SELECT 1 FROM role r WHERE r.org_id = o.id)
+ON CONFLICT (org_id, code) DO NOTHING;
+--> statement-breakpoint
+INSERT INTO role_permission (org_id, role_id, permission_id)
+SELECT r.org_id, r.id, p.id FROM role r
+JOIN permission p ON p.org_id = r.org_id
+WHERE (r.protected_owner OR r.name IN ('superadmin', 'admin')) AND p.code = 'org.kyb.submit'
+ON CONFLICT (org_id, role_id, permission_id) DO NOTHING;

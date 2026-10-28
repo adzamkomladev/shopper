@@ -321,3 +321,47 @@
 
 - Stores, Branches, Products, Users and Devices empty at 1440 and 390. Remaining: the members table on Users
   scrolls sideways inside its frame on a phone, which predates S6.
+
+## S7 · Performance pass (measured and reported only)
+
+Measured on the dev container (AMD EPYC, Node 24.21, load average about 6 with other sessions running; it runs
+about 7–8× slower than CI). Per your decision, nothing here is a CI gate and nothing was changed to hit a number.
+
+### How
+
+- `tests/perf/till.test.ts` and `tests/perf/reports.test.ts` run only with `SHOPPER_PERF=1`:
+  `SHOPPER_PERF=1 vp test --run tests/perf --silent=false`. Each prints one JSON line per measurement.
+- Reports reuse Day 22's year: about 110 000 sales at two branches, every day but today rolled by the real rollup,
+  each path read 7 times through the API. `tests/integration/reports/speed.test.ts` still holds the single-read
+  1.5 s budget in CI.
+- Search uses the existing 20 000-product test (`tests/integration/till/search/performance.test.ts`).
+- Scan to line is the host's half: an `add` over the host's channel, answered with the new draft. The browser's
+  scan detector and render are not in it.
+
+### Numbers
+
+| Measurement | Runs | First | p50 | p95 | Budget |
+| --- | --- | --- | --- | --- | --- |
+| Till search, 20 000 products | 20 queries | – | 1.2 ms | 3.4 ms | 50 ms |
+| Till search, first query after reopen | 1 | 2.3 ms | – | – | 50 ms |
+| Till host cold boot (spawn to ready) | 5 | 1.0 s | 0.9 s | 1.3 s | none set |
+| Scan to line, host side | 30 | 240 ms | 42 ms | 180 ms | 100 ms (frontend.md) |
+| Receipt render, golden receipt, 80 mm PNG | 20 | 2.3 s | 193 ms | 1.1 s | none set |
+| Dashboard (one day) | 7 | 2.9 s | 1.46 s | 2.9 s | 1.5 s |
+| Sales by day / hour / branch / cashier / tender, a year | 7 each | – | 92–115 ms | 115–269 ms | 1.5 s |
+| Products, a year | 7 | – | 116 ms | 171 ms | 1.5 s |
+| Branches, a year | 7 | – | 116 ms | 220 ms | 1.5 s |
+| Dead stock, 90 days | 7 | – | 32 ms | 60 ms | 1.5 s |
+| Journal, a year | 7 | – | 405 ms | 629 ms | 1.5 s |
+| Sales export (xlsx), a year | 7 | – | 163 ms | 393 ms | 1.5 s |
+| Journal export (csv), a year | 7 | – | 358 ms | 3.4 s | 1.5 s |
+
+### Over budget, reported and not fixed
+
+- **Scan to line p95, 180 ms** against 100 ms. The p50 is 42 ms; the slow tail lines up with the host's database
+  writes on a loaded machine. To confirm on CI hardware before acting.
+- **Dashboard, p50 1.46 s and first read 2.9 s**, at the edge of 1.5 s. It reads today live (unrolled) beside the
+  rollups; a cache of the day's live fold is the likely fix.
+- **Journal CSV export p95, 3.4 s**: one slow read of seven. The p50 is 358 ms.
+- **First receipt render, 2.3 s**: the renderer loads fonts and the wasm rasteriser on first use. Warming it once
+  after the host starts would take this off the first sale.

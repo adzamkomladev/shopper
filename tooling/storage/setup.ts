@@ -1,9 +1,12 @@
 import { createBucket, rustfs } from "./buckets";
 
 const bucket = "shopper-imports-dev";
+// The portal in dev (5173) and the e2e portals: standard (5183) and public (5185), which run without a run id in CI.
 await createBucket(bucket, [
   "http://localhost:5183",
   "http://127.0.0.1:5183",
+  "http://localhost:5185",
+  "http://127.0.0.1:5185",
   "http://localhost:5173",
 ]);
 await createBucket("shopper-receipts-dev");

@@ -90,3 +90,66 @@
   owner's buy-in, so it is listed as a known limit.
 - Break-on-purpose: dropping both subaccount guards made the restart test see two subaccounts, and dropping
   the close step failed the run-status assertion.
+
+## S3 · Platform admin app (`apps/admin` + `@shopper/platform`)
+
+### What changed from the plan
+
+- Staff are members of the platform org (`SHOPPER_PLATFORM_ORG`, `shopper` in dev, e2e and staging) and sign in
+  with the ordinary Better Auth session. `platform.kyb.review` and `platform.tenant.read` exist only as rows in that
+  org (`seedPlatformRoles`), and `/platform/*` also checks the session's org, so a shop owner granting themselves
+  the codes is refused.
+- The screens reuse the back office's sign-in form, states, fields and helpers through a new
+  `@shopper/backoffice/kit` subpath. The admin app imports no back-office routes.
+- `apps/admin` has no `/_serverFn` host functions. Its Worker runs only for `/api/*`, with the portal's bindings
+  plus `SHOPPER_PLATFORM_ORG`.
+- The e2e host (`tests/support/portal/server.ts`) serves either app: `SHOPPER_PLATFORM_ORG` turns on the admin
+  build and the platform routes. Playwright has an `admin` project on :5187, and S8 adds its specs.
+- Scan links are presigned object-storage GETs, through a new `Blobs.createDownload` (the download twin of
+  `createUpload`), so the browser reads the scan straight from R2/RustFS and the API proxies nothing.
+
+### Tests
+
+- `tests/integration/platform/access.test.ts`: other orgs, platform members without the permission, and a tenant
+  that grants itself a platform code are all refused.
+- `tests/integration/platform/kyb.test.ts`:
+  - the queue lists cases by status, and following each scan link returns the uploaded bytes;
+  - two concurrent decisions produce one winner and a 409, and both chains are audited;
+  - the tenants list leaves out the platform org;
+  - a scan that is no longer tracked shows no link, and the case still opens.
+- `tests/integration/platform/runtime.test.ts`: through `serveRuntime`, the platform org lookup answers without a
+  session or shop, `/platform/*` sits behind the staff session, and `/kyb` sits behind the shop session.
+- `packages/conformance` `receiptUploadConformance`: a download grant reads only that object, only by GET, and
+  only for its own org.
+
+### Defects found
+
+- `serveRuntime` routes only listed paths to the tenant API, and `kyb` and `platform` were not listed. The KYB
+  owner routes from S2 and every platform route answered 404 on the Worker and the box runtime; the integration
+  tests called `createApi` directly and missed it. The new runtime test fails on the old list.
+- KYB scan links were app-signed blob URLs that no host serves, so they opened the SPA shell.
+- Running the portal and admin e2e hosts together would have collided on the Arkesel fake's port. The admin host
+  takes 3105.
+
+### Review fixes (Codex `gpt-6.1-sol`)
+
+- P1: scan links did not retrieve documents. Fixed with presigned GET grants (above). Break-on-purpose: presigning
+  the download as PUT failed both the conformance case and the platform test.
+- P2, declined for now: the shop's `kyb.decide` and the platform's `platform.kyb.decide` are separate commands, one
+  per org chain. If the second fails after the first commits, the platform row is missing and a retry gets a 409.
+  That needs a database failure between two consecutive writes. Making it atomic means running two org chains in
+  one transaction and sending the notice after that outer commit, which is an audit-layer change. Per AGENTS.md it
+  waits for the owner's buy-in, so it is listed as a known limit.
+- P2, declined for now: the tenants list and each queue tab return at most 500 rows. That is ample at pilot scale,
+  and cursor pagination comes once there are more than 500 shops.
+
+### UI verification (playwright-cli, e2e host on :5187)
+
+- Login, queue (in review, checks failed, an empty tab), review (failed checks; in review with approve and reject),
+  the shops list, and sign-out, at 1920, 1440, 768 and 390. No horizontal overflow at any width.
+- Keyboard: V and S switch pages. On a case, A or R opens the decision with the note focused, and Mod+Enter
+  submits. An empty rejection note is refused, focused and announced. An approval lands on the Approved tab with a
+  toast, and both audit rows are written.
+- Remaining: the favicon 404 and React hydration error #418 on the prerendered shell are shared with the portal
+  (the portal's own e2e build shows both). There is no Figma frame for these screens; they are composed from the KYC
+  queue and review frames.

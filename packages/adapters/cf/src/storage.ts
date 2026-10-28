@@ -62,6 +62,15 @@ export async function cloudflareBlobs(
         throw new BlobUploadUnavailable();
       return store.createUpload(orgId, key, input);
     },
+    async createDownload(orgId, key, expiresInSeconds) {
+      const store = key.startsWith("receipts/")
+        ? receiptObjects
+        : key.startsWith("imports/")
+          ? objects
+          : undefined;
+      if (!store) throw new BlobUploadUnavailable();
+      return store.createDownload(orgId, key, expiresInSeconds);
+    },
     signedUrl: access.sign,
   };
   return { blobs, readSigned: access.read };

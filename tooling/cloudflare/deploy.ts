@@ -23,8 +23,8 @@ interface BuiltConfig {
 }
 
 const [target, ...flags] = process.argv.slice(2);
-if (target !== "edge" && target !== "portal")
-  throw new Error("Usage: tsx tooling/cloudflare/deploy.ts <edge|portal> [--dry-run]");
+if (target !== "edge" && target !== "portal" && target !== "admin")
+  throw new Error("Usage: tsx tooling/cloudflare/deploy.ts <edge|portal|admin> [--dry-run]");
 const dryRun = flags.includes("--dry-run");
 const app = process.cwd();
 

@@ -14,6 +14,7 @@ import { stockRoutes } from "./routes/stock";
 import { customerRoutes } from "./routes/customers";
 import { settingsRoutes } from "./routes/settings";
 import { kybRoutes } from "./routes/kyb";
+import { platformRoutes } from "./routes/platform";
 import { loyaltyRoutes } from "./routes/loyalty";
 import { publicStatementRoutes } from "./routes/public/statements";
 import { kycRoutes } from "./routes/kyc";
@@ -108,6 +109,8 @@ export function createApi(options: ApiOptions = {}) {
   if (options.database) app.route("/", approvalRoutes(options));
   if (options.database) app.route("/", billingRoutes(options));
   if (options.database && options.kyb) app.route("/", kybRoutes({ ...options, kyb: options.kyb }));
+  if (options.database && options.platform)
+    app.route("/", platformRoutes({ ...options, platform: options.platform }));
   if (options.database)
     app.route(
       "/",

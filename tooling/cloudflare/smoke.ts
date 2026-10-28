@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-export type SmokeTarget = "edge" | "portal";
+export type SmokeTarget = "edge" | "portal" | "admin";
 export interface SmokeOptions {
   attempts?: number;
   delayMs?: number;
@@ -51,7 +51,7 @@ async function check(target: SmokeTarget, baseUrl: string, version: string) {
     if (body.includes('"/@id/')) return "shell loads dev-server modules";
   };
   await get("/", shell);
-  await get("/products", shell);
+  await get(target === "admin" ? "/kyb" : "/products", shell);
   await get("/api/health", (response, body) => {
     if (response.status !== 200) return `status ${response.status}`;
     if (!response.headers.get("content-type")?.includes("json")) return "not JSON";
@@ -66,12 +66,12 @@ async function check(target: SmokeTarget, baseUrl: string, version: string) {
 
 if (import.meta.main) {
   const [target, baseUrl] = process.argv.slice(2);
-  if ((target !== "edge" && target !== "portal") || !baseUrl)
-    throw new Error("Usage: tsx tooling/cloudflare/smoke.ts <edge|portal> <base-url>");
+  if (!["edge", "portal", "admin"].includes(target ?? "") || !baseUrl)
+    throw new Error("Usage: tsx tooling/cloudflare/smoke.ts <edge|portal|admin> <base-url>");
   const manifest = JSON.parse(
     readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
   ) as { version: string };
-  const failures = await smoke(target, baseUrl, manifest.version, { attempts: 1 });
+  const failures = await smoke(target as SmokeTarget, baseUrl, manifest.version, { attempts: 1 });
   for (const failure of failures) console.error(`smoke failed: ${failure}`);
   if (failures.length > 0) process.exit(1);
   console.log(`smoke passed: ${target} ${baseUrl}`);

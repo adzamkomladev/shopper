@@ -1,11 +1,13 @@
 import { defineConfig } from "@playwright/test";
 import { E2E_DATABASE_URL } from "./tooling/database/e2e";
+import { PLATFORM_ORG } from "./tooling/database/platform";
 import { e2eRun } from "./tooling/e2e/run";
 
 // SHOPPER_RUN_ID gives the run its own database, bucket, ports and build folders (tooling/e2e/run.ts).
 const reuseExistingServer = !process.env.CI;
 const portal = e2eRun.url(5183);
 const tillUi = e2eRun.url(5184);
+const admin = e2eRun.url(5187);
 const boxEnvironment = {
   PORT: String(e2eRun.port(3101)),
   DATABASE_URL: E2E_DATABASE_URL,
@@ -50,6 +52,7 @@ export default defineConfig({
       use: { baseURL: portal, storageState: e2eRun.ownerState },
     },
     { name: "till-ui", testDir: "tests/e2e/till/ui", use: { baseURL: tillUi } },
+    { name: "admin", testDir: "tests/e2e/admin", use: { baseURL: admin } },
   ],
   webServer: [
     {
@@ -65,6 +68,19 @@ export default defineConfig({
       command: `node tooling/build/portal/e2e.mjs && bun ${e2eRun.portalHost}/server.js`,
       url: `${portal}/api/orgs/e2e-mart`,
       env: { E2E_DATABASE_URL, SHOPPER_AUTH_URL: portal },
+      timeout: 180_000,
+      reuseExistingServer,
+    },
+    {
+      command: `node tooling/build/portal/e2e.mjs admin && bun ${e2eRun.adminHost}/server.js`,
+      url: `${admin}/api/platform/org`,
+      // Its own Arkesel fake port: the portal host holds 3104.
+      env: {
+        E2E_DATABASE_URL,
+        SHOPPER_AUTH_URL: admin,
+        SHOPPER_PLATFORM_ORG: PLATFORM_ORG,
+        E2E_ARKESEL_PORT: String(e2eRun.port(3105)),
+      },
       timeout: 180_000,
       reuseExistingServer,
     },

@@ -67,6 +67,8 @@ export interface ApiOptions {
   storeDays?: WorkflowLauncher;
   /** Business verification for payouts, cloud only: the Paystack banks a payout can settle to. */
   kyb?: { banks(): Promise<{ name: string; code: string; type: string }[]> };
+  /** The admin app's API, cloud only: the org whose members are Shopper staff, by its code. */
+  platform?: { orgSlug: string };
 }
 
 export interface RuntimeOptions {
@@ -98,6 +100,7 @@ export interface RuntimeOptions {
   kyc?: WorkflowLauncher;
   storeDays?: WorkflowLauncher;
   kyb?: ApiOptions["kyb"];
+  platform?: ApiOptions["platform"];
   linkSecret?: string;
   publicOnboarding?: boolean;
 }

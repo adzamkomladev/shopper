@@ -15,33 +15,38 @@ export function objectStorage(options: ObjectStorageOptions) {
     result.pathname = `${result.pathname.replace(/\/$/, "")}/${options.bucket}/${scopedKey(orgId, key)}`;
     return result;
   };
+  // A query-signed request for one key, valid for `seconds` from now.
+  const presign = async (
+    orgId: string,
+    key: string,
+    seconds: number,
+    method: "GET" | "PUT",
+    headers: Record<string, string> = {},
+  ) => {
+    if (!Number.isInteger(seconds) || seconds < 1 || seconds > 3600)
+      throw new RangeError("Grant lifetime must be 1–3600 seconds");
+    const target = url(orgId, key);
+    target.searchParams.set("X-Amz-Expires", String(seconds));
+    const instant = now();
+    const request = await aws.sign(target, {
+      method,
+      headers,
+      aws: {
+        signQuery: true,
+        allHeaders: true,
+        datetime: new Date(instant).toISOString().replace(/[:-]|\.\d{3}/g, ""),
+      },
+    });
+    return { url: request.url, expiresAt: instant + seconds * 1000 };
+  };
   return {
     async createUpload(orgId: string, key: string, input: BlobUploadOptions) {
-      if (
-        !Number.isInteger(input.expiresInSeconds) ||
-        input.expiresInSeconds < 1 ||
-        input.expiresInSeconds > 3600
-      )
-        throw new RangeError("Upload lifetime must be 1–3600 seconds");
-      const target = url(orgId, key);
-      target.searchParams.set("X-Amz-Expires", String(input.expiresInSeconds));
-      const instant = now();
       const headers = { "Content-Type": input.contentType };
-      const request = await aws.sign(target, {
-        method: "PUT",
-        headers,
-        aws: {
-          signQuery: true,
-          allHeaders: true,
-          datetime: new Date(instant).toISOString().replace(/[:-]|\.\d{3}/g, ""),
-        },
-      });
-      return {
-        url: request.url,
-        method: "PUT" as const,
-        headers,
-        expiresAt: instant + input.expiresInSeconds * 1000,
-      };
+      const grant = await presign(orgId, key, input.expiresInSeconds, "PUT", headers);
+      return { url: grant.url, method: "PUT" as const, headers, expiresAt: grant.expiresAt };
+    },
+    async createDownload(orgId: string, key: string, expiresInSeconds: number) {
+      return (await presign(orgId, key, expiresInSeconds, "GET")).url;
     },
     async put(orgId: string, key: string, value: Uint8Array) {
       await checked(

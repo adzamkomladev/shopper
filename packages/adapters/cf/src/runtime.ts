@@ -70,6 +70,7 @@ export async function cloudflareRuntime(
       env.MOMO_REFUND && env.PAYSTACK_SECRET_KEY ? cloudflareLauncher(env.MOMO_REFUND) : undefined,
     paystackSecret: env.PAYSTACK_SECRET_KEY,
     // Payouts go through subaccounts under Shopper's own Paystack account.
+    platform: env.SHOPPER_PLATFORM_ORG ? { orgSlug: env.SHOPPER_PLATFORM_ORG } : undefined,
     kyb: env.PAYSTACK_SECRET_KEY
       ? createPaystack({ secretKey: env.PAYSTACK_SECRET_KEY, baseUrl: env.PAYSTACK_BASE_URL })
       : undefined,

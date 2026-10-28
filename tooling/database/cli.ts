@@ -5,7 +5,8 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "../../packages/db/pg/src/schemas";
 import { migrateDatabase } from "./migrate";
 import { seedCatalogue, seedDevelopment } from "./seed";
-import { credentialsTable, seedDemo } from "./demo";
+import { PLATFORM_ORG, seedPlatform } from "./platform";
+import { credentialsTable, SEED_PASSWORD, seedDemo } from "./demo";
 import { assertWritable, resetSchemas } from "./reset";
 
 const { positionals, values } = parseArgs({
@@ -47,7 +48,12 @@ try {
     else {
       const catalogue = await seedCatalogue(db, seeded.id, products);
       console.log({ catalogue: { created: catalogue.created, rowsFailed: catalogue.rowsFailed } });
-      const table = credentialsTable(await seedDemo(db, seeded.id));
+      const staffEmail = "staff@shopper.local";
+      await seedPlatform(db, staffEmail, SEED_PASSWORD);
+      const table = credentialsTable([
+        ...(await seedDemo(db, seeded.id)),
+        { org: PLATFORM_ORG, role: "platform staff (admin app, :5187)", email: staffEmail },
+      ]);
       mkdirSync(".shopper/seed", { recursive: true });
       writeFileSync(".shopper/seed/credentials.md", table);
       console.log(table);

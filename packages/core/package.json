@@ -24,6 +24,10 @@
       "types": "./src/kyb/index.ts",
       "default": "./src/kyb/index.ts"
     },
+    "./platform": {
+      "types": "./src/platform/index.ts",
+      "default": "./src/platform/index.ts"
+    },
     "./orgs": {
       "types": "./src/orgs.ts",
       "default": "./src/orgs.ts"

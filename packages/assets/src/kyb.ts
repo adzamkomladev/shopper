@@ -84,5 +84,5 @@ export async function kybDocumentLink(
     .from(asset)
     .where(and(eq(asset.orgId, orgId), eq(asset.id, id), eq(asset.purpose, "kyb_document")));
   if (!found) throw new AssetError("Document not found", 404);
-  return blobs.signedUrl(orgId, found.key, 300);
+  return blobs.createDownload(orgId, found.key, 300);
 }

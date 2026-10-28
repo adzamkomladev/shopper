@@ -14,9 +14,14 @@ type Props = {
   box: { id: string; name: string } | null;
   defaultShopCode: string;
   onSignedIn: () => void;
+  /** What the card asks for; the admin app names its own purpose. */
+  lead?: string;
 };
 
-export function LoginForm({ box, defaultShopCode, onSignedIn }: Props) {
+const LEAD =
+  "For security reasons please enter your email and password to continue using point of sale";
+
+export function LoginForm({ box, defaultShopCode, onSignedIn, lead = LEAD }: Props) {
   const signIn = useSignIn(box, onSignedIn);
   const form = useForm({
     defaultValues: { shopCode: defaultShopCode, email: "", password: "" },
@@ -51,9 +56,7 @@ export function LoginForm({ box, defaultShopCode, onSignedIn }: Props) {
           </p>
           {box && <p className="text-lg font-medium text-muted-foreground">{box.name}</p>}
         </div>
-        <p className="text-lg font-medium">
-          For security reasons please enter your email and password to continue using point of sale
-        </p>
+        <p className="text-lg font-medium">{lead}</p>
         <FieldGroup className="gap-9">
           {!box && (
             <form.Field name="shopCode">

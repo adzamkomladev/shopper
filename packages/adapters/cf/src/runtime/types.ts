@@ -31,6 +31,8 @@ export interface AuthEnvironment {
   /** The GRA SDC; without both, VAT documents wait as pending and no lane runs. */
   SHOPPER_SDC_URL?: string;
   SHOPPER_SDC_KEY?: string;
+  /** The code of the org whose members are Shopper staff; only the admin Worker sets it. */
+  SHOPPER_PLATFORM_ORG?: string;
 }
 
 export interface CloudflareRuntimeEnvironment extends AuthEnvironment {

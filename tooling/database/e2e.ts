@@ -4,11 +4,14 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "../../packages/db/pg/src/schemas";
 import { migrateDatabase } from "./migrate";
 import { e2eRun } from "../e2e/run";
+import { seedPlatform } from "./platform";
 import { provisionOrg, provisioningContext } from "./seed";
 
 export const E2E_DATABASE_URL =
   process.env.E2E_DATABASE_URL ??
   `postgresql://shopper:shopper_dev_only@127.0.0.1:5432/${e2eRun.database}`;
+/** The platform staff member the admin specs sign in as. */
+export const E2E_STAFF = { email: "staff@shopper.test", password: "E2e-staff-password-123" };
 const SHOPS = [
   { name: "E2E Mart", slug: "e2e-mart" },
   { name: "E2E Annex", slug: "e2e-annex" },
@@ -26,6 +29,7 @@ export async function resetE2eDatabase(url = E2E_DATABASE_URL) {
     const db = drizzle(client, { schema });
     await migrateDatabase(db);
     for (const shop of SHOPS) await provisionOrg(db, provisioningContext(), shop);
+    await seedPlatform(db, E2E_STAFF.email, E2E_STAFF.password);
   } finally {
     await client.end();
   }

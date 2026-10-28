@@ -65,6 +65,8 @@ const blobs = await boxBlobs(e2eRun.path(".shopper/portal/blobs", "portal/blobs"
     ...rustfs,
     bucket: e2eRun.bucket,
   },
+  // KYB scans and receipt PDFs live under receipts/; the run's one bucket keeps them too.
+  receiptsObjectStorage: { ...rustfs, bucket: e2eRun.bucket },
 });
 const server = await import(
   pathToFileURL(resolve(`${app}/${e2eRun.outDir}/server/server.js`)).href
@@ -91,10 +93,18 @@ const portalRuntime = async (request: Request) => {
       publicOnboarding,
       clientIP,
       blobs: blobs.blobs,
+      kyb: { banks: async () => E2E_BANKS },
       platform: platformOrg ? { orgSlug: platformOrg } : undefined,
     }),
   );
 };
+
+// The GHS banks Paystack would list; the KYB checks accept only these codes.
+const E2E_BANKS = [
+  { name: "GCB Bank", code: "GCB", type: "ghipss" },
+  { name: "Ecobank Ghana", code: "ECO", type: "ghipss" },
+  { name: "MTN Mobile Money", code: "MTN", type: "mobile_money" },
+];
 
 // An org id no shop uses: the probes only need the stores to answer, not to hold anything.
 const probeOrg = "00000000-0000-7000-8000-000000000000";

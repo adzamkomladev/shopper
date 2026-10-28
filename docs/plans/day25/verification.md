@@ -153,3 +153,78 @@
 - Remaining: the favicon 404 and React hydration error #418 on the prerendered shell are shared with the portal
   (the portal's own e2e build shows both). There is no Figma frame for these screens; they are composed from the KYC
   queue and review frames.
+
+## S4 · Setup wizard and the owner's business verification
+
+### What changed from the plan
+
+- `/setup` has seven steps: Store, Branch, Tax, Products, Team, Till and Done. Signup has already created the
+  shop, so the wizard has no Shop step. Each step is derived from rows through `GET /setup`, and Alt+1…7 opens a
+  step.
+- The steps reuse the back office's own forms. These are the store, branch and invite sheets, the setup-link
+  dialog, the tax settings form (which gained `onSaved`) and the enrol sheet.
+- The enrol code view now shows a QR (`shopper:enrol?api=…&shop=…&code=…`). It is drawn from
+  `@shopper/hardware/qr`, a new subpath over the receipt QR matrix, so no second QR library was added.
+- The Till step is done only once a till actually enrols, not when a code is made.
+- An owner who leaves with "Finish later" gets a "Shop setup" banner in the shell until the first sale. Sign-in,
+  invitation acceptance and registration all land on `/`, which sends an owner with setup to do to `/setup`.
+- The owner's KYB form is the Verification tab under Payments (`/payments/verification`). Scans upload straight to
+  storage through `POST /kyb/documents` grants. Saving a draft keeps only the parts that are filled in.
+  Submitting locks the form until Shopper decides. On the box, where `/kyb` answers 404, the tab explains that
+  verification happens in the cloud portal.
+- `SHOPPER_TILL_DOWNLOAD_URL` is a build-time constant. While it is unset, the Till step says "Installer coming
+  soon" and still issues codes.
+
+### Tests
+
+- `tests/integration/onboarding/progress.test.ts`: 7 tests on progress derived from rows, skip, finish, dismiss,
+  permissions, tenant isolation and the runtime route.
+- `tests/e2e/portal/setup/wizard.spec.ts`:
+  - Signup, then every step by keyboard, a reload that keeps the step, a code with its QR, and Finish. After
+    Finish, `/` leads to Products.
+  - "Finish later", the banner, and back to the wizard.
+- `tests/e2e/portal/setup/verification.spec.ts`: an empty submit focuses the first field. A whole case, with three
+  uploads through the file chooser, is submitted by Mod+Enter, is locked, and survives a reload.
+- The public Playwright project now also matches `setup/*.spec.ts`. The older onboarding milestone now expects
+  signup to land in the wizard.
+- The devices, login and payments portal specs still pass (36 of 36).
+
+### Defects found
+
+- The router's `Link` forces `aria-current="page"` on an active link, so the rail uses plain anchors that navigate
+  through the router and carry `aria-current="step"`.
+- The rail's "Done" and "To do" text sat inside each link and became part of its accessible name. It is now
+  referenced by `aria-describedby` only.
+- The upload button disabled itself while uploading. That dropped focus to the body, so Mod+Enter stopped
+  submitting. It now uses `aria-disabled` while busy.
+- The e2e host had no receipts store, so every KYB scan upload failed with "Direct uploads are unavailable". It
+  had no KYB bank list either. The host now has both.
+- On a phone, the visually hidden file inputs widened the page. They are now `hidden`.
+
+### Review fixes (Codex `gpt-6.1-sol`)
+
+- P1: saving and then submitting a KYB case read the selected shop twice. A shop switch between the two requests
+  could submit, or cache, the other shop's case. The shop is now read once per save and once per upload.
+- P2: the wizard's loader fetched roles, branches and tax settings for anyone holding `store.write`. A custom role
+  without one of those reads would get a 403 that failed the whole wizard. Each query now loads only for a member
+  who can read it. Each step names every permission its form needs, and a member missing one sees the step's
+  status without the form.
+- P2: a failed bank list left the payout select saying "Loading banks…". The page now says the list failed and
+  offers Try again. The verification spec forces the failure and recovers from it.
+- P2, kept: the enrol QR has no reader on the till yet. That reader is S5 in this same PR, so the QR ships with it.
+
+### UI verification (playwright-cli, e2e host on :5183)
+
+- The wizard's Store, Tax, Products, Team, Till and Done steps, the shell banner, and the verification form (in
+  its verified state), at 1920, 1440, 1366, 768 and 390. After the fixes there is no horizontal overflow.
+- Fixed during the pass:
+  - The step panel stretched to the rail's height.
+  - The till steps lost their numbers.
+  - The tax form ran the full panel width.
+  - The KYB alert titles were truncated on a phone.
+- Remaining:
+  - React #418 on the prerendered shell, shared with the portal.
+  - On a phone, the Products empty state's two buttons spill past its box. This predates S4 and belongs to S6's
+    empty-states pass.
+  - There are no Figma frames for the wizard or the KYB form. They are composed from the stepper, field and
+    empty-state components.

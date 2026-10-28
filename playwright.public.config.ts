@@ -22,7 +22,8 @@ export default defineConfig({
   projects: [
     {
       name: "public",
-      testMatch: /(?:onboarding|public\/states|invitations\/(?:accept|states))\.spec\.ts/,
+      testMatch:
+        /(?:onboarding|setup\/\w+|public\/states|invitations\/(?:accept|states))\.spec\.ts/,
       use: { baseURL: portal, navigationTimeout: 60_000 },
     },
   ],

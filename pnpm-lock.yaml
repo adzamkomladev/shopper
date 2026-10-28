@@ -736,6 +736,9 @@ importers:
       '@shopper/core':
         specifier: workspace:*
         version: link:../core
+      '@shopper/hardware':
+        specifier: workspace:*
+        version: link:../hardware
       '@shopper/money':
         specifier: workspace:*
         version: link:../money

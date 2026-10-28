@@ -29,6 +29,8 @@ export const buildDefines = {
   ),
   SYNC_PROTOCOL: "5",
   ARCHIVE_FORMAT: "1",
+  // Where owners download the till installer; empty until a signed installer is published (Day 27).
+  TILL_DOWNLOAD_URL: JSON.stringify(process.env.SHOPPER_TILL_DOWNLOAD_URL ?? ""),
 };
 
 export function buildTask(command: string) {

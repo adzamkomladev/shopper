@@ -2,15 +2,16 @@ import { Link } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@shopper/ui/components/tabs";
 import { focusIfIdle } from "../../lib/focus";
 
-type PaymentsTab = "reconciliation" | "settings";
+type PaymentsTab = "reconciliation" | "settings" | "verification";
 
 const TABS: {
   value: PaymentsTab;
-  to: "/payments/reconciliation" | "/payments/settings";
+  to: "/payments/reconciliation" | "/payments/settings" | "/payments/verification";
   label: string;
 }[] = [
   { value: "reconciliation", to: "/payments/reconciliation", label: "Reconciliation" },
   { value: "settings", to: "/payments/settings", label: "Settings" },
+  { value: "verification", to: "/payments/verification", label: "Verification" },
 ];
 
 type Props = {
@@ -20,7 +21,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-/** The payments area's heading and tab bar: the day's reconciliation and how MoMo is collected. */
+/** The payments area's heading and tab bar: the day's reconciliation, how MoMo is collected, and the business verification payouts need. */
 export function PaymentsPage({ active, action, children }: Props) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6">

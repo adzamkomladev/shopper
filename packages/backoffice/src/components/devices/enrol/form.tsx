@@ -14,6 +14,7 @@ import { SelectField } from "../../fields/select";
 import { focusFirstInvalid, focusOnMount } from "../../../lib/focus";
 import { formatDateTime } from "../../../lib/catalogue/detail/prices/groups";
 import { useIssueEnrolment } from "../../../queries/devices";
+import { EnrolQr } from "./qr";
 
 type Props = { branches: { id: string; name: string }[] };
 
@@ -38,7 +39,7 @@ export function EnrolForm({ branches }: Props) {
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex flex-1 flex-col gap-4 px-4">
           <p className="text-sm text-muted-foreground">
-            Enter this code on the till. It works once, and expires{" "}
+            Enter this code on the till, or scan the QR with its scanner. It works once, and expires{" "}
             {formatDateTime(issue.data.expiresAt)}.
           </p>
           <output
@@ -47,6 +48,7 @@ export function EnrolForm({ branches }: Props) {
           >
             {first} {second}
           </output>
+          <EnrolQr code={issue.data.code} />
         </div>
         <SheetFooter>
           <SheetClose asChild>

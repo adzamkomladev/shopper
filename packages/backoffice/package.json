@@ -30,6 +30,7 @@
     "@shopper/auth": "workspace:*",
     "@shopper/config": "workspace:*",
     "@shopper/core": "workspace:*",
+    "@shopper/hardware": "workspace:*",
     "@shopper/money": "workspace:*",
     "@shopper/ui": "workspace:*",
     "@shopper/utils": "workspace:*",

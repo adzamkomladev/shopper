@@ -48,7 +48,8 @@ test("a new owner signs up, verifies the emailed link and lands signed in", asyn
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "You're signed in" })).toBeVisible();
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/\/products$/);
+  // A new shop starts in the setup wizard.
+  await expect(page).toHaveURL(/\/setup/);
 });
 
 test("a verified link opened again goes straight to the password step", async ({
@@ -143,7 +144,8 @@ test("milestone: an owner sets up a shop and a cashier they invite accepts and s
   await submitPassword(page);
   await expect(page.getByRole("heading", { name: "You're signed in" })).toBeVisible();
   await page.getByRole("button", { name: "Continue" }).click();
-  await expect(page.getByRole("heading", { name: "Products", level: 1 })).toBeVisible();
+  // A new shop starts in the setup wizard; this owner sets it up from the screens themselves instead.
+  await expect(page.getByRole("heading", { name: "Get your shop ready", level: 1 })).toBeVisible();
 
   const tag = unique();
   await page.goto("/stores");

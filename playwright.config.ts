@@ -47,7 +47,7 @@ export default defineConfig({
       testDir: "tests/e2e/portal",
       // The public specs run against their own API and portal: see playwright.public.config.ts.
       testIgnore:
-        /(?:auth\.setup|(?:onboarding|public\/states|invitations\/(?:accept|states))\.spec)\.ts$/,
+        /(?:auth\.setup|(?:onboarding|setup\/\w+|public\/states|invitations\/(?:accept|states))\.spec)\.ts$/,
       dependencies: ["setup"],
       use: { baseURL: portal, storageState: e2eRun.ownerState },
     },

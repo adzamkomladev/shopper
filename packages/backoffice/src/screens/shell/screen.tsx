@@ -8,6 +8,7 @@ import { sessionQuery } from "../../queries/session/session";
 import { currentShop, useShops } from "../../stores/shops";
 import { ReadOnlyBanner } from "../../components/shell/billing/banner";
 import { OfflineBanner } from "../../components/shell/offline/banner";
+import { SetupBanner } from "../../components/shell/setup/banner";
 import { TopNav } from "../../components/shell/top/nav";
 
 export function ShellScreen() {
@@ -20,6 +21,7 @@ export function ShellScreen() {
         <OfflineBanner />
         <TopNav shops={shops} currentId={currentId} user={session.user} />
         <ReadOnlyBanner />
+        <SetupBanner />
         {/* The page scrolls here, not the window: focusable, so the keyboard can scroll a page with no controls yet. */}
         <main
           tabIndex={0}

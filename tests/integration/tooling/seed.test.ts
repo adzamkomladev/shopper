@@ -32,7 +32,8 @@ test("reset then seed builds role users, branches and a verifiable password; res
     expect(result.stdout).toContain("Admin@12345");
     // reset dropped the previous connection's tables; the fixture client sees the new ones
     const orgs = await rows("SELECT name, slug FROM org ORDER BY slug");
-    expect(orgs.map((org) => org.slug)).toEqual(["dev", "dev-two"]);
+    // The two dev shops, and the platform org whose staff sign in to the admin app.
+    expect(orgs.map((org) => org.slug)).toEqual(["dev", "dev-two", "shopper"]);
     const users = await rows(
       `SELECT u.email, r.name AS role, a.password FROM "user" u
        JOIN member m ON m.user_id = u.id JOIN role r ON r.id = m.role_id
@@ -45,7 +46,16 @@ test("reset then seed builds role users, branches and a verifiable password; res
       "inventory",
       "superadmin",
     ]);
-    const emails = (await rows(`SELECT email FROM "user"`)).map((user) => user.email as string);
+    // Shop users get numbered, deliverable addresses; platform staff keep one fixed sign-in.
+    const staff = await rows(
+      `SELECT u.email FROM "user" u JOIN org o ON o.id = u.org_id WHERE o.slug = 'shopper'`,
+    );
+    expect(staff.map((user) => user.email)).toEqual(["staff@shopper.local"]);
+    const emails = (
+      await rows(
+        `SELECT u.email FROM "user" u JOIN org o ON o.id = u.org_id WHERE o.slug <> 'shopper'`,
+      )
+    ).map((user) => user.email as string);
     expect(new Set(emails).size).toBe(emails.length);
     for (const email of emails) {
       const n = Number(/^adzamkomla\.dev\+(\d{3,4})@gmail\.com$/.exec(email)?.[1]);

@@ -14,6 +14,7 @@
     "db:reset": "tsx tooling/database/cli.ts reset",
     "guard": "tsx tooling/guard.ts",
     "e2e": "playwright test",
+    "test:chaos": "vp test --run tests/integration/sync/chaos",
     "storage:setup": "tsx tooling/storage/setup.ts",
     "fonts:receipt": "tsx tooling/fonts/receipt.ts",
     "till:package": "tsx tooling/build/package.ts",

@@ -126,7 +126,9 @@ without another mutation or audit, and acknowledgment waits for sequence assignm
 
 Protocol negotiation and event decoding are separate contracts. Day 11 reset disposable till data and
 Day 14 did it again for price overrides: only sync protocol 4 and sale event v4 are accepted, with no
-upcaster, and older tills must update and re-bootstrap.
+upcaster, and older tills must update and re-bootstrap. Day 24 moved to protocol 5: offline sessions travel as
+an `offline` descriptor beside their proof and are adopted as `cashier_session` rows that name their parent, so
+no event version changed.
 The sale carries tender amounts, inclusive discounts, authoritative label provenance, signed cash
 rounding and receipt identity. Its original application version stays intact. The server validates
 and stores corrected occurrence time, capped at acceptance, alongside raw device time. Each side

@@ -15,7 +15,8 @@ retry deadlines survive restart. Empty-host connection retries use in-memory bac
 have a 120-second timeout for a bounded batch; integration fixtures can inject clock, randomness and timeout values.
 
 Day 14 accepts only sync protocol 4 and sale event v4 (tenders plus price overrides). Older registers must update
-and re-bootstrap; legacy sale upcasters are removed under the approved disposable-data reset.
+and re-bootstrap; legacy sale upcasters are removed under the approved disposable-data reset. Day 24 bumps
+the protocol to 5 for offline sessions; event versions are unchanged.
 Event decoding remains independent of transport negotiation. Receipt blocks, corrected clock time
 and occurrence acknowledgments remain part of the current transport.
 `@shopper/sync/bridge` exports browser-safe host messages, including transport mode, pull cursor,
@@ -47,3 +48,20 @@ updates its audited SQLite payment intent/tender and broadcasts a draft view. On
 unconsumed payments once through the authenticated API. Unmatched late confirmations stay visible
 in Purchases. Starting a charge reserves its UUID reference locally before HTTP; retries keep the
 same reference so a lost response cannot create another charge.
+
+## Offline sessions and the clock (Day 24)
+
+A cashier who signs in offline after their server session expired gets an **offline session**. Its proof is the
+parent's proof, a dot and its own id; it lasts eight hours and holds the parent's permissions minus the
+manager ones (`offlineWithheld`). `sessionCredential(session)` is what every upload and live request sends: the
+proof, plus for an offline session the `offline` descriptor (parent, issued, expires, permissions). The first
+request to reach the server adopts it (`adoptOfflineSession`, audited `cashier.session.offline`) as a
+`cashier_session` row naming its parent, so the usual session checks and foreign keys apply unchanged. MoMo and
+remote approvals send only the proof, so the host adopts first through `POST /sync/sessions`.
+
+`createClockAnchor` pairs the last server-measured offset with the monotonic clock. Before each bridge request it
+corrects a wall clock set **back** by more than 60 s (audited `till.clock.correct`); a forward jump drops the
+anchor, because it cannot be told from sleep, until the next handshake measures again. The handshake offset uses
+the round trip's midpoint, so latency is not counted as skew. Retry deadlines more than ten minutes ahead count as
+due now, so a clock set back cannot stall uploads. The bridge status carries `clockSkewMs`; the till shows a
+banner above five minutes.

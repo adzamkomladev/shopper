@@ -212,6 +212,7 @@ export function createDeviceService(
             roleName: row.role.name,
             deviceId: row.device.id,
             branchId: row.device.branchId,
+            ...(row.session.parentSessionId && { sessionPermissions: row.session.permissions }),
           }
         : null;
     },

@@ -95,6 +95,8 @@ export function createAuth(input: CreateAuthOptions) {
     },
     async hasPermission(principal: AuthPrincipal, code: string): Promise<boolean> {
       if (principal.orgId !== orgId) return false;
+      if (principal.sessionPermissions && !principal.sessionPermissions.includes(code))
+        return false;
       const found = await grantedCodes(input.database, orgId, principal.userId, {
         roleId: principal.roleId,
         code,

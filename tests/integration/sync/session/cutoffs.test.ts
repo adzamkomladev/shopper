@@ -18,9 +18,9 @@ import { deactivate, hour, morning, offlineRows, offlineSale } from "../../../su
 // What ends a cashier's access also ends an offline session the server adopts only afterwards.
 
 test("deactivating the cashier ends an offline session adopted afterwards at the deactivation", async () => {
-  onTestFinished(() =>
-    deactivate(databases().db, databases().context, { userId: principal.userId, at: null }),
-  );
+  onTestFinished(async () => {
+    await deactivate(databases().db, databases().context, { userId: principal.userId, at: null });
+  });
   await deactivate(databases().db, databases().context, {
     userId: principal.userId,
     at: new Date(morning + 2 * hour),
@@ -34,7 +34,9 @@ test("deactivating the cashier ends an offline session adopted afterwards at the
 });
 
 test("limiting the cashier to another branch ends an offline session adopted afterwards at the change", async () => {
-  onTestFinished(() => rescope(databases().db, databases().context, { userId: principal.userId }));
+  onTestFinished(async () => {
+    await rescope(databases().db, databases().context, { userId: principal.userId });
+  });
   await rescope(databases().db, databases().context, {
     userId: principal.userId,
     at: new Date(morning + 2 * hour),
@@ -56,7 +58,7 @@ test("a live request under an offline session is authorised once the register ha
   });
   const id = v7();
   const proof = `${parent.token}.${id}`;
-  const issuedAt = Date.parse(parent.issuedAt) + 1_000;
+  const issuedAt = parent.issuedAt.valueOf() + 1_000;
   const offline = {
     parentSessionId: parent.id,
     issuedAt: new Date(issuedAt).toISOString(),
@@ -77,7 +79,12 @@ test("a live request under an offline session is authorised once the register ha
     body: JSON.stringify({ proof, offline }),
   });
   expect(await adopted.json()).toEqual({ adopted: true });
-  expect(await live()).toMatchObject({ userId: principal.userId, deviceId });
+  // It acts under its own permissions, never the manager ones its role may hold.
+  expect(await live()).toMatchObject({
+    userId: principal.userId,
+    deviceId,
+    sessionPermissions: offline.permissions,
+  });
 });
 
 /** Limits the member to a new branch from `at` (as `setMemberBranches` would), or lifts the limit. */

@@ -79,7 +79,11 @@ afterAll(async () => {
 });
 
 export async function recordSale(
-  options: { lineCount?: number; session?: typeof session; at?: string } = {},
+  options: {
+    lineCount?: number;
+    session?: typeof session & { parentSessionId?: string | null };
+    at?: string;
+  } = {},
 ): Promise<{
   event: SaleEvent;
   proof: string;

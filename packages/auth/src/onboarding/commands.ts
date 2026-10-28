@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
 import { buildInfo } from "@shopper/config";
 import { provisionOrg } from "@shopper/core";
+import { openOnboarding } from "@shopper/core/onboarding";
 import { org, registrationRequest, subscription, type ShopperTransaction } from "@shopper/db-pg";
 import type * as v from "valibot";
 import type { WorkflowLauncher } from "@shopper/ports";
@@ -75,6 +76,7 @@ export const completeRegistration = defineCommand({
       billingDay: Math.min(signup.getUTCDate(), 28),
       nextInvoiceOn: sql`(${signup.toISOString().slice(0, 10)}::date + interval '1 month')::date`,
     });
+    await openOnboarding(tx, context.orgId);
     await createVerifiedOwner(tx, context, {
       name: row.name,
       email: row.email,

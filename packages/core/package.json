@@ -16,6 +16,10 @@
       "types": "./src/schemas/index.ts",
       "default": "./src/schemas/index.ts"
     },
+    "./onboarding": {
+      "types": "./src/onboarding/index.ts",
+      "default": "./src/onboarding/index.ts"
+    },
     "./orgs": {
       "types": "./src/orgs.ts",
       "default": "./src/orgs.ts"

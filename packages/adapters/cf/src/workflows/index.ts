@@ -11,3 +11,4 @@ export { MomoRefundWorkflow } from "./refunds";
 export { SettlementWorkflow } from "./settlements";
 export { ApprovalWorkflow } from "./approvals";
 export { BillingWorkflow } from "./billing";
+export { OnboardingWorkflow } from "./onboarding";

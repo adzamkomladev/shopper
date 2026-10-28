@@ -7,6 +7,7 @@ import { buildInfo } from "@shopper/config";
 import { assertLinkSecret } from "@shopper/utils";
 import { and, desc, eq, like } from "drizzle-orm";
 import { registrationWorkflowStep } from "@shopper/db-pg";
+import { ONBOARDING_WAKE, onboardingId } from "@shopper/core/onboarding";
 
 import { signalAuthCompletion } from "../flows/completion";
 import { constantTimeEqual } from "../session/http";
@@ -30,6 +31,18 @@ export function createOnboarding(options: OnboardingOptions) {
   assertLinkSecret(options.linkSecret);
   const now = options.now ?? Date.now;
   const context = (id: string) => ({ orgId: id.toLowerCase(), appVersion: buildInfo.version });
+  // Onboarding only reads the registration row, so a lost wake is caught up at its next deadline. Starting again is
+  // a no-op for a running instance, so a launch that failed at signup is recovered by the owner's next step.
+  const wake = async (raw: string, mark?: "email_verified" | "provisioned") => {
+    const id = raw.toLowerCase();
+    if (!options.onboarding) return;
+    try {
+      await options.onboarding.start(onboardingId(id), { orgId: id });
+      if (mark) await options.onboarding.send(onboardingId(id), ONBOARDING_WAKE, { mark });
+    } catch (error) {
+      console.error({ event: "onboarding.wake_failed", id, mark, error });
+    }
+  };
   return {
     async start(raw: unknown) {
       const data = v.parse(registrationStartSchema, raw);
@@ -43,6 +56,7 @@ export function createOnboarding(options: OnboardingOptions) {
         { data, digest, expiresAt: new Date(now() + 86_400_000), launcher: options.launcher },
         { instanceId: id, businessKey: id, type: "registration", step: "start", status: "waiting" },
       );
+      await wake(id);
       return {
         ...result,
         deliveryStatus: "pending" as const,
@@ -88,10 +102,12 @@ export function createOnboarding(options: OnboardingOptions) {
     },
     async verify(raw: unknown) {
       const data = v.parse(registrationVerifySchema, raw);
-      return verifyRegistration(options.database, context(data.id), {
+      const result = await verifyRegistration(options.database, context(data.id), {
         token: data.token,
         now: now(),
       });
+      await wake(data.id, "email_verified");
+      return result;
     },
     async complete(raw: unknown) {
       const data = v.parse(registrationCompleteSchema, raw);
@@ -100,6 +116,7 @@ export function createOnboarding(options: OnboardingOptions) {
         now: now(),
       });
       await signalAuthCompletion(options, { id: data.id.toLowerCase(), purpose: "registration" });
+      await wake(data.id, "provisioned");
       return result;
     },
     async resend(raw: unknown) {

@@ -80,6 +80,7 @@ export async function cloudflareNotifications(
     | "NOTIFICATIONS"
     | "MOMO_REFUND"
     | "PAYSTACK_SECRET_KEY"
+    | "ONBOARDING_FLOWS"
   >,
 ): Promise<void> {
   const sms =
@@ -118,6 +119,7 @@ export async function cloudflareNotifications(
         env.MOMO_REFUND && env.PAYSTACK_SECRET_KEY
           ? cloudflareLauncher(env.MOMO_REFUND)
           : undefined,
+      onboarding: env.ONBOARDING_FLOWS ? cloudflareLauncher(env.ONBOARDING_FLOWS) : undefined,
     };
     await cloudflareDeliver(
       batch,

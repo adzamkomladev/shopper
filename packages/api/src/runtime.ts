@@ -85,7 +85,9 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
       !allowPublicAuth(options.clientIP, url.pathname.split("/").at(-1) ?? "auth")
     )
       return Response.json({ error: "Too many requests" }, { status: 429 });
-    return createApi({ onboarding: createOnboarding(linkOptions) }).fetch(request);
+    return createApi({
+      onboarding: createOnboarding({ ...linkOptions, onboarding: options.onboarding }),
+    }).fetch(request);
   }
   const invitations = linkOptions ? createInvitations(linkOptions) : undefined;
   const invite = url.pathname.match(/^\/invitations\/([^/]+)\/(preview|accept)$/);

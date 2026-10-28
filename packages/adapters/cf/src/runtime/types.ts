@@ -55,4 +55,5 @@ export interface CloudflareRuntimeEnvironment extends AuthEnvironment {
   SETTLEMENT?: Parameters<typeof cloudflareLauncher>[0];
   APPROVAL?: Parameters<typeof cloudflareLauncher>[0];
   BILLING?: Parameters<typeof cloudflareLauncher>[0];
+  ONBOARDING_FLOWS?: Parameters<typeof cloudflareLauncher>[0];
 }

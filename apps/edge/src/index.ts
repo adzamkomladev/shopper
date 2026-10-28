@@ -14,4 +14,5 @@ export {
   SettlementWorkflow,
   ApprovalWorkflow,
   BillingWorkflow,
+  OnboardingWorkflow,
 } from "@shopper/adapters-cf/workflows";

@@ -19,3 +19,4 @@ export * from "./reports";
 export * from "./approvals";
 export * from "./billing";
 export * from "./receipts";
+export * from "./onboarding";

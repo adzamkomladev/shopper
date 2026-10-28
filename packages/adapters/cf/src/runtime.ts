@@ -74,6 +74,7 @@ export async function cloudflareRuntime(
     approvals: env.APPROVAL ? cloudflareLauncher(env.APPROVAL) : undefined,
     billing: env.BILLING ? cloudflareLauncher(env.BILLING) : undefined,
     authFlows: env.AUTH_FLOWS ? cloudflareLauncher(env.AUTH_FLOWS) : undefined,
+    onboarding: env.ONBOARDING_FLOWS ? cloudflareLauncher(env.ONBOARDING_FLOWS) : undefined,
     kyc:
       env.KYC_FLOWS && env.ARKESEL_API_KEY && env.ARKESEL_SENDER
         ? cloudflareLauncher(env.KYC_FLOWS)

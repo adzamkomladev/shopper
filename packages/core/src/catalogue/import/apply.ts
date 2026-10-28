@@ -23,6 +23,7 @@ import { ManagementError } from "../../management";
 import { fieldSet, isChanged, planImport, type FieldSet } from "./plan";
 import { categoryOf, chunks, ensureRefs, loadRefs, supplierOf } from "./refs";
 import type { CleanRow } from "./validate";
+import { markOnboarding } from "../../onboarding/records";
 
 const summary = (r: Awaited<ReturnType<typeof importRun>>) => ({
   sha256: r.sha256,
@@ -174,6 +175,7 @@ async function importRun(tx: ShopperTransaction, context: CommandContext, input:
       actorId: context.actorId,
     })
     .returning({ id: productImport.id });
+  if (rowsOk) await markOnboarding(tx, orgId, "catalogue");
   return {
     id: saved!.id,
     sha256: input.sha256,

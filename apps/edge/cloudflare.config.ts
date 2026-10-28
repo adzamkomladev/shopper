@@ -81,6 +81,11 @@ export default defineConfig(({ mode }) => {
           worker: name,
           exportName: "AuthWorkflow",
         }),
+        ONBOARDING_FLOWS: bindings.workflow({
+          name: workflow("onboarding"),
+          worker: name,
+          exportName: "OnboardingWorkflow",
+        }),
         KYC_FLOWS: bindings.workflow({
           name: workflow("kyc"),
           worker: name,

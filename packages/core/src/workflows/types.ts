@@ -45,3 +45,13 @@ export interface StoreDayDeps {
   /** Starts the store's next day, so the chain goes on by itself. */
   storeDays: WorkflowLauncher;
 }
+
+export interface OnboardingFlowDeps {
+  withDatabase<T>(run: (db: ShopperDatabase) => Promise<T>): Promise<T>;
+  appVersion: string;
+  /** Carries the owners' nudges to the notification consumer. */
+  queue?: Queue;
+  /** The signup's verification email flow, asked to send its link again as a reminder. */
+  authFlows?: WorkflowLauncher;
+  now?: () => number;
+}

@@ -91,6 +91,8 @@ export interface RuntimeOptions {
   billing?: WorkflowLauncher;
   priceChange?: WorkflowLauncher;
   authFlows?: WorkflowLauncher;
+  /** A cloud shop's way from signup to its first sale; the box opens no signup and has none. */
+  onboarding?: WorkflowLauncher;
   kyc?: WorkflowLauncher;
   storeDays?: WorkflowLauncher;
   linkSecret?: string;

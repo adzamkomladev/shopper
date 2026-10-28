@@ -64,6 +64,7 @@ export function createApi(options: ApiOptions = {}) {
         priceChange: options.priceChange,
         blobs: options.blobs,
         realtime: options.realtime,
+        notifications: options.notifications,
       }),
     );
   if (options.authentication?.handler)

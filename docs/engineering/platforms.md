@@ -96,6 +96,22 @@ Before using a Cloudflare product that is not in this table, load the `cloudflar
 `workers-best-practices` skills (Claude) or check the Cloudflare docs MCP. For Rivet, check
 `https://rivet.dev/llms.txt` or the context7 MCP. Never rely on memory for platform APIs.
 
+### Rivet version
+
+The box targets **Rivet 3.0**: `rivetkit` `3.0.0-preview.3` (the npm `next` tag) and the
+`rivetdev/engine:3.0.0-preview.3` image. Pin both to that exact version, never `@next`, `latest` or
+a range, and move them together. 3.0 is one stateless engine binary whose only dependency is an
+object store, which can be the box's disk; each actor gets its own SQLite. It keeps the 2.x SDK and
+protocol, so the adapter code is the same on either line. What 3.0 drops (multi-region, serverless,
+ACLs) the box does not use. It is a preview: bump it deliberately, re-run conformance on each bump,
+and move to the stable 3.0 release as soon as it ships.
+
+The 3.0 engine is configured differently from 2.x (`tooling/docker/compose.dev.yml`):
+`storage.log_directory` for the local log, `object_storage.primary.file_system.path` for the cold
+store, and `storage.auto_provision_partitions` so a single node creates its own storage partitions.
+Without that flag the API answers `routing_unavailable`. 2.x's `file_system` key is rejected, and
+the 3.0 engine starts on its own `rivet3-data` volume rather than a 2.x data directory.
+
 ## Rules that keep both sides honest
 
 - **PostgreSQL is the record.** Every workflow step and every DO/actor write also writes its table

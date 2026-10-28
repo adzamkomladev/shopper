@@ -37,9 +37,22 @@ export async function startEnrolScenario(appOrigin: string) {
     }
     return Response.json({ error: "Unavailable" }, { status: 503 });
   });
+  try {
+    const till = await startFreshTill(upstream.url, appOrigin);
+    return { url: till.url, state, stop: () => till.stop().finally(() => upstream.close()) };
+  } catch (error) {
+    await upstream.close();
+    throw error;
+  }
+}
+
+/**
+ * A register host fresh from the installer (no identity) talking to `upstream`, behind the bridge proxy the till UI
+ * dev server uses. Like Electron, it is started again with the registration once it enrols.
+ */
+export async function startFreshTill(upstream: string, appOrigin: string) {
   const directory = await mkdtemp(join(tmpdir(), "shopper-enrol-ui-"));
   const cleanups: (() => Promise<unknown>)[] = [
-    () => upstream.close(),
     () => rm(directory, { recursive: true, force: true }),
   ];
   const stop = async () => {
@@ -48,15 +61,14 @@ export async function startEnrolScenario(appOrigin: string) {
   try {
     const config = {
       sqlitePath: join(directory, "till.sqlite"),
-      upstream: upstream.url,
+      upstream,
       origins: [appOrigin],
       port: 0,
     };
     const host = await startTillHost(config);
     cleanups.push(() => host.stop());
-    // Under a parent the host hands the registration back and waits to be started with it, as Electron does.
     void host
-      .waitForMessage((message) => message.type === "enrolled", 120_000)
+      .waitForMessage((message) => message.type === "enrolled", 600_000)
       .then((message) =>
         host.child.send({
           type: "start",
@@ -66,11 +78,7 @@ export async function startEnrolScenario(appOrigin: string) {
       .catch(() => undefined);
     const bridge = await startBridgeProxy(host.ready.port, false);
     cleanups.push(() => bridge.close());
-    return {
-      url: `${appOrigin}/#${encodeURIComponent(host.ready.capability)}`,
-      state,
-      stop,
-    };
+    return { url: `${appOrigin}/#${encodeURIComponent(host.ready.capability)}`, stop };
   } catch (error) {
     await stop();
     throw error;

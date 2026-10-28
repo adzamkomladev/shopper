@@ -415,3 +415,16 @@ Deactivation is `member.deactivated_at`. Both live in `@shopper/auth`; its READM
   sales made before the cut still upload with their historical authority.
 
 The owner approved this architecture on 14 October 2026. This cleanup documents it; it does not implement new management hosts, billing, backup services or Electron. TanStack Start remains the customer-shop SSR framework; management keeps the existing Router SPA.
+
+## Platform org and the admin app (Day 25)
+
+- Shopper staff are members of one ordinary org, the platform org (`SHOPPER_PLATFORM_ORG`, `shopper` in dev and
+  e2e). They sign in with the same Better Auth session as any shop; only the platform API tells them apart.
+- `@shopper/platform` holds the admin screens (login, KYB queue and review, shops list) in the back office layout,
+  and `apps/admin` is wiring only. Its data stays on the shared API (`/platform/*`), like the back office.
+- `platform.tenant.read` and `platform.kyb.review` are granted only to the platform org's roles. A decision is
+  audited in the tenant's chain with the reviewer's id, and in the platform org's chain.
+- A shop's setup wizard (`/setup` in `@shopper/backoffice`) reads its progress from rows (`GET /setup`), never from
+  workflow state: stores, branches, tax settings, products or a catalogue mark, invitations and enrolled tills.
+- A till enrols itself: an unenrolled host answers only `device.enrol` (shop code and one-time code), then boots
+  enrolled on the same bridge. Under Electron the parent stores and seals the registration.

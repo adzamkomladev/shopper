@@ -21,6 +21,7 @@ import { pathToFileURL } from "node:url";
 import { startArkeselFake } from "../../../tooling/arkesel/server";
 import { e2eRun } from "../../../tooling/e2e/run";
 import { rustfs } from "../../../tooling/storage/buckets";
+import { e2eKyb } from "./kyb";
 
 const databaseURL = process.env.E2E_DATABASE_URL;
 if (!databaseURL || !new URL(databaseURL).pathname.endsWith("_e2e")) {
@@ -37,15 +38,16 @@ const linkSecret = "e2e-only-link-secret-more-than-32-characters";
 const port = new URL(baseURL).port;
 const cache = boxCache(e2eRun.path(`.shopper/portal/${port}.sqlite`, `portal/${port}.sqlite`));
 const publicOnboarding = process.env.E2E_PUBLIC_ONBOARDING === "1";
+const mail = createMaileroo({
+  apiKey: "local-maileroo-contract-key",
+  from: "noreply@shopper.test",
+  endpoint: `http://127.0.0.1:${e2eRun.port(3103)}/api/v2/emails`,
+});
 const authFlows = boxAuthFlows({
   withDatabase: (run) => run(database.db),
   baseURL,
   linkSecret,
-  mail: createMaileroo({
-    apiKey: "local-maileroo-contract-key",
-    from: "noreply@shopper.test",
-    endpoint: `http://127.0.0.1:${e2eRun.port(3103)}/api/v2/emails`,
-  }),
+  mail,
 });
 // Identity checks send their one-time codes through an Arkesel fake: a spec reads the code from
 // http://127.0.0.1:3104/test/requests (shifted by the run's port offset), as a person would read it from their phone.
@@ -68,6 +70,7 @@ const blobs = await boxBlobs(e2eRun.path(".shopper/portal/blobs", "portal/blobs"
   // KYB scans and receipt PDFs live under receipts/; the run's one bucket keeps them too.
   receiptsObjectStorage: { ...rustfs, bucket: e2eRun.bucket },
 });
+const kyb = await e2eKyb({ database: database.db, blobs: blobs.blobs, mail, baseUrl: baseURL });
 const server = await import(
   pathToFileURL(resolve(`${app}/${e2eRun.outDir}/server/server.js`)).href
 );
@@ -93,18 +96,12 @@ const portalRuntime = async (request: Request) => {
       publicOnboarding,
       clientIP,
       blobs: blobs.blobs,
-      kyb: { banks: async () => E2E_BANKS },
+      kyb: kyb.kyb,
+      notifications: kyb.notifications,
       platform: platformOrg ? { orgSlug: platformOrg } : undefined,
     }),
   );
 };
-
-// The GHS banks Paystack would list; the KYB checks accept only these codes.
-const E2E_BANKS = [
-  { name: "GCB Bank", code: "GCB", type: "ghipss" },
-  { name: "Ecobank Ghana", code: "ECO", type: "ghipss" },
-  { name: "MTN Mobile Money", code: "MTN", type: "mobile_money" },
-];
 
 // An org id no shop uses: the probes only need the stores to answer, not to hold anything.
 const probeOrg = "00000000-0000-7000-8000-000000000000";

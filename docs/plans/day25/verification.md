@@ -340,21 +340,21 @@ about 7–8× slower than CI). Per your decision, nothing here is a CI gate and 
 
 ### Numbers
 
-| Measurement | Runs | First | p50 | p95 | Budget |
-| --- | --- | --- | --- | --- | --- |
-| Till search, 20 000 products | 20 queries | – | 1.2 ms | 3.4 ms | 50 ms |
-| Till search, first query after reopen | 1 | 2.3 ms | – | – | 50 ms |
-| Till host cold boot (spawn to ready) | 5 | 1.0 s | 0.9 s | 1.3 s | none set |
-| Scan to line, host side | 30 | 240 ms | 42 ms | 180 ms | 100 ms (frontend.md) |
-| Receipt render, golden receipt, 80 mm PNG | 20 | 2.3 s | 193 ms | 1.1 s | none set |
-| Dashboard (one day) | 7 | 2.9 s | 1.46 s | 2.9 s | 1.5 s |
-| Sales by day / hour / branch / cashier / tender, a year | 7 each | – | 92–115 ms | 115–269 ms | 1.5 s |
-| Products, a year | 7 | – | 116 ms | 171 ms | 1.5 s |
-| Branches, a year | 7 | – | 116 ms | 220 ms | 1.5 s |
-| Dead stock, 90 days | 7 | – | 32 ms | 60 ms | 1.5 s |
-| Journal, a year | 7 | – | 405 ms | 629 ms | 1.5 s |
-| Sales export (xlsx), a year | 7 | – | 163 ms | 393 ms | 1.5 s |
-| Journal export (csv), a year | 7 | – | 358 ms | 3.4 s | 1.5 s |
+| Measurement                                             | Runs       | First  | p50       | p95        | Budget               |
+| ------------------------------------------------------- | ---------- | ------ | --------- | ---------- | -------------------- |
+| Till search, 20 000 products                            | 20 queries | –      | 1.2 ms    | 3.4 ms     | 50 ms                |
+| Till search, first query after reopen                   | 1          | 2.3 ms | –         | –          | 50 ms                |
+| Till host cold boot (spawn to ready)                    | 5          | 1.0 s  | 0.9 s     | 1.3 s      | none set             |
+| Scan to line, host side                                 | 30         | 240 ms | 42 ms     | 180 ms     | 100 ms (frontend.md) |
+| Receipt render, golden receipt, 80 mm PNG               | 20         | 2.3 s  | 193 ms    | 1.1 s      | none set             |
+| Dashboard (one day)                                     | 7          | 2.9 s  | 1.46 s    | 2.9 s      | 1.5 s                |
+| Sales by day / hour / branch / cashier / tender, a year | 7 each     | –      | 92–115 ms | 115–269 ms | 1.5 s                |
+| Products, a year                                        | 7          | –      | 116 ms    | 171 ms     | 1.5 s                |
+| Branches, a year                                        | 7          | –      | 116 ms    | 220 ms     | 1.5 s                |
+| Dead stock, 90 days                                     | 7          | –      | 32 ms     | 60 ms      | 1.5 s                |
+| Journal, a year                                         | 7          | –      | 405 ms    | 629 ms     | 1.5 s                |
+| Sales export (xlsx), a year                             | 7          | –      | 163 ms    | 393 ms     | 1.5 s                |
+| Journal export (csv), a year                            | 7          | –      | 358 ms    | 3.4 s      | 1.5 s                |
 
 ### Over budget, reported and not fixed
 
@@ -365,3 +365,28 @@ about 7–8× slower than CI). Per your decision, nothing here is a CI gate and 
 - **Journal CSV export p95, 3.4 s**: one slow read of seven. The p50 is 358 ms.
 - **First receipt render, 2.3 s**: the renderer loads fonts and the wasm rasteriser on first use. Warming it once
   after the host starts would take this off the first sale.
+
+## S8 · The milestone e2e and wrap-up
+
+| Check                                                             | Result            |
+| ----------------------------------------------------------------- | ----------------- |
+| `tests/e2e/portal/setup/first.spec.ts` (public project + till-ui) | 1 passed, 2.7 min |
+| `tests/e2e/admin/kyb.spec.ts` (admin project, after setup)        | 3 passed, 3.2 min |
+
+- **The milestone** signs up a shop, verifies the email, sets the password, then runs the wizard: store, branch,
+  TIN, a real three-row CSV import through presigned storage, an enrolment code. A fresh browser-mode till host
+  enrols with that shop code and code, the owner signs in on it, opens a counted float, sells an imported product
+  for cash and gets the receipt. The setup banner shows before the sale and is gone once the sale reaches the
+  server (the shop is `trading`).
+- **KYB in the admin app**: the owner uploads three documents straight to storage, saves the case and submits it;
+  the in-process KYB workflow runs the checks and waits. A platform reviewer signs in to the admin app, finds the
+  case in the review queue, sees every automated check pass, approves with a note by keyboard (A, Mod+Enter), and
+  the shops list shows the subaccount the Paystack fake opened.
+- Test harness changes: the public e2e host now has a sequencer and blob store so a till can sync to it; the
+  portal e2e server runs the KYB flows in process (`tests/support/portal/kyb.ts`) against a Paystack fake.
+
+### Defects found
+
+- The milestone first read `/api/setup` from the test's request context, which sends no shop header, so it read
+  nothing. It now checks what the owner sees: the setup banner before the sale and its absence after.
+- The till's product option was looked up with a regex built from a name with parentheses.

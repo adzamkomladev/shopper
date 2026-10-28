@@ -52,7 +52,8 @@ export default defineConfig({
       use: { baseURL: portal, storageState: e2eRun.ownerState },
     },
     { name: "till-ui", testDir: "tests/e2e/till/ui", use: { baseURL: tillUi } },
-    { name: "admin", testDir: "tests/e2e/admin", use: { baseURL: admin } },
+    // The KYB spec submits as E2E Mart's owner, on the session the setup project saves.
+    { name: "admin", testDir: "tests/e2e/admin", dependencies: ["setup"], use: { baseURL: admin } },
   ],
   webServer: [
     {

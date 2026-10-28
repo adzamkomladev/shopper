@@ -244,3 +244,29 @@ Four more shells on `cloudflareFlow`, each defined on the edge Worker and bound 
   marks the request consumed in its own transaction, so it redeems once.
 - Paying an invoice restores access in the webhook at once; the billing workflow only stops dunning. On the box there
   is no billing workflow.
+
+## Onboarding and KYB workflows (Day 25)
+
+Two more shells on `cloudflareFlow`, defined on the edge Worker:
+
+| Workflow                     | Instance id | Binding (`<stage>`)          | Runs                                                                |
+| ---------------------------- | ----------- | ---------------------------- | ------------------------------------------------------------------- |
+| Onboarding (`runOnboarding`) | org id      | `shopper-onboarding-<stage>` | verify reminders, catalogue mark, first-sale nudges at +1, +3, +7 d |
+| KYB (`runKyb`)               | org id      | `shopper-kyb-<stage>`        | automated checks, `reviewer_decision` wait, subaccount, expiry      |
+
+- The `onboarding` row and the `kyb_case` row are the record; events (`onboarding.event`, `kyb.notice`) go through
+  the notifications queue after commit and only wake the flow, which re-reads PostgreSQL.
+- The first accepted sale marks the shop `trading` in the sale's own transaction (an update guarded by
+  `first_sale_at IS NULL`), so two tills selling at once mark it once; the workflow only stops the nudges.
+- An approval opens the Paystack subaccount once: the stored code short-circuits any retried or replayed step.
+- On the box the onboarding flow starts at the fixed-org owner setup with the email and KYB steps skipped. KYB is
+  cloud control plane: the box serves no KYB routes and starts no case. `boxKybFlows` exists for parity and tests.
+- The edge needs `ONBOARDING_FLOWS`, `KYB_FLOWS` and `PAYSTACK_SECRET_KEY`; without a launcher the event is retried
+  on the queue and the rows still decide.
+
+### The admin Worker
+
+`apps/admin` is the portal's shape for Shopper staff: a prerendered SPA shell on Workers Static Assets and one Worker
+for `/api/*`, serving the shared Hono API with the `/platform/*` routes on. Only members of the org named by
+`SHOPPER_PLATFORM_ORG` with `platform.tenant.read` or `platform.kyb.review` reach them. It is cloud only and never
+mounted on the box.

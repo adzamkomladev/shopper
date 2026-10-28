@@ -11,6 +11,11 @@ const reuseExistingServer = !process.env.CI;
 const portal = e2eRun.url(5185);
 const box = Array.isArray(base.webServer) ? base.webServer[0] : base.webServer;
 if (!box) throw new Error("The public harness needs the standard box server configuration.");
+// The onboarding milestone enrols a browser-mode till, so the till UI dev server runs here too.
+const tillUi = (Array.isArray(base.webServer) ? base.webServer : []).find((server) =>
+  server.command.includes("@shopper/till-ui"),
+);
+if (!tillUi) throw new Error("The public harness needs the till UI server configuration.");
 
 export default defineConfig({
   ...base,
@@ -29,6 +34,7 @@ export default defineConfig({
   ],
   webServer: [
     box,
+    tillUi,
     {
       command: `node tooling/build/public/e2e.mjs && bun ${e2eRun.publicHost}/server.js`,
       url: `${e2eRun.url(3102)}/orgs/e2e-mart`,

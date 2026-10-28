@@ -1,9 +1,11 @@
 import {
   boxAuthFlows,
+  boxBlobs,
   boxCache,
   boxPool,
   boxPriceChange,
   boxRealtime,
+  boxSequencer,
 } from "@shopper/adapters-box";
 import { serveRuntime } from "@shopper/api/runtime";
 import { createMaileroo } from "@shopper/auth";
@@ -30,6 +32,11 @@ const authFlows = boxAuthFlows({
   }),
 });
 const priceChange = boxPriceChange({ database: database.db, realtime: boxRealtime() }).launcher;
+// A till a new shop enrols here (the onboarding milestone spec) syncs its catalogue and sales with this host.
+const blobs = await boxBlobs(e2eRun.path(".shopper/public/blobs", "public/blobs"), {
+  baseUrl: baseURL,
+  secret: new TextEncoder().encode(linkSecret),
+});
 
 export default {
   port: e2eRun.port(3102),
@@ -43,6 +50,8 @@ export default {
       linkSecret,
       authFlows,
       priceChange,
+      sequencer: boxSequencer(database.db),
+      blobs: blobs.blobs,
       publicOnboarding: true,
       clientIP: "127.0.0.1",
     }),

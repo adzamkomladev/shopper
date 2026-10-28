@@ -2,12 +2,11 @@ import { qrMatrix } from "@shopper/hardware/qr";
 import { currentShop } from "../../../stores/shops";
 
 /**
- * The code as a QR the till's scanner reads like typing (a keyboard wedge): the API, the shop and the code, so
- * the enrol screen fills itself in. The quiet zone is part of the drawing.
+ * The code as a QR the till's scanner reads like typing (a keyboard wedge): the shop and the code, so the enrol
+ * screen fills itself in. The till already knows its server from its install. The quiet zone is part of the drawing.
  */
 export function EnrolQr({ code }: { code: string }) {
   const payload = `shopper:enrol?${new URLSearchParams({
-    api: window.location.origin,
     shop: currentShop()?.slug ?? "",
     code,
   })}`;

@@ -53,6 +53,8 @@ test("a new owner sets the shop up step by step and finishes", async ({ page, re
   await page.keyboard.press("ControlOrMeta+Enter");
   await expect(dialog.getByLabel("Enrolment code")).toHaveText(/\d{3} \d{3}/);
   await expect(dialog.getByRole("img", { name: /QR code/ })).toBeVisible();
+  // The till asks for the shop code too, so the portal shows it beside the code.
+  await expect(dialog.getByText(`Shop code ${data.shopCode}`)).toBeVisible();
   await dialog.getByRole("button", { name: "Done" }).click();
   // The step is done once a till enrols with the code, not when the code is made.
   await expect(rail(page, "Till")).toHaveAccessibleDescription(/to do/i);

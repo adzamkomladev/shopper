@@ -54,8 +54,9 @@ export async function startBridgeProxy(targetPort: number, hold: boolean, fault?
         if (outgoing) usedFault = true;
         browser.send(outgoing ?? data, { binary });
       });
-      host.on("error", (error) => {
-        failure = error;
+      host.on("error", (error: NodeJS.ErrnoException) => {
+        // A refused connect is a host that is down or restarting (after enrolment): the browser sees a close.
+        if (error.code !== "ECONNREFUSED") failure = error;
         browser.close();
       });
       host.on("close", () => {

@@ -145,6 +145,8 @@ export function createDispatch(host: Host) {
           await host.session.signOut();
           await host.publishStatus();
           break;
+        case "device.enrol":
+          return error(request, "ALREADY_ENROLLED", "This till is already enrolled");
         case "shutdown":
           if (!trusted)
             return error(request, "FORBIDDEN", "This action requires the private till connection");

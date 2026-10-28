@@ -1,14 +1,17 @@
-import { readFile } from "node:fs/promises";
+import { readFile, rename, writeFile } from "node:fs/promises";
 
-let host:
-  | Awaited<ReturnType<typeof import("@shopper/adapters-box/till").startTillHost>>
-  | undefined;
+type Till = typeof import("@shopper/adapters-box/till");
+let host: Awaited<ReturnType<Till["startTillHost"]>> | undefined;
+let enrolment: Awaited<ReturnType<Till["startEnrolmentHost"]>> | undefined;
+// The port and capability an enrolment served, kept by the host that follows it.
+let handover: { port: number; capability: string } | undefined;
 let starting = false;
 let stopped = false;
 const ipc = typeof process.send === "function";
 function stop() {
   stopped = true;
   parent?.dispose();
+  void enrolment?.close();
   void host?.close();
 }
 const send = (message: unknown) => {
@@ -25,11 +28,30 @@ async function start(config: unknown, renderer?: unknown) {
   if (starting || stopped) return;
   starting = true;
   try {
-    const { startTillHost, parentRenderer } = await import("@shopper/adapters-box/till");
+    const { startTillHost, startEnrolmentHost, parentRenderer } =
+      await import("@shopper/adapters-box/till");
     if (stopped || (ipc && !process.connected)) return;
+    if (!enrolled(config)) {
+      enrolment = await startEnrolmentHost(config, send);
+      const registration = await enrolment.enrolled;
+      enrolment = undefined;
+      if (stopped) return;
+      handover = { port: registration.port, capability: registration.capability };
+      const record = {
+        identity: registration.identity,
+        deviceToken: registration.deviceToken,
+        receiptCodes: registration.receiptCodes,
+      };
+      starting = false;
+      // Under a parent the register file is the parent's (Electron seals the token): it stores this and starts us.
+      if (ipc) return send({ type: "enrolled", registration: record });
+      const next = { ...(config as object), ...record, session: null };
+      await writeRegister(next);
+      return start(next);
+    }
     // Under Electron the parent renders receipts; otherwise the host renders them itself.
     if (renderer === "parent") parent = parentRenderer(send);
-    host = await startTillHost(config, send, parent?.renderer);
+    host = await startTillHost(config, send, parent?.renderer, handover);
     if (stopped) await host.close();
   } catch (error) {
     parent?.dispose();
@@ -51,12 +73,13 @@ process.on("message", (message) => {
     void start(message.config, "renderer" in message ? message.renderer : undefined);
   else if (parent?.receive(message)) return;
   else if (host) void host.receive(message);
+  else if (enrolment) void enrolment.receive(message);
 });
 process.on("disconnect", stop);
 process.on("SIGTERM", stop);
 process.on("SIGINT", stop);
+const path = process.argv[2];
 if (!ipc) {
-  const path = process.argv[2];
   if (!path) throw new Error("Usage: node dist/server.js <private-host-config.json>");
   void readFile(path, "utf8")
     .then((data) => start(JSON.parse(data)))
@@ -64,6 +87,18 @@ if (!ipc) {
       console.error("Register configuration could not be read");
       process.exitCode = 1;
     });
+}
+
+/** A config with an identity has been enrolled; one without is an install waiting for its code. */
+function enrolled(config: unknown) {
+  return typeof config === "object" && config !== null && "identity" in config;
+}
+
+/** Replaces the register file in one rename, so a crash leaves the old file or the new one, never half of one. */
+async function writeRegister(config: object) {
+  if (!path) throw new Error("No register file to write the enrolment to");
+  await writeFile(`${path}.tmp`, JSON.stringify(config, null, 2), { mode: 0o600 });
+  await rename(`${path}.tmp`, path);
 }
 
 /**

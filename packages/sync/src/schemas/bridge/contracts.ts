@@ -12,21 +12,12 @@ import { accountReplies, accountRequests } from "./accounts";
 import { namesOneSale, refundReplies, refundRequests } from "./refunds";
 import { sessionRequests, sessionUser } from "./session";
 import { shiftReplies, shiftRequests, shiftStatus } from "./shifts";
+import { enrolReplies, enrolRequests } from "./enrol";
+import { registerIdentity } from "./identity";
 
 const id = uuidV7Schema;
 
-export const identityId = v.pipe(
-  uuidV7Schema,
-  v.transform((id) => id.toLowerCase()),
-);
-export const registerIdentity = v.strictObject({
-  orgId: identityId,
-  deviceId: identityId,
-  storeId: identityId,
-  branchId: identityId,
-  shopName: v.pipe(v.string(), v.minLength(1)),
-  registerName: v.pipe(v.string(), v.minLength(1)),
-});
+export { identityId, registerIdentity } from "./identity";
 export const hostStatus = v.strictObject({
   identity: registerIdentity,
   appVersion: v.pipe(v.string(), v.minLength(1)),
@@ -78,6 +69,7 @@ export const bridgeRequest = v.pipe(
     ...shiftRequests,
     ...customerRequests,
     ...accountRequests,
+    ...enrolRequests,
   ]),
   v.check((request) => namesOneSale(request), "Name the sale by id or by receipt number, not both"),
   v.check(
@@ -108,6 +100,7 @@ export const bridgeMessage = v.union([
   ...shiftReplies,
   ...customerReplies,
   ...accountReplies,
+  ...enrolReplies,
   printerList,
   scanMessage,
   v.strictObject({

@@ -18,6 +18,22 @@ configuration. An enrolled till can then issue overflow receipts offline before 
 handshake. Once a handshake has saved the codes in SQLite, restarts may omit this field. A fresh
 till without either source refuses to record an unnumbered sale.
 
+## Enrolling a fresh install (Day 25)
+
+An installer writes only `sqlitePath`, `upstream`, `origins` and `port`. With no `identity` the host
+starts in enrolment mode: its bridge answers `hello` and `status` with `kind: "unenrolled"` and accepts
+one request, `device.enrol { shopCode, code, name }`. The host looks the shop up with `GET /orgs/:code`
+and enrols with `POST /devices/enroll`. Refusals are `SHOP_NOT_FOUND`, `ENROL_REFUSED` (the server does
+not tell a wrong code from an expired or used one), `ENROL_LOCKED` and `OFFLINE`. Nothing is written
+on a refusal.
+
+On success the bridge replies `kind: "enrolled"` with the identity, closes, and the host starts as an
+enrolled till on the same port and capability, so the page reconnects without a new link. Run from a
+file, the host writes `identity`, `deviceToken` and `receiptCodes` into it in one rename. Under a
+parent (Electron) it sends `{ type: "enrolled", registration }` instead and waits for a new `start`;
+Electron stores the file, seals the token and scrubs it as on any first start. A crash after the server
+accepted the code but before the file is written leaves the till unenrolled, and it needs a new code.
+
 Enrollment and session issuance use the existing API. The host automatically bootstraps references
 from a snapshot, pulls the tail and listens for authenticated store-change nudges. If realtime is
 unavailable, it falls back to capped polling. Restart with the same SQLite path to replay the retained outbox;

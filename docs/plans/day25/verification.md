@@ -228,3 +228,59 @@
     empty-states pass.
   - There are no Figma frames for the wizard or the KYB form. They are composed from the stepper, field and
     empty-state components.
+
+## S5 · A till enrols itself by code or QR
+
+### What changed from the plan
+
+- The QR holds `shopper:enrol?shop=…&code=…`, without the API origin. The portal's origin is not the till's
+  API origin, and the till already knows its server from its install config.
+- The enrolment host is its own small bridge (`startEnrolmentHost`): it answers `hello`/`status` with
+  `kind: "unenrolled"` and only `device.enrol`. On success it closes, and the full host takes the same port and
+  capability, so the page that enrolled reconnects without a new link.
+- Under Electron the host never writes the register file. It sends `{ type: "enrolled", registration }`, and
+  Electron stores it atomically, seals the token with the existing `loadSecrets` path, scrubs it from
+  `register.json` and starts the host again without opening a second window.
+- `/devices/enroll` now also returns `storeId` and `branchName`, which the identity needs.
+
+### Tests
+
+- `tests/integration/till/host/enrol.test.ts` (3): over IPC, unenrolled status, `SHOP_NOT_FOUND`,
+  `ENROL_REFUSED` for a wrong and for a reused code, a good code, the parent's `enrolled` message and the second
+  ready on the same port and capability; `OFFLINE` against an unreachable server; and, run from a file, the
+  registration written into it and the host booted.
+- `tests/integration/till/electron/enrol.test.ts`: a real Electron register with an unenrolled `register.json`
+  and a page that enrols through the bridge. The registration is stored, the token sealed and scrubbed, and the
+  host answers again on the same port.
+- `tests/e2e/till/ui/enrol/screen.spec.ts` (2), browser-mode till UI against a real host: missing fields, unknown
+  shop, wrong code (cleared and refocused), locked, server down, success and the move on to sign-in; and a QR
+  typed by a keyboard-wedge scanner into the code field fills the form and submits it, with no overflow at 390.
+- Broken on purpose: an identity with the wrong register name fails two host tests; dropping Electron's
+  `enrolled` handler fails its test; turning off the UI's reconnect after enrolment fails the QR spec.
+
+### Defects found
+
+- The till test API served no `/orgs/:slug` (the runtime adds it beside `createApi`), and the test org had no
+  shop code. The test server now routes `/orgs/` the way the runtime does, and the org has a slug.
+- The bridge proxy used by till-ui specs recorded a refused upstream connect as a test failure. During the host's
+  restart after enrolment that refusal is what a browser sees, so it now just closes the browser socket.
+
+### Review fixes (Codex `gpt-6.1-sol`)
+
+- P2: the code field's `maxLength={6}` cut a QR scan typed into it to `shoppe`, and a refusal puts focus there.
+  The limit is gone (the schema still requires six digits), and the QR spec now scans into the code field.
+- Found in the UI pass: the till asks for the shop code, but the portal's code sheet never showed it. It now shows
+  the shop code under the code (the wizard spec checks it). The till also accepts the code typed with the space the
+  portal shows (`424 242`), which the till spec now types.
+
+### UI verification (e2e screenshots, browser-mode till UI)
+
+- The enrol screen idle at 1920, 1366, 768 and 390, and with a refusal at 1366. It follows Figma "New Login": the
+  title bar, a centred column, touch-size fields and the full-width primary button. No horizontal overflow at 390.
+- States walked in the spec: idle, missing fields, unknown shop, wrong code, locked, server down, setting up,
+  set up and the move on to sign-in. Keyboard only: Enter submits from any field, and focus goes to the field to fix.
+- Remaining:
+  - Real scanner hardware was not tried. The scan is tested as typed keystrokes into the focused field.
+  - The portal code sheet's new shop-code line was checked by the wizard spec, not screenshotted.
+  - Till-ui regressions on this machine (load about 6): 44 of 51 passed first time; 6 timeouts passed with a
+    longer limit; `receipt status warns at 100 remaining` hit its own 240 s limit and is left to CI.

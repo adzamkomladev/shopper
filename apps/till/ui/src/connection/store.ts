@@ -17,6 +17,8 @@ let snapshot: ConnectionSnapshot = { host: "disconnected", status: null, error: 
 let capability: string | undefined;
 let socket: WebSocket | undefined;
 let initialized = false;
+// After enrolment the host closes this socket and comes back as an enrolled till on the same port.
+let rejoining = 0;
 // A waiter gets the reply to its request, or undefined when the connection ended first (outcome unknown).
 type Waiter = (reply: BridgeMessage | undefined) => void;
 const pending = new Map<string, Waiter | undefined>();
@@ -86,7 +88,7 @@ export function connectRegister() {
   };
   current.onmessage = (event) => receive(event.data, current);
   current.onerror = () => {
-    if (socket === current)
+    if (socket === current && rejoining === 0)
       publish({
         host: "disconnected",
         error: "Cannot reach the register host. Start it, then reconnect.",
@@ -96,6 +98,12 @@ export function connectRegister() {
     if (socket !== current) return;
     socket = undefined;
     settle();
+    if (rejoining > 0) {
+      rejoining -= 1;
+      publish({ host: "connecting", error: null });
+      setTimeout(connectRegister, 500);
+      return;
+    }
     publish({
       host: "disconnected",
       error: snapshot.error ?? "Register host disconnected. Reconnect when it is available.",
@@ -123,7 +131,8 @@ function receive(data: unknown, current: WebSocket) {
   if (!parsed.success) return fail(current);
   const message = parsed.output;
   if (message.type === "status") {
-    publish({ host: "connected", status: message.status, error: null });
+    rejoining = 0;
+    publish({ host: "connected", status: message.status, error: null, unenrolled: false });
     return;
   }
   if (message.type === "draft") {
@@ -145,8 +154,13 @@ function receive(data: unknown, current: WebSocket) {
   pending.delete(message.id);
   // Any other error answers one request; the connection stays usable.
   if (message.type === "error" && !waiter) publish({ error: message.message });
-  if (message.type === "result" && message.kind === "status")
-    publish({ host: "connected", status: message.status, error: null });
+  if (message.type === "result" && message.kind === "status") {
+    rejoining = 0;
+    publish({ host: "connected", status: message.status, error: null, unenrolled: false });
+  }
+  if (message.type === "result" && message.kind === "unenrolled")
+    publish({ host: "connected", status: null, error: null, unenrolled: true });
+  if (message.type === "result" && message.kind === "enrolled") rejoining = 40;
   waiter?.(message);
 }
 

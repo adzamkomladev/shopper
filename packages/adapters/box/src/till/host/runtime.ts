@@ -25,10 +25,12 @@ import { mountDesktop } from "./http/desktop";
 import type { Host } from "./types";
 import { openHostTransport, error } from "./transport";
 
+/** `handover` is the port and capability an enrolment host served, so the page that enrolled reconnects as it was. */
 export async function startTillHost(
   raw: unknown,
   send: (message: unknown) => void,
   renderer?: Renderer,
+  handover?: { port: number; capability: string },
 ) {
   const config = v.parse(hostConfiguration, raw);
   const database = openTillDatabase(config.sqlitePath, config.databaseKey);
@@ -186,10 +188,10 @@ export async function startTillHost(
       () =>
         error(request, "STORAGE_FAILED", "Register storage is unavailable. Reconnect and retry."),
     );
-  const capability = randomBytes(32).toString("hex");
+  const capability = handover?.capability ?? randomBytes(32).toString("hex");
   try {
     transport = await openHostTransport({
-      port: config.port,
+      port: handover?.port ?? config.port,
       origins: config.origins,
       ui: config.ui,
       capability,

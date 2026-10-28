@@ -12,6 +12,7 @@ import {
 import { PaystackError } from "./errors";
 import { fetchSettlements } from "./settlements";
 import { initializeCheckout } from "./checkout";
+import { createSubaccount, fetchBanks } from "./subaccounts";
 import type { PaystackCharge, PaystackOptions } from "./types";
 
 export { PaystackError };
@@ -40,6 +41,10 @@ export function createPaystack(options: PaystackOptions) {
     /** A hosted checkout page for an invoice. */
     initialize: (input: Parameters<typeof initializeCheckout>[1]) =>
       initializeCheckout(options, input),
+    /** Banks and mobile money providers a shop's payouts can settle to. */
+    banks: () => fetchBanks(options),
+    createSubaccount: (input: Parameters<typeof createSubaccount>[1]) =>
+      createSubaccount(options, input),
 
     async charge(input: PaystackCharge): Promise<ChargeResult> {
       if (money(input.amount) % PESEWA !== 0)
@@ -51,6 +56,7 @@ export function createPaystack(options: PaystackOptions) {
           currency: "GHS",
           reference: input.reference,
           mobile_money: { phone: input.phone, provider: PROVIDER_CODES[input.network] },
+          ...(input.subaccount ? { subaccount: input.subaccount } : {}),
         }),
       );
     },

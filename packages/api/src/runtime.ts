@@ -181,5 +181,6 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     baseURL: options.baseURL,
     kyc: options.kyc,
     storeDays: options.storeDays,
+    kyb: options.kyb,
   }).fetch(request);
 }

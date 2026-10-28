@@ -55,3 +55,22 @@ export interface OnboardingFlowDeps {
   authFlows?: WorkflowLauncher;
   now?: () => number;
 }
+
+export interface KybFlowDeps {
+  withDatabase<T>(run: (db: ShopperDatabase) => Promise<T>): Promise<T>;
+  appVersion: string;
+  /** Carries the owners' notices to the notification consumer. */
+  queue?: Queue;
+  /** Where the documents live, read back to verify their bytes before the checks rely on them. */
+  blobs: Blobs;
+  /** Shopper's own Paystack account: its bank list, and the subaccounts made under it. */
+  paystack: {
+    banks(): Promise<{ code: string }[]>;
+    createSubaccount(input: {
+      businessName: string;
+      settlementBank: string;
+      accountNumber: string;
+    }): Promise<{ code: string }>;
+  };
+  now?: () => number;
+}

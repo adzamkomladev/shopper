@@ -9,5 +9,7 @@ export type NotificationDeps = StatementDeliveryDeps & {
   refunds?: WorkflowLauncher;
   /** Woken by `onboarding.event` once a shop's first product or sale commits. */
   onboarding?: WorkflowLauncher;
+  /** Started, or woken, by each `kyb.notice` that moves a business verification on. */
+  kyb?: WorkflowLauncher;
   queue?: Queue;
 };

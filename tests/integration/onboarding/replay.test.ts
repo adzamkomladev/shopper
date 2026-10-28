@@ -109,7 +109,7 @@ test("a launch that fails at signup is recovered when the owner verifies", async
         launched.push(id);
         await flows.start(id, params);
       },
-      send: flows.send,
+      send: (id, type, payload) => flows.send(id, type, payload),
     },
   });
   const started = await service.start({

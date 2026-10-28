@@ -1,3 +1,4 @@
+import { createPaystack } from "@shopper/core/payments/paystack";
 import { isPublicRequest, publicApi, runtimeUnavailable, serveRuntime } from "@shopper/api/runtime";
 import { cloudflareBlobs, cloudflareCache } from "./storage";
 import { cloudflareResponse } from "./response";
@@ -68,6 +69,10 @@ export async function cloudflareRuntime(
     momoRefund:
       env.MOMO_REFUND && env.PAYSTACK_SECRET_KEY ? cloudflareLauncher(env.MOMO_REFUND) : undefined,
     paystackSecret: env.PAYSTACK_SECRET_KEY,
+    // Payouts go through subaccounts under Shopper's own Paystack account.
+    kyb: env.PAYSTACK_SECRET_KEY
+      ? createPaystack({ secretKey: env.PAYSTACK_SECRET_KEY, baseUrl: env.PAYSTACK_BASE_URL })
+      : undefined,
     hubtel: cloudflareHubtel(env),
     settlements:
       env.SETTLEMENT && env.PAYSTACK_SECRET_KEY ? cloudflareLauncher(env.SETTLEMENT) : undefined,

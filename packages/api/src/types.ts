@@ -65,6 +65,8 @@ export interface ApiOptions {
   kyc?: WorkflowLauncher;
   /** Starts a store's day; a new store's chain starts today rather than at the night's watchdog. */
   storeDays?: WorkflowLauncher;
+  /** Business verification for payouts, cloud only: the Paystack banks a payout can settle to. */
+  kyb?: { banks(): Promise<{ name: string; code: string; type: string }[]> };
 }
 
 export interface RuntimeOptions {
@@ -95,6 +97,7 @@ export interface RuntimeOptions {
   onboarding?: WorkflowLauncher;
   kyc?: WorkflowLauncher;
   storeDays?: WorkflowLauncher;
+  kyb?: ApiOptions["kyb"];
   linkSecret?: string;
   publicOnboarding?: boolean;
 }

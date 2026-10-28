@@ -20,6 +20,10 @@
       "types": "./src/onboarding/index.ts",
       "default": "./src/onboarding/index.ts"
     },
+    "./kyb": {
+      "types": "./src/kyb/index.ts",
+      "default": "./src/kyb/index.ts"
+    },
     "./orgs": {
       "types": "./src/orgs.ts",
       "default": "./src/orgs.ts"

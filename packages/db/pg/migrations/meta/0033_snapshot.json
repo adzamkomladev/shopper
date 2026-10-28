@@ -1,5 +1,5 @@
 {
-  "id": "add1b1c9-f030-4bd3-90df-0c078f209681",
+  "id": "1f945145-3feb-4ed8-8032-0fda8c09d8bf",
   "prevId": "2bc1a6e0-dc69-4991-999c-f3c91f9ff7cf",
   "version": "7",
   "dialect": "postgresql",
@@ -5199,7 +5199,7 @@
       "checkConstraints": {
         "asset_policy": {
           "name": "asset_policy",
-          "value": "(\"asset\".\"purpose\" = 'catalogue_import' AND \"asset\".\"bucket\" = 'imports' AND \"asset\".\"expires_at\" IS NOT NULL) OR (\"asset\".\"purpose\" = 'sync_snapshot' AND \"asset\".\"bucket\" = 'snapshots' AND \"asset\".\"expires_at\" IS NULL) OR (\"asset\".\"purpose\" = 'sale_receipt' AND \"asset\".\"bucket\" = 'receipts' AND \"asset\".\"expires_at\" IS NULL)"
+          "value": "(\"asset\".\"purpose\" = 'catalogue_import' AND \"asset\".\"bucket\" = 'imports' AND \"asset\".\"expires_at\" IS NOT NULL) OR (\"asset\".\"purpose\" = 'sync_snapshot' AND \"asset\".\"bucket\" = 'snapshots' AND \"asset\".\"expires_at\" IS NULL) OR (\"asset\".\"purpose\" = 'sale_receipt' AND \"asset\".\"bucket\" = 'receipts' AND \"asset\".\"expires_at\" IS NULL) OR (\"asset\".\"purpose\" = 'kyb_document' AND \"asset\".\"bucket\" = 'receipts' AND \"asset\".\"expires_at\" IS NULL)"
         },
         "asset_private": {
           "name": "asset_private",
@@ -11823,6 +11823,182 @@
         "onboarding_nudges": {
           "name": "onboarding_nudges",
           "value": "\"onboarding\".\"nudges\" BETWEEN 0 AND 3"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.kyb_case": {
+      "name": "kyb_case",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuidv7()"
+        },
+        "org_id": {
+          "name": "org_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "business_name": {
+          "name": "business_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "registration_number": {
+          "name": "registration_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tin": {
+          "name": "tin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "settlement_bank": {
+          "name": "settlement_bank",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "settlement_account": {
+          "name": "settlement_account",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "directors": {
+          "name": "directors",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "documents": {
+          "name": "documents",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "checks": {
+          "name": "checks",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "submitted_at": {
+          "name": "submitted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_on": {
+          "name": "expires_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reviewer_id": {
+          "name": "reviewer_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "decision_note": {
+          "name": "decision_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "decided_at": {
+          "name": "decided_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "renewal_sent_at": {
+          "name": "renewal_sent_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subaccount_code": {
+          "name": "subaccount_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "kyb_case_org_id_org_id_fk": {
+          "name": "kyb_case_org_id_org_id_fk",
+          "tableFrom": "kyb_case",
+          "tableTo": "org",
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "kyb_case_org_id_unique": {
+          "name": "kyb_case_org_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["org_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "kyb_case_status": {
+          "name": "kyb_case_status",
+          "value": "\"kyb_case\".\"status\" IN ('draft', 'submitted', 'checks_failed', 'in_review', 'approved', 'rejected', 'expired')"
+        },
+        "kyb_case_version": {
+          "name": "kyb_case_version",
+          "value": "\"kyb_case\".\"version\" >= 0"
+        },
+        "kyb_case_decided": {
+          "name": "kyb_case_decided",
+          "value": "(\"kyb_case\".\"status\" IN ('approved', 'rejected', 'expired')) = (\"kyb_case\".\"decided_at\" IS NOT NULL)"
         }
       },
       "isRLSEnabled": false

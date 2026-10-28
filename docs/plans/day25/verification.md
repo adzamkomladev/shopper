@@ -284,3 +284,40 @@
   - The portal code sheet's new shop-code line was checked by the wizard spec, not screenshotted.
   - Till-ui regressions on this machine (load about 6): 44 of 51 passed first time; 6 timeouts passed with a
     longer limit; `receipt status warns at 100 remaining` hit its own 240 s limit and is left to CI.
+
+## S6 · Empty states and inline help
+
+### What changed from the plan
+
+- Most screens the wizard covers already had a designed empty state. S6 adds the way back: while the shop is
+  being set up, the empty Stores, Branches, Products, Users (invitations) and Devices screens show
+  "Back to setup" next to their own action, opening the matching wizard step (`SetupStepLink`). It reads the
+  same setup status as the shell banner, so it disappears once the shop is trading.
+- The till's first boot is the S5 enrol screen. The wizard's inline help is each step's description plus the
+  reused forms' own field help, so no new `FieldDescription` was needed.
+
+### Tests
+
+- `tests/e2e/portal/setup/empty.spec.ts`: a new owner leaves the wizard, then visits each screen. For each, the
+  empty heading, axe, no page overflow and no action outside its empty box at 1440 and 390, then "Back to setup"
+  opens the right step.
+- Broken on purpose: without the wrap, the box check fails on Products at 390. The page-level overflow check
+  alone passed there, which is why the spec has both.
+
+### Defects found
+
+- The S4 Products overflow: empty-state button rows were `flex-row` without wrapping, so on a phone the buttons
+  spilled out of the box while the page width stayed the same. Every empty-state button row now wraps (the shared
+  list state, the catalogue, shift detail and transaction detail).
+- The catalogue's empty title was a `div`, so screen readers got no heading. It now uses the shared `EmptyList`
+  with an `h2`, like every other list.
+
+### Review fixes (Codex `gpt-6.1-sol`)
+
+- None found.
+- Regression found by the portal suite: the catalogue's new `h2` "No products yet" also matched the auth setup's non-exact `heading "Products"` lookup. Both Products heading lookups are now exact (63 of 63 portal specs pass).
+
+### UI verification (e2e screenshots on the public host)
+
+- Stores, Branches, Products, Users and Devices empty at 1440 and 390. Remaining: the members table on Users
+  scrolls sideways inside its frame on a phone, which predates S6.

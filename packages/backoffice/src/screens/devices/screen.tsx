@@ -19,6 +19,7 @@ import { PinForm } from "../../components/devices/pin/form";
 import { devicesQuery, type DeviceView } from "../../queries/devices";
 import { RevokeDeviceDialog } from "../../components/devices/revoke/dialog";
 import { DeviceTable } from "../../components/devices/table";
+import { SetupStepLink } from "../../components/setup/back";
 
 export function DevicesScreen() {
   const queryClient = useQueryClient();
@@ -97,6 +98,7 @@ export function DevicesScreen() {
               <Kbd aria-hidden>N</Kbd>
             </Button>
           )}
+          <SetupStepLink step="till" />
         </EmptyList>
       ) : (
         <DeviceTable

@@ -67,7 +67,7 @@ setup("sign up an owner per shop and create the Accra Central branch", async ({ 
 
 setup("sign in to E2E Mart through the portal and save the session", async ({ page }) => {
   await signInWithKeyboard(page, MART);
-  await expect(page.getByRole("heading", { name: "Products" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Products", exact: true })).toBeVisible();
   await page.context().storageState({
     path: process.env.E2E_STORAGE_STATE ?? e2eRun.ownerState,
   });

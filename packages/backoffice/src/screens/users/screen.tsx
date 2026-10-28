@@ -31,6 +31,7 @@ import {
   type UserView,
 } from "../../queries/users";
 import { SetupLinkDialog } from "../../components/users/setup/link/dialog";
+import { SetupStepLink } from "../../components/setup/back";
 
 const NO_ROLES: RoleView[] = [];
 const NO_BRANCHES: { id: string; name: string }[] = [];
@@ -160,7 +161,9 @@ export function UsersScreen() {
             icon={MailIcon}
             title="No invitations yet"
             description="Invitations you send show up here with their status, so you can send them again or cancel them."
-          />
+          >
+            <SetupStepLink step="team" />
+          </EmptyList>
         ) : (
           <InvitationsTable
             invitations={invitations}

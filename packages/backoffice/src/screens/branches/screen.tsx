@@ -16,6 +16,7 @@ import { DeleteBranchDialog } from "../../components/branches/delete/dialog";
 import { BranchForm } from "../../components/branches/form";
 import { branchesQuery } from "../../queries/branches";
 import { BranchTable } from "../../components/branches/table";
+import { SetupStepLink } from "../../components/setup/back";
 
 type Branch = { id: string; name: string; storeId: string; alertPhones: string[] };
 
@@ -46,6 +47,7 @@ export function BranchesScreen() {
           <Button asChild>
             <Link to="/stores">Go to stores</Link>
           </Button>
+          <SetupStepLink step="store" />
         </EmptyList>
       </div>
     );

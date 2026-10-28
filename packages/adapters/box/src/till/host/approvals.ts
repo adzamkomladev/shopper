@@ -22,7 +22,7 @@ export function createApprovals(host: { database: TillDatabase; config: HostConf
     if (!config.session) throw new TillError("session", "Sign in on this register first");
     const response = await fetch(new URL(path, config.upstream), {
       method: body ? "POST" : "GET",
-      headers: paymentHeaders(config),
+      headers: await paymentHeaders(config),
       body: body ? JSON.stringify(body) : undefined,
       signal: AbortSignal.timeout(10_000),
     }).catch(() => undefined);

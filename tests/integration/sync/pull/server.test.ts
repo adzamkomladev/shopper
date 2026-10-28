@@ -224,15 +224,15 @@ test("another store or another organisation's changes are never visible", async 
 test("a pre-tender or future protocol is rejected and the current protocol is accepted", async () => {
   const cursor = String(await head());
   expect((await pull(api, { cursor }, pullHeaders(0))).status).toBe(409);
-  expect((await pull(api, { cursor }, pullHeaders(5))).status).toBe(409);
-  const later = await createSyncApi(4);
+  expect((await pull(api, { cursor }, pullHeaders(6))).status).toBe(409);
+  const later = await createSyncApi(5);
   try {
     for (const [protocol, status] of [
       [1, 409],
       [0, 409],
-      [3, 409],
-      [4, 200],
-      [5, 409],
+      [4, 409],
+      [5, 200],
+      [6, 409],
     ] as const)
       expect((await pull(later, { cursor }, pullHeaders(protocol))).status).toBe(status);
   } finally {

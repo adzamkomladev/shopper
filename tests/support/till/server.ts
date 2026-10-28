@@ -78,7 +78,9 @@ afterAll(async () => {
   await fixture?.close();
 });
 
-export async function recordSale(options: { lineCount?: number } = {}): Promise<{
+export async function recordSale(
+  options: { lineCount?: number; session?: typeof session; at?: string } = {},
+): Promise<{
   event: SaleEvent;
   proof: string;
   sessionId: string;
@@ -90,9 +92,9 @@ export async function recordSale(options: { lineCount?: number } = {}): Promise<
       orgId: context.orgId,
       deviceId,
       receiptCodes,
-      now: () => new Date("2025-12-31T23:30:00.000Z"),
+      now: () => new Date(options.at ?? "2025-12-31T23:30:00.000Z"),
     },
-    session,
+    options.session ?? session,
     {
       lines: Array.from({ length: options.lineCount ?? 1 }, () => ({
         productId: ids.product,
@@ -100,7 +102,8 @@ export async function recordSale(options: { lineCount?: number } = {}): Promise<
       })),
     },
   );
-  return { event, proof: session.proof, sessionId: session.id };
+  const used = options.session ?? session;
+  return { event, proof: used.proof, sessionId: used.id };
 }
 
 export type FixtureTill = Awaited<ReturnType<typeof enrollFixtureTill>>;
@@ -172,6 +175,10 @@ export function databaseConnectionString() {
   return fixture.connectionString;
 }
 
+/** The fixture till's cashier session, as the register stores it. */
+export function fixtureSession() {
+  return session;
+}
 export function cashierSessionProof() {
   return { id: session.id, proof: session.proof };
 }

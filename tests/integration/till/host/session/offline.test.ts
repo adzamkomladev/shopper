@@ -31,22 +31,24 @@ test("offline, a cached password resumes the user's unexpired server session and
   });
 });
 
-test("offline with an expired session only report and stock permissions are granted", async () => {
+test("offline with an expired session a new offline session sells, without manager permissions", async () => {
   const c = await cachedThenOffline([
-    { ...ama, permissions: ["sale.create", "report.read", "stock.read"] },
+    {
+      ...ama,
+      permissions: ["sale.create", "report.read", "refund.approve", "sale.price_override"],
+    },
   ]);
   await sql_(c, sql`update host_session set expires_at = '2020-01-01T00:00:00.000Z'`);
   const reply = await c.signIn(ama.email, ama.password);
   expect(reply).toMatchObject({
     status: {
-      user: { userId: ama.userId, offline: true, permissions: ["report.read", "stock.read"] },
-      permissions: ["report.read", "stock.read"],
+      user: { userId: ama.userId, offline: true, permissions: ["sale.create", "report.read"] },
+      permissions: ["sale.create", "report.read"],
     },
   });
   const productId = c.fixture.config.references.products[0].id;
   expect(await c.host.request({ type: "add", expectedRevision: 0, productId })).toMatchObject({
-    type: "error",
-    code: "permission",
+    kind: "draft",
   });
 });
 

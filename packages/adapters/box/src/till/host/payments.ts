@@ -121,7 +121,7 @@ export function createHostPayments(
         try {
           response = await fetch(new URL(path, config.upstream), {
             method: "POST",
-            headers: paymentHeaders(config),
+            headers: await paymentHeaders(config),
             body: JSON.stringify(body),
             signal: AbortSignal.timeout(15_000),
           });

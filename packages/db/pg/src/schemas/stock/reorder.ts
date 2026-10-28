@@ -4,6 +4,7 @@ import {
   check,
   foreignKey,
   pgTable,
+  text,
   timestamp,
   unique,
   uniqueIndex,
@@ -30,13 +31,20 @@ export const reorderPoint = pgTable(
   ],
 );
 
-/** One low-stock crossing; open until stock recovers. `sent_at` is set once the SMS went out. */
+export const stockAlertKinds = ["low", "negative"] as const;
+
+/**
+ * A product's open stock alert, one at a time until stock recovers: `negative` under zero (two registers sold
+ * the last unit offline), else `low` at or under the reorder level. A change of kind updates the open row and
+ * clears `sent_at`, which is set once the SMS went out.
+ */
 export const stockAlert = pgTable(
   "stock_alert",
   {
     ...tenant(),
     branchId: uuid("branch_id").notNull(),
     productId: uuid("product_id").notNull(),
+    kind: text("kind", { enum: stockAlertKinds }).notNull().default("low"),
     levelThousandths: bigint("level_thousandths", { mode: "number" }).notNull(),
     onHandThousandths: bigint("on_hand_thousandths", { mode: "number" }).notNull(),
     raisedAt: timestamp("raised_at", { withTimezone: true }).notNull().defaultNow(),
@@ -45,6 +53,7 @@ export const stockAlert = pgTable(
   },
   (t) => [
     unique().on(t.orgId, t.id),
+    check("stock_alert_kind", sql`${t.kind} IN ('low', 'negative')`),
     uniqueIndex("stock_alert_open")
       .on(t.orgId, t.branchId, t.productId)
       .where(sql`${t.clearedAt} IS NULL`),

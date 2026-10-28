@@ -6,6 +6,7 @@ import { SaleError } from "@shopper/core/sales";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { createDeviceService } from "@shopper/auth/devices";
 import { customerUpload } from "../schemas/sync/customers";
+import { adoptSession } from "./offline";
 
 /**
  * Device-authenticated upload of a customer made or edited on a till. `rejected` is terminal for the till: it never
@@ -21,6 +22,7 @@ export function createCustomerRoutes(options: {
     const principal = await options.devices.resolveUploadPrincipal(c.req.raw);
     if (!principal) return c.json({ error: "Invalid device credential" }, 401);
     const data = v.parse(customerUpload, await c.req.json());
+    await adoptSession(options.database, principal, data);
     try {
       const accepted = await acceptCustomerEvent(
         options.database,

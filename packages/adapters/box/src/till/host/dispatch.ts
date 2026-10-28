@@ -151,6 +151,9 @@ export function createDispatch(host: Host) {
           setImmediate(host.close);
           break;
         case "retry":
+          // A charge settled while the network was down otherwise waits for the live socket's reconnect
+          // fallback (30 s or more) with the customer at the counter. Best effort: offline it changes nothing.
+          await payments.recover().catch(() => undefined);
           await host.sync();
       }
       return { id: request.id, type: "result", kind: "status", status: await host.status() };

@@ -47,7 +47,7 @@ export async function push(
 export async function pushEvents(
   target: { request(path: string, init?: RequestInit): Promise<Response> },
   events: unknown[],
-  proofs: { sessionId: string; proof: string }[],
+  proofs: { sessionId: string; proof: string; offline?: unknown }[],
   org = context.orgId,
   requestId = v7(),
 ) {

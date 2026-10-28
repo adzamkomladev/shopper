@@ -12,7 +12,7 @@ import {
   serverPurchase,
   TillError,
 } from "@shopper/core/till";
-import { createPushTransport, documentOutcome } from "@shopper/sync";
+import { createPushTransport, documentOutcome, sessionCredential } from "@shopper/sync";
 import type { BridgeMessage, BridgeRequest } from "@shopper/sync/bridge";
 import type { Host } from "./types";
 
@@ -79,9 +79,16 @@ export function createRefunds(host: Host, localConfig: LocalConfig) {
     return { saleId: original.sale.id, original };
   }
 
-  async function post(event: Awaited<ReturnType<typeof planRefund>>["event"], proof: string) {
+  async function post(
+    event: Awaited<ReturnType<typeof planRefund>>["event"],
+    session: Parameters<typeof sessionCredential>[0],
+  ) {
     const result = await transport
-      .request("/sync/refunds", { requestId: event.refund.id, proof, refund: event })
+      .request("/sync/refunds", {
+        requestId: event.refund.id,
+        refund: event,
+        ...sessionCredential(session),
+      })
       .catch(() => undefined);
     if (!result || result.response.status >= 500) throw offline();
     if (!result.response.ok)
@@ -184,7 +191,7 @@ export function createRefunds(host: Host, localConfig: LocalConfig) {
         lineIds: event.refund.lines.map((l) => l.id),
       };
       try {
-        await post(event, session.proof);
+        await post(event, session);
       } catch (error) {
         // The reply may be lost after the server accepted: a retry must send the identical event, and the
         // server's count already includes it, so it is replanned from this attempt's own sale view and time.

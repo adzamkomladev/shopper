@@ -196,9 +196,6 @@ export function createHostSync(
       void accountPayments.trigger();
     },
     async trigger() {
-      // A charge settled while the network was down otherwise waits for the live socket's reconnect
-      // fallback (30 s or more) with the customer at the counter. Best effort: offline it changes nothing.
-      await payments?.recover().catch(() => undefined);
       await push.trigger();
       await pullAndRefresh();
       await uploads.trigger(true);

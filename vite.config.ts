@@ -11,6 +11,9 @@ const heavy = [
   "tests/integration/till/refunds/cross.test.ts",
   "tests/integration/reports/rollup.test.ts",
   "tests/integration/reports/speed.test.ts",
+  // Chaos: 2,000 offline sales through a spawned register, and ten SIGKILL rounds.
+  "tests/integration/sync/chaos/offline.test.ts",
+  "tests/integration/sync/chaos/kill.test.ts",
 ];
 // Release builds: packaging rebuilds the till host and Electron into the dist/ other files run from.
 const solo = [

@@ -6,7 +6,7 @@ import {
   markAccountPaymentRejected,
 } from "@shopper/core/till";
 import { accountPayment, hostSession } from "@shopper/db-sqlite";
-import { createDocumentUploadWorker } from "./documents";
+import { createDocumentUploadWorker, uploadSession } from "./documents";
 import type { StockUploadOptions } from "./types";
 
 // The server must know the customer first: a payment for one made on this till waits for that upload.
@@ -22,7 +22,7 @@ export function createAccountPaymentUploadWorker(options: StockUploadOptions) {
     path: "/sync/accounts/payments",
     pending: (tx, force, now) =>
       tx
-        .select({ row: accountPayment, proof: hostSession.proof })
+        .select({ row: accountPayment, session: uploadSession })
         .from(accountPayment)
         .innerJoin(hostSession, eq(hostSession.id, accountPayment.sessionId))
         .where(
@@ -36,7 +36,7 @@ export function createAccountPaymentUploadWorker(options: StockUploadOptions) {
           ),
         )
         .orderBy(asc(sql`${accountPayment}.rowid`)),
-    body: (row, proof) => ({ requestId: row.id, proof, payment: row.payload }),
+    body: (row) => ({ requestId: row.id, payment: row.payload }),
     accept: markAccountPaymentAccepted,
     reject: markAccountPaymentRejected,
     fail: markAccountPaymentFailed,

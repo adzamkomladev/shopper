@@ -82,6 +82,7 @@ export function createPushWorker(options: PushOptions) {
       let retryAfter: string | null = null;
       try {
         const requestId = v7();
+        const sentAt = now();
         const { response, raw } = await transport.request("/sync/handshake", {
           requestId,
           appVersion: config.appVersion,
@@ -92,7 +93,9 @@ export function createPushWorker(options: PushOptions) {
         if (terminal(response.status)) return;
         if (!response.ok) throw new Error("Handshake unavailable");
         const result = readHandshake(JSON.parse(raw), requestId, config.protocol);
-        if (result.receipts) await receipts.save(result.receipts, result.serverTime, now());
+        // The server stamped its time somewhere in the round trip; its midpoint keeps latency out of the skew.
+        if (result.receipts)
+          await receipts.save(result.receipts, result.serverTime, Math.round((sentAt + now()) / 2));
         negotiated = result.protocol;
         connectionRetryAt = 0;
         connectionAttempts = 0;

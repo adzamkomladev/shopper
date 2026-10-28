@@ -8,6 +8,7 @@ import { buildInfo } from "@shopper/config";
 import { AssetError } from "@shopper/assets";
 import { acceptSale, SaleError } from "@shopper/core/sales";
 import { issueReceiptBlocks } from "@shopper/core/till";
+import { adoptSession } from "./offline";
 
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { Blobs, Lane, Queue, Sequencer } from "@shopper/ports";
@@ -19,6 +20,7 @@ import { createCustomerRoutes } from "./customers";
 import { createReceiptRoutes } from "./receipts";
 import { createRefundRoutes } from "./refunds";
 import { createShiftRoutes } from "./shifts";
+import { createSessionRoutes } from "./sessions";
 import { createStockRoutes } from "./stock";
 import { createLiveRoutes, type LiveUpgrade } from "./live";
 import { createPullRoutes } from "./pull";
@@ -60,6 +62,7 @@ export function createSyncRoutes(options: {
   app.route("/", createStockRoutes(options));
   app.route("/", createRefundRoutes(options));
   app.route("/", createShiftRoutes(options));
+  app.route("/", createSessionRoutes(options));
   app.route("/", createCustomerRoutes(options));
   app.route("/", createAccountRoutes(options));
   app.route("/", createApproverRoutes(options));
@@ -96,6 +99,7 @@ export function createSyncRoutes(options: {
       if (proofs.has(row.sessionId)) return c.json({ error: "Duplicate session proof" }, 400);
       proofs.set(row.sessionId, row.proof);
     }
+    for (const row of data.proofs) await adoptSession(options.database, principal, row);
     const accepted: { localId: string; sequence: string; occurredAt: string }[] = [];
     const rejected: { localId: string; code: string; message: string }[] = [];
     for (const [index, raw] of data.events.entries()) {

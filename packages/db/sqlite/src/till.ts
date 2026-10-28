@@ -223,4 +223,6 @@ export const tillMigrations: string[] = [
   `ALTER TABLE till_state ADD COLUMN audit_uploaded_seq INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE till_state ADD COLUMN audit_blocked_code TEXT;
 ALTER TABLE till_state ADD COLUMN audit_blocked_reason TEXT;`,
+  // An offline session names the server session it follows from.
+  "ALTER TABLE host_session ADD COLUMN parent_session_id TEXT;",
 ];

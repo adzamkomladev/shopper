@@ -4,6 +4,7 @@ import { acceptShift, ShiftError } from "@shopper/core/shifts";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { createDeviceService } from "@shopper/auth/devices";
 import { shiftUpload } from "../schemas/sync/shifts";
+import { adoptSession } from "./offline";
 
 /** Device-authenticated upload of a closed shift's Z. `rejected` is terminal for the till: it never retries. */
 export function createShiftRoutes(options: {
@@ -15,6 +16,7 @@ export function createShiftRoutes(options: {
     const principal = await options.devices.resolveUploadPrincipal(c.req.raw);
     if (!principal) return c.json({ error: "Invalid device credential" }, 401);
     const data = v.parse(shiftUpload, await c.req.json());
+    await adoptSession(options.database, principal, data);
     try {
       const accepted = await acceptShift(options.database, principal, data.shift, data.proof);
       return c.json({ requestId: data.requestId, accepted });

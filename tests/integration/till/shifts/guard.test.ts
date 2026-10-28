@@ -1,6 +1,6 @@
 // Selling, tendering, taking a MoMo payment and refunding all need an open shift on the register (SHIFT_REQUIRED);
 // a counted (declared) shift refuses them with SHIFT_COUNTED. Completed sales and refunds carry the shift's id in
-// local_sale.shift_id / refund.shift_id; the sale and refund events are unchanged (protocol stays 4).
+// local_sale.shift_id / refund.shift_id; the sale and refund events are unchanged.
 import { expect, test } from "vite-plus/test";
 import {
   addDraftTender,
@@ -146,7 +146,7 @@ test("sales and refunds are stamped with the current shift, never an earlier clo
   });
 });
 
-test("the sale and refund events do not mention shifts and stay on protocol 4", async () => {
+test("the sale and refund events do not mention shifts and keep their event versions", async () => {
   await withTill(async (db) => {
     await world(db);
     const direct = await recordLocalSale(db, config, clerk, { lines });

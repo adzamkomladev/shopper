@@ -164,7 +164,10 @@ export function createDeviceService(
     revoke: (p: DevicePrincipal, input: unknown) =>
       revokeCommand(db, ctx(p), v.parse(revokeDeviceInput, input)),
     async resolveDevicePrincipal(request: Request): Promise<DevicePrincipal | null> {
-      const token = request.headers.get("authorization")?.match(/^Bearer ([0-9a-f]{64})$/)?.[1];
+      // A cashier proof, or an offline session's: its parent's proof, a dot and its own id.
+      const token = request.headers
+        .get("authorization")
+        ?.match(/^Bearer ([0-9a-f]{64}(?:\.[0-9a-f-]{36})?)$/)?.[1];
       const deviceToken = request.headers.get("x-shopper-device-token");
       if (!token || !deviceToken) return null;
       const [row] = await db

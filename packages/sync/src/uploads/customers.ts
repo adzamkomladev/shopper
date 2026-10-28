@@ -2,7 +2,7 @@ import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { retryDue } from "../push/backoff";
 import { markCustomerAccepted, markCustomerFailed, markCustomerRejected } from "@shopper/core/till";
 import { customerUpload, hostSession } from "@shopper/db-sqlite";
-import { createDocumentUploadWorker } from "./documents";
+import { createDocumentUploadWorker, uploadSession } from "./documents";
 import type { StockUploadOptions } from "./types";
 
 /** Uploads customers made and edited on this till, oldest first (`POST /sync/customers`). */
@@ -13,7 +13,7 @@ export function createCustomerUploadWorker(options: StockUploadOptions) {
     path: "/sync/customers",
     pending: (tx, force, now) =>
       tx
-        .select({ row: customerUpload, proof: hostSession.proof })
+        .select({ row: customerUpload, session: uploadSession })
         .from(customerUpload)
         .innerJoin(hostSession, eq(hostSession.id, customerUpload.sessionId))
         .where(
@@ -27,7 +27,7 @@ export function createCustomerUploadWorker(options: StockUploadOptions) {
         )
         // An edit follows the create it edits; ids made in one millisecond are not ordered, rowids are.
         .orderBy(asc(sql`${customerUpload}.rowid`)),
-    body: (row, proof) => ({ requestId: row.id, proof, customer: row.payload }),
+    body: (row) => ({ requestId: row.id, customer: row.payload }),
     accept: markCustomerAccepted,
     reject: markCustomerRejected,
     fail: markCustomerFailed,

@@ -1,5 +1,6 @@
 import * as v from "valibot";
-import { saleEvent } from "@shopper/core/schemas";
+import { saleEvent, type OfflineSession } from "@shopper/core/schemas";
+import { sessionCredential } from "../session";
 import type { createQueueStorage } from "./storage";
 export const MAX_BYTES = 1_048_576;
 export function createBatch(
@@ -10,7 +11,7 @@ export function createBatch(
   receiptLastUsed = 0,
 ) {
   const events: v.InferOutput<typeof saleEvent>[] = [];
-  const proofs: Array<{ sessionId: string; proof: string }> = [];
+  const proofs: Array<{ sessionId: string; proof: string; offline?: OfflineSession }> = [];
   const blocked: Array<{ localId: string; blockedReason: string }> = [];
   const rows = [];
   for (const row of queue.rows) {
@@ -25,7 +26,7 @@ export function createBatch(
       });
       continue;
     }
-    const proof = { sessionId: session.id, proof: session.proof };
+    const proof = { sessionId: session.id, ...sessionCredential(session) };
     const newProofs = proofs.some((entry) => entry.sessionId === session.id)
       ? proofs
       : [...proofs, proof];

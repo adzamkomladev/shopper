@@ -65,3 +65,12 @@ unless configured. For example:
 The cashier name belongs to the configured signed-in session and must be refreshed when the host
 is started with a different cashier. Credentials and these private configuration values never go
 to browser requests.
+
+### Offline selling and the clock (Day 24)
+
+An offline sign-in past the server session's expiry starts an offline session derived from the last server
+session: eight hours, no manager permissions, adopted by the server with the first upload or live request
+that uses it. The host keeps a monotonic clock anchor from each handshake and corrects a wall clock set back
+by more than a minute; the status reports `clockSkewMs` and the sale screen shows "Register clock is N h
+ahead/behind" above five minutes. Integration tests shift the host's wall clock with the
+`tests/support/till/host/clock.mjs` preload (`startTillHost(config, { clockOffsetMs })`, then `setClock`).

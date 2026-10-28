@@ -1,4 +1,5 @@
 import * as v from "valibot";
+import { v7 } from "uuid";
 import { invalidDeviceCredential } from "@shopper/auth/devices";
 import { buildInfo } from "@shopper/config";
 import {
@@ -12,7 +13,7 @@ import {
   signOutStaff,
   TillError,
 } from "@shopper/core/till";
-import { tillSession, type TillSession } from "@shopper/core/schemas";
+import { offlineWithheld, tillSession, type TillSession } from "@shopper/core/schemas";
 import type { TillDatabase } from "@shopper/db-sqlite";
 import { cashierLogin } from "../../schemas/till/host/session";
 import type { HostConfiguration } from "./config";
@@ -22,11 +23,11 @@ import { checkVerifier, hashVerifier } from "./session/verifier";
 const VERIFIER_DAYS = 7;
 const OFFLINE_SESSION_MS = 8 * 3_600_000;
 /**
- * What an offline sign-in without a valid server session may do. Accepted limit: a role change, a revoked
- * user or a new password is not seen offline until the verifier is refreshed (at most 7 days).
+ * Past its server session, an offline sign-in starts an offline session: its own id, the server session as
+ * parent (whose proof prefixes its own), eight hours, and the parent's permissions without the manager
+ * ones. The server adopts it when its sales upload. Accepted limit: a role change, a revoked user or a new
+ * password is not seen offline until the verifier is refreshed (at most 7 days).
  */
-const OFFLINE_PERMISSIONS = ["report.read", "stock.read", "stock.write"];
-
 const decoy = hashVerifier("decoy password");
 const unavailable = () =>
   new TillError("SIGN_IN_UNAVAILABLE", "Sign-in is unavailable. Try again.");
@@ -147,20 +148,25 @@ export function createHostSession(host: { database: TillDatabase; config: HostCo
       throw new TillError("INVALID_CREDENTIALS", "Wrong email or password");
     }
     const at = await hostTime(database, identity, new Date(now));
+    const id = v7();
     const session: TillSession =
       at.valueOf() < Date.parse(stored.expiresAt)
         ? stored
         : {
             ...stored,
+            id,
+            parentSessionId: stored.id,
+            proof: `${stored.proof}.${id}`,
             issuedAt: new Date(at.valueOf() - 1_000).toISOString(),
-            expiresAt: new Date(at.valueOf() + OFFLINE_SESSION_MS).toISOString(),
-            permissions: stored.permissions.filter((code) => OFFLINE_PERMISSIONS.includes(code)),
+            // Exactly the eight hours the server adopts, counted from the backdated start.
+            expiresAt: new Date(at.valueOf() - 1_000 + OFFLINE_SESSION_MS).toISOString(),
+            permissions: stored.permissions.filter((code) => !offlineWithheld.includes(code)),
           };
     await signInStaff(database, audit(staff.userId, session.roleName), {
       userId: staff.userId,
       at: new Date(now),
       offline: true,
-      sessionId: stored.id,
+      sessionId: session.id,
     });
     set(session, { userId: staff.userId, name: staff.name, email, offline: true });
   }

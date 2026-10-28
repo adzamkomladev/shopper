@@ -6,6 +6,7 @@ import type { Queue } from "@shopper/ports";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { createDeviceService } from "@shopper/auth/devices";
 import { stockUpload } from "../schemas/sync/routes";
+import { adoptSession } from "./offline";
 
 /**
  * Device-authenticated stock count and receiving upload; one document per request.
@@ -22,6 +23,7 @@ export function createStockRoutes(options: {
     const principal = await options.devices.resolveUploadPrincipal(c.req.raw);
     if (!principal) return c.json({ error: "Invalid device credential" }, 401);
     const data = v.parse(stockUpload, await c.req.json());
+    await adoptSession(options.database, principal, data);
     try {
       const accepted = await acceptStockDocument(
         options.database,

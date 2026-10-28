@@ -14,10 +14,17 @@ type Ready = Message & {
   protocol: number;
 };
 
-export async function startTillHost(config: unknown) {
-  const child = spawn(process.execPath, [entry], {
+const clockPreload = resolve(root, "tests/support/till/host/clock.mjs");
+
+/** `clockOffsetMs` starts the host with its wall clock shifted; `setClock` then moves it. */
+export async function startTillHost(config: unknown, options: { clockOffsetMs?: number } = {}) {
+  const clocked = options.clockOffsetMs !== undefined;
+  const child = spawn(process.execPath, [...(clocked ? ["--import", clockPreload] : []), entry], {
     cwd: process.cwd(),
     stdio: ["ignore", "pipe", "pipe", "ipc"],
+    env: clocked
+      ? { ...process.env, SHOPPER_TEST_CLOCK_OFFSET_MS: String(options.clockOffsetMs) }
+      : process.env,
   });
   const exited = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>(
     (resolveExit) => {
@@ -91,11 +98,23 @@ export async function startTillHost(config: unknown) {
           message.type === "status" && isMessage(message.status) && matches(message.status),
       );
     },
-    async request(message: Message) {
+    /** Moves the host's wall clock to `offsetMs` from real time; needs a host started with `clockOffsetMs`. */
+    async setClock(offsetMs: number) {
+      if (!clocked) throw new Error("Start the host with clockOffsetMs to move its clock");
+      const id = v7();
+      child.send({ type: "test.clock", id, offsetMs });
+      await waitFor((reply) => reply.type === "test.clock.set" && reply.id === id);
+      // The host also answers the unknown message; drop that reply.
+      await waitFor((reply) => reply.id === id && reply.type === "error", 1_000).catch(
+        () => undefined,
+      );
+    },
+    async request(message: Message, timeoutMs?: number) {
       const id = typeof message.id === "string" ? message.id : v7();
       child.send({ ...message, id });
       return waitFor(
         (reply) => reply.id === id && (reply.type === "result" || reply.type === "error"),
+        timeoutMs,
       );
     },
     async stop() {

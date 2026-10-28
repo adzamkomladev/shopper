@@ -3,6 +3,7 @@ const maxBatch = 200;
 import * as v from "valibot";
 
 import { managementId } from "@shopper/core/management";
+import { sessionCredential } from "./session";
 
 export const protocolSchema = v.pipe(v.number(), v.safeInteger(), v.minValue(0));
 export const receiptLastUsed = v.optional(v.pipe(v.number(), v.safeInteger(), v.minValue(0)), 0);
@@ -21,7 +22,7 @@ export const envelope = v.strictObject({
     v.array(
       v.strictObject({
         sessionId: managementId,
-        proof: v.pipe(v.string(), v.minLength(1), v.maxLength(256)),
+        ...sessionCredential,
       }),
     ),
     v.maxLength(maxBatch),
@@ -36,5 +37,5 @@ export const saleSession = v.object({ sale: v.object({ sessionId: managementId }
 export const stockUpload = v.strictObject({
   requestId: managementId,
   document: v.unknown(),
-  proof: v.pipe(v.string(), v.minLength(1), v.maxLength(256)),
+  ...sessionCredential,
 });

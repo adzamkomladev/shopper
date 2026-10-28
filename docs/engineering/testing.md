@@ -179,6 +179,21 @@ See [windows-handoff.md](../plans/day13/windows-handoff.md) for what is verified
 - `tests/support/till/host/upstream.ts` `dropNextRefundResponse()` simulates a reply lost after the
   server accepted.
 
+### Sync chaos (Day 24)
+
+- `tests/integration/sync/chaos/` runs the eight scenarios against the real till host process: replay,
+  kill mid-sync, sequencer restart, network cut mid-tender, receipt blocks exhausted, clock skew, 24 h offline
+  and two tills selling the last unit. `vp run test:chaos` runs them locally; the 24 h and kill suites are in
+  the `heavy` group.
+- Faults (`startHostUpstream`): `cut(prefix)` / `restore(prefix?)` lose the connection before the server sees
+  the request, `dropNextResponse(path)` lets the server apply it and kills the reply, `duplicatePushes()` sends
+  every push three times (two at once, then one) and `copies` holds the replies the till never saw.
+- Clock: start the host with `{ clockOffsetMs }` and move it with `setClock(ms)`; `performance.now` stays
+  monotonic. A second register on the same branch comes from `enrollAnotherTill()`.
+- `expectConverged(...fixtures)` checks the outbox is empty, every local sale is on the server once with the
+  same payload, sequences and receipt numbers are unique and the audit chain verifies.
+- The 24 h suite renders 2,000 receipt PDFs on the register; it takes about 15 minutes on a slow machine.
+
 ### Shifts and cash control (Day 15)
 
 - `world(db)`, the till host fixture (`createHostFixture`), `startRegister`, `goldenWorld` and the

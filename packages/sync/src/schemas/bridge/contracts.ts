@@ -47,6 +47,8 @@ export const hostStatus = v.strictObject({
   ),
   receiptsLeft: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
   overflow: v.boolean(),
+  /** Register clock minus server time, as last measured or corrected. */
+  clockSkewMs: v.optional(v.pipe(v.number(), v.safeInteger())),
   syncing: v.boolean(),
   lastError: v.nullable(v.strictObject({ code: v.string(), message: v.string() })),
   shift: v.optional(shiftStatus),

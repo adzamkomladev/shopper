@@ -11,18 +11,24 @@ type Props = {
   branchName: string;
   q?: string;
   low?: true;
+  negative?: true;
   onClear: () => void;
 };
 
 /** The part of the screen that waits for stock: the table, or the state that stands in for it. */
-export function StockResults({ branchId, branchName, q, low, onClear }: Props) {
-  const query = stockListQuery({ branchId, q, low });
+export function StockResults({ branchId, branchName, q, low, negative, onClear }: Props) {
+  const query = stockListQuery({ branchId, q, low, negative });
   const { data, hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage } =
     useSuspenseInfiniteQuery(query);
   const items = data.pages.flatMap((page) => page.items);
   if (items.length === 0)
-    return q || low ? (
-      <NoMatch query={q} low={!!low} branchName={branchName} onClear={onClear} />
+    return q || low || negative ? (
+      <NoMatch
+        query={q}
+        filter={negative ? "negative" : low ? "low" : undefined}
+        branchName={branchName}
+        onClear={onClear}
+      />
     ) : (
       <NoProducts />
     );

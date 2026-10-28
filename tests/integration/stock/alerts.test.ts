@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { v7 } from "uuid";
 import { stockAlert } from "@shopper/db-pg";
 import { defineCommand } from "@shopper/audit";
-import { checkReorder } from "@shopper/core/stock";
+import { checkStockAlerts } from "@shopper/core/stock";
 import type { GoldenSale } from "../../fixtures/sales/golden/types";
 import { ids } from "../../fixtures/sales/golden";
 import { products } from "../../fixtures/sales/golden/references";
@@ -219,7 +219,7 @@ test("A rolled-back writer enqueues nothing", async () => {
   const failing = defineCommand({
     name: "stock.test.rollback",
     async run(tx, ctx, input: { productId: string }) {
-      await checkReorder(tx, ctx, ids.branch, [input.productId]);
+      await checkStockAlerts(tx, ctx, ids.branch, [input.productId]);
       throw new Error("writer failed after raising the alert");
     },
     audit: () => ({}),

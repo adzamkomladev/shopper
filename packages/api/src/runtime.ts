@@ -149,7 +149,13 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
   );
   const resolvePrincipal = async (request: Request) => {
     const device = await devices.resolveDevicePrincipal(request);
-    if (device) return device.orgId.toLowerCase() === parsed.output.toLowerCase() ? device : null;
+    // An offline session reaches only MoMo and approvals, whose checks honour its own permissions; commands
+    // elsewhere authorise by role alone.
+    if (device)
+      return device.orgId.toLowerCase() === parsed.output.toLowerCase() &&
+        !device.sessionPermissions
+        ? device
+        : null;
     return authentication.resolvePrincipal(request);
   };
   return createApi({

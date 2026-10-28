@@ -1,5 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { GitBranchIcon, PackageIcon, SearchXIcon, TrendingDownIcon } from "lucide-react";
+import {
+  CircleCheckIcon,
+  GitBranchIcon,
+  PackageIcon,
+  SearchXIcon,
+  TrendingDownIcon,
+} from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { Skeleton } from "@shopper/ui/components/skeleton";
 import { EmptyList } from "../../../admin/states";
@@ -35,22 +41,32 @@ export function NoProducts() {
   );
 }
 
-type NoMatchProps = { query?: string; low: boolean; branchName: string; onClear: () => void };
+type NoMatchProps = {
+  query?: string;
+  filter?: "low" | "negative";
+  branchName: string;
+  onClear: () => void;
+};
 
-/** A search or the low filter found nothing. The filter comes first: it is the narrower question. */
-export function NoMatch({ query, low, branchName, onClear }: NoMatchProps) {
+/** A search or a filter found nothing. The filter comes first: it is the narrower question. */
+export function NoMatch({ query, filter, branchName, onClear }: NoMatchProps) {
+  const matching = query ? ` matching "${query}"` : "";
   return (
     <EmptyList
-      icon={low ? TrendingDownIcon : SearchXIcon}
-      title={low ? "No low stock" : "No stock matches"}
+      icon={filter === "negative" ? CircleCheckIcon : filter ? TrendingDownIcon : SearchXIcon}
+      title={
+        filter === "negative" ? "No negative stock" : filter ? "No low stock" : "No stock matches"
+      }
       description={
-        low
-          ? `Nothing${query ? ` matching "${query}"` : ""} at ${branchName} is at or under its reorder level.`
-          : `Nothing found for "${query}". Check the spelling, or clear the search.`
+        filter === "negative"
+          ? `Nothing${matching} at ${branchName} has sold below zero.`
+          : filter
+            ? `Nothing${matching} at ${branchName} is at or under its reorder level.`
+            : `Nothing found for "${query}". Check the spelling, or clear the search.`
       }
     >
       <Button variant="outline" onClick={onClear}>
-        {low ? "Clear filters" : "Clear search"}
+        {filter ? "Clear filters" : "Clear search"}
       </Button>
     </EmptyList>
   );

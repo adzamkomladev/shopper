@@ -116,7 +116,11 @@ export async function finishDraftSale(
     customer,
   });
   const [savedSession] = await tx.select().from(hostSession).where(eq(hostSession.id, session.id));
-  if (savedSession && canonicalJson(savedSession) !== canonicalJson(session))
+  if (
+    savedSession &&
+    canonicalJson(savedSession) !==
+      canonicalJson({ ...session, parentSessionId: session.parentSessionId ?? null })
+  )
     throw new TillError("conflict", "Saved cashier session identity has different content");
   if (!savedSession) await tx.insert(hostSession).values(session);
   const [state] = await tx

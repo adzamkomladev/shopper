@@ -13,7 +13,7 @@ import { stockDocumentSchema, type StockDocument } from "../schemas/stock/docume
 import { validateProducts, validateStockAuthority } from "./authority";
 import { countDeltas } from "./counts";
 import { StockError } from "./error";
-import { checkReorder } from "./reorder";
+import { checkStockAlerts } from "./reorder";
 import type { Queue } from "@shopper/ports";
 
 type Input = {
@@ -125,7 +125,7 @@ async function post(tx: ShopperTransaction, ctx: CommandContext, input: Input) {
         occurredAt: input.occurredAt,
       })),
     );
-  await checkReorder(tx, ctx, input.principal.branchId, [...deltas.keys()]);
+  await checkStockAlerts(tx, ctx, input.principal.branchId, [...deltas.keys()]);
   return describe(document, input.occurredAt, deltas);
 }
 

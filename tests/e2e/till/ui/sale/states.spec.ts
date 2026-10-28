@@ -55,6 +55,13 @@ const states: State[] = [
     name: "offline",
     expects: text("Sales are saved on this register and upload when the connection returns."),
   },
+  {
+    name: "clock",
+    expects: (page) =>
+      expect(
+        page.getByRole("status").filter({ hasText: "Register clock is 3 h ahead" }),
+      ).toContainText("Sales use the server’s time. Fix the date and time on this computer."),
+  },
   { name: "disconnected", expects: text("Edits are paused so no change is lost.") },
   { name: "connecting", expects: text("Connecting to the register host") },
   {

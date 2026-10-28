@@ -96,10 +96,16 @@ export const cashierSession = pgTable(
     roleName: text("role_name").notNull().default(""),
     expiresAt: expiry(),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    /** An offline session a register started past this server session; its proof extends the parent's. */
+    parentSessionId: uuid("parent_session_id"),
   },
   (t) => [
     unique().on(t.orgId, t.id),
     unique().on(t.tokenHash),
+    foreignKey({
+      columns: [t.orgId, t.parentSessionId],
+      foreignColumns: [t.orgId, t.id],
+    }),
     foreignKey({ columns: [t.orgId, t.deviceId], foreignColumns: [device.orgId, device.id] }),
     foreignKey({ columns: [t.orgId, t.branchId], foreignColumns: [branch.orgId, branch.id] }),
     foreignKey({ columns: [t.orgId, t.userId], foreignColumns: [user.orgId, user.id] }),

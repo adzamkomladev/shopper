@@ -6,6 +6,7 @@ import { enqueueFiscal } from "./fiscal";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { createDeviceService } from "@shopper/auth/devices";
 import { refundUpload, saleLookup } from "../schemas/sync/refunds";
+import { adoptSession } from "./offline";
 
 /**
  * Device-authenticated refund upload (one per request) and receipt lookup of any register's sale in the store.
@@ -23,6 +24,7 @@ export function createRefundRoutes(options: {
     const principal = await options.devices.resolveUploadPrincipal(c.req.raw);
     if (!principal) return c.json({ error: "Invalid device credential" }, 401);
     const data = v.parse(refundUpload, await c.req.json());
+    await adoptSession(options.database, principal, data);
     try {
       const { fiscalDocId, ...accepted } = await acceptRefund(
         options.database,

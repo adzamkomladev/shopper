@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openTillDatabase } from "@shopper/adapters-box/till";
 import { localSale, outbox } from "@shopper/db-sqlite";
-import { hostConfiguration, renewTillEnrollment } from "../server";
+import { hostConfiguration, renewTillEnrollment, type FixtureTill } from "../server";
 import { insertOpenShift } from "../shifts";
 import { startTillHost } from "./process";
 
@@ -14,6 +14,8 @@ export async function createHostFixture(
     freshSession?: boolean;
     session?: null;
     shift?: boolean;
+    /** Another enrolled register (`enrollAnotherTill`); by default the suite's main till is re-enrolled. */
+    till?: FixtureTill;
   } = {},
 ) {
   const directory = await mkdtemp(join(tmpdir(), "shopper-till-host-"));
@@ -21,12 +23,12 @@ export async function createHostFixture(
   const database = waitingOnHost(openTillDatabase(sqlitePath));
   let config: Awaited<ReturnType<typeof hostConfiguration>>;
   try {
-    await renewTillEnrollment();
+    if (!options.till) await renewTillEnrollment();
     config = await hostConfiguration(
       sqlitePath,
       options.origins ?? ["http://127.0.0.1:5184"],
       options.upstream,
-      { freshSession: options.freshSession, session: options.session },
+      { freshSession: options.freshSession, session: options.session, till: options.till },
     );
     // An open shift, inserted directly (no audit row); `{ shift: false }` leaves the register closed.
     if (options.shift !== false)
@@ -48,8 +50,11 @@ export async function createHostFixture(
     database,
     sqlitePath,
     config,
-    async start(configOverride: unknown = config) {
-      host = await startTillHost(configOverride);
+    async start(
+      configOverride: unknown = config,
+      startOptions?: Parameters<typeof startTillHost>[1],
+    ) {
+      host = await startTillHost(configOverride, startOptions);
       config.port = host.ready.port;
       return host;
     },

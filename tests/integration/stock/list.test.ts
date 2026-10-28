@@ -79,6 +79,28 @@ test("The stock list pages by product, searches and filters to low stock", async
   });
 });
 
+test("The stock list marks stock under zero and filters to it, reorder level or not", async () => {
+  const exempt = products.exempt.id;
+  await addMovements([{ productId: exempt, quantity: -2_000, at: "12:00" }]);
+  const negative = await listStock(db(), ids.org, { branchId, negative: "1" });
+  expect(negative.items).toEqual([
+    expect.objectContaining({
+      productId: exempt,
+      onHandThousandths: -2_000,
+      levelThousandths: null,
+      low: false,
+      negative: true,
+    }),
+  ]);
+  const searched = await listStock(db(), ids.org, { branchId, q: "Rice" });
+  expect(searched.items[0]).toMatchObject({ low: true, negative: false });
+  const view = v.parse(
+    stockProductView,
+    await readStockProduct(db(), ids.org, exempt, { branchId }),
+  );
+  expect(view.negative).toBe(true);
+});
+
 test("Another org's branch is not found", async () => {
   await expect(listStock(db(), ids.otherOrg, { branchId })).rejects.toMatchObject({
     code: "NOT_FOUND",

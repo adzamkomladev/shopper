@@ -1,10 +1,20 @@
 import * as v from "valibot";
 import { and, count, eq } from "drizzle-orm";
-import { outbox } from "@shopper/db-sqlite";
+import { hostSession, outbox } from "@shopper/db-sqlite";
 import { createPushTransport } from "../push/http";
 import { retryDeadline } from "../push/backoff";
 import { documentOutcome } from "../schemas/uploads/documents";
+import { sessionCredential } from "../session";
 import type { DocumentUpload, ReceiptUploadOptions, Row } from "./types";
+
+/** The session columns each document's pending query selects as `session`. */
+export const uploadSession = {
+  proof: hostSession.proof,
+  parentSessionId: hostSession.parentSessionId,
+  issuedAt: hostSession.issuedAt,
+  expiresAt: hostSession.expiresAt,
+  permissions: hostSession.permissions,
+};
 
 /**
  * Uploads queued documents, oldest first, and only while this device has no unacknowledged sale: a document
@@ -37,10 +47,13 @@ export function createDocumentUploadWorker<T extends Row>(
     });
 
   async function run(force: boolean) {
-    for (const { row, proof } of await pending(force)) {
+    for (const { row, session } of await pending(force)) {
       if (stopped) return;
       try {
-        const { response, raw } = await transport.request(upload.path, upload.body(row, proof));
+        const { response, raw } = await transport.request(upload.path, {
+          ...upload.body(row),
+          ...sessionCredential(session),
+        });
         if (!response.ok) {
           const retryAfter = response.headers.get("retry-after");
           throw Object.assign(new Error(`${upload.label} upload refused (${response.status})`), {

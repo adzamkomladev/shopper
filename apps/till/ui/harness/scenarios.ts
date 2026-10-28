@@ -56,7 +56,7 @@ const base: SaleSnapshot = {
   feedback: null,
   operationError: null,
   permissions: ["sale.void", "payment.momo", "customer.read", "customer.write"],
-  sync: { offline: false, pendingCount: 0, canSync: true, syncing: false },
+  sync: { offline: false, pendingCount: 0, canSync: true, syncing: false, clockSkewMs: 0 },
   register: register(),
   receiptPrint: null,
   approvers: { permission: null, status: "idle", approvers: [], stale: false },
@@ -98,7 +98,21 @@ export const scenarios: Record<string, SaleSnapshot> = {
   session: { ...base, failure: "session" },
   permission: { ...base, failure: "permission" },
   storage: { ...base, failure: "storage", view: null },
-  offline: { ...base, sync: { offline: true, pendingCount: 3, canSync: false, syncing: false } },
+  offline: {
+    ...base,
+    sync: { offline: true, pendingCount: 3, canSync: false, syncing: false, clockSkewMs: 0 },
+  },
+  // Offline after the computer's clock was set 3 h ahead: both strips, the clock one below.
+  clock: {
+    ...base,
+    sync: {
+      offline: true,
+      pendingCount: 1,
+      canSync: false,
+      syncing: false,
+      clockSkewMs: 3 * 3_600_000,
+    },
+  },
   disconnected: { ...base, host: "disconnected", sync: { ...base.sync, canSync: false } },
   connecting: {
     ...base,
@@ -107,7 +121,10 @@ export const scenarios: Record<string, SaleSnapshot> = {
     loading: true,
     sync: { ...base.sync, canSync: false },
   },
-  syncing: { ...base, sync: { offline: false, pendingCount: 2, canSync: false, syncing: true } },
+  syncing: {
+    ...base,
+    sync: { offline: false, pendingCount: 2, canSync: false, syncing: true, clockSkewMs: 0 },
+  },
   momo: base,
   "momo-otp": { ...base, view: withTender("otp") },
   "momo-otp-error": {

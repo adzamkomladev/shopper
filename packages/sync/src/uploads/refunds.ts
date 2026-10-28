@@ -1,7 +1,8 @@
-import { and, asc, eq, isNull, lte, or } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
+import { retryDue } from "../push/backoff";
 import { markRefundAccepted, markRefundFailed, markRefundRejected } from "@shopper/core/till";
 import { hostSession, refund } from "@shopper/db-sqlite";
-import { createDocumentUploadWorker } from "./documents";
+import { createDocumentUploadWorker, uploadSession } from "./documents";
 import type { StockUploadOptions } from "./types";
 
 /** Uploads refunds made here (`POST /sync/refunds`); refunds of other registers' sales are born accepted. */
@@ -12,7 +13,7 @@ export function createRefundUploadWorker(options: StockUploadOptions) {
     path: "/sync/refunds",
     pending: (tx, force, now) =>
       tx
-        .select({ row: refund, proof: hostSession.proof })
+        .select({ row: refund, session: uploadSession })
         .from(refund)
         .innerJoin(hostSession, eq(hostSession.id, refund.sessionId))
         .where(
@@ -21,11 +22,11 @@ export function createRefundUploadWorker(options: StockUploadOptions) {
             eq(refund.deviceId, deviceId),
             isNull(refund.acceptedAt),
             isNull(refund.blockedCode),
-            force ? undefined : or(isNull(refund.nextAttemptAt), lte(refund.nextAttemptAt, now)),
+            force ? undefined : retryDue(refund.nextAttemptAt, now),
           ),
         )
         .orderBy(asc(refund.id)),
-    body: (row, proof) => ({ requestId: row.id, proof, refund: row.payload }),
+    body: (row) => ({ requestId: row.id, refund: row.payload }),
     accept: markRefundAccepted,
     reject: markRefundRejected,
     fail: markRefundFailed,

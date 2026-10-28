@@ -23,4 +23,6 @@ export type PushOptions = {
   timeoutMs?: number;
   onStatus?: (status: PushStatus) => void;
   onAcknowledgment?: () => void;
+  /** A handshake measured the register clock against the server's: register minus server, in ms. */
+  onClockMeasured?: (offsetMs: number) => void;
 };

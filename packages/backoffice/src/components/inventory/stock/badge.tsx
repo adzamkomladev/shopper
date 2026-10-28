@@ -4,3 +4,8 @@ import { Badge } from "@shopper/ui/components/badge";
 export function LowBadge() {
   return <Badge className="border-warning-border bg-warning text-warning-foreground">Low</Badge>;
 }
+
+/** Marks stock under zero: more was sold than was counted, usually by two registers offline. */
+export function NegativeBadge() {
+  return <Badge variant="destructive">Negative</Badge>;
+}

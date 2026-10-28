@@ -62,6 +62,7 @@ export async function readReceiptStatus(database: TillDatabase, orgId: string, d
     return {
       receiptsLeft,
       overflow: receiptsLeft === 0 && (state?.receiptOverflowCounter ?? 0) > 0,
+      clockSkewMs: state?.clockOffsetMs ?? 0,
     };
   });
 }

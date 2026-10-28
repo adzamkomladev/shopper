@@ -15,7 +15,7 @@ export async function recoverHostPayments(
   const session = config.session;
   if (!session) return;
   const response = await fetch(new URL("/payments/momo?status=unresolved", config.upstream), {
-    headers: paymentHeaders(config),
+    headers: await paymentHeaders(config),
     signal: AbortSignal.timeout(15_000),
   });
   // Payment availability and cashier expiry must not disconnect device-authenticated catalogue sync.
@@ -40,7 +40,7 @@ export async function recoverHostPayments(
   for (const intent of pending) {
     if (reported.has(intent.reference)) continue;
     const terminal = await fetch(new URL(`/payments/momo/${intent.reference}`, config.upstream), {
-      headers: paymentHeaders(config),
+      headers: await paymentHeaders(config),
       signal: AbortSignal.timeout(15_000),
     });
     if (terminal.status === 404) continue;

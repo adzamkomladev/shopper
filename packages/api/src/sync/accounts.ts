@@ -19,6 +19,7 @@ import {
   holdReleaseUpload,
   holdUpload,
 } from "../schemas/sync/customers";
+import { adoptSession } from "./offline";
 
 const customerStatus: Record<string, 404 | 409> = { NOT_FOUND: 404 };
 const saleStatus: Record<string, 401 | 403> = {
@@ -44,6 +45,7 @@ export function createAccountRoutes(options: {
     const principal = await device(c);
     if (!principal) return c.json({ error: "Invalid device credential" }, 401);
     const data = v.parse(holdUpload, await c.req.json());
+    await adoptSession(database, principal, data);
     return answer(c, async () => {
       const hold = v.parse(holdInput, data.hold);
       const actor = await tillActor(database, principal, hold, data.proof, buildInfo.version);
@@ -60,6 +62,7 @@ export function createAccountRoutes(options: {
     const principal = await device(c);
     if (!principal) return c.json({ error: "Invalid device credential" }, 401);
     const data = v.parse(holdReleaseUpload, await c.req.json());
+    await adoptSession(database, principal, data);
     return answer(c, async () => {
       const id = v.parse(customerId, c.req.param("id"));
       const release = v.parse(holdRelease, data.release);
@@ -77,6 +80,7 @@ export function createAccountRoutes(options: {
     const principal = await device(c);
     if (!principal) return c.json({ error: "Invalid device credential" }, 401);
     const data = v.parse(accountReadUpload, await c.req.json());
+    await adoptSession(database, principal, data);
     return answer(c, async () => {
       const session = v.parse(holdRelease, data.session);
       const id = c.req.param("id");
@@ -90,6 +94,7 @@ export function createAccountRoutes(options: {
     const principal = await device(c);
     if (!principal) return c.json({ error: "Invalid device credential" }, 401);
     const data = v.parse(accountPaymentUpload, await c.req.json());
+    await adoptSession(database, principal, data);
     try {
       const accepted = await acceptAccountPayment(database, principal, data.payment, data.proof, {
         appVersion: buildInfo.version,

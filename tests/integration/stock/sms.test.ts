@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test, vi } from "vite-plus/test";
 import { and, eq } from "drizzle-orm";
+import { v7 } from "uuid";
 import { auditLog, branch, permission, role, rolePermission, stockAlert } from "@shopper/db-pg";
 import { boxQueue } from "@shopper/adapters-box";
 import { deliverStockAlert } from "@shopper/core/stock";
@@ -94,13 +95,39 @@ test("One SMS is sent per alert, with its audit row, and a redelivery sends noth
   expect(arkesel.requests).toHaveLength(before + 1);
 });
 
-test("A negative on hand is written with a plain ASCII minus, which an SMS keeps intact", async () => {
+test("Stock under zero is texted as negative stock with a plain ASCII minus, which an SMS keeps intact", async () => {
   expect((await patchPhones(["0241234567"])).status).toBe(200);
   const { message } = await raise(-1_500);
+  expect(message.type).toBe("stock.negative");
   expect(await deliver(message)).toEqual(["ack"]);
   const text = arkesel.requests.at(-1)!.message;
-  expect(text).toBe("Low stock: Stock product at Main, -1.5 left, reorder at 3.");
+  expect(text).toBe(
+    "Negative stock: Stock product at Main, -1.5 on hand. More was sold than was in stock; count it.",
+  );
   expect(text).toMatch(/^[\x20-\x7e]+$/);
+});
+
+test("A low SMS still queued when the alert turns negative sends nothing and leaves the negative one to send", async () => {
+  expect((await patchPhones(["0241234567"])).status).toBe(200);
+  const { productId, alert, message: low } = await raise();
+  const wasted = await send(owner.api, clerk, "POST", "/stock/adjustments", {
+    id: v7(),
+    branchId: ids.branch,
+    cause: "damaged",
+    lines: [{ productId, quantityThousandths: 2_000 }],
+  });
+  expect(wasted.status).toBe(201);
+  const negative = (await sentMessages()).find(
+    (m) => m.type === "stock.negative" && (m.payload as { alertId: string }).alertId === alert.id,
+  )!;
+  const before = arkesel.requests.length;
+  expect(await deliver(low)).toEqual(["ack"]);
+  expect(arkesel.requests).toHaveLength(before);
+  expect(await deliver(negative)).toEqual(["ack"]);
+  expect(arkesel.requests.at(-1)!.message).toMatch(
+    /^Negative stock: Stock product at Main, -1 on hand/,
+  );
+  expect((await alertOf(productId)).sentAt).toBeInstanceOf(Date);
 });
 
 test("Two deliveries racing mark the alert sent once", async () => {

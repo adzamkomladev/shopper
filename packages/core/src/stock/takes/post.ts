@@ -4,7 +4,7 @@ import { stockDocument, stockMovement, stockTake, stockTakeLine } from "@shopper
 import { sha256 } from "@shopper/utils";
 import { countDeltas } from "../counts";
 import { StockError } from "../error";
-import { checkReorder } from "../reorder";
+import { checkStockAlerts } from "../reorder";
 import { lockOpenTake } from "./lock";
 
 /**
@@ -82,7 +82,7 @@ export const postTake = defineCommand({
       .update(stockTake)
       .set({ status: "posted", closedBy: ctx.actorId, closedAt: input.now, updatedAt: new Date() })
       .where(and(eq(stockTake.orgId, ctx.orgId), eq(stockTake.id, take.id)));
-    await checkReorder(
+    await checkStockAlerts(
       tx,
       ctx,
       take.branchId,

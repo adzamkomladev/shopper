@@ -43,9 +43,8 @@ subscribeConnection(() => {
   if (connected && (!connectedBefore || (signedIn && !signedBefore))) void load();
   connectedBefore = connected;
   signedBefore = signedIn;
-  const register = registerOf(connectionSnapshot().status);
   if (state.receiptPrint)
-    state = { ...state, receiptPrint: mirrorJob(state.receiptPrint, register) };
+    state = { ...state, receiptPrint: mirrorJob(state.receiptPrint, registerOf(status)) };
   notify();
 });
 subscribeBridge((message) => {
@@ -223,6 +222,7 @@ function snapshot(): SaleSnapshot {
       pendingCount: status?.pendingCount ?? 0,
       canSync: canSyncNow(host, status),
       syncing: status?.syncing ?? false,
+      clockSkewMs: status?.clockSkewMs ?? 0,
     },
   };
   composed = { connection, state, snapshot: value };

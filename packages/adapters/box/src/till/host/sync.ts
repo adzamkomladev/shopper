@@ -12,6 +12,7 @@ import {
   createReceiptUploadWorker,
   createStockUploadWorker,
   refreshApprovers,
+  createClockAnchor,
 } from "@shopper/sync";
 import type { TillDatabase } from "@shopper/db-sqlite";
 import { readReceiptStatus } from "@shopper/core/till";
@@ -43,8 +44,28 @@ export function createHostSync(
     },
   };
   const pull = createPullWorker({ ...options, retry: false, onStatus: notify });
-  // Best effort: a failed refresh keeps the previous list and its 7-day clock.
-  const approvers = () => refreshApprovers(options).catch(() => false);
+  // Best effort: a failed refresh keeps the previous list and its 7-day clock. Every store nudge asks for
+  // one, and a reconnect after a backlog nudges once per accepted sale: one refresh runs at a time and a
+  // burst of requests collapses into a single follow-up.
+  let refreshing: Promise<void> | undefined;
+  let again = false;
+  const approvers = (): Promise<void> => {
+    if (refreshing) {
+      again = true;
+      return refreshing;
+    }
+    refreshing = (async () => {
+      try {
+        do {
+          again = false;
+          await refreshApprovers(options).catch(() => false);
+        } while (again);
+      } finally {
+        refreshing = undefined;
+      }
+    })();
+    return refreshing;
+  };
   const pullAndRefresh = async () => {
     await pull.trigger();
     await onPulled?.();
@@ -107,9 +128,11 @@ export function createHostSync(
       void accountPayments.trigger();
     },
   });
+  const clock = createClockAnchor(database, options.config);
   const push = createPushWorker({
     ...options,
     onStatus: notify,
+    onClockMeasured: clock.measured,
     onAcknowledgment: () => {
       void pullAndRefresh();
       void uploads.trigger();
@@ -182,6 +205,8 @@ export function createHostSync(
       await customers.trigger(true);
       await accountPayments.trigger(true);
     },
+    /** Corrects the stored clock offset when the wall clock was set back since the last handshake. */
+    checkClock: clock.check,
     /** Uploads any acknowledged receipt PDFs that are still pending. */
     uploadReceipts: () => uploads.trigger(),
     /** Uploads queued stock counts and receiving once the sale backlog has drained. */

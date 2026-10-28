@@ -9,7 +9,7 @@ import {
   TillError,
   validateSession,
 } from "@shopper/core/till";
-import { createPushTransport } from "@shopper/sync";
+import { createPushTransport, sessionCredential } from "@shopper/sync";
 import type { BridgeMessage, BridgeRequest } from "@shopper/sync/bridge";
 import { accountView, pointsHoldReply } from "@shopper/sync/bridge";
 import type { Host } from "./types";
@@ -48,9 +48,9 @@ export function createAccounts(host: Host) {
     return { status: result.response.status, body: JSON.parse(result.raw) as unknown };
   }
 
-  async function account(customerId: string, session: { id: string; proof: string }) {
+  async function account(customerId: string, session: NonNullable<typeof config.session>) {
     const reply = await call(`/sync/customers/${customerId}/account`, {
-      proof: session.proof,
+      ...sessionCredential(session),
       session: { orgId: identity.orgId, sessionId: session.id },
     });
     if (reply.status === 404)
@@ -66,7 +66,7 @@ export function createAccounts(host: Host) {
     for (const id of holdIds)
       await call(`/sync/customers/holds/${id}/release`, {
         requestId: v7(),
-        proof: session.proof,
+        ...sessionCredential(session),
         release: { orgId: identity.orgId, sessionId: session.id },
       }).catch(() => undefined);
   }
@@ -102,7 +102,7 @@ export function createAccounts(host: Host) {
     const holdId = v7();
     const held = await call("/sync/customers/holds", {
       requestId: v7(),
-      proof: session.proof,
+      ...sessionCredential(session),
       hold: {
         id: holdId,
         orgId: identity.orgId,

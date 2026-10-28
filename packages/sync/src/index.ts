@@ -13,5 +13,7 @@ export { createCustomerUploadWorker } from "./uploads/customers";
 export { createAccountPaymentUploadWorker } from "./uploads/accounts";
 export type { ReceiptUploadOptions, StockUploadOptions } from "./uploads/types";
 export { refreshApprovers } from "./pull/approvers";
+export { createClockAnchor } from "./clock";
+export { sessionCredential } from "./session";
 export { createPushTransport } from "./push/http";
 export { documentOutcome } from "./schemas/uploads/documents";

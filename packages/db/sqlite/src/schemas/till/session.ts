@@ -11,4 +11,5 @@ export const hostSession = sqliteTable("host_session", {
   expiresAt: text("expires_at").notNull(),
   permissions: text("permissions", { mode: "json" }).$type<string[]>().notNull(),
   proof: text("proof").notNull(),
+  parentSessionId: text("parent_session_id"),
 });

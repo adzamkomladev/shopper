@@ -1,8 +1,10 @@
-import { buildInfo } from "@shopper/config";
+import { v7 } from "uuid";
+import { TILL_BODIES } from "./till";
 
 /**
  * A schema-valid body for each write route whose input an id-only body cannot pass, with the other shop's id in
  * every reference it takes. Validation then lets the request through, so the tenant check is what has to refuse it.
+ * What a request creates gets a fresh id of its own: A never ends up holding one of B's ids.
  */
 export const BODIES: Record<string, (id: string, own: Session) => unknown> = {
   "PATCH /catalogue/barcodes/mappings/:id": () => ({ decimals: 2 }),
@@ -37,10 +39,10 @@ export const BODIES: Record<string, (id: string, own: Session) => unknown> = {
   }),
   "POST /catalogue/imports": (id) => ({ assetId: id }),
   "POST /categories": (id) => ({ name: "Sweep", parentId: id }),
-  "POST /customers": (id) => ({ id, name: "Sweep", phone: "0244000999" }),
+  "POST /customers": () => ({ id: v7(), name: "Sweep", phone: "0244000999" }),
   "POST /customers/:id/credit/notes": () => ({ amount: 10_000, reason: "Sweep" }),
   "POST /customers/:id/merge": (id) => ({ loserId: id }),
-  "POST /customers/:id/payments": (id) => ({ id, amount: 10_000, method: "cash" }),
+  "POST /customers/:id/payments": () => ({ id: v7(), amount: 10_000, method: "cash" }),
   "POST /customers/:id/statement/links": () => ({ from: "2026-01-01", to: "2026-01-31" }),
   "POST /customers/:id/statements": () => ({
     channel: "sms",
@@ -64,21 +66,21 @@ export const BODIES: Record<string, (id: string, own: Session) => unknown> = {
   "POST /products/:id/prices": (id) => ({ amount: 10_000, branchId: id, reason: "Sweep" }),
   "POST /roles": () => ({ name: "Sweep", permissionCodes: [] }),
   "POST /stock/adjustments": (id) => ({
-    id,
+    id: v7(),
     branchId: id,
     cause: "damaged",
     lines: [{ productId: id, quantityThousandths: 1000 }],
   }),
   "POST /stock/receipts": (id) => ({
-    id,
+    id: v7(),
     branchId: id,
     supplierId: id,
     lines: [{ productId: id, quantityThousandths: 1000, unitCost: 1000 }],
   }),
-  "POST /stock/takes": (id) => ({ id, branchId: id, scope: "category", categoryId: id }),
+  "POST /stock/takes": (id) => ({ id: v7(), branchId: id, scope: "category", categoryId: id }),
   "POST /stores": () => ({ name: "Sweep" }),
   "POST /suppliers": () => ({ name: "Sweep" }),
-  "POST /transactions/:id/receipt/email": (id) => ({ requestKey: id, email: "sweep@tenants.test" }),
+  "POST /transactions/:id/receipt/email": () => ({ requestKey: v7(), email: "sweep@tenants.test" }),
   "PUT /customers/:id/limit": () => ({ creditLimit: 100_000 }),
   "PUT /settings/credit": () => ({ termsDays: 30, interestBps: 0 }),
   "PUT /settings/kyc": () => ({ idRequired: false, idTypes: ["ghana_card"] }),
@@ -122,58 +124,7 @@ export const BODIES: Record<string, (id: string, own: Session) => unknown> = {
     fullName: "Sweep",
   }),
   "POST /kyc/:id/verify": () => ({ code: "123456" }),
-  // A till's uploads: a valid envelope with nothing in it reaches the handler under the path's id.
-  "POST /sync/handshake": (id) => ({
-    requestId: id,
-    appVersion: "0.0.0",
-    protocol: buildInfo.syncProtocol,
-  }),
-  "POST /sync/snapshot/signatures": (id) => ({ saleIds: [id], refundIds: [id] }),
-  "POST /sync/push": (id, own) => ({
-    requestId: id,
-    protocol: buildInfo.syncProtocol,
-    events: [],
-    proofs: [{ sessionId: own.sessionId, proof: own.proof }],
-  }),
-  "POST /sync/customers": (id, own) => ({
-    requestId: id,
-    customer: { id, name: "Sweep", phone: "0244000999" },
-    proof: own.proof,
-  }),
-  "POST /sync/customers/holds": (id, own) => ({
-    requestId: id,
-    hold: { id, orgId: id, sessionId: own.sessionId, customerId: id, kind: "credit", amount: 1000 },
-    proof: own.proof,
-  }),
-  "POST /sync/customers/holds/:id/release": (id, own) => ({
-    requestId: id,
-    release: { orgId: id, sessionId: own.sessionId },
-    proof: own.proof,
-  }),
-  "POST /sync/customers/:id/account": (id, own) => ({
-    session: { orgId: id, sessionId: own.sessionId },
-    proof: own.proof,
-  }),
-  "POST /sync/accounts/payments": (id, own) => ({
-    requestId: id,
-    payment: {
-      v: 1,
-      type: "account.payment",
-      payment: {
-        orgId: id,
-        sessionId: own.sessionId,
-        occurredAt: new Date().toISOString(),
-        id,
-        customerId: id,
-        shiftId: id,
-        method: "cash",
-        amount: 1000,
-        reference: null,
-      },
-    },
-    proof: own.proof,
-  }),
-  "POST /sync/receipts": (id) => ({ saleId: id, size: 1, sha256: "0".repeat(64) }),
+  ...TILL_BODIES,
   "POST /catalogue/imports/uploads": () => ({
     fileName: "sweep.csv",
     contentType: "text/csv",
@@ -186,8 +137,8 @@ export const BODIES: Record<string, (id: string, own: Session) => unknown> = {
     sizeBytes: 1,
     sha256: "0".repeat(64),
   }),
-  "POST /payments/momo": (id) => ({
-    reference: id,
+  "POST /payments/momo": () => ({
+    reference: v7(),
     amount: 1000,
     phone: "0244000999",
     network: "mtn",
@@ -195,23 +146,37 @@ export const BODIES: Record<string, (id: string, own: Session) => unknown> = {
   "PUT /users/:id/branches": (id) => ({ branchIds: [id] }),
 };
 
-type Session = { sessionId: string; proof: string };
+export type Session = {
+  sessionId: string;
+  proof: string;
+  orgId: string;
+  userId: string;
+  deviceId: string;
+  storeId: string;
+  branchId: string;
+};
 
 /**
- * Write routes the sweep cannot carry past validation, and where their cross-shop refusal is proven instead.
- * Sync uploads carry a whole till event; their suites build real events against another shop.
+ * Write routes whose cross-shop refusal another suite proves with a real till event, by the test that proves it.
+ * A sale is a full basket with tax and tenders; its suite pushes one naming another shop's product.
  */
-export const ELSEWHERE: Record<string, string> = {
-  "POST /sync/shifts": "tests/integration/sync/shifts/accept.test.ts",
-  "POST /sync/stock": "tests/integration/sync/stock/route.test.ts",
-  "POST /sync/sessions": "tests/integration/sync/session/grants.test.ts",
-  "POST /sync/refunds": "tests/integration/sync/refunds/lookup.test.ts",
-  // Registration comes before any shop exists: its ids belong to no org.
-  "POST /onboarding/start": "tests/integration/onboarding/workflow.test.ts",
-  "POST /onboarding/verify": "tests/integration/onboarding/workflow.test.ts",
-  "POST /onboarding/complete": "tests/integration/onboarding/workflow.test.ts",
-  "POST /onboarding/:id/resend": "tests/integration/onboarding/workflow.test.ts",
+export const ELSEWHERE: Record<string, { file: string; test: string }> = {
+  "POST /sync/push": {
+    file: "tests/integration/sync/authentication.test.ts",
+    test: "cross-tenant product references are rejected",
+  },
+  "POST /sync/shifts": {
+    file: "tests/integration/sync/shifts/accept.test.ts",
+    test: "a shift for another organisation is outside the enrolled scope",
+  },
 };
+/** Registration comes before any shop exists: its ids belong to no org, so there is nothing of B's to reach. */
+export const PRE_SHOP = [
+  "POST /onboarding/start",
+  "POST /onboarding/verify",
+  "POST /onboarding/complete",
+  "POST /onboarding/:id/resend",
+];
 
 /** Path parameters that are not ids: the sweep fills them with a valid value instead of the other shop's id. */
 export const PARAMS: Record<string, string> = { period: "2026-01" };

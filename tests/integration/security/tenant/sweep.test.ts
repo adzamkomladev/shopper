@@ -1,9 +1,9 @@
 // Day 26 done-when: no endpoint leaks across orgs. Every route the API mounts is called as shop A's owner
 // with shop B's ids in its path, query and body; nothing of B may come back and nothing of B may change.
-import { existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { createApi } from "@shopper/api";
-import { BODIES, ELSEWHERE, PARAMS } from "../../../support/security/bodies";
+import { BODIES, ELSEWHERE, PARAMS, PRE_SHOP } from "../../../support/security/bodies";
 import { digestOf, heldBy, idsOf, orgTables, referencesTo } from "../../../support/security/rows";
 import { SENTINEL, call, db, startTenants, stopTenants } from "../../../support/security/tenants";
 
@@ -32,10 +32,16 @@ const FOREIGN_KEYS = [
   "saleId",
   "approverId",
 ];
+// Rows of A's that may hold an id they were given. A register asks approval for a refund of a sale it names; the
+// sale may not have synced yet, so the request keeps the id as written, and the refund itself is checked in A's
+// shop when it arrives (the sweep's own refund of B's sale is refused).
+const REFERENCES_KEPT = ["public.approval_request"];
 // A till's own calls: sync uploads, MoMo, and asking the back office for an approval.
 const FROM_TILL = /^(POST|GET) \/(sync|payments)(\/|$)|^POST \/approvals$/;
 // The input never reached the handler: the request proves nothing about the shop check behind it.
-const UNCHECKED = /^\{"error":"(Invalid request data|Malformed [a-z ]+|Invalid payment data)"/;
+// A till upload answers 200 with the event refused as malformed: that, too, never reached the shop check.
+const UNCHECKED =
+  /^\{"error":"(Invalid request data|Malformed [a-z ]+|Invalid payment data)"|"code":"INVALID_(EVENT|DOCUMENT)"/;
 
 test("every route, called as shop A with shop B's ids, returns nothing of B and changes nothing of B", async () => {
   const tables = await orgTables(db);
@@ -43,7 +49,7 @@ test("every route, called as shop A with shop B's ids, returns nothing of B and 
   // A thin world proves little: B must own a shop's worth of things.
   expect(foreign.length).toBeGreaterThan(15);
   const before = await digestOf(db, tables, b.orgId);
-  const shownBy: { route: string; shown: string }[] = [];
+  const leaks: string[] = [];
   const crashes: string[] = [];
   const checked = new Set<string>();
   let reached = 0;
@@ -70,41 +76,32 @@ test("every route, called as shop A with shop B's ids, returns nothing of B and 
       if (response.status >= 500 && response.status !== 503)
         crashes.push(`${route.method} ${path} (${response.status})`);
       const raw = await response.text();
-      if (!(response.status === 400 && UNCHECKED.test(raw))) checked.add(key);
+      if (!UNCHECKED.test(raw)) checked.add(key);
       const text = raw.toLowerCase();
-      // A refusal may quote the id it was given back; serving it, or showing any other id of B's, is a leak.
-      const shown =
-        foreign.find((value) => value !== id && text.includes(value)) ||
-        (response.ok && text.includes(id) && id) ||
-        (text.includes(SENTINEL.toLowerCase()) && SENTINEL);
-      if (shown) shownBy.push({ route: `${key} (${response.status})`, shown });
+      const at = `${key} (${response.status})`;
+      // A write may quote back an id it was given; a read that serves it, or any other id of B's, is a leak.
+      const other = foreign.find((value) => value !== id && text.includes(value));
+      if (other) leaks.push(`${at} shows ${other}`);
+      if (!write && response.ok && text.includes(id)) leaks.push(`${at} serves ${id}`);
+      if (text.includes(SENTINEL.toLowerCase())) leaks.push(`${at} shows ${SENTINEL}`);
     }
   }
-  // A may have created its own rows under ids B also uses; those answers are A's. B's rows stay checked below.
-  const own = await heldBy(db, tables, a.orgId, foreign);
-  const leaks = shownBy
-    .filter((hit) => !own.has(hit.shown))
-    .map((hit) => `${hit.route} shows ${hit.shown}`);
   expect(leaks).toEqual([]);
   expect(crashes).toEqual([]);
   // Every write got past its input validation with B's ids, or names the suite that proves it instead.
   const unchecked = routes()
     .map((route) => `${route.method} ${route.path}`)
     .filter((key) => !key.startsWith("GET ") && !checked.has(key));
-  expect(unchecked.sort()).toEqual(Object.keys(ELSEWHERE).sort());
-  for (const file of Object.values(ELSEWHERE)) expect(existsSync(file), file).toBe(true);
+  expect(unchecked.sort()).toEqual([...Object.keys(ELSEWHERE), ...PRE_SHOP].sort());
+  for (const proof of Object.values(ELSEWHERE))
+    expect(readFileSync(proof.file, "utf8"), proof.file).toContain(proof.test);
   // The sweep reached the handlers rather than bouncing off authentication.
   expect(reached).toBeGreaterThan(routes().length);
   expect((await call(a, "/stores")).status).toBe(200);
   expect(await digestOf(db, tables, b.orgId)).toEqual(before);
-  expect(
-    await referencesTo(
-      db,
-      tables,
-      a.orgId,
-      foreign.filter((id) => !own.has(id)),
-    ),
-  ).toEqual([]);
+  // Every id A created is its own: none of B's ids became a row of A's, and none of A's rows points at B.
+  expect([...(await heldBy(db, tables, a.orgId, foreign))]).toEqual([]);
+  expect(await referencesTo(db, tables, a.orgId, foreign)).toEqual(REFERENCES_KEPT);
 }, 600_000);
 
 test("A's session naming B as the shop is refused everywhere, and B's own lists stay B's", async () => {

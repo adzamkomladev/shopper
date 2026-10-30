@@ -215,5 +215,10 @@ async function till(t: Tenant, branchId: string, name: string) {
     deviceToken: enrolled.deviceToken,
     sessionId: login.id,
     proof: login.token,
+    // Where the till's own events say they come from.
+    orgId: t.orgId,
+    userId: t.userId,
+    storeId: enrolled.storeId,
+    branchId,
   };
 }

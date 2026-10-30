@@ -21,6 +21,7 @@ import {
   boxAccountFlows,
   boxStatementFlows,
   boxQueue,
+  boxRateLimiter,
   boxLane,
   boxFiscalArchive,
   boxAuditAnchors,
@@ -32,6 +33,7 @@ import { NOTIFICATION_RETRY } from "@shopper/ports";
 import { isPublicRequest, publicApi, runtimeUnavailable, serveRuntime } from "@shopper/api/runtime";
 export function createBoxApp(environment: Record<string, string | undefined> = process.env) {
   const realtime = boxRealtime();
+  const rateLimiter = boxRateLimiter();
   let workflowPool: ReturnType<typeof boxPool> | undefined;
   let cache: ReturnType<typeof boxCache> | undefined;
   let authFlows: ReturnType<typeof boxAuthFlows> | undefined;
@@ -210,6 +212,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
         renderer,
         sequencer: boxSequencer(connection.db),
         cache: cache.cache,
+        rateLimiter,
         realtime,
         live: boxLive(
           realtime,

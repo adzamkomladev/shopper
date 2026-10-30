@@ -11,3 +11,4 @@ export type { BlobUrlOptions } from "./storage/types";
 
 export { BlobUploadUnavailable } from "./storage/errors";
 export { SdcUnavailable } from "./fiscal";
+export { ratePolicies } from "./limits";

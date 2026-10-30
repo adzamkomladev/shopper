@@ -9,6 +9,9 @@ import { authLauncherFixture } from "../../../support/workflows/fixture";
 import { serveHono, type HttpClient } from "../../../support/till/http";
 import { baseURL, context, cookies, db, deviceCache, fixture, roleIds, secret } from "../setup";
 import { waitForPublicSlot } from "../../../support/publicauth/slots";
+import { boxRateLimiter } from "@shopper/adapters-box";
+
+const rateLimiter = boxRateLimiter();
 
 const countFile = "tests/e2e/.auth/public-requests.json";
 const linkSecret = "public invite slot secret with at least thirty two characters";
@@ -28,6 +31,7 @@ beforeAll(async () => {
       serveRuntime(request, {
         database: db,
         cache: deviceCache.cache,
+        rateLimiter,
         secret,
         baseURL,
         orgId: context.orgId,

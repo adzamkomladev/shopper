@@ -4,9 +4,11 @@
 import { beforeAll, expect, test } from "vite-plus/test";
 import { and, eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
-import { boxCache } from "@shopper/adapters-box";
+import { boxCache, boxRateLimiter } from "@shopper/adapters-box";
 import { serveRuntime } from "@shopper/api/runtime";
 import { api, baseURL, context, cookies, db, otherApi, request, secret } from "../auth/setup";
+
+const rateLimiter = boxRateLimiter();
 
 const owner = (path: string, method = "GET", body?: unknown) =>
   request(api, cookies.get("superadmin")!, path, method, body);
@@ -101,6 +103,7 @@ test("the shared runtime serves setup behind the session", async () => {
     serveRuntime(new Request(`${baseURL}/setup`, { headers }), {
       database: db,
       cache: cache.cache,
+      rateLimiter,
       secret,
       baseURL,
     });

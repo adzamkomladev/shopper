@@ -6,7 +6,7 @@ import { goldenWorld } from "../../support/sales/golden/setup";
 import { edit, postShift, shiftEvent } from "../../support/sales/shifts";
 import { ids } from "../../support/till/sales";
 import { memberWithPin } from "../../support/sync/members";
-import { boxCache } from "@shopper/adapters-box";
+import { boxCache, boxRateLimiter } from "@shopper/adapters-box";
 import { serveRuntime } from "@shopper/api/runtime";
 import { databases } from "../../support/till/server";
 import {
@@ -17,6 +17,8 @@ import {
   secret,
   type Portal,
 } from "../../support/api/portal";
+
+const rateLimiter = boxRateLimiter();
 
 // Three closed shifts on the golden till, uploaded as the till would, 20:00 / 21:00 / 19:00:
 //   balanced; cash GHS 6 short with a manager's approval; cash -3 000 and card +10 000 (short -3 000, over 10 000)
@@ -180,6 +182,7 @@ test("the shared runtime (Worker and box) serves /shifts behind the session, not
     const options = {
       database: databases().db,
       cache: cache.cache,
+      rateLimiter,
       secret,
       baseURL,
       orgId: ids.org,

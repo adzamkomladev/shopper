@@ -2,7 +2,7 @@ import { expect, test } from "vite-plus/test";
 import * as v from "valibot";
 import { eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
-import { boxCache } from "@shopper/adapters-box";
+import { boxCache, boxRateLimiter } from "@shopper/adapters-box";
 import { serveRuntime } from "@shopper/api/runtime";
 import {
   branchView,
@@ -21,6 +21,8 @@ import { toSpreadsheet } from "../../../tooling/lib/catalogue/fixture";
 import { baseURL, secret } from "../auth/setup";
 import { barcode, call, context, createProduct, db, postOk, unique } from "./support";
 import { importOk, sheetRows, upload } from "./import/support";
+
+const rateLimiter = boxRateLimiter();
 
 type Page = { items: { id: string; price: number | null }[]; nextCursor: string | null };
 const json = async (response: Response, status = 200) => {
@@ -92,6 +94,7 @@ test("the shop code lookup parses with the orgSummary view schema", async () => 
   const response = await serveRuntime(new Request(`http://localhost/orgs/${row!.slug}`), {
     database: db,
     cache: cache.cache,
+    rateLimiter,
     secret,
     baseURL,
   });

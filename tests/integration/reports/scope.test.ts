@@ -4,10 +4,12 @@ import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { eq } from "drizzle-orm";
 import { member, memberBranch } from "@shopper/db-pg";
 import { ids } from "../../fixtures/sales/golden";
-import { boxCache } from "@shopper/adapters-box";
+import { boxCache, boxRateLimiter } from "@shopper/adapters-box";
 import { serveRuntime } from "@shopper/api/runtime";
 import { baseURL, get, portalMember, secret } from "../../support/api/portal";
 import { copied, figure, reportWorld } from "../../support/reports/world";
+
+const rateLimiter = boxRateLimiter();
 
 let w: Awaited<ReturnType<typeof reportWorld>>;
 let scoped: string;
@@ -96,7 +98,14 @@ test("bad queries are 400s: reversed or over-long ranges, unknown groupings, mal
 test("the shared runtime (Worker and box) serves /reports behind the session, not the public API", async () => {
   const cache = boxCache(":memory:");
   try {
-    const options = { database: w.world.db, cache: cache.cache, secret, baseURL, orgId: ids.org };
+    const options = {
+      database: w.world.db,
+      cache: cache.cache,
+      rateLimiter,
+      secret,
+      baseURL,
+      orgId: ids.org,
+    };
     const send = (path: string, headers: Record<string, string>) =>
       serveRuntime(new Request(`${baseURL}${path}`, { headers }), options);
     expect((await send(`/reports/sales?${range}`, {})).status).toBe(401);

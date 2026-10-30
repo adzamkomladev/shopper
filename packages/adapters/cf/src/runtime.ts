@@ -12,6 +12,7 @@ import { cloudflareLauncher } from "./launcher";
 import { cloudflareSequencer } from "./sequencer";
 import { cloudflareLane } from "./lane";
 import { cloudflareHubtel } from "./hubtel";
+import { cloudflareRateLimiter } from "./ratelimit";
 import type { CloudflareRuntimeEnvironment } from "./runtime/types";
 
 const s3 = (env: CloudflareRuntimeEnvironment, bucket?: string) =>
@@ -37,6 +38,7 @@ export async function cloudflareRuntime(
     database: connection.db,
     sequencer: cloudflareSequencer(env.STORE_SEQUENCER),
     cache: cloudflareCache(env.CACHE_DB),
+    rateLimiter: cloudflareRateLimiter(env),
     live: cloudflareLive(env.STORE_HUB),
     realtime: cloudflareRealtime(env.STORE_HUB),
     notifications: env.NOTIFICATIONS

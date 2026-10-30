@@ -11,7 +11,7 @@ import { managementId } from "@shopper/core/management";
 import { createSyncRoutes } from "./sync/routes";
 import { createApi } from "./app";
 import { orgRoutes } from "./routes/orgs";
-import { allowPublicAuth } from "./middleware/public/auth";
+import { enforceRateLimit } from "./middleware/public/limits";
 
 export const publicApi = createApi();
 export function isPublicRequest(request: Request) {
@@ -25,12 +25,16 @@ export function runtimeUnavailable() {
 }
 export async function serveRuntime(request: Request, options: RuntimeOptions): Promise<Response> {
   if (isPublicRequest(request)) return publicApi.fetch(request);
+  const refused = await enforceRateLimit(
+    request,
+    options.rateLimiter,
+    options.clientIP,
+    options.orgId,
+  );
+  if (refused) return refused;
   const url = new URL(request.url);
   if (url.pathname.startsWith("/public/statements/")) {
     if (!options.linkSecret) return runtimeUnavailable();
-    // A link is a bearer secret; this budget only slows guessing. ponytail: isolate-local like allowPublicAuth.
-    if (!allowPublicAuth(options.clientIP, "statements", Date.now(), 30))
-      return new Response(null, { status: 429 });
     return createApi({
       database: options.database,
       linkSecret: options.linkSecret,
@@ -83,11 +87,6 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     if (!options.publicOnboarding || options.orgId)
       return Response.json({ error: "Public registration is closed" }, { status: 403 });
     if (!linkOptions) return runtimeUnavailable();
-    if (
-      request.method === "POST" &&
-      !allowPublicAuth(options.clientIP, url.pathname.split("/").at(-1) ?? "auth")
-    )
-      return Response.json({ error: "Too many requests" }, { status: 429 });
     return createApi({
       onboarding: createOnboarding({ ...linkOptions, onboarding: options.onboarding }),
     }).fetch(request);
@@ -97,11 +96,6 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
   let invitationOrg: string | undefined;
   if (invite) {
     if (!invitations) return runtimeUnavailable();
-    if (
-      request.method === "POST" &&
-      !allowPublicAuth(options.clientIP, url.pathname.split("/").at(-1) ?? "auth")
-    )
-      return Response.json({ error: "Too many requests" }, { status: 429 });
     let token: unknown = url.searchParams.get("token");
     if (request.method === "POST") {
       try {

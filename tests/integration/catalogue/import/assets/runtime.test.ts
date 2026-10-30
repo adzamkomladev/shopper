@@ -1,11 +1,13 @@
 import { expect, test } from "vite-plus/test";
 import * as v from "valibot";
 import { serveRuntime } from "@shopper/api/runtime";
-import { boxSequencer } from "@shopper/adapters-box";
+import { boxSequencer, boxRateLimiter } from "@shopper/adapters-box";
 import { importUploadGrant } from "@shopper/assets/schemas";
 import { sha256 } from "@shopper/utils";
 import { baseURL, context, cookies, db, deviceCache, secret } from "../../../auth/setup";
 import { importStorage } from "../../../../support/assets/storage";
+
+const rateLimiter = boxRateLimiter();
 
 test("runtime passes object storage to authorized catalogue routes", async () => {
   const bytes = new TextEncoder().encode("SKU,Name\nRUNTIME,Runtime product");
@@ -29,6 +31,7 @@ test("runtime passes object storage to authorized catalogue routes", async () =>
     {
       database: db,
       cache: deviceCache.cache,
+      rateLimiter,
       sequencer: boxSequencer(db),
       baseURL,
       secret,

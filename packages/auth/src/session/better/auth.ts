@@ -34,8 +34,8 @@ export function buildAuth(
       database: { generateId: () => v7(), joins: false },
       ipAddress: { ipAddressHeaders: ["x-shopper-client-ip"] },
     },
-    // ponytail: per-isolate limiter; use distributed RateLimiter when traffic spans isolates.
-    rateLimit: { enabled: true, storage: "memory" },
+    // serveRuntime budgets sign-in through the RateLimiter port, across every isolate and the box alike.
+    rateLimit: { enabled: false },
     user: {
       additionalFields: {
         orgId: { type: "string", required: true, defaultValue: orgId, input: false },

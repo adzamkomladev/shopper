@@ -6,11 +6,14 @@ import {
   boxPriceChange,
   boxRealtime,
   boxSequencer,
+  boxRateLimiter,
 } from "@shopper/adapters-box";
 import { serveRuntime } from "@shopper/api/runtime";
 import { createMaileroo } from "@shopper/auth";
 import { mailerooFixture } from "../maileroo";
 import { e2eRun } from "../../../../tooling/e2e/run";
+
+const rateLimiter = boxRateLimiter();
 
 const databaseURL = process.env.E2E_DATABASE_URL;
 if (!databaseURL || !new URL(databaseURL).pathname.endsWith("_e2e")) {
@@ -45,6 +48,7 @@ export default {
     serveRuntime(request, {
       database: database.db,
       cache: cache.cache,
+      rateLimiter,
       secret: "e2e-only-secret-more-than-32-characters",
       baseURL,
       linkSecret,

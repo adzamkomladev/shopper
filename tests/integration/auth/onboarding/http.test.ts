@@ -4,10 +4,13 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "@shopper/db-pg";
 import { createBoxApp } from "@shopper/box";
 import { serveRuntime } from "@shopper/api/runtime";
-import { boxAuthFlows, boxCache } from "@shopper/adapters-box";
+import { boxAuthFlows, boxCache, boxRateLimiter } from "@shopper/adapters-box";
 import { createLinkToken } from "@shopper/auth";
 import { postgresFixture } from "../../../fixtures/postgres";
 import { migrateDatabase } from "../../../../tooling/database/migrate";
+import { ratePolicies } from "@shopper/ports";
+
+const rateLimiter = boxRateLimiter();
 let fixture: Awaited<ReturnType<typeof postgresFixture>>;
 let pool: Pool;
 let db: schema.ShopperDatabase;
@@ -17,6 +20,7 @@ const secret = "http registration secret longer than thirty two chars";
 const options = () => ({
   database: db,
   cache: cache.cache,
+  rateLimiter,
   secret,
   linkSecret: secret,
   baseURL: "http://localhost",
@@ -110,7 +114,7 @@ test("onboarding rejects cross-origin requests and forged resend capabilities", 
 
 test("public link operations budget trusted peer IP rather than spoofed headers", async () => {
   const responses = await Promise.all(
-    Array.from({ length: 4 }, (_, attempt) =>
+    Array.from({ length: ratePolicies.auth.limit + 1 }, (_, attempt) =>
       serveRuntime(
         new Request("http://localhost/onboarding/verify", {
           method: "POST",
@@ -125,7 +129,8 @@ test("public link operations budget trusted peer IP rather than spoofed headers"
     ),
   );
   expect(responses.map((response) => response.status).sort((a, b) => a - b)).toEqual([
-    410, 410, 410, 429,
+    ...Array<number>(ratePolicies.auth.limit).fill(410),
+    429,
   ]);
   expect(
     (

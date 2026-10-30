@@ -90,6 +90,7 @@ test("every spelling of a phone, TIN or Ghana Card is masked wherever it sits in
     ghanaCard: CARD,
     directors: [{ name: "Ama Mensah", ghanaCard: CARD, phone: PHONE }],
     contact: { whatsapp: PHONE },
+    alertPhones: [PHONE, "0201234567"],
     note: "kept as typed",
   });
   const row = (await entries()).find((entry) => entry.command === "pii.probe")!;
@@ -102,6 +103,7 @@ test("every spelling of a phone, TIN or Ghana Card is masked wherever it sits in
     ghanaCard: "•••••••••••89-0",
     directors: [{ name: "Ama Mensah", ghanaCard: "•••••••••••89-0", phone: "••••••7654" }],
     contact: { whatsapp: "••••••7654" },
+    alertPhones: ["••••••7654", "••••••4567"],
     note: "kept as typed",
   });
   expect(row.after).toMatchObject({ tin: "•••••••5678" });

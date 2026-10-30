@@ -26,6 +26,13 @@ export function canonicalJson(value: unknown): string {
 const SECRET =
   /(^|_)(pin|passwords?|secrets?|tokens?|credentials?|authorization|cookies?|api_key|private_key|signing_key|access_key|session_key|otp|id_number|card_number)(_|$)/i;
 const PERSONAL = /(^|_)(phones?|msisdn|mobile|whatsapp|momo_number|tin|ghana_card)(_|$)/i;
+// The log can never be rewritten: a phone, TIN or Ghana Card goes in as its last four only, alone or in a list.
+const mask = (value: unknown): unknown =>
+  typeof value === "string"
+    ? "•".repeat(Math.max(value.length - 4, 0)) + value.slice(-4)
+    : Array.isArray(value)
+      ? value.map(mask)
+      : redact(value);
 export function redact(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(redact);
   if (
@@ -37,10 +44,7 @@ export function redact(value: unknown): unknown {
       Object.entries(value).map(([key, item]) => {
         const name = key.replace(/([a-z])([A-Z])/g, "$1_$2");
         if (SECRET.test(name)) return [key, "[REDACTED]"];
-        // The log can never be rewritten: a phone, TIN or Ghana Card goes in as its last four only.
-        if (PERSONAL.test(name) && typeof item === "string")
-          return [key, "•".repeat(Math.max(item.length - 4, 0)) + item.slice(-4)];
-        return [key, redact(item)];
+        return [key, PERSONAL.test(name) ? mask(item) : redact(item)];
       }),
     );
   }

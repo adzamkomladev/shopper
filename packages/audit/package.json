@@ -23,6 +23,6 @@
     "@shopper/utils": "workspace:*",
     "drizzle-orm": "0.45.3",
     "uuid": "14.0.2",
-    "valibot": "1.1.0"
+    "valibot": "1.5.0"
   }
 }

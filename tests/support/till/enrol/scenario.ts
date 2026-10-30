@@ -61,6 +61,7 @@ export async function startFreshTill(upstream: string, appOrigin: string) {
   try {
     const config = {
       sqlitePath: join(directory, "till.sqlite"),
+      plaintext: true,
       upstream,
       origins: [appOrigin],
       port: 0,

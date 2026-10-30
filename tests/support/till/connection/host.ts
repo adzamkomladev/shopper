@@ -24,6 +24,7 @@ export async function createConnectionHost(
   const database = openTillDatabase(sqlitePath);
   const config = {
     sqlitePath,
+    plaintext: true,
     identity: server.identity,
     deviceToken: server.deviceToken,
     receiptCodes: server.receiptCodes,

@@ -58,6 +58,7 @@ export async function momoRegister() {
   });
   const config = {
     sqlitePath,
+    plaintext: true,
     identity: { ...scope, shopName: "MoMo tenant", registerName: "Till" },
     upstream: upstream.url,
     deviceToken: momo.deviceToken,

@@ -32,6 +32,12 @@ async function start(config: unknown, renderer?: unknown) {
       await import("@shopper/adapters-box/till");
     if (stopped || (ipc && !process.connected)) return;
     if (!enrolled(config)) {
+      // Under Electron the key is sealed with the device token after enrolment. A standalone host keeps
+      // this file itself, so it must already be keyed, or it would spend the code and then refuse to start.
+      if (!ipc && !keyed(config))
+        throw new Error(
+          "databaseKey is required (plaintext: true is for development and tests only)",
+        );
       enrolment = await startEnrolmentHost(config, send);
       const registration = await enrolment.enrolled;
       enrolment = undefined;
@@ -87,6 +93,11 @@ if (!ipc) {
       console.error("Register configuration could not be read");
       process.exitCode = 1;
     });
+}
+
+function keyed(config: unknown) {
+  const install = (config ?? {}) as { databaseKey?: unknown; plaintext?: unknown };
+  return typeof install.databaseKey === "string" || install.plaintext === true;
 }
 
 /** A config with an identity has been enrolled; one without is an install waiting for its code. */

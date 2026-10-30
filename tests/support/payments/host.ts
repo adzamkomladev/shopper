@@ -61,6 +61,7 @@ export async function paymentHost(
   };
   const config = {
     sqlitePath: path,
+    plaintext: true,
     identity: {
       ...scope,
       storeId: fixture.ids.store,

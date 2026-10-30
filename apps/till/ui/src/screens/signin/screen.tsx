@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { SignInForm } from "../../components/signin/form";
 import { SignInNotices } from "../../components/signin/notices";
+import { UnlockDialog } from "../../components/signin/unlock";
 import { TitleBar } from "../../components/shell/titlebar";
 import type { HostConnection } from "../../connection/types";
+import { loadingApprovers } from "../../sale/approvers";
+import type { Approval, ApproverState, SaleOutcome } from "../../sale/types";
 import type { SignInSnapshot } from "../../session/types";
 
 /**
@@ -15,6 +19,8 @@ export function SignInScreen({
   snapshot,
   onSubmit,
   onReconnect,
+  onUnlock,
+  readApprovers,
 }: {
   host: HostConnection;
   /** The server is unreachable; the host can still sign in a cashier it knows. */
@@ -22,8 +28,32 @@ export function SignInScreen({
   snapshot: SignInSnapshot;
   onSubmit: (email: string, password: string) => Promise<boolean>;
   onReconnect: () => void;
+  onUnlock: (email: string, approval: Approval) => Promise<SaleOutcome>;
+  /** Who may lift a sign-in lock on this register, as the host answers now. */
+  readApprovers: () => Promise<ApproverState>;
 }) {
-  const register = useShortcuts({ "Alt+C": onReconnect });
+  // The dialog opens once the host has answered, so focus lands on the manager field, not a skeleton.
+  const [approvers, setApprovers] = useState<ApproverState | null>(null);
+  const [opening, setOpening] = useState(false);
+  const email = snapshot.failure?.code === "SIGN_IN_LOCKED" ? snapshot.failure.email : undefined;
+  async function openUnlock() {
+    if (opening) return;
+    setOpening(true);
+    setApprovers(await readApprovers());
+    setOpening(false);
+  }
+  async function retryApprovers() {
+    setApprovers(loadingApprovers("staff.unlock"));
+    const answered = await readApprovers();
+    // Cancelled while the list loaded: stay closed.
+    setApprovers((current) => current && answered);
+  }
+  const register = useShortcuts({
+    "Alt+C": onReconnect,
+    "Mod+U": () => {
+      if (email) void openUnlock();
+    },
+  });
   return (
     <div className="flex h-svh min-h-0 flex-col bg-background" ref={register}>
       <TitleBar />
@@ -42,6 +72,8 @@ export function SignInScreen({
             host={host}
             offline={offline}
             onReconnect={onReconnect}
+            onUnlock={() => void openUnlock()}
+            unlocking={opening}
           />
           <SignInForm
             disabled={host !== "connected"}
@@ -50,6 +82,20 @@ export function SignInScreen({
           />
         </div>
       </main>
+      {email && approvers && (
+        <UnlockDialog
+          approvers={approvers}
+          email={email}
+          onOpenChange={(open) => !open && setApprovers(null)}
+          onRetryApprovers={() => void retryApprovers()}
+          onSubmit={async (approval) => {
+            const outcome = await onUnlock(email, approval);
+            if (outcome.ok) setApprovers(null);
+            return outcome;
+          }}
+          open
+        />
+      )}
     </div>
   );
 }

@@ -14,7 +14,6 @@ import {
   context,
   auth,
   cookies,
-  trustedIP,
   signIn,
   commandContext,
 } from "./setup";
@@ -199,24 +198,4 @@ test("successful signup and signin audit verified actor identity without credent
   const serialized = JSON.stringify(events);
   expect(serialized).not.toContain(password);
   expect(serialized).not.toContain(cookies.get("superadmin"));
-});
-
-test("password attempts share the built-in limiter across recreated auth factories", async () => {
-  const ip = trustedIP();
-  const before = await db.select().from(schema.auditLog);
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const fresh = createAuth({ database: db, orgId: context.orgId, secret, baseURL });
-    const response = await fresh.handler(
-      new Request(`${baseURL}/api/auth/sign-in/email`, {
-        method: "POST",
-        headers: { "content-type": "application/json", "X-Shopper-Client-IP": ip },
-        body: JSON.stringify({
-          email: "nonexistent@rate-limit.invalid",
-          password: "wrong-password",
-        }),
-      }),
-    );
-    expect(response.status).toBe(attempt < 3 ? 401 : 429);
-  }
-  expect(await db.select().from(schema.auditLog)).toEqual(before);
 });

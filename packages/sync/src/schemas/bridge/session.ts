@@ -11,6 +11,14 @@ export const sessionRequests = [
     password: v.pipe(v.string(), v.minLength(1), v.maxLength(256)),
   }),
   v.strictObject({ id, type: v.literal("session.signOut") }),
+  /** A manager's PIN lifts a locked cashier's sign-in; the host or the server checks it, never the UI. */
+  v.strictObject({
+    id,
+    type: v.literal("session.unlock"),
+    email: v.pipe(v.string(), v.trim(), v.email(), v.maxLength(320)),
+    approverId: id,
+    pin: v.pipe(v.string(), v.minLength(1), v.maxLength(32)),
+  }),
 ] as const;
 export const sessionRequestTypes = sessionRequests.map((schema) => schema.entries.type.literal);
 

@@ -32,7 +32,8 @@ async function budgetOf(request: Request, ip: string, orgId?: string) {
     return undefined;
   }
   if (request.method !== "POST") return undefined;
-  if (path === "/cashiers/login") return budget("cashier", `${shop}:${ip}`);
+  if (path === "/cashiers/login" || path === "/cashiers/unlock")
+    return budget("cashier", `${shop}:${ip}`);
   // Each shop also locks itself after five wrong codes; this budget stops one address spraying many shops.
   if (path === "/devices/enroll") return budget("enrol", ip);
   const operation =

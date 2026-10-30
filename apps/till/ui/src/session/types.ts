@@ -8,7 +8,8 @@ export type SignInFailureCode =
   | "HOST_UNREACHABLE"
   | "OTHER";
 
-export type SignInFailure = { code: SignInFailureCode; message: string };
+/** `email` is the locked account's, so a manager can lift that lock from the sign-in screen. */
+export type SignInFailure = { code: SignInFailureCode; message: string; email?: string };
 export type SignInSnapshot = {
   status: "idle" | "signing";
   failure: SignInFailure | null;

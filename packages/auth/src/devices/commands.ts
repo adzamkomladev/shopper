@@ -19,6 +19,8 @@ export class DeviceError extends Error {
   constructor(
     message: string,
     public status: 400 | 401 | 403 | 404 | 409 | 429 = 401,
+    /** When a lockout lifts, so the register can name the time. */
+    public lockedUntil?: string | null,
   ) {
     super(message);
   }

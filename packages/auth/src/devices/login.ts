@@ -104,10 +104,11 @@ export const loginCommand = defineCommand({
   }),
 });
 
-async function pinIdentity(
+/** The member a PIN belongs to, counting failures per member: five lock that PIN for 15 minutes. */
+export async function pinIdentity(
   tx: ShopperTransaction,
   orgId: string,
-  input: Extract<v.InferOutput<typeof cashierLoginInput>, { pin: string }>,
+  input: { userId: string; pin: string },
 ): Promise<Identity | Rejected> {
   const [record] = await tx
     .select()

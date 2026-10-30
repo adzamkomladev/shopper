@@ -111,7 +111,7 @@ test("the signing-in state renders on load", async ({ page }) => {
 
 const failures = [
   ["INVALID_CREDENTIALS", "Wrong email or password", "Check them and try again."],
-  ["SIGN_IN_LOCKED", "Sign-in is locked", "Too many attempts. Try again in 15 minutes."],
+  ["SIGN_IN_LOCKED", "Sign-in is locked", "Too many attempts. Try again at 14:35."],
   [
     "OFFLINE_UNAVAILABLE",
     "Connect to the internet to sign in",

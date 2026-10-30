@@ -30,6 +30,9 @@ export async function startStaffUpstream(staff: Staff[]) {
   const state = {
     mode: "ok" as "ok" | "down" | "locked" | "garbage" | "forbidden",
     issued: [] as { id: string; token: string }[],
+    /** The manager PIN the server accepts at /cashiers/unlock, and each unlock it granted. */
+    unlockPin: "2468",
+    unlocks: [] as { email: string; approverId: string }[],
   };
   const upstream = await startUpstream(async (request) => {
     const path = new URL(request.url).pathname;
@@ -54,6 +57,15 @@ export async function startStaffUpstream(staff: Staff[]) {
         userId: user.userId,
         userName: user.name,
       });
+    }
+    if (path === "/cashiers/unlock") {
+      if (state.mode === "down") return Response.json({ error: "Unavailable" }, { status: 503 });
+      const body = (await request.json()) as { email: string; approverId: string; pin: string };
+      if (body.pin !== state.unlockPin)
+        return Response.json({ error: "Invalid PIN" }, { status: 401 });
+      state.unlocks.push({ email: body.email, approverId: body.approverId });
+      state.mode = "ok";
+      return Response.json({ userId: users.get(body.email)?.userId, lockedUntil: null });
     }
     if (path === "/products")
       return Response.json([], {

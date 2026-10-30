@@ -52,7 +52,8 @@ export type ApprovalPermission =
   | "sale.void"
   | "sale.price_override"
   | "refund.approve"
-  | "shift.approve";
+  | "shift.approve"
+  | "staff.unlock";
 /** A manager's id and PIN. The host checks the PIN; the screen never keeps it. */
 export type Approval = { approverId: string; pin: string };
 export type Approver = { userId: string; name: string };
@@ -136,14 +137,12 @@ export type PurchasesSnapshot = {
   returning: ReturnState | null;
   approvers: ApproverState;
 };
-
 /** The register settings and printer status the completion view needs. */
 export type SaleRegister = {
   clearCartAfterSale: boolean;
   printAutomatically: boolean;
   printer: HostStatus["printer"];
 };
-
 /**
  * How this sale's receipt print went. `outcome` stays null while it is pending and is kept once seen,
  * so another job on the printer never changes it. `message` is ready to show.

@@ -141,6 +141,9 @@ export function createDispatch(host: Host) {
           await host.session.signIn(request.email, request.password);
           await host.publishStatus();
           break;
+        case "session.unlock":
+          await host.session.unlock(request.email, request.approverId, request.pin);
+          break;
         case "session.signOut":
           await host.session.signOut();
           await host.publishStatus();

@@ -32,6 +32,13 @@ export const cashierLoginInput = v.union([
     password: v.pipe(v.string(), v.minLength(1), v.maxLength(256)),
   }),
 ]);
+/** A manager's PIN, typed on the register, lifting the lockout of the cashier who signs in with `email`. */
+export const cashierUnlockInput = v.strictObject({
+  ...deviceLogin,
+  email: v.pipe(v.string(), v.trim(), v.email(), v.maxLength(320)),
+  approverId: id,
+  pin,
+});
 export const revokeDeviceInput = v.strictObject({ deviceId: id });
 export const deviceListItem = v.strictObject({
   id,

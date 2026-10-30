@@ -16,13 +16,16 @@ type Props = {
   onVerify?: (member: UserView) => void;
   /** Only members who may manage users get it; never on your own row, nor an owner's unless you are one. */
   onStatus?: (change: StatusChange) => void;
+  /** Only members holding staff.unlock get it, and only on locked members inside their branches. */
+  onUnlock?: (member: UserView) => void;
   self?: UserView;
 };
 
 export const statusButtonId = (id: string) => `member-status-${id}`;
+export const unlockButtonId = (id: string) => `member-unlock-${id}`;
 
 export function MembersTable(props: Props) {
-  const { members, branchNames, onEditAccess, onVerify, onStatus, self } = props;
+  const { members, branchNames, onEditAccess, onVerify, onStatus, onUnlock, self } = props;
   const columns: DataTableColumn<UserView>[] = [
     {
       id: "name",
@@ -38,6 +41,9 @@ export function MembersTable(props: Props) {
             <span className="md:hidden">
               · {branchesLabel(row.original.branchIds, branchNames)}
             </span>
+            {row.original.lockedUntil && (
+              <Badge variant="destructive">Locked until {clock(row.original.lockedUntil)}</Badge>
+            )}
             {row.original.deactivatedAt && (
               <Badge variant="secondary">
                 Deactivated {formatDate(row.original.deactivatedAt)}
@@ -60,7 +66,7 @@ export function MembersTable(props: Props) {
       cell: ({ row }) => branchesLabel(row.original.branchIds, branchNames),
     },
   ];
-  if (onEditAccess || onStatus)
+  if (onEditAccess || onStatus || onUnlock)
     columns.push({
       id: "actions",
       header: () => <span className="sr-only">Actions</span>,
@@ -79,6 +85,17 @@ export function MembersTable(props: Props) {
                 onClick={() => onVerify(member)}
               >
                 Verify identity
+              </Button>
+            )}
+            {onUnlock && reachable && member.lockedUntil && (
+              <Button
+                id={unlockButtonId(member.id)}
+                variant="outline"
+                size="sm"
+                aria-label={`Unlock ${member.name}`}
+                onClick={() => onUnlock(member)}
+              >
+                Unlock
               </Button>
             )}
             {onEditAccess && reachable && !member.deactivatedAt && (
@@ -125,6 +142,10 @@ export function MembersTable(props: Props) {
 function within(self: UserView | undefined, member: UserView) {
   if (!self?.branchIds.length) return true;
   return member.branchIds.length > 0 && member.branchIds.every((id) => self.branchIds.includes(id));
+}
+
+function clock(iso: string) {
+  return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
 function branchesLabel(ids: string[], names: Map<string, string>) {

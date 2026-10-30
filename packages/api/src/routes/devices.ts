@@ -20,6 +20,7 @@ export function deviceRoutes(
     ["/devices/enroll", "enroll", null],
     ["/cashiers/pin", "assignPin", "cashier.pin.assign"],
     ["/cashiers/login", "login", null],
+    ["/cashiers/unlock", "unlock", null],
     ["/devices/revoke", "revoke", "device.revoke"],
   ] as const) {
     if (permission) app.use(path, requirePermission(authentication, permission));
@@ -47,18 +48,24 @@ export function deviceRoutes(
             ? await devices.enroll(data)
             : operation === "login"
               ? await devices.login(data)
-              : operation === "issueEnrollment"
-                ? await devices.issueEnrollment(principal!, data)
-                : operation === "assignPin"
-                  ? await devices.assignPin(principal!, data)
-                  : await devices.revoke(principal!, data);
+              : operation === "unlock"
+                ? await devices.unlock(data)
+                : operation === "issueEnrollment"
+                  ? await devices.issueEnrollment(principal!, data)
+                  : operation === "assignPin"
+                    ? await devices.assignPin(principal!, data)
+                    : await devices.revoke(principal!, data);
         return c.json(
           result,
           operation === "enroll" || operation === "issueEnrollment" ? 201 : 200,
         );
       } catch (error) {
         if (v.isValiError(error)) return c.json({ error: "Invalid request data" }, 400);
-        if (error instanceof DeviceError) return c.json({ error: error.message }, error.status);
+        if (error instanceof DeviceError)
+          return c.json(
+            { error: error.message, ...(error.lockedUntil && { lockedUntil: error.lockedUntil }) },
+            error.status,
+          );
         throw error;
       }
     });

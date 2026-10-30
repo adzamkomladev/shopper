@@ -4,6 +4,7 @@ import { Button } from "@shopper/ui/components/button";
 import { Kbd } from "@shopper/ui/components/kbd";
 import type { HostConnection } from "../../connection/types";
 import type { SignInFailure } from "../../session/types";
+import { unlockButtonId } from "./unlock";
 
 const titles = {
   INVALID_CREDENTIALS: "Wrong email or password",
@@ -28,11 +29,17 @@ export function SignInNotices({
   offline,
   failure,
   onReconnect,
+  onUnlock,
+  unlocking,
 }: {
   host: HostConnection;
   offline: boolean;
   failure: SignInFailure | null;
   onReconnect: () => void;
+  /** Opens the manager unlock; only a lock on a known email offers it. */
+  onUnlock: () => void;
+  /** The manager list is on its way. */
+  unlocking: boolean;
 }) {
   const unreachable = host !== "connected";
   const shown = unreachable
@@ -71,6 +78,20 @@ export function SignInNotices({
               >
                 {host === "connecting" ? "Connecting…" : "Reconnect"}{" "}
                 <Kbd className="max-sm:hidden">Alt+C</Kbd>
+              </Button>
+            )}
+            {shown.code === "SIGN_IN_LOCKED" && shown.email && (
+              <Button
+                aria-keyshortcuts="Control+U Meta+U"
+                className="mt-3"
+                disabled={unlocking}
+                id={unlockButtonId}
+                onClick={onUnlock}
+                size="touch"
+                variant="outline"
+              >
+                {unlocking ? "Loading managers…" : "Manager unlock"}{" "}
+                <Kbd className="max-sm:hidden">Ctrl+U</Kbd>
               </Button>
             )}
           </AlertDescription>

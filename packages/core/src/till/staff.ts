@@ -113,3 +113,17 @@ export const forgetStaff = defineCommand({
   },
   audit: (_input, forgotten) => ({ userIds: forgotten }),
 });
+
+/** A manager lifted a cashier's sign-in lock: the failures this register counted start again. */
+export const unlockStaff = defineCommand({
+  name: "session.unlock",
+  async run(tx, context, input: { email: string; online: boolean }) {
+    const [row] = await tx
+      .update(tillStaff)
+      .set({ attempts: 0, lockedUntil: null })
+      .where(and(eq(tillStaff.orgId, context.orgId), eq(tillStaff.email, input.email)))
+      .returning({ userId: tillStaff.userId });
+    return { userId: row?.userId ?? null };
+  },
+  audit: (input, output) => ({ userId: output.userId, online: input.online }),
+});

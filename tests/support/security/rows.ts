@@ -32,6 +32,22 @@ export async function idsOf(db: ShopperDatabase, tables: Table[], orgId: string)
   return [...ids];
 }
 
+/** Which of `ids` the org now holds as its own row ids: a client may choose an id another shop also uses. */
+export async function heldBy(db: ShopperDatabase, tables: Table[], orgId: string, ids: string[]) {
+  const held = new Set<string>();
+  for (const table of tables) {
+    const hasId = await db.execute(sql`
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = ${table.schema} AND table_name = ${table.name} AND column_name = 'id'`);
+    if (!hasId.rows.length) continue;
+    const found = await db.execute<{ id: string }>(sql`
+      SELECT id::text AS id FROM ${ref(table)}
+      WHERE org_id = ${orgId} AND lower(id::text) = ANY(${`{${ids.join(",")}}`}::text[])`);
+    for (const row of found.rows) held.add(row.id.toLowerCase());
+  }
+  return held;
+}
+
 /** A digest of every row the org owns, table by table: any write by another shop changes it. */
 export async function digestOf(db: ShopperDatabase, tables: Table[], orgId: string) {
   const digests: Record<string, string> = {};

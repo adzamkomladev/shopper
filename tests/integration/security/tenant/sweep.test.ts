@@ -1,19 +1,15 @@
 // Day 26 done-when: no endpoint leaks across orgs. Every route the API mounts is called as shop A's owner
 // with shop B's ids in its path, query and body; nothing of B may come back and nothing of B may change.
+import { existsSync } from "node:fs";
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { createApi } from "@shopper/api";
-import { digestOf, idsOf, orgTables, referencesTo } from "../../../support/security/rows";
-import {
-  SENTINEL,
-  call,
-  db,
-  startTenants,
-  stopTenants,
-  type Tenant,
-} from "../../../support/security/tenants";
+import { BODIES, ELSEWHERE, PARAMS } from "../../../support/security/bodies";
+import { digestOf, heldBy, idsOf, orgTables, referencesTo } from "../../../support/security/rows";
+import { SENTINEL, call, db, startTenants, stopTenants } from "../../../support/security/tenants";
 
-let a: Tenant;
-let b: Tenant;
+type Tenants = Awaited<ReturnType<typeof startTenants>>;
+let a: Tenants["a"];
+let b: Tenants["b"];
 beforeAll(async () => ({ a, b } = await startTenants()), 120_000);
 afterAll(stopTenants);
 
@@ -36,6 +32,10 @@ const FOREIGN_KEYS = [
   "saleId",
   "approverId",
 ];
+// A till's own calls: sync uploads, MoMo, and asking the back office for an approval.
+const FROM_TILL = /^(POST|GET) \/(sync|payments)(\/|$)|^POST \/approvals$/;
+// The input never reached the handler: the request proves nothing about the shop check behind it.
+const UNCHECKED = /^\{"error":"(Invalid request data|Malformed [a-z ]+|Invalid payment data)"/;
 
 test("every route, called as shop A with shop B's ids, returns nothing of B and changes nothing of B", async () => {
   const tables = await orgTables(db);
@@ -43,39 +43,68 @@ test("every route, called as shop A with shop B's ids, returns nothing of B and 
   // A thin world proves little: B must own a shop's worth of things.
   expect(foreign.length).toBeGreaterThan(15);
   const before = await digestOf(db, tables, b.orgId);
-  const leaks: string[] = [];
+  const shownBy: { route: string; shown: string }[] = [];
   const crashes: string[] = [];
+  const checked = new Set<string>();
   let reached = 0;
   for (const route of routes()) {
+    const key = `${route.method} ${route.path}`;
     const attempts = route.path.includes(":") ? foreign : [foreign[1]!];
     for (const id of attempts) {
-      const path = route.path.replace(/:[A-Za-z]+(\{[^}]*\})?\??|\*/g, id);
-      const query = FOREIGN_KEYS.map((key) => `${key}=${id}`).join("&");
+      const path = route.path.replace(
+        /:([A-Za-z]+)(\{[^}]*\})?\??|\*/g,
+        (_match, name?: string) => (name && PARAMS[name]) || id,
+      );
+      const query = FOREIGN_KEYS.map((field) => `${field}=${id}`).join("&");
       const write = route.method !== "GET";
       const response = await call(a, write ? path : `${path}?${query}`, {
         method: route.method,
-        body: write ? Object.fromEntries(FOREIGN_KEYS.map((key) => [key, id])) : undefined,
+        body: write
+          ? (BODIES[key]?.(id, a.till) ??
+            Object.fromEntries(FOREIGN_KEYS.map((field) => [field, id])))
+          : undefined,
+        till: FROM_TILL.test(key) ? a.till : undefined,
       });
       if (![401, 403].includes(response.status)) reached += 1;
-      // 503 is a runtime without that optional service (KYC, invitations, a renderer); anything else is a crash.
+      // 503 is a runtime without that optional service (Hubtel, settlements); anything else is a crash.
       if (response.status >= 500 && response.status !== 503)
         crashes.push(`${route.method} ${path} (${response.status})`);
-      const text = (await response.text()).toLowerCase();
+      const raw = await response.text();
+      if (!(response.status === 400 && UNCHECKED.test(raw))) checked.add(key);
+      const text = raw.toLowerCase();
       // A refusal may quote the id it was given back; serving it, or showing any other id of B's, is a leak.
       const shown =
         foreign.find((value) => value !== id && text.includes(value)) ||
         (response.ok && text.includes(id) && id) ||
         (text.includes(SENTINEL.toLowerCase()) && SENTINEL);
-      if (shown) leaks.push(`${route.method} ${route.path} (${response.status}) shows ${shown}`);
+      if (shown) shownBy.push({ route: `${key} (${response.status})`, shown });
     }
   }
+  // A may have created its own rows under ids B also uses; those answers are A's. B's rows stay checked below.
+  const own = await heldBy(db, tables, a.orgId, foreign);
+  const leaks = shownBy
+    .filter((hit) => !own.has(hit.shown))
+    .map((hit) => `${hit.route} shows ${hit.shown}`);
   expect(leaks).toEqual([]);
   expect(crashes).toEqual([]);
+  // Every write got past its input validation with B's ids, or names the suite that proves it instead.
+  const unchecked = routes()
+    .map((route) => `${route.method} ${route.path}`)
+    .filter((key) => !key.startsWith("GET ") && !checked.has(key));
+  expect(unchecked.sort()).toEqual(Object.keys(ELSEWHERE).sort());
+  for (const file of Object.values(ELSEWHERE)) expect(existsSync(file), file).toBe(true);
   // The sweep reached the handlers rather than bouncing off authentication.
   expect(reached).toBeGreaterThan(routes().length);
   expect((await call(a, "/stores")).status).toBe(200);
   expect(await digestOf(db, tables, b.orgId)).toEqual(before);
-  expect(await referencesTo(db, tables, a.orgId, foreign)).toEqual([]);
+  expect(
+    await referencesTo(
+      db,
+      tables,
+      a.orgId,
+      foreign.filter((id) => !own.has(id)),
+    ),
+  ).toEqual([]);
 }, 600_000);
 
 test("A's session naming B as the shop is refused everywhere, and B's own lists stay B's", async () => {

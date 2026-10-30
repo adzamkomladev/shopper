@@ -28,7 +28,7 @@ export function auditRoutes(
   const orgId = (c: Context<ApiEnvironment>) => c.get("principal").orgId;
   const scope = (c: Context<ApiEnvironment>) => branchScope(c.get("principal"));
   // A chain spans every branch it touched: verifying one is for org-wide members.
-  app.use("/audit/streams", requireOrgWide).use("/audit/verify", requireOrgWide);
+  app.get("/audit/streams", requireOrgWide).get("/audit/verify", requireOrgWide);
   app.get("/audit", async (c) => {
     const filters = v.safeParse(auditFilters, c.req.query());
     if (!filters.success) return c.json({ error: "Invalid audit filters" }, 400);

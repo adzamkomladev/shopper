@@ -47,6 +47,8 @@ export function buildAuth(
       },
     },
     session: {
+      // A shift's length: a lost or shared back-office browser stops working by the next day.
+      expiresIn: 60 * 60 * 12,
       disableSessionRefresh: true,
       deferSessionRefresh: true,
       additionalFields: {

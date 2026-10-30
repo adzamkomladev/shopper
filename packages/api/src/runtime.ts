@@ -11,6 +11,7 @@ import { managementId } from "@shopper/core/management";
 import { createSyncRoutes } from "./sync/routes";
 import { createApi } from "./app";
 import { orgRoutes } from "./routes/orgs";
+import { refuseCrossSite, secureHeaders } from "./middleware/hardening";
 import { enforceRateLimit } from "./middleware/public/limits";
 
 export const publicApi = createApi();
@@ -24,7 +25,14 @@ export function runtimeUnavailable() {
   return Response.json({ error: "Authentication service unavailable" }, { status: 503 });
 }
 export async function serveRuntime(request: Request, options: RuntimeOptions): Promise<Response> {
+  return secureHeaders(request, await route(request, options), options.baseURL);
+}
+
+async function route(request: Request, options: RuntimeOptions): Promise<Response> {
   if (isPublicRequest(request)) return publicApi.fetch(request);
+  // A short key makes every session and emailed link forgeable; refuse to sign anything with it.
+  if (weak(options.secret) || (options.linkSecret !== undefined && weak(options.linkSecret)))
+    return runtimeUnavailable();
   const refused = await enforceRateLimit(
     request,
     options.rateLimiter,
@@ -50,13 +58,8 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
   if (options.clientIP) headers.set("X-Shopper-Client-IP", options.clientIP);
   // Bun upgrades require the original request carrying the server connection.
   if (url.pathname !== "/sync/live") request = new Request(request, { headers });
-  const origin = request.headers.get("Origin");
-  if (
-    !["GET", "HEAD", "OPTIONS"].includes(request.method) &&
-    origin &&
-    origin !== new URL(options.baseURL).origin
-  )
-    return Response.json({ error: "Origin is not allowed" }, { status: 403 });
+  const crossSite = refuseCrossSite(request, options.baseURL);
+  if (crossSite) return crossSite;
   if (/^\/sync(?:\/|$)/.test(url.pathname)) {
     if (!options.sequencer) return runtimeUnavailable();
     return createSyncRoutes({
@@ -182,3 +185,5 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     platform: options.platform,
   }).fetch(request);
 }
+
+const weak = (secret: string) => new TextEncoder().encode(secret).length < 32;

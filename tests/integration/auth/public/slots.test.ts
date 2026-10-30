@@ -111,6 +111,8 @@ async function invite(index: number) {
     method: "POST",
     headers: {
       cookie: cookies.get("superadmin")!,
+      // A browser names its origin on every write; a session write without one is refused.
+      Origin: new URL(baseURL).origin,
       "X-Shopper-Org": context.orgId,
       "content-type": "application/json",
     },

@@ -35,6 +35,14 @@ test("the build prerenders a static SPA shell", () => {
   expect(existsSync(resolve(assets, "login/index.html"))).toBe(false);
 });
 
+test("the shipped shell refuses to be framed or sniffed", () => {
+  const headers = readFileSync(resolve(assets, "_headers"), "utf8");
+  expect(headers).toMatch(/^\/\*$/m);
+  expect(headers).toContain("Content-Security-Policy: frame-ancestors 'none'");
+  expect(headers).toContain("X-Frame-Options: DENY");
+  expect(headers).toContain("X-Content-Type-Options: nosniff");
+});
+
 test("the staging client ships production React even when the shell sets NODE_ENV", () => {
   const scripts = readdirSync(resolve(assets, "assets")).filter((file) => file.endsWith(".js"));
   expect(scripts.length).toBeGreaterThan(0);

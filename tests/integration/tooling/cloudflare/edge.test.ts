@@ -157,11 +157,9 @@ test("bucket names and the R2 S3 location are text; credentials are secrets", ()
     .map(([name]) => name)
     .sort();
   expect(bound.ARKESEL_SENDER).toMatchObject({ type: "text", value: "Shopper" });
+  // Hubtel is optional: a declared secret is required at deploy, so staging leaves it undeclared.
   expect(secrets).toEqual([
     "ARKESEL_API_KEY",
-    "HUBTEL_CLIENT_ID",
-    "HUBTEL_CLIENT_SECRET",
-    "HUBTEL_MERCHANT_ACCOUNT",
     "MAILEROO_API_KEY",
     "MAILEROO_FROM",
     "PAYSTACK_SECRET_KEY",

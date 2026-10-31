@@ -302,8 +302,10 @@ permissions. It was edited before its first release, so reset dev databases rath
 Cloudflare: create the Workflows `shopper-momo-refund-<stage>`, `shopper-settlement-<stage>`,
 `shopper-approval-<stage>` and `shopper-billing-<stage>` (bindings `MOMO_REFUND`, `SETTLEMENT`, `APPROVAL`,
 `BILLING`). They are defined on the edge Worker; the portal Worker binds the same four through `worker: edge`.
-Set `HUBTEL_CLIENT_ID`, `HUBTEL_CLIENT_SECRET` and `HUBTEL_MERCHANT_ACCOUNT` with `cf secret` on both Workers. Without
-them Hubtel cannot be picked in Payments → Settings and every org stays on Paystack. Hubtel calls back to
+Hubtel is optional. `HUBTEL_CLIENT_ID`, `HUBTEL_CLIENT_SECRET` and `HUBTEL_MERCHANT_ACCOUNT` are declared as secrets
+only in dev, because a declared secret blocks a deploy until it is set. To turn Hubtel on, set them with `cf secret put`
+on the edge, portal and admin Workers. Build env vars do not reach them, since `deploy.ts` pushes declared secrets only.
+Without them Hubtel cannot be picked in Payments → Settings and every org stays on Paystack. Hubtel calls back to
 `${SHOPPER_AUTH_URL}/api/webhooks/hubtel`. MoMo refunds start only when `PAYSTACK_SECRET_KEY` is set.
 
 Box: it reads the same Hubtel names from its sealed config, runs refunds, settlements and approvals on its memory

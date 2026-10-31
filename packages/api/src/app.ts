@@ -52,6 +52,7 @@ export function createApi(options: ApiOptions = {}) {
         blobs: options.blobs,
         notifications: options.notifications,
         lane: options.lane,
+        minTillVersion: options.minTillVersion,
       }),
     );
   if (options.onboarding) app.route("/", onboardingRoutes(options.onboarding));

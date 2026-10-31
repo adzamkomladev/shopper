@@ -34,6 +34,8 @@ export interface AuthEnvironment {
   SHOPPER_SDC_KEY?: string;
   /** The code of the org whose members are Shopper staff; only the admin Worker sets it. */
   SHOPPER_PLATFORM_ORG?: string;
+  /** Tills below this version update before their next shift; empty means no minimum. */
+  SHOPPER_MIN_TILL_VERSION?: string;
 }
 
 /** One Rate Limiting binding per policy, `RATE_<POLICY>`, each configured from `ratePolicies` in the edge config. */

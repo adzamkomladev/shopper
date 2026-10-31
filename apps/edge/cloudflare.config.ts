@@ -59,6 +59,8 @@ export default defineConfig(({ mode }) => {
         triggers.scheduled({ schedule: "59 23 * * *" }),
       ],
       env: {
+        // Tills below it update before their next shift; empty is no minimum. Raise it per environment.
+        SHOPPER_MIN_TILL_VERSION: bindings.text(""),
         CACHE_DB: bindings.d1({ name: `shopper-cache-${stage}`, id: ids[stage].d1 }),
         HYPERDRIVE: bindings.hyperdrive({
           id: ids[stage].hyperdrive,

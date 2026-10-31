@@ -14,6 +14,7 @@ import { sessionRequests, sessionUser } from "./session";
 import { shiftReplies, shiftRequests, shiftStatus } from "./shifts";
 import { enrolReplies, enrolRequests } from "./enrol";
 import { registerIdentity } from "./identity";
+import { updateRequests, updateStatus } from "./updates";
 
 const id = uuidV7Schema;
 
@@ -43,6 +44,7 @@ export const hostStatus = v.strictObject({
   syncing: v.boolean(),
   lastError: v.nullable(v.strictObject({ code: v.string(), message: v.string() })),
   shift: v.optional(shiftStatus),
+  update: v.optional(updateStatus),
   lastSuccessfulPushAt: v.nullable(
     v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(8_640_000_000_000_000)),
   ),
@@ -70,6 +72,7 @@ export const bridgeRequest = v.pipe(
     ...customerRequests,
     ...accountRequests,
     ...enrolRequests,
+    ...updateRequests,
   ]),
   v.check((request) => namesOneSale(request), "Name the sale by id or by receipt number, not both"),
   v.check(

@@ -1,6 +1,12 @@
 import * as v from "valibot";
 import { buildInfo } from "@shopper/config";
-import { recordLocalSale, searchCatalogue, TillError } from "@shopper/core/till";
+import {
+  recordLocalSale,
+  searchCatalogue,
+  shiftSummary,
+  TillError,
+  validateSession,
+} from "@shopper/core/till";
 import type { BridgeMessage, BridgeRequest } from "@shopper/sync/bridge";
 import { createAccounts } from "./accounts";
 import { createBasket } from "./basket";
@@ -148,6 +154,17 @@ export function createDispatch(host: Host) {
           await host.session.signOut();
           await host.publishStatus();
           break;
+        case "register.update.install": {
+          if (!config.session)
+            return error(request, "SESSION_REQUIRED", "Sign in on this register first");
+          await validateSession(database, config.session, {
+            scope: identity,
+            permission: "register.settings",
+            at: new Date(),
+          });
+          host.updates.install((await shiftSummary(database, identity)).current !== null);
+          break;
+        }
         case "device.enrol":
           return error(request, "ALREADY_ENROLLED", "This till is already enrolled");
         case "shutdown":

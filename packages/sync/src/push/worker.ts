@@ -97,6 +97,7 @@ export function createPushWorker(options: PushOptions) {
         if (result.receipts)
           await receipts.save(result.receipts, result.serverTime, Math.round((sentAt + now()) / 2));
         negotiated = result.protocol;
+        options.onHandshake?.(result);
         connectionRetryAt = 0;
         connectionAttempts = 0;
         publish({ server: "online", lastError: null });

@@ -529,6 +529,9 @@ importers:
       '@shopper/sync':
         specifier: workspace:*
         version: link:../../sync
+      '@shopper/utils':
+        specifier: workspace:*
+        version: link:../../utils
       better-sqlite3-multiple-ciphers:
         specifier: 13.0.3
         version: 13.0.3

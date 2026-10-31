@@ -235,6 +235,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
         kyc: kycFlows,
         storeDays: storeDays.launcher,
         linkSecret: environment.SHOPPER_LINK_SECRET,
+        minTillVersion: environment.SHOPPER_MIN_TILL_VERSION,
       });
     } finally {
       await connection.close();

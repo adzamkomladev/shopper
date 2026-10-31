@@ -75,6 +75,7 @@ async function route(request: Request, options: RuntimeOptions): Promise<Respons
       live: options.live,
       notifications: options.notifications,
       lane: options.lane,
+      minTillVersion: options.minTillVersion,
     }).fetch(request);
   }
   const linkOptions =

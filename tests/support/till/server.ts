@@ -39,6 +39,12 @@ export let blobs: Awaited<ReturnType<typeof boxBlobs>>["blobs"];
 let local: Awaited<ReturnType<typeof openTillDatabase>>;
 let localDirectory: string;
 export const routeFactory = createSyncRoutes;
+let minTillVersion = "";
+
+/** SHOPPER_MIN_TILL_VERSION for the suite's API; empty is no minimum. */
+export function setMinTillVersion(value: string) {
+  minTillVersion = value;
+}
 
 beforeAll(async () => {
   fixture = await postgresFixture();
@@ -62,19 +68,18 @@ beforeAll(async () => {
     secret: new Uint8Array(32).fill(7),
   });
   blobs = storage.blobs;
-  const app = apiPackage.createApi({
-    database: db,
-    devices,
-    sequencer,
-    blobs,
-    notifications,
-    lane,
-  });
+  const options = { database: db, devices, sequencer, blobs, notifications, lane };
+  const app = apiPackage.createApi(options);
   const orgs = apiPackage.orgRoutes({ database: db });
   // The runtime serves the public shop-code lookup beside the API, as here.
   api = await serveHono({
     fetch: (request) =>
-      new URL(request.url).pathname.startsWith("/orgs/") ? orgs.fetch(request) : app.fetch(request),
+      new URL(request.url).pathname.startsWith("/orgs/")
+        ? orgs.fetch(request)
+        : // The runtime builds the API per request from its config, so a changed minimum applies at once.
+          (minTillVersion ? apiPackage.createApi({ ...options, minTillVersion }) : app).fetch(
+            request,
+          ),
   });
   local = openTillDatabase(join(localDirectory, "till.sqlite"));
   await provisionReferences(cashier.branchId);

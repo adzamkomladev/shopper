@@ -29,6 +29,7 @@
     "@shopper/ports": "workspace:*",
     "@shopper/sync": "workspace:*",
     "@shopper/tax": "workspace:*",
+    "@shopper/till-electron": "workspace:*",
     "@shopper/utils": "workspace:*",
     "@types/pngjs": "6.0.5",
     "@types/ws": "8.18.2",

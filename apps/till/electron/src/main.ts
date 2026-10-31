@@ -4,9 +4,13 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { app, BrowserWindow, dialog, Menu, nativeTheme } from "electron";
+import electronUpdater from "electron-updater";
+import { buildInfo } from "@shopper/config";
 import { openDisplay } from "./display";
 import { answerRender } from "./render";
 import { loadSecrets, writeAtomic } from "./secrets";
+import type { UpdatePolicy } from "./types";
+import { createUpdates } from "./updates";
 import { lockDown } from "./window";
 
 // Chromium must paint at 1 CSS px = 1 device px so a receipt window is exactly `dots` wide.
@@ -68,6 +72,8 @@ async function startRegister() {
   };
   const config = await prepare(stored);
   const host = fork(hostEntry, [], { env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" } });
+  // No feed configured (dev, tests) means no updater: nothing phones home.
+  const updates = buildInfo.tillUpdateUrl ? startUpdates(host) : undefined;
   app.on("window-all-closed", () => app.quit());
   let quitting = false;
   let ready = false;
@@ -88,15 +94,19 @@ async function startRegister() {
   host.on(
     "message",
     (
-      message: {
-        type?: string;
-        capability?: string;
-        port?: number;
-        message?: string;
-        registration?: object;
-      } | null,
+      message:
+        | ({
+            type?: string;
+            capability?: string;
+            port?: number;
+            message?: string;
+            registration?: object;
+          } & Partial<UpdatePolicy>)
+        | null,
     ) => {
       if (message?.type === "error" && !ready) cause = message.message;
+      else if (message?.type === "update-policy") updates?.policy(message as UpdatePolicy);
+      else if (message?.type === "update-install") updates?.install();
       else if (message?.type === "enrolled" && message.registration)
         void enrol(message.registration).catch((error: unknown) => fail("Register stopped", error));
       else if (message?.type === "ready" && message.capability) {
@@ -116,6 +126,18 @@ async function startRegister() {
     await writeAtomic(configPath, JSON.stringify(register, null, 2));
     host.send({ type: "start", config: await prepare(register), renderer: "parent" });
   }
+}
+
+/** electron-updater on the build's feed; the host hears every state change and folds it into its status. */
+function startUpdates(host: ReturnType<typeof fork>) {
+  const updater = electronUpdater.autoUpdater;
+  // An unpackaged build checks too when a feed is set, so a dev can run it against a local feed.
+  updater.forceDevUpdateConfig = !app.isPackaged;
+  const updates = createUpdates(updater, buildInfo.tillUpdateUrl, (state) => {
+    if (host.connected) host.send({ type: "update-state", ...state });
+  });
+  app.once("before-quit", updates.stop);
+  return updates;
 }
 
 /**

@@ -89,3 +89,19 @@ test("versions order by number, and a prerelease is below its release", () => {
   expect(compareVersions("0.1.1-rc.1", "0.1.1")).toBeLessThan(0);
   expect(compareVersions("1.0.0", "1.0.0")).toBe(0);
 });
+
+test("Restart now is refused while a shift is open, and when nothing has been downloaded", async () => {
+  register = await startRegister();
+  expect(await register.ask({ type: "register.update.install" })).toMatchObject({
+    type: "error",
+    code: "SHIFT_OPEN",
+  });
+  await register.close();
+  register = await startRegister({ shift: false });
+  // A host on its own has no updater: the status says so and there is nothing to install.
+  expect((await register.status()).update).toMatchObject({ state: "off", required: false });
+  expect(await register.ask({ type: "register.update.install" })).toMatchObject({
+    type: "error",
+    code: "UPDATE_NOT_READY",
+  });
+});

@@ -37,5 +37,6 @@ export const updateStatus = v.strictObject({
 export const updateRequests = [
   v.strictObject({ id: uuidV7Schema, type: v.literal("register.update.install") }),
 ] as const;
+export const updateRequestTypes = updateRequests.map((schema) => schema.entries.type.literal);
 
 export type UpdateStatus = v.InferOutput<typeof updateStatus>;

@@ -98,12 +98,8 @@
           "name": "branch_org_id_org_id_fk",
           "tableFrom": "branch",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -111,14 +107,8 @@
           "name": "branch_org_id_store_id_store_org_id_id_fk",
           "tableFrom": "branch",
           "tableTo": "store",
-          "columnsFrom": [
-            "org_id",
-            "store_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "store_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -128,10 +118,7 @@
         "branch_org_id_id_unique": {
           "name": "branch_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -356,17 +343,12 @@
         "org_org_id_id_unique": {
           "name": "org_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "org_slug_unique": {
           "name": "org_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         }
       },
       "policies": {},
@@ -478,12 +460,8 @@
           "name": "shopper_meta_org_id_org_id_fk",
           "tableFrom": "shopper_meta",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -575,12 +553,8 @@
           "name": "store_org_id_org_id_fk",
           "tableFrom": "store",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -590,10 +564,7 @@
         "store_org_id_id_unique": {
           "name": "store_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -711,12 +682,8 @@
           "name": "account_org_id_org_id_fk",
           "tableFrom": "account",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -724,14 +691,8 @@
           "name": "account_org_id_user_id_user_org_id_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "user_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -843,12 +804,8 @@
           "name": "invitation_org_id_org_id_fk",
           "tableFrom": "invitation",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -856,14 +813,8 @@
           "name": "invitation_org_id_organization_id_org_org_id_id_fk",
           "tableFrom": "invitation",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id",
-            "organization_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "organization_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -871,14 +822,8 @@
           "name": "invitation_org_id_inviter_id_user_org_id_id_fk",
           "tableFrom": "invitation",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "inviter_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "inviter_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -886,14 +831,8 @@
           "name": "invitation_org_id_role_id_role_org_id_id_fk",
           "tableFrom": "invitation",
           "tableTo": "role",
-          "columnsFrom": [
-            "org_id",
-            "role_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "role_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -995,12 +934,8 @@
           "name": "member_org_id_org_id_fk",
           "tableFrom": "member",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1008,14 +943,8 @@
           "name": "member_org_id_organization_id_org_org_id_id_fk",
           "tableFrom": "member",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id",
-            "organization_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "organization_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1023,14 +952,8 @@
           "name": "member_org_id_user_id_user_org_id_id_fk",
           "tableFrom": "member",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "user_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1038,14 +961,8 @@
           "name": "member_org_id_role_id_role_org_id_id_fk",
           "tableFrom": "member",
           "tableTo": "role",
-          "columnsFrom": [
-            "org_id",
-            "role_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "role_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1055,19 +972,12 @@
         "member_org_id_id_unique": {
           "name": "member_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "member_org_id_organization_id_user_id_unique": {
           "name": "member_org_id_organization_id_user_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "organization_id",
-            "user_id"
-          ]
+          "columns": ["org_id", "organization_id", "user_id"]
         }
       },
       "policies": {},
@@ -1124,12 +1034,8 @@
           "name": "member_branch_org_id_org_id_fk",
           "tableFrom": "member_branch",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1137,14 +1043,8 @@
           "name": "member_branch_org_id_member_id_member_org_id_id_fk",
           "tableFrom": "member_branch",
           "tableTo": "member",
-          "columnsFrom": [
-            "org_id",
-            "member_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "member_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1152,14 +1052,8 @@
           "name": "member_branch_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "member_branch",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1169,11 +1063,7 @@
         "member_branch_org_id_member_id_branch_id_unique": {
           "name": "member_branch_org_id_member_id_branch_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "member_id",
-            "branch_id"
-          ]
+          "columns": ["org_id", "member_id", "branch_id"]
         }
       },
       "policies": {},
@@ -1231,12 +1121,8 @@
           "name": "permission_org_id_org_id_fk",
           "tableFrom": "permission",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1246,18 +1132,12 @@
         "permission_org_id_id_unique": {
           "name": "permission_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "permission_org_id_code_unique": {
           "name": "permission_org_id_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "code"
-          ]
+          "columns": ["org_id", "code"]
         }
       },
       "policies": {},
@@ -1344,12 +1224,8 @@
           "name": "role_org_id_org_id_fk",
           "tableFrom": "role",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1359,10 +1235,7 @@
         "role_org_id_id_unique": {
           "name": "role_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -1419,12 +1292,8 @@
           "name": "role_permission_org_id_org_id_fk",
           "tableFrom": "role_permission",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1432,14 +1301,8 @@
           "name": "role_permission_org_id_role_id_role_org_id_id_fk",
           "tableFrom": "role_permission",
           "tableTo": "role",
-          "columnsFrom": [
-            "org_id",
-            "role_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "role_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1447,14 +1310,8 @@
           "name": "role_permission_org_id_permission_id_permission_org_id_id_fk",
           "tableFrom": "role_permission",
           "tableTo": "permission",
-          "columnsFrom": [
-            "org_id",
-            "permission_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "permission_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1464,11 +1321,7 @@
         "role_permission_org_id_role_id_permission_id_unique": {
           "name": "role_permission_org_id_role_id_permission_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "role_id",
-            "permission_id"
-          ]
+          "columns": ["org_id", "role_id", "permission_id"]
         }
       },
       "policies": {},
@@ -1549,12 +1402,8 @@
           "name": "session_org_id_org_id_fk",
           "tableFrom": "session",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1562,14 +1411,8 @@
           "name": "session_org_id_user_id_user_org_id_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "user_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1577,14 +1420,8 @@
           "name": "session_org_id_active_organization_id_org_org_id_id_fk",
           "tableFrom": "session",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id",
-            "active_organization_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "active_organization_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1594,9 +1431,7 @@
         "session_token_unique": {
           "name": "session_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -1679,12 +1514,8 @@
           "name": "user_org_id_org_id_fk",
           "tableFrom": "user",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1694,18 +1525,12 @@
         "user_org_id_id_unique": {
           "name": "user_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "user_org_id_email_unique": {
           "name": "user_org_id_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "email"
-          ]
+          "columns": ["org_id", "email"]
         }
       },
       "policies": {},
@@ -1768,12 +1593,8 @@
           "name": "verification_org_id_org_id_fk",
           "tableFrom": "verification",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2036,12 +1857,8 @@
           "name": "audit_log_org_id_org_id_fk",
           "tableFrom": "audit_log",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2049,14 +1866,8 @@
           "name": "audit_log_org_id_actor_id_user_org_id_id_fk",
           "tableFrom": "audit_log",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "actor_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "actor_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2064,14 +1875,8 @@
           "name": "audit_log_org_id_approver_id_user_org_id_id_fk",
           "tableFrom": "audit_log",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "approver_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "approver_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2079,14 +1884,8 @@
           "name": "audit_log_org_id_device_id_device_org_id_id_fk",
           "tableFrom": "audit_log",
           "tableTo": "device",
-          "columnsFrom": [
-            "org_id",
-            "device_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "device_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2094,14 +1893,8 @@
           "name": "audit_log_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "audit_log",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2111,10 +1904,7 @@
         "audit_log_org_id_chain_seq_unique": {
           "name": "audit_log_org_id_chain_seq_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "chain_seq"
-          ]
+          "columns": ["org_id", "chain_seq"]
         }
       },
       "policies": {},
@@ -2194,12 +1984,8 @@
           "name": "workflow_run_org_id_org_id_fk",
           "tableFrom": "workflow_run",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2209,10 +1995,7 @@
         "workflow_run_org_id_instance_id_unique": {
           "name": "workflow_run_org_id_instance_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "instance_id"
-          ]
+          "columns": ["org_id", "instance_id"]
         }
       },
       "policies": {},
@@ -2306,12 +2089,8 @@
           "name": "workflow_step_org_id_org_id_fk",
           "tableFrom": "workflow_step",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2319,14 +2098,8 @@
           "name": "workflow_step_org_id_instance_id_workflow_run_org_id_instance_id_fk",
           "tableFrom": "workflow_step",
           "tableTo": "workflow_run",
-          "columnsFrom": [
-            "org_id",
-            "instance_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "instance_id"
-          ],
+          "columnsFrom": ["org_id", "instance_id"],
+          "columnsTo": ["org_id", "instance_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2336,11 +2109,7 @@
         "workflow_step_org_id_instance_id_name_unique": {
           "name": "workflow_step_org_id_instance_id_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "instance_id",
-            "name"
-          ]
+          "columns": ["org_id", "instance_id", "name"]
         }
       },
       "policies": {},
@@ -2396,12 +2165,8 @@
           "name": "cashier_pin_org_id_org_id_fk",
           "tableFrom": "cashier_pin",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2409,14 +2174,8 @@
           "name": "cashier_pin_org_id_user_id_user_org_id_id_fk",
           "tableFrom": "cashier_pin",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "user_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2426,10 +2185,7 @@
         "cashier_pin_org_id_user_id_unique": {
           "name": "cashier_pin_org_id_user_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "user_id"
-          ]
+          "columns": ["org_id", "user_id"]
         }
       },
       "policies": {},
@@ -2534,12 +2290,8 @@
           "name": "cashier_session_org_id_org_id_fk",
           "tableFrom": "cashier_session",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2547,14 +2299,8 @@
           "name": "cashier_session_org_id_parent_session_id_cashier_session_org_id_id_fk",
           "tableFrom": "cashier_session",
           "tableTo": "cashier_session",
-          "columnsFrom": [
-            "org_id",
-            "parent_session_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "parent_session_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2562,14 +2308,8 @@
           "name": "cashier_session_org_id_device_id_device_org_id_id_fk",
           "tableFrom": "cashier_session",
           "tableTo": "device",
-          "columnsFrom": [
-            "org_id",
-            "device_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "device_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2577,14 +2317,8 @@
           "name": "cashier_session_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "cashier_session",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2592,14 +2326,8 @@
           "name": "cashier_session_org_id_user_id_user_org_id_id_fk",
           "tableFrom": "cashier_session",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "user_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "user_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2607,14 +2335,8 @@
           "name": "cashier_session_org_id_role_id_role_org_id_id_fk",
           "tableFrom": "cashier_session",
           "tableTo": "role",
-          "columnsFrom": [
-            "org_id",
-            "role_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "role_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2624,17 +2346,12 @@
         "cashier_session_org_id_id_unique": {
           "name": "cashier_session_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "cashier_session_token_hash_unique": {
           "name": "cashier_session_token_hash_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token_hash"
-          ]
+          "columns": ["token_hash"]
         }
       },
       "policies": {},
@@ -2735,12 +2452,8 @@
           "name": "device_org_id_org_id_fk",
           "tableFrom": "device",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2748,14 +2461,8 @@
           "name": "device_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "device",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2765,10 +2472,7 @@
         "device_org_id_id_unique": {
           "name": "device_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -2817,12 +2521,8 @@
           "name": "device_credential_org_id_org_id_fk",
           "tableFrom": "device_credential",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2830,14 +2530,8 @@
           "name": "device_credential_org_id_device_id_device_org_id_id_fk",
           "tableFrom": "device_credential",
           "tableTo": "device",
-          "columnsFrom": [
-            "org_id",
-            "device_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "device_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2847,17 +2541,12 @@
         "device_credential_token_hash_unique": {
           "name": "device_credential_token_hash_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token_hash"
-          ]
+          "columns": ["token_hash"]
         },
         "device_credential_org_id_device_id_unique": {
           "name": "device_credential_org_id_device_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "device_id"
-          ]
+          "columns": ["org_id", "device_id"]
         }
       },
       "policies": {},
@@ -2912,12 +2601,8 @@
           "name": "device_enrollment_org_id_org_id_fk",
           "tableFrom": "device_enrollment",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2925,14 +2610,8 @@
           "name": "device_enrollment_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "device_enrollment",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2980,12 +2659,8 @@
           "name": "enrollment_attempt_org_id_org_id_fk",
           "tableFrom": "enrollment_attempt",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2995,9 +2670,7 @@
         "enrollment_attempt_org_id_unique": {
           "name": "enrollment_attempt_org_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id"
-          ]
+          "columns": ["org_id"]
         }
       },
       "policies": {},
@@ -3051,12 +2724,8 @@
           "name": "receipt_block_org_id_fkey",
           "tableFrom": "receipt_block",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3064,14 +2733,8 @@
           "name": "receipt_block_org_id_device_id_fkey",
           "tableFrom": "receipt_block",
           "tableTo": "device",
-          "columnsFrom": [
-            "org_id",
-            "device_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "device_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3081,10 +2744,7 @@
         "receipt_block_device_id_start_key": {
           "name": "receipt_block_device_id_start_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "device_id",
-            "start"
-          ]
+          "columns": ["device_id", "start"]
         }
       },
       "policies": {},
@@ -3182,12 +2842,8 @@
           "name": "barcode_mapping_org_id_org_id_fk",
           "tableFrom": "barcode_mapping",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3197,18 +2853,12 @@
         "barcode_mapping_org_id_id_unique": {
           "name": "barcode_mapping_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "barcode_mapping_org_id_prefix_unique": {
           "name": "barcode_mapping_org_id_prefix_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "prefix"
-          ]
+          "columns": ["org_id", "prefix"]
         }
       },
       "policies": {},
@@ -3310,12 +2960,8 @@
           "name": "category_org_id_org_id_fk",
           "tableFrom": "category",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3323,14 +2969,8 @@
           "name": "category_org_id_parent_id_category_org_id_id_fk",
           "tableFrom": "category",
           "tableTo": "category",
-          "columnsFrom": [
-            "org_id",
-            "parent_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "parent_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3340,10 +2980,7 @@
         "category_org_id_id_unique": {
           "name": "category_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -3458,12 +3095,8 @@
           "name": "price_org_id_org_id_fk",
           "tableFrom": "price",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3471,14 +3104,8 @@
           "name": "price_org_id_product_id_product_org_id_id_fk",
           "tableFrom": "price",
           "tableTo": "product",
-          "columnsFrom": [
-            "org_id",
-            "product_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "product_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3486,14 +3113,8 @@
           "name": "price_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "price",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3503,10 +3124,7 @@
         "price_org_id_id_unique": {
           "name": "price_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -3616,12 +3234,8 @@
           "name": "product_org_id_org_id_fk",
           "tableFrom": "product",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3629,14 +3243,8 @@
           "name": "product_org_id_category_id_category_org_id_id_fk",
           "tableFrom": "product",
           "tableTo": "category",
-          "columnsFrom": [
-            "org_id",
-            "category_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "category_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3644,14 +3252,8 @@
           "name": "product_org_id_supplier_id_supplier_org_id_id_fk",
           "tableFrom": "product",
           "tableTo": "supplier",
-          "columnsFrom": [
-            "org_id",
-            "supplier_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "supplier_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3659,14 +3261,8 @@
           "name": "product_org_id_tax_class_id_tax_class_org_id_id_fk",
           "tableFrom": "product",
           "tableTo": "tax_class",
-          "columnsFrom": [
-            "org_id",
-            "tax_class_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "tax_class_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3676,18 +3272,12 @@
         "product_org_id_id_unique": {
           "name": "product_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "product_org_id_sku_unique": {
           "name": "product_org_id_sku_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "sku"
-          ]
+          "columns": ["org_id", "sku"]
         }
       },
       "policies": {},
@@ -3778,12 +3368,8 @@
           "name": "product_barcode_org_id_org_id_fk",
           "tableFrom": "product_barcode",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3791,14 +3377,8 @@
           "name": "product_barcode_org_id_product_id_product_org_id_id_fk",
           "tableFrom": "product_barcode",
           "tableTo": "product",
-          "columnsFrom": [
-            "org_id",
-            "product_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "product_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3808,18 +3388,12 @@
         "product_barcode_org_id_id_unique": {
           "name": "product_barcode_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "product_barcode_org_id_code_unique": {
           "name": "product_barcode_org_id_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "code"
-          ]
+          "columns": ["org_id", "code"]
         }
       },
       "policies": {},
@@ -3923,12 +3497,8 @@
           "name": "product_import_org_id_org_id_fk",
           "tableFrom": "product_import",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3936,14 +3506,8 @@
           "name": "product_import_org_id_actor_id_user_org_id_id_fk",
           "tableFrom": "product_import",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "actor_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "actor_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3951,14 +3515,8 @@
           "name": "product_import_org_id_asset_id_asset_org_id_id_fk",
           "tableFrom": "product_import",
           "tableTo": "asset",
-          "columnsFrom": [
-            "org_id",
-            "asset_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "asset_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3968,18 +3526,12 @@
         "product_import_org_id_id_unique": {
           "name": "product_import_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "product_import_asset": {
           "name": "product_import_asset",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "asset_id"
-          ]
+          "columns": ["org_id", "asset_id"]
         }
       },
       "policies": {},
@@ -4070,12 +3622,8 @@
           "name": "supplier_org_id_org_id_fk",
           "tableFrom": "supplier",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4085,10 +3633,7 @@
         "supplier_org_id_id_unique": {
           "name": "supplier_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -4145,12 +3690,8 @@
           "name": "tax_class_org_id_org_id_fk",
           "tableFrom": "tax_class",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4160,18 +3701,12 @@
         "tax_class_org_id_id_unique": {
           "name": "tax_class_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "tax_class_org_id_code_unique": {
           "name": "tax_class_org_id_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "code"
-          ]
+          "columns": ["org_id", "code"]
         }
       },
       "policies": {},
@@ -4257,12 +3792,8 @@
           "name": "tax_rule_org_id_org_id_fk",
           "tableFrom": "tax_rule",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4272,18 +3803,12 @@
         "tax_rule_org_id_id_unique": {
           "name": "tax_rule_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "tax_rule_org_id_effective_from_unique": {
           "name": "tax_rule_org_id_effective_from_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "effective_from"
-          ]
+          "columns": ["org_id", "effective_from"]
         }
       },
       "policies": {},
@@ -4435,12 +3960,8 @@
           "name": "registration_audit_log_org_id_registration_request_id_fk",
           "tableFrom": "registration_audit_log",
           "tableTo": "registration_request",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4450,10 +3971,7 @@
         "registration_audit_log_org_id_chain_seq_unique": {
           "name": "registration_audit_log_org_id_chain_seq_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "chain_seq"
-          ]
+          "columns": ["org_id", "chain_seq"]
         }
       },
       "policies": {},
@@ -4647,12 +4165,8 @@
           "name": "registration_workflow_run_org_id_registration_request_id_fk",
           "tableFrom": "registration_workflow_run",
           "tableTo": "registration_request",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4662,10 +4176,7 @@
         "registration_workflow_run_org_id_instance_id_unique": {
           "name": "registration_workflow_run_org_id_instance_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "instance_id"
-          ]
+          "columns": ["org_id", "instance_id"]
         }
       },
       "policies": {},
@@ -4759,12 +4270,8 @@
           "name": "registration_workflow_step_org_id_registration_request_id_fk",
           "tableFrom": "registration_workflow_step",
           "tableTo": "registration_request",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4772,14 +4279,8 @@
           "name": "registration_workflow_step_org_id_instance_id_registration_workflow_run_org_id_instance_id_fk",
           "tableFrom": "registration_workflow_step",
           "tableTo": "registration_workflow_run",
-          "columnsFrom": [
-            "org_id",
-            "instance_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "instance_id"
-          ],
+          "columnsFrom": ["org_id", "instance_id"],
+          "columnsTo": ["org_id", "instance_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4789,11 +4290,7 @@
         "registration_workflow_step_org_id_instance_id_name_unique": {
           "name": "registration_workflow_step_org_id_instance_id_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "instance_id",
-            "name"
-          ]
+          "columns": ["org_id", "instance_id", "name"]
         }
       },
       "policies": {},
@@ -5046,12 +4543,8 @@
           "name": "sale_org_id_org_id_fk",
           "tableFrom": "sale",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5059,14 +4552,8 @@
           "name": "sale_org_id_customer_id_customer_org_id_id_fk",
           "tableFrom": "sale",
           "tableTo": "customer",
-          "columnsFrom": [
-            "org_id",
-            "customer_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "customer_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5074,14 +4561,8 @@
           "name": "sale_org_id_receipt_asset_id_asset_org_id_id_fk",
           "tableFrom": "sale",
           "tableTo": "asset",
-          "columnsFrom": [
-            "org_id",
-            "receipt_asset_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "receipt_asset_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5089,14 +4570,8 @@
           "name": "sale_org_id_device_id_device_org_id_id_fk",
           "tableFrom": "sale",
           "tableTo": "device",
-          "columnsFrom": [
-            "org_id",
-            "device_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "device_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5104,14 +4579,8 @@
           "name": "sale_org_id_store_id_store_org_id_id_fk",
           "tableFrom": "sale",
           "tableTo": "store",
-          "columnsFrom": [
-            "org_id",
-            "store_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "store_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5119,14 +4588,8 @@
           "name": "sale_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "sale",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5134,14 +4597,8 @@
           "name": "sale_org_id_cashier_id_user_org_id_id_fk",
           "tableFrom": "sale",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "cashier_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "cashier_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5149,14 +4606,8 @@
           "name": "sale_org_id_session_id_cashier_session_org_id_id_fk",
           "tableFrom": "sale",
           "tableTo": "cashier_session",
-          "columnsFrom": [
-            "org_id",
-            "session_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "session_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5166,27 +4617,17 @@
         "sale_org_id_id_unique": {
           "name": "sale_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "sale_device_id_local_id_unique": {
           "name": "sale_device_id_local_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "device_id",
-            "local_id"
-          ]
+          "columns": ["device_id", "local_id"]
         },
         "sale_org_id_store_id_store_sequence_unique": {
           "name": "sale_org_id_store_id_store_sequence_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "store_id",
-            "store_sequence"
-          ]
+          "columns": ["org_id", "store_id", "store_sequence"]
         }
       },
       "policies": {},
@@ -5292,12 +4733,8 @@
           "name": "sale_line_org_id_org_id_fk",
           "tableFrom": "sale_line",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5305,14 +4742,8 @@
           "name": "sale_line_org_id_sale_id_sale_org_id_id_fk",
           "tableFrom": "sale_line",
           "tableTo": "sale",
-          "columnsFrom": [
-            "org_id",
-            "sale_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "sale_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5320,14 +4751,8 @@
           "name": "sale_line_org_id_product_id_product_org_id_id_fk",
           "tableFrom": "sale_line",
           "tableTo": "product",
-          "columnsFrom": [
-            "org_id",
-            "product_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "product_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5335,14 +4760,8 @@
           "name": "sale_line_org_id_price_id_price_org_id_id_fk",
           "tableFrom": "sale_line",
           "tableTo": "price",
-          "columnsFrom": [
-            "org_id",
-            "price_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "price_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5350,14 +4769,8 @@
           "name": "sale_line_org_id_tax_rule_id_tax_rule_org_id_id_fk",
           "tableFrom": "sale_line",
           "tableTo": "tax_rule",
-          "columnsFrom": [
-            "org_id",
-            "tax_rule_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "tax_rule_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5367,10 +4780,7 @@
         "sale_line_org_id_id_unique": {
           "name": "sale_line_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -5475,12 +4885,8 @@
           "name": "sale_tender_org_id_org_id_fk",
           "tableFrom": "sale_tender",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5488,14 +4894,8 @@
           "name": "sale_tender_org_id_sale_id_sale_org_id_id_fk",
           "tableFrom": "sale_tender",
           "tableTo": "sale",
-          "columnsFrom": [
-            "org_id",
-            "sale_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "sale_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5503,14 +4903,8 @@
           "name": "sale_tender_org_id_payment_id_payment_org_id_id_fk",
           "tableFrom": "sale_tender",
           "tableTo": "payment",
-          "columnsFrom": [
-            "org_id",
-            "payment_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "payment_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5518,14 +4912,8 @@
           "name": "sale_tender_org_id_hold_id_account_hold_org_id_id_fk",
           "tableFrom": "sale_tender",
           "tableTo": "account_hold",
-          "columnsFrom": [
-            "org_id",
-            "hold_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "hold_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5535,35 +4923,22 @@
         "sale_tender_org_id_id_unique": {
           "name": "sale_tender_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "sale_tender_org_id_sale_id_position_unique": {
           "name": "sale_tender_org_id_sale_id_position_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "sale_id",
-            "position"
-          ]
+          "columns": ["org_id", "sale_id", "position"]
         },
         "sale_tender_org_id_payment_id_unique": {
           "name": "sale_tender_org_id_payment_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "payment_id"
-          ]
+          "columns": ["org_id", "payment_id"]
         },
         "sale_tender_org_id_hold_id_unique": {
           "name": "sale_tender_org_id_hold_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "hold_id"
-          ]
+          "columns": ["org_id", "hold_id"]
         }
       },
       "policies": {},
@@ -5664,12 +5039,8 @@
           "name": "store_change_org_id_org_id_fk",
           "tableFrom": "store_change",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5677,14 +5048,8 @@
           "name": "store_change_org_id_store_id_store_org_id_id_fk",
           "tableFrom": "store_change",
           "tableTo": "store",
-          "columnsFrom": [
-            "org_id",
-            "store_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "store_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5692,11 +5057,7 @@
       "compositePrimaryKeys": {
         "store_change_org_id_store_id_seq_pk": {
           "name": "store_change_org_id_store_id_seq_pk",
-          "columns": [
-            "org_id",
-            "store_id",
-            "seq"
-          ]
+          "columns": ["org_id", "store_id", "seq"]
         }
       },
       "uniqueConstraints": {},
@@ -5817,12 +5178,8 @@
           "name": "asset_org_id_org_id_fk",
           "tableFrom": "asset",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -5830,14 +5187,8 @@
           "name": "asset_org_id_actor_id_user_org_id_id_fk",
           "tableFrom": "asset",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "actor_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "actor_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5847,18 +5198,12 @@
         "asset_org_id_id_unique": {
           "name": "asset_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "asset_org_id_key_unique": {
           "name": "asset_org_id_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "key"
-          ]
+          "columns": ["org_id", "key"]
         }
       },
       "policies": {},
@@ -5994,12 +5339,8 @@
           "name": "payment_org_id_org_id_fk",
           "tableFrom": "payment",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6007,14 +5348,8 @@
           "name": "payment_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "payment",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6022,14 +5357,8 @@
           "name": "payment_org_id_device_id_device_org_id_id_fk",
           "tableFrom": "payment",
           "tableTo": "device",
-          "columnsFrom": [
-            "org_id",
-            "device_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "device_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6037,14 +5366,8 @@
           "name": "payment_org_id_cashier_id_user_org_id_id_fk",
           "tableFrom": "payment",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "cashier_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "cashier_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6054,18 +5377,12 @@
         "payment_org_id_id_unique": {
           "name": "payment_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "payment_org_id_reference_unique": {
           "name": "payment_org_id_reference_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "reference"
-          ]
+          "columns": ["org_id", "reference"]
         }
       },
       "policies": {},
@@ -6155,12 +5472,8 @@
           "name": "payment_event_org_id_org_id_fk",
           "tableFrom": "payment_event",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6170,11 +5483,7 @@
         "payment_event_org_id_provider_key_unique": {
           "name": "payment_event_org_id_provider_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "provider",
-            "key"
-          ]
+          "columns": ["org_id", "provider", "key"]
         }
       },
       "policies": {},
@@ -6261,12 +5570,8 @@
           "name": "payment_refund_org_id_org_id_fk",
           "tableFrom": "payment_refund",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6274,14 +5579,8 @@
           "name": "payment_refund_org_id_payment_id_payment_org_id_id_fk",
           "tableFrom": "payment_refund",
           "tableTo": "payment",
-          "columnsFrom": [
-            "org_id",
-            "payment_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "payment_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6289,14 +5588,8 @@
           "name": "payment_refund_org_id_refund_id_refund_org_id_id_fk",
           "tableFrom": "payment_refund",
           "tableTo": "refund",
-          "columnsFrom": [
-            "org_id",
-            "refund_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "refund_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6306,19 +5599,12 @@
         "payment_refund_org_id_id_unique": {
           "name": "payment_refund_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "payment_refund_org_id_refund_id_payment_id_unique": {
           "name": "payment_refund_org_id_refund_id_payment_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "refund_id",
-            "payment_id"
-          ]
+          "columns": ["org_id", "refund_id", "payment_id"]
         }
       },
       "policies": {},
@@ -6402,12 +5688,8 @@
           "name": "settlement_org_id_org_id_fk",
           "tableFrom": "settlement",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6417,19 +5699,12 @@
         "settlement_org_id_id_unique": {
           "name": "settlement_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "settlement_org_id_provider_provider_id_unique": {
           "name": "settlement_org_id_provider_provider_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "provider",
-            "provider_id"
-          ]
+          "columns": ["org_id", "provider", "provider_id"]
         }
       },
       "policies": {},
@@ -6531,12 +5806,8 @@
           "name": "settlement_line_org_id_org_id_fk",
           "tableFrom": "settlement_line",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6544,14 +5815,8 @@
           "name": "settlement_line_org_id_settlement_id_settlement_org_id_id_fk",
           "tableFrom": "settlement_line",
           "tableTo": "settlement",
-          "columnsFrom": [
-            "org_id",
-            "settlement_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "settlement_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6559,14 +5824,8 @@
           "name": "settlement_line_org_id_payment_id_payment_org_id_id_fk",
           "tableFrom": "settlement_line",
           "tableTo": "payment",
-          "columnsFrom": [
-            "org_id",
-            "payment_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "payment_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6576,11 +5835,7 @@
         "settlement_line_org_id_settlement_id_payment_id_unique": {
           "name": "settlement_line_org_id_settlement_id_payment_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "settlement_id",
-            "payment_id"
-          ]
+          "columns": ["org_id", "settlement_id", "payment_id"]
         }
       },
       "policies": {},
@@ -6725,12 +5980,8 @@
           "name": "stock_document_org_id_org_id_fk",
           "tableFrom": "stock_document",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6738,14 +5989,8 @@
           "name": "stock_document_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "stock_document",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6753,14 +5998,8 @@
           "name": "stock_document_org_id_device_id_device_org_id_id_fk",
           "tableFrom": "stock_document",
           "tableTo": "device",
-          "columnsFrom": [
-            "org_id",
-            "device_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "device_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6768,14 +6007,8 @@
           "name": "stock_document_org_id_actor_id_user_org_id_id_fk",
           "tableFrom": "stock_document",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "actor_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "actor_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -6783,14 +6016,8 @@
           "name": "stock_document_org_id_supplier_id_supplier_org_id_id_fk",
           "tableFrom": "stock_document",
           "tableTo": "supplier",
-          "columnsFrom": [
-            "org_id",
-            "supplier_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "supplier_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6800,10 +6027,7 @@
         "stock_document_org_id_id_unique": {
           "name": "stock_document_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -6987,12 +6211,8 @@
           "name": "stock_movement_org_id_org_id_fk",
           "tableFrom": "stock_movement",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7000,14 +6220,8 @@
           "name": "stock_movement_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "stock_movement",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7015,14 +6229,8 @@
           "name": "stock_movement_org_id_product_id_product_org_id_id_fk",
           "tableFrom": "stock_movement",
           "tableTo": "product",
-          "columnsFrom": [
-            "org_id",
-            "product_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "product_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7030,14 +6238,8 @@
           "name": "stock_movement_org_id_sale_id_sale_org_id_id_fk",
           "tableFrom": "stock_movement",
           "tableTo": "sale",
-          "columnsFrom": [
-            "org_id",
-            "sale_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "sale_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7045,14 +6247,8 @@
           "name": "stock_movement_org_id_sale_line_id_sale_line_org_id_id_fk",
           "tableFrom": "stock_movement",
           "tableTo": "sale_line",
-          "columnsFrom": [
-            "org_id",
-            "sale_line_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "sale_line_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7060,14 +6256,8 @@
           "name": "stock_movement_org_id_document_id_stock_document_org_id_id_fk",
           "tableFrom": "stock_movement",
           "tableTo": "stock_document",
-          "columnsFrom": [
-            "org_id",
-            "document_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "document_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7075,14 +6265,8 @@
           "name": "stock_movement_org_id_refund_id_refund_org_id_id_fk",
           "tableFrom": "stock_movement",
           "tableTo": "refund",
-          "columnsFrom": [
-            "org_id",
-            "refund_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "refund_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7090,14 +6274,8 @@
           "name": "stock_movement_org_id_refund_line_id_refund_line_org_id_id_fk",
           "tableFrom": "stock_movement",
           "tableTo": "refund_line",
-          "columnsFrom": [
-            "org_id",
-            "refund_line_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "refund_line_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7107,10 +6285,7 @@
         "stock_movement_org_id_id_unique": {
           "name": "stock_movement_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -7202,12 +6377,8 @@
           "name": "reorder_point_org_id_org_id_fk",
           "tableFrom": "reorder_point",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7215,14 +6386,8 @@
           "name": "reorder_point_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "reorder_point",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7230,14 +6395,8 @@
           "name": "reorder_point_org_id_product_id_product_org_id_id_fk",
           "tableFrom": "reorder_point",
           "tableTo": "product",
-          "columnsFrom": [
-            "org_id",
-            "product_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "product_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7247,19 +6406,12 @@
         "reorder_point_org_id_id_unique": {
           "name": "reorder_point_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "reorder_point_org_id_branch_id_product_id_unique": {
           "name": "reorder_point_org_id_branch_id_product_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "branch_id",
-            "product_id"
-          ]
+          "columns": ["org_id", "branch_id", "product_id"]
         }
       },
       "policies": {},
@@ -7388,12 +6540,8 @@
           "name": "stock_alert_org_id_org_id_fk",
           "tableFrom": "stock_alert",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7401,14 +6549,8 @@
           "name": "stock_alert_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "stock_alert",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7416,14 +6558,8 @@
           "name": "stock_alert_org_id_product_id_product_org_id_id_fk",
           "tableFrom": "stock_alert",
           "tableTo": "product",
-          "columnsFrom": [
-            "org_id",
-            "product_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "product_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7433,10 +6569,7 @@
         "stock_alert_org_id_id_unique": {
           "name": "stock_alert_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -7552,12 +6685,8 @@
           "name": "stock_take_org_id_org_id_fk",
           "tableFrom": "stock_take",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7565,14 +6694,8 @@
           "name": "stock_take_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "stock_take",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7580,14 +6703,8 @@
           "name": "stock_take_org_id_category_id_category_org_id_id_fk",
           "tableFrom": "stock_take",
           "tableTo": "category",
-          "columnsFrom": [
-            "org_id",
-            "category_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "category_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7595,14 +6712,8 @@
           "name": "stock_take_org_id_started_by_user_org_id_id_fk",
           "tableFrom": "stock_take",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "started_by"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "started_by"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7610,14 +6721,8 @@
           "name": "stock_take_org_id_closed_by_user_org_id_id_fk",
           "tableFrom": "stock_take",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "closed_by"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "closed_by"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7627,10 +6732,7 @@
         "stock_take_org_id_id_unique": {
           "name": "stock_take_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -7724,12 +6826,8 @@
           "name": "stock_take_line_org_id_org_id_fk",
           "tableFrom": "stock_take_line",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7737,14 +6835,8 @@
           "name": "stock_take_line_org_id_take_id_stock_take_org_id_id_fk",
           "tableFrom": "stock_take_line",
           "tableTo": "stock_take",
-          "columnsFrom": [
-            "org_id",
-            "take_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "take_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7752,14 +6844,8 @@
           "name": "stock_take_line_org_id_product_id_product_org_id_id_fk",
           "tableFrom": "stock_take_line",
           "tableTo": "product",
-          "columnsFrom": [
-            "org_id",
-            "product_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "product_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -7767,14 +6853,8 @@
           "name": "stock_take_line_org_id_counted_by_user_org_id_id_fk",
           "tableFrom": "stock_take_line",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "counted_by"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "counted_by"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7784,19 +6864,12 @@
         "stock_take_line_org_id_id_unique": {
           "name": "stock_take_line_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "stock_take_line_org_id_take_id_product_id_unique": {
           "name": "stock_take_line_org_id_take_id_product_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "take_id",
-            "product_id"
-          ]
+          "columns": ["org_id", "take_id", "product_id"]
         }
       },
       "policies": {},
@@ -8048,12 +7121,8 @@
           "name": "refund_org_id_org_id_fk",
           "tableFrom": "refund",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8061,14 +7130,8 @@
           "name": "refund_org_id_device_id_device_org_id_id_fk",
           "tableFrom": "refund",
           "tableTo": "device",
-          "columnsFrom": [
-            "org_id",
-            "device_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "device_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8076,14 +7139,8 @@
           "name": "refund_org_id_store_id_store_org_id_id_fk",
           "tableFrom": "refund",
           "tableTo": "store",
-          "columnsFrom": [
-            "org_id",
-            "store_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "store_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8091,14 +7148,8 @@
           "name": "refund_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "refund",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8106,14 +7157,8 @@
           "name": "refund_org_id_cashier_id_user_org_id_id_fk",
           "tableFrom": "refund",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "cashier_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "cashier_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8121,14 +7166,8 @@
           "name": "refund_org_id_approver_id_user_org_id_id_fk",
           "tableFrom": "refund",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "approver_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "approver_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8136,14 +7175,8 @@
           "name": "refund_org_id_session_id_cashier_session_org_id_id_fk",
           "tableFrom": "refund",
           "tableTo": "cashier_session",
-          "columnsFrom": [
-            "org_id",
-            "session_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "session_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8151,14 +7184,8 @@
           "name": "refund_org_id_original_sale_id_sale_org_id_id_fk",
           "tableFrom": "refund",
           "tableTo": "sale",
-          "columnsFrom": [
-            "org_id",
-            "original_sale_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "original_sale_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -8168,18 +7195,12 @@
         "refund_org_id_id_unique": {
           "name": "refund_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "refund_credit_note_unique": {
           "name": "refund_credit_note_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "credit_note_number"
-          ]
+          "columns": ["org_id", "credit_note_number"]
         }
       },
       "policies": {},
@@ -8297,12 +7318,8 @@
           "name": "refund_line_org_id_org_id_fk",
           "tableFrom": "refund_line",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8310,14 +7327,8 @@
           "name": "refund_line_org_id_refund_id_refund_org_id_id_fk",
           "tableFrom": "refund_line",
           "tableTo": "refund",
-          "columnsFrom": [
-            "org_id",
-            "refund_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "refund_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8325,14 +7336,8 @@
           "name": "refund_line_org_id_original_line_id_sale_line_org_id_id_fk",
           "tableFrom": "refund_line",
           "tableTo": "sale_line",
-          "columnsFrom": [
-            "org_id",
-            "original_line_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "original_line_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8340,14 +7345,8 @@
           "name": "refund_line_org_id_product_id_product_org_id_id_fk",
           "tableFrom": "refund_line",
           "tableTo": "product",
-          "columnsFrom": [
-            "org_id",
-            "product_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "product_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -8357,10 +7356,7 @@
         "refund_line_org_id_id_unique": {
           "name": "refund_line_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -8548,12 +7544,8 @@
           "name": "shift_org_id_org_id_fk",
           "tableFrom": "shift",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8561,14 +7553,8 @@
           "name": "shift_org_id_device_id_device_org_id_id_fk",
           "tableFrom": "shift",
           "tableTo": "device",
-          "columnsFrom": [
-            "org_id",
-            "device_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "device_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8576,14 +7562,8 @@
           "name": "shift_org_id_store_id_store_org_id_id_fk",
           "tableFrom": "shift",
           "tableTo": "store",
-          "columnsFrom": [
-            "org_id",
-            "store_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "store_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8591,14 +7571,8 @@
           "name": "shift_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "shift",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8606,14 +7580,8 @@
           "name": "shift_org_id_closed_by_user_org_id_id_fk",
           "tableFrom": "shift",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "closed_by"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "closed_by"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8621,14 +7589,8 @@
           "name": "shift_org_id_approver_id_user_org_id_id_fk",
           "tableFrom": "shift",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "approver_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "approver_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8636,14 +7598,8 @@
           "name": "shift_org_id_session_id_cashier_session_org_id_id_fk",
           "tableFrom": "shift",
           "tableTo": "cashier_session",
-          "columnsFrom": [
-            "org_id",
-            "session_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "session_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -8653,10 +7609,7 @@
         "shift_org_id_id_unique": {
           "name": "shift_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -8772,12 +7725,8 @@
           "name": "shift_movement_org_id_org_id_fk",
           "tableFrom": "shift_movement",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8785,14 +7734,8 @@
           "name": "shift_movement_org_id_shift_id_shift_org_id_id_fk",
           "tableFrom": "shift_movement",
           "tableTo": "shift",
-          "columnsFrom": [
-            "org_id",
-            "shift_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "shift_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -8888,12 +7831,8 @@
           "name": "shift_tender_org_id_org_id_fk",
           "tableFrom": "shift_tender",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -8901,14 +7840,8 @@
           "name": "shift_tender_org_id_shift_id_shift_org_id_id_fk",
           "tableFrom": "shift_tender",
           "tableTo": "shift",
-          "columnsFrom": [
-            "org_id",
-            "shift_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "shift_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -8918,11 +7851,7 @@
         "shift_tender_org_id_shift_id_tender_unique": {
           "name": "shift_tender_org_id_shift_id_tender_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "shift_id",
-            "tender"
-          ]
+          "columns": ["org_id", "shift_id", "tender"]
         }
       },
       "policies": {},
@@ -9094,12 +8023,8 @@
           "name": "customer_org_id_org_id_fk",
           "tableFrom": "customer",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9107,14 +8032,8 @@
           "name": "customer_org_id_merged_into_id_customer_org_id_id_fk",
           "tableFrom": "customer",
           "tableTo": "customer",
-          "columnsFrom": [
-            "org_id",
-            "merged_into_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "merged_into_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9122,14 +8041,8 @@
           "name": "customer_org_id_created_device_id_device_org_id_id_fk",
           "tableFrom": "customer",
           "tableTo": "device",
-          "columnsFrom": [
-            "org_id",
-            "created_device_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "created_device_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -9139,10 +8052,7 @@
         "customer_org_id_id_unique": {
           "name": "customer_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -9309,12 +8219,8 @@
           "name": "account_hold_org_id_org_id_fk",
           "tableFrom": "account_hold",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9322,14 +8228,8 @@
           "name": "account_hold_org_id_customer_id_customer_org_id_id_fk",
           "tableFrom": "account_hold",
           "tableTo": "customer",
-          "columnsFrom": [
-            "org_id",
-            "customer_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "customer_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9337,14 +8237,8 @@
           "name": "account_hold_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "account_hold",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9352,14 +8246,8 @@
           "name": "account_hold_org_id_device_id_device_org_id_id_fk",
           "tableFrom": "account_hold",
           "tableTo": "device",
-          "columnsFrom": [
-            "org_id",
-            "device_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "device_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9367,14 +8255,8 @@
           "name": "account_hold_org_id_cashier_id_user_org_id_id_fk",
           "tableFrom": "account_hold",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "cashier_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "cashier_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9382,14 +8264,8 @@
           "name": "account_hold_org_id_sale_id_sale_org_id_id_fk",
           "tableFrom": "account_hold",
           "tableTo": "sale",
-          "columnsFrom": [
-            "org_id",
-            "sale_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "sale_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -9399,10 +8275,7 @@
         "account_hold_org_id_id_unique": {
           "name": "account_hold_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -9560,12 +8433,8 @@
           "name": "credit_entry_org_id_org_id_fk",
           "tableFrom": "credit_entry",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9573,14 +8442,8 @@
           "name": "credit_entry_org_id_customer_id_customer_org_id_id_fk",
           "tableFrom": "credit_entry",
           "tableTo": "customer",
-          "columnsFrom": [
-            "org_id",
-            "customer_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "customer_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9588,14 +8451,8 @@
           "name": "credit_entry_org_id_sale_id_sale_org_id_id_fk",
           "tableFrom": "credit_entry",
           "tableTo": "sale",
-          "columnsFrom": [
-            "org_id",
-            "sale_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "sale_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9603,14 +8460,8 @@
           "name": "credit_entry_org_id_refund_id_refund_org_id_id_fk",
           "tableFrom": "credit_entry",
           "tableTo": "refund",
-          "columnsFrom": [
-            "org_id",
-            "refund_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "refund_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9618,14 +8469,8 @@
           "name": "credit_entry_org_id_hold_id_account_hold_org_id_id_fk",
           "tableFrom": "credit_entry",
           "tableTo": "account_hold",
-          "columnsFrom": [
-            "org_id",
-            "hold_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "hold_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9633,14 +8478,8 @@
           "name": "credit_entry_org_id_actor_id_user_org_id_id_fk",
           "tableFrom": "credit_entry",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "actor_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "actor_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -9650,27 +8489,17 @@
         "credit_entry_org_id_id_unique": {
           "name": "credit_entry_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "credit_entry_org_id_hold_id_unique": {
           "name": "credit_entry_org_id_hold_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "hold_id"
-          ]
+          "columns": ["org_id", "hold_id"]
         },
         "credit_entry_org_id_customer_id_period_unique": {
           "name": "credit_entry_org_id_customer_id_period_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "customer_id",
-            "period"
-          ]
+          "columns": ["org_id", "customer_id", "period"]
         }
       },
       "policies": {},
@@ -9882,12 +8711,8 @@
           "name": "loyalty_entry_org_id_org_id_fk",
           "tableFrom": "loyalty_entry",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9895,14 +8720,8 @@
           "name": "loyalty_entry_org_id_customer_id_customer_org_id_id_fk",
           "tableFrom": "loyalty_entry",
           "tableTo": "customer",
-          "columnsFrom": [
-            "org_id",
-            "customer_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "customer_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9910,14 +8729,8 @@
           "name": "loyalty_entry_org_id_sale_id_sale_org_id_id_fk",
           "tableFrom": "loyalty_entry",
           "tableTo": "sale",
-          "columnsFrom": [
-            "org_id",
-            "sale_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "sale_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9925,14 +8738,8 @@
           "name": "loyalty_entry_org_id_refund_id_refund_org_id_id_fk",
           "tableFrom": "loyalty_entry",
           "tableTo": "refund",
-          "columnsFrom": [
-            "org_id",
-            "refund_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "refund_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9940,14 +8747,8 @@
           "name": "loyalty_entry_org_id_hold_id_account_hold_org_id_id_fk",
           "tableFrom": "loyalty_entry",
           "tableTo": "account_hold",
-          "columnsFrom": [
-            "org_id",
-            "hold_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "hold_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9955,14 +8756,8 @@
           "name": "loyalty_entry_org_id_lot_id_loyalty_entry_org_id_id_fk",
           "tableFrom": "loyalty_entry",
           "tableTo": "loyalty_entry",
-          "columnsFrom": [
-            "org_id",
-            "lot_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "lot_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -9970,14 +8765,8 @@
           "name": "loyalty_entry_org_id_actor_id_user_org_id_id_fk",
           "tableFrom": "loyalty_entry",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "actor_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "actor_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -9987,18 +8776,12 @@
         "loyalty_entry_org_id_id_unique": {
           "name": "loyalty_entry_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "loyalty_entry_org_id_hold_id_unique": {
           "name": "loyalty_entry_org_id_hold_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "hold_id"
-          ]
+          "columns": ["org_id", "hold_id"]
         }
       },
       "policies": {},
@@ -10080,12 +8863,8 @@
           "name": "loyalty_tier_org_id_org_id_fk",
           "tableFrom": "loyalty_tier",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -10095,10 +8874,7 @@
         "loyalty_tier_org_id_id_unique": {
           "name": "loyalty_tier_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -10184,12 +8960,8 @@
           "name": "tier_notice_org_id_org_id_fk",
           "tableFrom": "tier_notice",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10197,14 +8969,8 @@
           "name": "tier_notice_org_id_customer_id_customer_org_id_id_fk",
           "tableFrom": "tier_notice",
           "tableTo": "customer",
-          "columnsFrom": [
-            "org_id",
-            "customer_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "customer_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10212,14 +8978,8 @@
           "name": "tier_notice_org_id_from_tier_id_loyalty_tier_org_id_id_fk",
           "tableFrom": "tier_notice",
           "tableTo": "loyalty_tier",
-          "columnsFrom": [
-            "org_id",
-            "from_tier_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "from_tier_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10227,14 +8987,8 @@
           "name": "tier_notice_org_id_to_tier_id_loyalty_tier_org_id_id_fk",
           "tableFrom": "tier_notice",
           "tableTo": "loyalty_tier",
-          "columnsFrom": [
-            "org_id",
-            "to_tier_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "to_tier_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -10244,12 +8998,7 @@
         "tier_notice_org_id_customer_id_from_tier_id_effective_on_unique": {
           "name": "tier_notice_org_id_customer_id_from_tier_id_effective_on_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "customer_id",
-            "from_tier_id",
-            "effective_on"
-          ]
+          "columns": ["org_id", "customer_id", "from_tier_id", "effective_on"]
         }
       },
       "policies": {},
@@ -10352,12 +9101,8 @@
           "name": "statement_delivery_org_id_org_id_fk",
           "tableFrom": "statement_delivery",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10365,14 +9110,8 @@
           "name": "statement_delivery_org_id_customer_id_customer_org_id_id_fk",
           "tableFrom": "statement_delivery",
           "tableTo": "customer",
-          "columnsFrom": [
-            "org_id",
-            "customer_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "customer_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10380,14 +9119,8 @@
           "name": "statement_delivery_org_id_link_id_statement_link_org_id_id_fk",
           "tableFrom": "statement_delivery",
           "tableTo": "statement_link",
-          "columnsFrom": [
-            "org_id",
-            "link_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "link_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10395,14 +9128,8 @@
           "name": "statement_delivery_org_id_actor_id_user_org_id_id_fk",
           "tableFrom": "statement_delivery",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "actor_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "actor_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -10412,21 +9139,12 @@
         "statement_delivery_org_id_id_unique": {
           "name": "statement_delivery_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "statement_delivery_period": {
           "name": "statement_delivery_period",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "customer_id",
-            "period_from",
-            "period_to",
-            "channel"
-          ]
+          "columns": ["org_id", "customer_id", "period_from", "period_to", "channel"]
         }
       },
       "policies": {},
@@ -10533,12 +9251,8 @@
           "name": "statement_link_org_id_org_id_fk",
           "tableFrom": "statement_link",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10546,14 +9260,8 @@
           "name": "statement_link_org_id_customer_id_customer_org_id_id_fk",
           "tableFrom": "statement_link",
           "tableTo": "customer",
-          "columnsFrom": [
-            "org_id",
-            "customer_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "customer_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10561,14 +9269,8 @@
           "name": "statement_link_org_id_created_by_user_org_id_id_fk",
           "tableFrom": "statement_link",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "created_by"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "created_by"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -10578,10 +9280,7 @@
         "statement_link_org_id_id_unique": {
           "name": "statement_link_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -10822,12 +9521,8 @@
           "name": "kyc_case_org_id_org_id_fk",
           "tableFrom": "kyc_case",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10835,14 +9530,8 @@
           "name": "kyc_case_org_id_customer_id_customer_org_id_id_fk",
           "tableFrom": "kyc_case",
           "tableTo": "customer",
-          "columnsFrom": [
-            "org_id",
-            "customer_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "customer_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10850,14 +9539,8 @@
           "name": "kyc_case_org_id_member_id_user_org_id_id_fk",
           "tableFrom": "kyc_case",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "member_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "member_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10865,14 +9548,8 @@
           "name": "kyc_case_org_id_requested_role_id_role_org_id_id_fk",
           "tableFrom": "kyc_case",
           "tableTo": "role",
-          "columnsFrom": [
-            "org_id",
-            "requested_role_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "requested_role_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10880,14 +9557,8 @@
           "name": "kyc_case_org_id_approved_role_id_role_org_id_id_fk",
           "tableFrom": "kyc_case",
           "tableTo": "role",
-          "columnsFrom": [
-            "org_id",
-            "approved_role_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "approved_role_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10895,14 +9566,8 @@
           "name": "kyc_case_org_id_opened_by_user_org_id_id_fk",
           "tableFrom": "kyc_case",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "opened_by"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "opened_by"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -10910,14 +9575,8 @@
           "name": "kyc_case_org_id_decided_by_user_org_id_id_fk",
           "tableFrom": "kyc_case",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "decided_by"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "decided_by"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -10927,10 +9586,7 @@
         "kyc_case_org_id_id_unique": {
           "name": "kyc_case_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -11031,12 +9687,8 @@
           "name": "vat_return_org_id_org_id_fk",
           "tableFrom": "vat_return",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -11046,18 +9698,12 @@
         "vat_return_org_id_id_unique": {
           "name": "vat_return_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "vat_return_org_id_period_unique": {
           "name": "vat_return_org_id_period_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "period"
-          ]
+          "columns": ["org_id", "period"]
         }
       },
       "policies": {},
@@ -11147,12 +9793,8 @@
           "name": "fiscal_archive_org_id_org_id_fk",
           "tableFrom": "fiscal_archive",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11160,14 +9802,8 @@
           "name": "fiscal_archive_org_id_store_id_store_org_id_id_fk",
           "tableFrom": "fiscal_archive",
           "tableTo": "store",
-          "columnsFrom": [
-            "org_id",
-            "store_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "store_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -11177,19 +9813,12 @@
         "fiscal_archive_org_id_id_unique": {
           "name": "fiscal_archive_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "fiscal_archive_org_id_store_id_hour_unique": {
           "name": "fiscal_archive_org_id_store_id_hour_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "store_id",
-            "hour"
-          ]
+          "columns": ["org_id", "store_id", "hour"]
         }
       },
       "policies": {},
@@ -11406,12 +10035,8 @@
           "name": "fiscal_doc_org_id_org_id_fk",
           "tableFrom": "fiscal_doc",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11419,14 +10044,8 @@
           "name": "fiscal_doc_org_id_store_id_store_org_id_id_fk",
           "tableFrom": "fiscal_doc",
           "tableTo": "store",
-          "columnsFrom": [
-            "org_id",
-            "store_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "store_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11434,14 +10053,8 @@
           "name": "fiscal_doc_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "fiscal_doc",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11449,14 +10062,8 @@
           "name": "fiscal_doc_org_id_sale_id_sale_org_id_id_fk",
           "tableFrom": "fiscal_doc",
           "tableTo": "sale",
-          "columnsFrom": [
-            "org_id",
-            "sale_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "sale_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11464,14 +10071,8 @@
           "name": "fiscal_doc_org_id_refund_id_refund_org_id_id_fk",
           "tableFrom": "fiscal_doc",
           "tableTo": "refund",
-          "columnsFrom": [
-            "org_id",
-            "refund_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "refund_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11479,14 +10080,8 @@
           "name": "fiscal_doc_org_id_archive_id_fiscal_archive_org_id_id_fk",
           "tableFrom": "fiscal_doc",
           "tableTo": "fiscal_archive",
-          "columnsFrom": [
-            "org_id",
-            "archive_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "archive_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -11496,26 +10091,17 @@
         "fiscal_doc_org_id_id_unique": {
           "name": "fiscal_doc_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "fiscal_doc_org_id_sale_id_unique": {
           "name": "fiscal_doc_org_id_sale_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "sale_id"
-          ]
+          "columns": ["org_id", "sale_id"]
         },
         "fiscal_doc_org_id_refund_id_unique": {
           "name": "fiscal_doc_org_id_refund_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "refund_id"
-          ]
+          "columns": ["org_id", "refund_id"]
         }
       },
       "policies": {},
@@ -11633,12 +10219,8 @@
           "name": "audit_anchor_org_id_org_id_fk",
           "tableFrom": "audit_anchor",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -11648,11 +10230,7 @@
         "audit_anchor_org_id_day_stream_unique": {
           "name": "audit_anchor_org_id_day_stream_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "day",
-            "stream"
-          ]
+          "columns": ["org_id", "day", "stream"]
         }
       },
       "policies": {},
@@ -11901,12 +10479,8 @@
           "name": "device_audit_org_id_org_id_fk",
           "tableFrom": "device_audit",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -11914,14 +10488,8 @@
           "name": "device_audit_org_id_stream_id_device_org_id_id_fk",
           "tableFrom": "device_audit",
           "tableTo": "device",
-          "columnsFrom": [
-            "org_id",
-            "stream_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "stream_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -11931,11 +10499,7 @@
         "device_audit_org_id_stream_id_chain_seq_unique": {
           "name": "device_audit_org_id_stream_id_chain_seq_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "stream_id",
-            "chain_seq"
-          ]
+          "columns": ["org_id", "stream_id", "chain_seq"]
         }
       },
       "policies": {},
@@ -12097,12 +10661,8 @@
           "name": "report_product_org_id_org_id_fk",
           "tableFrom": "report_product",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12110,14 +10670,8 @@
           "name": "report_product_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "report_product",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12125,14 +10679,8 @@
           "name": "report_product_org_id_product_id_product_org_id_id_fk",
           "tableFrom": "report_product",
           "tableTo": "product",
-          "columnsFrom": [
-            "org_id",
-            "product_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "product_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -12142,13 +10690,7 @@
         "report_product_org_id_store_id_day_branch_id_product_id_unique": {
           "name": "report_product_org_id_store_id_day_branch_id_product_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "store_id",
-            "day",
-            "branch_id",
-            "product_id"
-          ]
+          "columns": ["org_id", "store_id", "day", "branch_id", "product_id"]
         }
       },
       "policies": {},
@@ -12365,12 +10907,8 @@
           "name": "report_sales_org_id_org_id_fk",
           "tableFrom": "report_sales",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12378,14 +10916,8 @@
           "name": "report_sales_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "report_sales",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12393,14 +10925,8 @@
           "name": "report_sales_org_id_cashier_id_user_org_id_id_fk",
           "tableFrom": "report_sales",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "cashier_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "cashier_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -12410,14 +10936,7 @@
         "report_sales_org_id_store_id_day_branch_id_hour_cashier_id_unique": {
           "name": "report_sales_org_id_store_id_day_branch_id_hour_cashier_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "store_id",
-            "day",
-            "branch_id",
-            "hour",
-            "cashier_id"
-          ]
+          "columns": ["org_id", "store_id", "day", "branch_id", "hour", "cashier_id"]
         }
       },
       "policies": {},
@@ -12531,12 +11050,8 @@
           "name": "report_tender_org_id_org_id_fk",
           "tableFrom": "report_tender",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12544,14 +11059,8 @@
           "name": "report_tender_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "report_tender",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -12561,13 +11070,7 @@
         "report_tender_org_id_store_id_day_branch_id_kind_unique": {
           "name": "report_tender_org_id_store_id_day_branch_id_kind_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "store_id",
-            "day",
-            "branch_id",
-            "kind"
-          ]
+          "columns": ["org_id", "store_id", "day", "branch_id", "kind"]
         }
       },
       "policies": {},
@@ -12677,12 +11180,8 @@
           "name": "store_day_org_id_org_id_fk",
           "tableFrom": "store_day",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12690,14 +11189,8 @@
           "name": "store_day_org_id_store_id_store_org_id_id_fk",
           "tableFrom": "store_day",
           "tableTo": "store",
-          "columnsFrom": [
-            "org_id",
-            "store_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "store_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -12707,19 +11200,12 @@
         "store_day_org_id_id_unique": {
           "name": "store_day_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "store_day_org_id_store_id_day_unique": {
           "name": "store_day_org_id_store_id_day_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "store_id",
-            "day"
-          ]
+          "columns": ["org_id", "store_id", "day"]
         }
       },
       "policies": {},
@@ -12864,12 +11350,8 @@
           "name": "approval_request_org_id_org_id_fk",
           "tableFrom": "approval_request",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12877,14 +11359,8 @@
           "name": "approval_request_org_id_branch_id_branch_org_id_id_fk",
           "tableFrom": "approval_request",
           "tableTo": "branch",
-          "columnsFrom": [
-            "org_id",
-            "branch_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "branch_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12892,14 +11368,8 @@
           "name": "approval_request_org_id_device_id_device_org_id_id_fk",
           "tableFrom": "approval_request",
           "tableTo": "device",
-          "columnsFrom": [
-            "org_id",
-            "device_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "device_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12907,14 +11377,8 @@
           "name": "approval_request_org_id_requested_by_user_org_id_id_fk",
           "tableFrom": "approval_request",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "requested_by"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "requested_by"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -12922,14 +11386,8 @@
           "name": "approval_request_org_id_decided_by_user_org_id_id_fk",
           "tableFrom": "approval_request",
           "tableTo": "user",
-          "columnsFrom": [
-            "org_id",
-            "decided_by"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "decided_by"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -12939,10 +11397,7 @@
         "approval_request_org_id_id_unique": {
           "name": "approval_request_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         }
       },
       "policies": {},
@@ -13062,12 +11517,8 @@
           "name": "invoice_org_id_org_id_fk",
           "tableFrom": "invoice",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -13077,25 +11528,17 @@
         "invoice_org_id_id_unique": {
           "name": "invoice_org_id_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "id"
-          ]
+          "columns": ["org_id", "id"]
         },
         "invoice_reference_unique": {
           "name": "invoice_reference_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "reference"
-          ]
+          "columns": ["reference"]
         },
         "invoice_org_id_period_start_unique": {
           "name": "invoice_org_id_period_start_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "period_start"
-          ]
+          "columns": ["org_id", "period_start"]
         }
       },
       "policies": {},
@@ -13172,12 +11615,8 @@
           "name": "subscription_org_id_org_id_fk",
           "tableFrom": "subscription",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -13187,9 +11626,7 @@
         "subscription_org_id_unique": {
           "name": "subscription_org_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id"
-          ]
+          "columns": ["org_id"]
         }
       },
       "policies": {},
@@ -13267,12 +11704,8 @@
           "name": "receipt_email_org_id_org_id_fk",
           "tableFrom": "receipt_email",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -13280,14 +11713,8 @@
           "name": "receipt_email_org_id_sale_id_sale_org_id_id_fk",
           "tableFrom": "receipt_email",
           "tableTo": "sale",
-          "columnsFrom": [
-            "org_id",
-            "sale_id"
-          ],
-          "columnsTo": [
-            "org_id",
-            "id"
-          ],
+          "columnsFrom": ["org_id", "sale_id"],
+          "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -13297,10 +11724,7 @@
         "receipt_email_org_id_request_key_unique": {
           "name": "receipt_email_org_id_request_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id",
-            "request_key"
-          ]
+          "columns": ["org_id", "request_key"]
         }
       },
       "policies": {},
@@ -13383,12 +11807,8 @@
           "name": "onboarding_org_id_org_id_fk",
           "tableFrom": "onboarding",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -13398,9 +11818,7 @@
         "onboarding_org_id_unique": {
           "name": "onboarding_org_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id"
-          ]
+          "columns": ["org_id"]
         }
       },
       "policies": {},
@@ -13565,12 +11983,8 @@
           "name": "kyb_case_org_id_org_id_fk",
           "tableFrom": "kyb_case",
           "tableTo": "org",
-          "columnsFrom": [
-            "org_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["org_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -13580,9 +11994,7 @@
         "kyb_case_org_id_unique": {
           "name": "kyb_case_org_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "org_id"
-          ]
+          "columns": ["org_id"]
         }
       },
       "policies": {},

@@ -28,7 +28,7 @@ jobs:
       - uses: ./.github/actions/setup
       - run: vp run guard
       # Shipped dependencies only; a high or critical advisory fails the build until it is bumped or overridden.
-      - run: vp pm audit --prod --audit-level=high
+      - run: vp pm audit --production --level high
   typecheck:
     runs-on: ubuntu-latest
     timeout-minutes: 15

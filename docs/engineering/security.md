@@ -106,6 +106,6 @@ One `RateLimiter` port (`packages/ports/src/limits.ts`) with a fixed policy tabl
 
 ## Dependencies
 
-- CI runs `vp pm audit --prod --audit-level=high`.
+- CI runs `vp pm audit --production --level high`.
 - A high or critical advisory is fixed by bumping the direct dependency. When a parent holds the package
   back, add a pinned override in `pnpm-workspace.yaml`, set to the first patched release.

@@ -180,7 +180,7 @@ The rules these slices set are written up in [security.md](../../engineering/sec
   - Valibot 1.1.0 → 1.5.0 across 17 packages (ReDoS)
   - Electron 44.5.1 → 44.9.2
   - overrides for undici 7.30.1, seroval 1.6.12, zod 4.6.7 and fflate 0.7.5, which their parents hold back
-- The audit now finds no known vulnerabilities, and CI runs `vp pm audit --prod --audit-level=high`.
+- The audit now finds no known vulnerabilities, and CI runs `vp pm audit --production --level high`.
 
 ## Whole-branch review (Codex `gpt-6.1-sol`)
 

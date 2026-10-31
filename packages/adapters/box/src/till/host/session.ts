@@ -18,6 +18,7 @@ import type { TillDatabase } from "@shopper/db-sqlite";
 import { cashierLogin } from "../../schemas/till/host/session";
 import type { HostConfiguration } from "./config";
 import { checkVerifier, hashVerifier } from "./session/verifier";
+import { createUnlock } from "./session/unlock";
 
 // ponytail: offline sign-in knobs; make them register settings if a shop needs different ones.
 const VERIFIER_DAYS = 7;
@@ -80,9 +81,18 @@ export function createHostSession(host: { database: TillDatabase; config: HostCo
       return undefined;
     }
     if (response.status >= 500) return undefined;
-    if (response.status === 429)
-      return new TillError("SIGN_IN_LOCKED", "Too many attempts. Try again in 15 minutes.");
     const body: unknown = await response.json().catch(() => null);
+    // The limiter's 429 carries Retry-After and is the shop's budget, not this account: no lock to unlock.
+    const retry = response.headers.get("Retry-After");
+    if (response.status === 429 && retry)
+      return new TillError(
+        "SIGN_IN_UNAVAILABLE",
+        `Too many sign-ins from this shop. Try again in ${retry} seconds.`,
+      );
+    if (response.status === 429) {
+      const until = (body as { lockedUntil?: unknown } | null)?.lockedUntil;
+      return locked(typeof until === "string" ? Date.parse(until) : undefined);
+    }
     if (response.ok) {
       const login = v.safeParse(cashierLogin, body);
       return login.success ? login.output : unavailable();
@@ -131,8 +141,7 @@ export function createHostSession(host: { database: TillDatabase; config: HostCo
     }
     if (now - Date.parse(staff.verifiedAt) > VERIFIER_DAYS * 86_400_000)
       throw new TillError("OFFLINE_UNAVAILABLE", "Connect to the internet to sign in");
-    if (staff.lockedUntil && staff.lockedUntil > now)
-      throw new TillError("SIGN_IN_LOCKED", "Too many attempts. Try again in 15 minutes.");
+    if (staff.lockedUntil && staff.lockedUntil > now) throw locked(staff.lockedUntil);
     const last = staff.lastSessionId
       ? await readStoredSession(database, staff.lastSessionId)
       : undefined;
@@ -197,6 +206,7 @@ export function createHostSession(host: { database: TillDatabase; config: HostCo
       set(null, null);
       for (const hook of signedOut) hook();
     },
+    unlock: createUnlock(host),
     /** Runs after every sign-out; the desktop cookie rotates here. */
     onSignOut: (hook: () => void) => void signedOut.push(hook),
     /** The signed-in user as the status and the back office see them, or null. */
@@ -204,4 +214,12 @@ export function createHostSession(host: { database: TillDatabase; config: HostCo
       return user && config.session ? { ...user, permissions: config.session.permissions } : null;
     },
   };
+}
+
+/** The lockout refusal, naming the time sign-in opens again when it is known. */
+function locked(until?: number) {
+  const when = until
+    ? `at ${new Date(until).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`
+    : "in a few minutes";
+  return new TillError("SIGN_IN_LOCKED", `Too many attempts. Try again ${when}.`);
 }

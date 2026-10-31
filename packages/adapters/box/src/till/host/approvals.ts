@@ -45,9 +45,10 @@ export function createApprovals(host: { database: TillDatabase; config: HostConf
   });
 
   return {
-    /** Who could approve `permission`, as names and ids only. */
+    /** Who could approve `permission`, as names and ids only; a locked sign-in screen asks who may unlock it. */
     async list(permission: string) {
-      if (!config.session) throw new TillError("session", "Sign in on this register first");
+      if (!config.session && permission !== "staff.unlock")
+        throw new TillError("session", "Sign in on this register first");
       const at = await hostTime(database, identity, new Date());
       return readApprovers(database, identity.orgId, permission, at);
     },

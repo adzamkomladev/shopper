@@ -36,6 +36,7 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   "device.enroll": "Enrol devices",
   "device.revoke": "Revoke devices",
   "cashier.pin.assign": "Set cashier PINs",
+  "staff.unlock": "Unlock locked sign-ins",
   "register.settings": "Change register settings",
   "customer.read": "View customers",
   "customer.write": "Create and edit customers",
@@ -74,7 +75,10 @@ export const PERMISSION_GROUPS: readonly { name: string; codes: readonly Permiss
     name: "Tax, reports and audit",
     codes: ["tax.read", "tax.write", "tax.return", "report.read", "audit.read"],
   },
-  { name: "People", codes: ["user.read", "user.write", "role.read", "role.write"] },
+  {
+    name: "People",
+    codes: ["user.read", "user.write", "role.read", "role.write", "staff.unlock"],
+  },
   {
     name: "Stores and branches",
     codes: ["store.read", "store.write", "branch.read", "branch.write"],

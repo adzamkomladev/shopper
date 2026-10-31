@@ -11,7 +11,8 @@ import { managementId } from "@shopper/core/management";
 import { createSyncRoutes } from "./sync/routes";
 import { createApi } from "./app";
 import { orgRoutes } from "./routes/orgs";
-import { allowPublicAuth } from "./middleware/public/auth";
+import { refuseCrossSite, secureHeaders } from "./middleware/hardening";
+import { enforceRateLimit } from "./middleware/public/limits";
 
 export const publicApi = createApi();
 export function isPublicRequest(request: Request) {
@@ -24,13 +25,24 @@ export function runtimeUnavailable() {
   return Response.json({ error: "Authentication service unavailable" }, { status: 503 });
 }
 export async function serveRuntime(request: Request, options: RuntimeOptions): Promise<Response> {
+  return secureHeaders(request, await route(request, options), options.baseURL);
+}
+
+async function route(request: Request, options: RuntimeOptions): Promise<Response> {
   if (isPublicRequest(request)) return publicApi.fetch(request);
+  // A short key makes every session and emailed link forgeable; refuse to sign anything with it.
+  if (weak(options.secret) || (options.linkSecret !== undefined && weak(options.linkSecret)))
+    return runtimeUnavailable();
+  const refused = await enforceRateLimit(
+    request,
+    options.rateLimiter,
+    options.clientIP,
+    options.orgId,
+  );
+  if (refused) return refused;
   const url = new URL(request.url);
   if (url.pathname.startsWith("/public/statements/")) {
     if (!options.linkSecret) return runtimeUnavailable();
-    // A link is a bearer secret; this budget only slows guessing. ponytail: isolate-local like allowPublicAuth.
-    if (!allowPublicAuth(options.clientIP, "statements", Date.now(), 30))
-      return new Response(null, { status: 429 });
     return createApi({
       database: options.database,
       linkSecret: options.linkSecret,
@@ -46,13 +58,8 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
   if (options.clientIP) headers.set("X-Shopper-Client-IP", options.clientIP);
   // Bun upgrades require the original request carrying the server connection.
   if (url.pathname !== "/sync/live") request = new Request(request, { headers });
-  const origin = request.headers.get("Origin");
-  if (
-    !["GET", "HEAD", "OPTIONS"].includes(request.method) &&
-    origin &&
-    origin !== new URL(options.baseURL).origin
-  )
-    return Response.json({ error: "Origin is not allowed" }, { status: 403 });
+  const crossSite = refuseCrossSite(request, options.baseURL);
+  if (crossSite) return crossSite;
   if (/^\/sync(?:\/|$)/.test(url.pathname)) {
     if (!options.sequencer) return runtimeUnavailable();
     return createSyncRoutes({
@@ -83,11 +90,6 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     if (!options.publicOnboarding || options.orgId)
       return Response.json({ error: "Public registration is closed" }, { status: 403 });
     if (!linkOptions) return runtimeUnavailable();
-    if (
-      request.method === "POST" &&
-      !allowPublicAuth(options.clientIP, url.pathname.split("/").at(-1) ?? "auth")
-    )
-      return Response.json({ error: "Too many requests" }, { status: 429 });
     return createApi({
       onboarding: createOnboarding({ ...linkOptions, onboarding: options.onboarding }),
     }).fetch(request);
@@ -97,11 +99,6 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
   let invitationOrg: string | undefined;
   if (invite) {
     if (!invitations) return runtimeUnavailable();
-    if (
-      request.method === "POST" &&
-      !allowPublicAuth(options.clientIP, url.pathname.split("/").at(-1) ?? "auth")
-    )
-      return Response.json({ error: "Too many requests" }, { status: 429 });
     let token: unknown = url.searchParams.get("token");
     if (request.method === "POST") {
       try {
@@ -188,3 +185,5 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
     platform: options.platform,
   }).fetch(request);
 }
+
+const weak = (secret: string) => new TextEncoder().encode(secret).length < 32;

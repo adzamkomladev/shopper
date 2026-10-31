@@ -3,11 +3,13 @@ import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
-import { boxCache } from "@shopper/adapters-box";
+import { boxCache, boxRateLimiter } from "@shopper/adapters-box";
 import { serveRuntime, type RuntimeOptions } from "@shopper/api/runtime";
 import { migrateDatabase } from "../../../../tooling/database/migrate";
 import { provisionOrg, provisioningContext } from "../../../../tooling/database/seed";
 import { postgresFixture } from "../../../fixtures/postgres";
+
+const rateLimiter = boxRateLimiter();
 
 let fixture: Awaited<ReturnType<typeof postgresFixture>>;
 let pool: Pool;
@@ -36,6 +38,7 @@ afterAll(async () => {
 const options = (orgId?: string): RuntimeOptions => ({
   database: db,
   cache: cache.cache,
+  rateLimiter,
   secret: "org-lookup-integration-secret-more-than-32-chars",
   baseURL: "http://localhost",
   orgId,

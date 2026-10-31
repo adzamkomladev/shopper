@@ -15,6 +15,6 @@
   "dependencies": {
     "@shopper/db-pg": "workspace:*",
     "aws4fetch": "1.0.20",
-    "valibot": "1.1.0"
+    "valibot": "1.5.0"
   }
 }

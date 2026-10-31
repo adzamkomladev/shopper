@@ -17,6 +17,9 @@ import {
   type ShopperTransaction,
 } from "@shopper/db-pg";
 
+// A shift's length: a lost or shared back-office browser stops working by the next day.
+const SESSION_SECONDS = 60 * 60 * 12;
+
 /** Better Auth bound to one organization: every read and write is scoped to its org_id. */
 export function buildAuth(
   database: ShopperDatabase | ShopperTransaction,
@@ -34,8 +37,8 @@ export function buildAuth(
       database: { generateId: () => v7(), joins: false },
       ipAddress: { ipAddressHeaders: ["x-shopper-client-ip"] },
     },
-    // ponytail: per-isolate limiter; use distributed RateLimiter when traffic spans isolates.
-    rateLimit: { enabled: true, storage: "memory" },
+    // serveRuntime budgets sign-in through the RateLimiter port, across every isolate and the box alike.
+    rateLimit: { enabled: false },
     user: {
       additionalFields: {
         orgId: { type: "string", required: true, defaultValue: orgId, input: false },
@@ -47,6 +50,7 @@ export function buildAuth(
       },
     },
     session: {
+      expiresIn: SESSION_SECONDS,
       disableSessionRefresh: true,
       deferSessionRefresh: true,
       additionalFields: {
@@ -84,8 +88,16 @@ export function buildAuth(
       },
       session: {
         create: {
+          // Without remember-me Better Auth sets a fixed day; no session outlives the shift's 12 hours.
           before: async (newSession) => ({
-            data: { ...newSession, orgId, activeOrganizationId: orgId },
+            data: {
+              ...newSession,
+              orgId,
+              activeOrganizationId: orgId,
+              expiresAt: new Date(
+                Math.min(newSession.expiresAt.getTime(), Date.now() + SESSION_SECONDS * 1000),
+              ),
+            },
           }),
         },
       },

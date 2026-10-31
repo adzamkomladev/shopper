@@ -19,7 +19,7 @@ import { StatusTabs } from "../../components/users/status/tabs";
 import { InvitationsTable, cancelButtonId } from "../../components/users/invitations/table";
 import { InviteForm } from "../../components/users/invite/form";
 import { KycStartSheet } from "../../components/kyc/start";
-import { MembersTable, statusButtonId } from "../../components/users/members/table";
+import { MembersTable, statusButtonId, unlockButtonId } from "../../components/users/members/table";
 import {
   accessBranchesQuery,
   invitationsQuery,
@@ -148,6 +148,12 @@ export function UsersScreen() {
                 // The server checks the target's role against your own, which needs role.write too.
                 canWriteRoles && held.includes("user.write")
                   ? (change) => statusChange.show(change, statusButtonId(change.member.id))
+                  : undefined
+              }
+              onUnlock={
+                held.includes("staff.unlock")
+                  ? (member) =>
+                      statusChange.show({ member, action: "unlock" }, unlockButtonId(member.id))
                   : undefined
               }
             />

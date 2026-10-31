@@ -61,8 +61,9 @@ test("the decision window is 7 days: a decision on day 6 works", async () => {
   const made = await creditInReview();
   const due = (await caseRow(made.id)).decisionDueAt!;
   expect(Math.abs(due.getTime() - (Date.now() + 7 * day))).toBeLessThan(2 * minute);
-  const cookie = await admin();
   await vi.advanceTimersByTimeAsync(7 * day - 5 * minute);
+  // A session lasts 12 hours: the reviewer signs in on the day they decide.
+  const cookie = await admin();
   const approved = await as(cookie).decide(made.id, {
     approve: true,
     limit: 2_000_000,

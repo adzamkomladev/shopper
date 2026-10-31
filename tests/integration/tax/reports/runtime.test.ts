@@ -1,12 +1,14 @@
 // The tax screens' API goes through the shared runtime (Worker and box) behind the session: a path it does not
 // list falls through to the public API, which has no tax routes and answers 404.
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
-import { boxCache } from "@shopper/adapters-box";
+import { boxCache, boxRateLimiter } from "@shopper/adapters-box";
 import { serveRuntime } from "@shopper/api/runtime";
 import { goldenWorld } from "../../../support/sales/golden/setup";
 import { ids } from "../../../support/till/sales";
 import { databases } from "../../../support/till/server";
 import { baseURL, portalOwner, secret, type Portal } from "../../../support/api/portal";
+
+const rateLimiter = boxRateLimiter();
 
 let world: Awaited<ReturnType<typeof goldenWorld>>;
 let owner: Portal;
@@ -22,6 +24,7 @@ test("the runtime serves the tax area behind the session, not the public API", a
     const options = {
       database: databases().db,
       cache: cache.cache,
+      rateLimiter,
       secret,
       baseURL,
       orgId: ids.org,

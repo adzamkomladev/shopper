@@ -24,12 +24,15 @@ export const kofi: Staff = {
   permissions: ["sale.create"],
 };
 
-/** An upstream that signs staff in. `mode` makes the login 503 (unreachable), 429 (locked) or normal. */
+/** An upstream that signs staff in. `mode` makes the login 503 (unreachable), 429 (locked, or throttled) or normal. */
 export async function startStaffUpstream(staff: Staff[]) {
   const users = new Map(staff.map((user) => [user.email, { ...user }]));
   const state = {
-    mode: "ok" as "ok" | "down" | "locked" | "garbage" | "forbidden",
+    mode: "ok" as "ok" | "down" | "locked" | "throttled" | "garbage" | "forbidden",
     issued: [] as { id: string; token: string }[],
+    /** The manager PIN the server accepts at /cashiers/unlock, and each unlock it granted. */
+    unlockPin: "2468",
+    unlocks: [] as { email: string; approverId: string }[],
   };
   const upstream = await startUpstream(async (request) => {
     const path = new URL(request.url).pathname;
@@ -39,6 +42,12 @@ export async function startStaffUpstream(staff: Staff[]) {
       if (state.mode === "forbidden") return Response.json({ error: "Nope" }, { status: 403 });
       if (state.mode === "locked")
         return Response.json({ error: "Sign-in temporarily locked" }, { status: 429 });
+      // The shop's request budget, not this account: the limiter answers with Retry-After.
+      if (state.mode === "throttled")
+        return Response.json(
+          { error: "Too many requests" },
+          { status: 429, headers: { "Retry-After": "60" } },
+        );
       const body = (await request.json()) as { email: string; password: string };
       const user = users.get(body.email.toLowerCase());
       if (!user || user.password !== body.password)
@@ -54,6 +63,15 @@ export async function startStaffUpstream(staff: Staff[]) {
         userId: user.userId,
         userName: user.name,
       });
+    }
+    if (path === "/cashiers/unlock") {
+      if (state.mode === "down") return Response.json({ error: "Unavailable" }, { status: 503 });
+      const body = (await request.json()) as { email: string; approverId: string; pin: string };
+      if (body.pin !== state.unlockPin)
+        return Response.json({ error: "Invalid PIN" }, { status: 401 });
+      state.unlocks.push({ email: body.email, approverId: body.approverId });
+      state.mode = "ok";
+      return Response.json({ userId: users.get(body.email)?.userId, lockedUntil: null });
     }
     if (path === "/products")
       return Response.json([], {

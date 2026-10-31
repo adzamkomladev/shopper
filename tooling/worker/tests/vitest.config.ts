@@ -99,6 +99,7 @@ export default defineConfig({
       "reports/day.test.ts",
       "billing/dunning.test.ts",
       "sequencer.test.ts",
+      "ratelimit.test.ts",
     ],
   },
 });

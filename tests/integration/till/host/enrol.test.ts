@@ -126,7 +126,13 @@ describe("a till enrols itself", () => {
 async function unenrolledConfig(directory?: string) {
   const folder = directory ?? (await mkdtemp(join(tmpdir(), "shopper-till-enrol-")));
   cleanup.push(() => rm(folder, { recursive: true, force: true }));
-  return { sqlitePath: join(folder, "till.sqlite"), upstream: api.url, origins: [ORIGIN], port: 0 };
+  return {
+    sqlitePath: join(folder, "till.sqlite"),
+    plaintext: true,
+    upstream: api.url,
+    origins: [ORIGIN],
+    port: 0,
+  };
 }
 
 async function slug() {

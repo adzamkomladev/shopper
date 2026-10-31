@@ -2,7 +2,7 @@
 // period's workflow, so dunning stops at the settled step instead of waiting out its deadlines.
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { v7 } from "uuid";
-import { boxCache } from "@shopper/adapters-box";
+import { boxCache, boxRateLimiter } from "@shopper/adapters-box";
 import { serveRuntime } from "@shopper/api/runtime";
 import { billingId } from "@shopper/core/billing";
 import * as schema from "@shopper/db-pg";
@@ -11,6 +11,8 @@ import { goldenWorld } from "../../support/sales/golden/setup";
 import { ids } from "../../support/till/sales";
 import { baseURL, secret } from "../../support/api/portal";
 import { signWebhook } from "../../../tooling/paystack/server";
+
+const rateLimiter = boxRateLimiter();
 
 let world: Awaited<ReturnType<typeof goldenWorld>>;
 beforeAll(async () => {
@@ -54,6 +56,7 @@ test("an invoice paid through the runtime's webhook sends invoice.paid to its pe
       {
         database: world.db,
         cache: cache.cache,
+        rateLimiter,
         secret,
         baseURL,
         orgId: ids.org,

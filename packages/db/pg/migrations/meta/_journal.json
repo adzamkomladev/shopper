@@ -239,6 +239,13 @@
       "when": 1793172384518,
       "tag": "0033_onboarding",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793373600000,
+      "tag": "0034_security",
+      "breakpoints": true
     }
   ]
 }

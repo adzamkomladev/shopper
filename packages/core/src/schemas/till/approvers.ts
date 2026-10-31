@@ -7,6 +7,7 @@ export const approvalPermissions = [
   "sale.void",
   "sale.price_override",
   "shift.approve",
+  "staff.unlock",
 ] as const;
 
 /** `GET /sync/approvers`: who can approve with a PIN, for which actions, and who may still sign in at the register. */

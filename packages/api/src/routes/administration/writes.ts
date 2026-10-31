@@ -6,6 +6,7 @@ import {
   deleteRole,
   reactivateMember,
   setMemberBranches,
+  unlockMember,
   updateRole,
 } from "@shopper/auth";
 import { roleAssignmentInput } from "@shopper/auth/schemas";
@@ -99,4 +100,14 @@ export const administrationWrites: {
       status: 200 as const,
     }),
   })),
+  {
+    method: "POST",
+    path: "/users/:id/unlock",
+    code: "staff.unlock",
+    json: false,
+    run: async (db, context, id) => {
+      const { userId, lockedUntil } = await unlockMember(db, context, id);
+      return { body: { userId, lockedUntil }, status: 200 };
+    },
+  },
 ];

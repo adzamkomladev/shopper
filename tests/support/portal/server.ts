@@ -6,6 +6,7 @@ import {
   boxPool,
   boxPriceChange,
   boxRealtime,
+  boxRateLimiter,
 } from "@shopper/adapters-box";
 import { createArkesel } from "@shopper/core/sms/arkesel";
 import { serveRuntime } from "@shopper/api/runtime";
@@ -22,6 +23,8 @@ import { startArkeselFake } from "../../../tooling/arkesel/server";
 import { e2eRun } from "../../../tooling/e2e/run";
 import { rustfs } from "../../../tooling/storage/buckets";
 import { e2eKyb } from "./kyb";
+
+const rateLimiter = boxRateLimiter();
 
 const databaseURL = process.env.E2E_DATABASE_URL;
 if (!databaseURL || !new URL(databaseURL).pathname.endsWith("_e2e")) {
@@ -86,6 +89,7 @@ const portalRuntime = async (request: Request) => {
     serveRuntime(request, {
       database: database.db,
       cache: cache.cache,
+      rateLimiter,
       secret: "e2e-only-secret-more-than-32-characters",
       bootstrapToken: "e2e-only-bootstrap-token",
       baseURL,

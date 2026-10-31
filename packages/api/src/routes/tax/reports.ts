@@ -22,11 +22,14 @@ export function taxReportRoutes(
   const app = new Hono<ApiEnvironment>();
   const read = requirePermission(authentication, "tax.read");
   app.get("/tax/summary", read);
-  app.get("/tax/returns/:period", read);
-  app.get("/tax/returns/:period/export.xlsx", read);
-  app.put("/tax/returns/:period/input", requirePermission(authentication, "tax.return"));
   // A VAT return covers the whole organisation: org-wide members only.
-  app.use("/tax/returns/*", requireOrgWide);
+  app.get("/tax/returns/:period", read, requireOrgWide);
+  app.get("/tax/returns/:period/export.xlsx", read, requireOrgWide);
+  app.put(
+    "/tax/returns/:period/input",
+    requirePermission(authentication, "tax.return"),
+    requireOrgWide,
+  );
   const org = (c: Context<ApiEnvironment>) => c.get("principal").orgId;
 
   app.get("/tax/summary", async (c) => {

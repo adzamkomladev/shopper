@@ -50,4 +50,5 @@ export const tillPermissions = new Set([
   "stock.write",
   "customer.read",
   "customer.write",
+  "staff.unlock",
 ]);

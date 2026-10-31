@@ -15,7 +15,7 @@ import type {
   Sequencer,
   WorkflowLauncher,
 } from "@shopper/ports";
-import type { Cache } from "@shopper/ports";
+import type { Cache, RateLimiter } from "@shopper/ports";
 import type { LiveUpgrade } from "./sync/live";
 
 export type ApiPrincipal = AuthPrincipal;
@@ -81,6 +81,8 @@ export interface RuntimeOptions {
   lane?: Lane;
   renderer?: Renderer;
   cache: Cache;
+  /** Budgets every unauthenticated entry point: sign-in, enrolment, cashier sign-in, public links. */
+  rateLimiter: RateLimiter;
   secret: string;
   baseURL: string;
   orgId?: string;

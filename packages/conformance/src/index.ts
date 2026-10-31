@@ -5,4 +5,5 @@ export { momoConformance } from "./cases/payments";
 export { rendererConformance } from "./cases/renderer";
 export { queueConformance } from "./cases/queue";
 export { laneConformance } from "./cases/lane";
-export type { LaneFixture, QueueFixture, RendererFixture } from "./types";
+export { rateLimiterConformance } from "./cases/ratelimit";
+export type { LaneFixture, QueueFixture, RateLimiterFixture, RendererFixture } from "./types";

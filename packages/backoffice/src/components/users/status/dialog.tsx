@@ -18,9 +18,14 @@ const COPY = {
     label: "Reactivate",
     description: "They can sign in again with the role and branches they had.",
   },
+  unlock: {
+    label: "Unlock",
+    description:
+      "Their failed PIN and password attempts are forgotten, so they can sign in again straight away. Their PIN and password stay the same.",
+  },
 };
 
-/** Confirms deactivating or reactivating a member. */
+/** Confirms deactivating, reactivating or unlocking a member. */
 export function MemberStatusDialog({ change, open, onOpenChange, restoreFocus }: Props) {
   const status = useMemberStatus(() => onOpenChange(false));
   const copy = COPY[change?.action ?? "deactivate"];

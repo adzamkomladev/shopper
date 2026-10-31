@@ -1,3 +1,4 @@
+import type { RatePolicy } from "@shopper/ports";
 import type { cloudflareQueue } from "../queue";
 import type { cloudflareRenderer } from "../renderer";
 import type { cloudflareLauncher, cloudflareLoopLauncher } from "../launcher";
@@ -35,7 +36,10 @@ export interface AuthEnvironment {
   SHOPPER_PLATFORM_ORG?: string;
 }
 
-export interface CloudflareRuntimeEnvironment extends AuthEnvironment {
+/** One Rate Limiting binding per policy, `RATE_<POLICY>`, each configured from `ratePolicies` in the edge config. */
+export type RateLimitEnvironment = { [P in RatePolicy as `RATE_${Uppercase<P>}`]: RateLimit };
+
+export interface CloudflareRuntimeEnvironment extends AuthEnvironment, RateLimitEnvironment {
   HYPERDRIVE: Hyperdrive;
   BLOBS: R2Bucket;
   IMPORTS: R2Bucket;

@@ -5,6 +5,7 @@ import {
   request,
   subscribeConnection,
 } from "../connection/store";
+import type { Approval, SaleOutcome } from "../sale/types";
 import type { SignInFailure, SignInFailureCode, SignInSnapshot } from "./types";
 
 const codes: readonly SignInFailureCode[] = [
@@ -34,8 +35,23 @@ export async function signIn(email: string, password: string) {
     publish({ status: "idle", failure: null });
     return true;
   }
-  publish({ status: "idle", failure: failureOf(reply) });
+  const failure = failureOf(reply);
+  publish({
+    status: "idle",
+    failure: failure.code === "SIGN_IN_LOCKED" ? { ...failure, email } : failure,
+  });
   return false;
+}
+
+/** A manager's PIN lifts the lock on `email`; the host or the server checks it. */
+export async function unlockSignIn(email: string, approval: Approval): Promise<SaleOutcome> {
+  const reply = await request({ type: "session.unlock", email, ...approval });
+  if (reply?.type === "result") {
+    publish({ status: "idle", failure: null });
+    return { ok: true };
+  }
+  if (reply?.type === "error") return { ok: false, code: reply.code, message: reply.message };
+  return { ok: false, code: "HOST_UNREACHABLE", message: "Cannot reach the register host." };
 }
 
 export async function signOut() {

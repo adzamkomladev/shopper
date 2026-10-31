@@ -1,0 +1,6 @@
+# Workers Static Assets: the SPA shell is never framed or sniffed. /api/* answers set their own headers.
+/*
+  Content-Security-Policy: frame-ancestors 'none'
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer

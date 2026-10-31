@@ -65,7 +65,7 @@ test("box sessions and device HTTP flow enforce origin, tenant, branch, and till
   });
   expect(signin.status).toBe(200);
   const cookie = signin.headers.get("set-cookie")!.split(";")[0]!;
-  const owner = { cookie };
+  const owner = { cookie, Origin: "http://localhost" };
   const denied = await send(
     "/stores",
     { name: "CSRF" },

@@ -13,6 +13,10 @@ fields are `sqlitePath`, `identity` (`orgId`, `deviceId`, `storeId`, `branchId`,
 null), `references` (optional provisioned products/prices/dated tax rules), `origins` (exact allowed
 browser origins), and `port` (loopback listener; zero chooses an available port).
 
+The register database holds sales and staff PIN hashes, so the host refuses to start without
+`databaseKey` (64 lowercase hex; Electron generates it and seals it with the OS keystore). For
+development and tests only, `"plaintext": true` opts out by name and keeps a plain SQLite file.
+
 Save `receiptCodes` from the enrollment response (`branchCode` and `deviceCode`) in this private
 configuration. An enrolled till can then issue overflow receipts offline before its first
 handshake. Once a handshake has saved the codes in SQLite, restarts may omit this field. A fresh

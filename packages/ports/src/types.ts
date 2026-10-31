@@ -1,4 +1,5 @@
 import type { Json, RetryPolicy } from "./schemas/primitives";
+import type { ratePolicies } from "./limits";
 
 export interface Sequencer {
   // Per store, strictly increasing bigint. Gaps are allowed. floor supports archive restore.
@@ -140,4 +141,9 @@ export interface Sdc {
 export interface Lane {
   // One ordered lane per store. Enqueueing a document twice submits it once.
   enqueue(orgId: string, storeId: string, docId: string): Promise<void>;
+}
+export type RatePolicy = keyof typeof ratePolicies;
+export interface RateLimiter {
+  // True while `key` is within its policy's budget for the current window; false once it is spent.
+  limit(policy: RatePolicy, key: string): Promise<boolean>;
 }

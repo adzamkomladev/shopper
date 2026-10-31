@@ -3,6 +3,7 @@ import { join, posix, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseSync } from "vite-plus";
 import { architectureRules } from "./guard/architecture";
+import { literalSecrets, trackedSecretFiles } from "./guard/secrets";
 
 export type Violation = { rule: string; file: string; message: string };
 type Kind = "app" | "package" | "tooling" | "tests";
@@ -61,7 +62,11 @@ const PLATFORM_HOMES = /^(packages\/adapters\/[^/]+\/|apps\/(edge|box)\/|tests\/
 /** Checks the repository rules in docs/engineering/architecture.md and code-quality.md. */
 export function guard(root: string): Violation[] {
   const projects = readProjects(root);
-  const violations = [...checkDependencies(projects), ...findCycles(projects)];
+  const violations = [
+    ...checkDependencies(projects),
+    ...findCycles(projects),
+    ...trackedSecretFiles(root),
+  ];
   for (const path of globSync(SOURCES, { cwd: root, exclude: IGNORED })) {
     violations.push(...checkFile(root, path.split(sep).join("/"), projects));
   }
@@ -150,7 +155,7 @@ function checkFile(root: string, file: string, projects: Project[]): Violation[]
   if (!SCRIPT.test(file)) return violations;
   const found: Found = { specs: new Set(), effect: false };
   const program = parseSync(file, text).program;
-  violations.push(...architectureRules(file, program));
+  violations.push(...architectureRules(file, program), ...literalSecrets(file, program));
   const barrel = /^(apps|packages)\/.*\/index\.(ts|tsx)$/.test(file);
   const frameworkRoute = /^apps\/[^/]+\/src\/routes\//.test(file);
   if (

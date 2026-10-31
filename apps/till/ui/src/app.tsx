@@ -32,9 +32,16 @@ import { connectRegister, initializeConnection, useConnectionSnapshot } from "./
 import { initializeDisplay, useDisplaySnapshot } from "./display/store";
 import { paymentActions } from "./sale/accounts";
 import { saleActions, useSaleSnapshot } from "./sale/store";
+import { readApprovers } from "./sale/approvers";
 import { purchaseOutput } from "./purchases/delivery";
 import { purchaseActions, usePurchasesSnapshot } from "./purchases/store";
-import { initializeSession, signIn, signOut, useSignInSnapshot } from "./session/store";
+import {
+  initializeSession,
+  signIn,
+  signOut,
+  unlockSignIn,
+  useSignInSnapshot,
+} from "./session/store";
 import { settingsActions, useSettingsSnapshot } from "./settings/store";
 import { shiftActions, useShiftSnapshot } from "./shift/store";
 
@@ -60,6 +67,8 @@ function Register() {
         host={connection.host}
         offline={connection.status?.server === "offline"}
         onReconnect={connectRegister}
+        onUnlock={unlockSignIn}
+        readApprovers={() => readApprovers("staff.unlock")}
         onSubmit={async (email, password) => {
           const signedIn = await signIn(email, password);
           if (signedIn) setView("till");

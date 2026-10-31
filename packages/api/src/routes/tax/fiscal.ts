@@ -26,13 +26,12 @@ export function fiscalRoutes(options: {
   const app = new Hono<ApiEnvironment>();
   const read = requirePermission(options.authentication, "tax.read");
   app.get("/tax/fiscal", read);
-  app.get("/tax/fiscal/archives", read);
+  // Archives are per store, not per branch: org-wide members only.
+  app.get("/tax/fiscal/archives", read, requireOrgWide);
   app.get("/tax/fiscal/:id", read);
   app.post("/tax/fiscal/:id/retry", requirePermission(options.authentication, "tax.write"));
   const org = (c: Context<ApiEnvironment>) => c.get("principal").orgId;
   const scope = (c: Context<ApiEnvironment>) => branchScope(c.get("principal"));
-  // Archives are per store, not per branch: org-wide members only.
-  app.use("/tax/fiscal/archives", requireOrgWide);
 
   app.get("/tax/fiscal", async (c) =>
     c.json({

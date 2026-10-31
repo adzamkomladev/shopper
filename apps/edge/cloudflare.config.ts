@@ -68,6 +68,11 @@ export default defineConfig(({ mode }) => {
         IMPORTS: bindings.r2({ name: `shopper-imports-${stage}`, ...remoteInDev }),
         RECEIPTS: bindings.r2({ name: `shopper-receipts-${stage}`, ...remoteInDev }),
         NOTIFICATIONS: bindings.queue({ name: `shopper-notifications-${stage}` }),
+        // One binding per RatePolicy; edge.test.ts pins each budget to ratePolicies.
+        RATE_AUTH: bindings.rateLimit({ namespace: "2601", simple: { limit: 5, period: 10 } }),
+        RATE_PUBLIC: bindings.rateLimit({ namespace: "2602", simple: { limit: 30, period: 10 } }),
+        RATE_ENROL: bindings.rateLimit({ namespace: "2603", simple: { limit: 10, period: 60 } }),
+        RATE_CASHIER: bindings.rateLimit({ namespace: "2604", simple: { limit: 20, period: 60 } }),
         STORE_SEQUENCER: bindings.durableObject({ worker: name, exportName: "StoreSequencer" }),
         STORE_HUB: bindings.durableObject({ worker: name, exportName: "StoreHub" }),
         FISCAL_LANE: bindings.durableObject({ worker: name, exportName: "FiscalLane" }),

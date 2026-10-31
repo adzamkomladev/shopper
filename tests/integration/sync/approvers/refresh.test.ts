@@ -56,6 +56,7 @@ test("a manager's PIN hash and approval grants reach the till; a cashier's do no
       "sale.price_override",
       "sale.void",
       "shift.approve",
+      "staff.unlock",
     ]);
     expect(await verifyPin(manager.pinHash, "2468")).toBe(true);
   });

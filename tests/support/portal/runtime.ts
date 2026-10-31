@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { boxCache } from "@shopper/adapters-box";
+import { boxCache, boxRateLimiter } from "@shopper/adapters-box";
 import type { RuntimeOptions } from "@shopper/api/runtime";
 import { serveRuntime } from "@shopper/api/runtime";
 import * as schema from "@shopper/db-pg";
@@ -8,6 +8,8 @@ import { seedAuthRoles } from "@shopper/auth";
 import { migrateDatabase } from "../../../tooling/database/migrate";
 import { provisionOrg, provisioningContext } from "../../../tooling/database/seed";
 import { postgresFixture } from "../../fixtures/postgres";
+
+const rateLimiter = boxRateLimiter();
 
 export const portalOrigin = "https://portal.test";
 export const portalSecret = "portal-integration-secret-more-than-32-chars";
@@ -52,6 +54,7 @@ export function portalOptions(index: 0 | 1): RuntimeOptions {
   return {
     database,
     cache: cache.cache,
+    rateLimiter,
     secret: portalSecret,
     baseURL: portalOrigin,
     orgId: tenants[index].orgId,

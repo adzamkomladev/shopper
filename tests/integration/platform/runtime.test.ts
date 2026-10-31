@@ -2,10 +2,12 @@
 // path the runtime does not list falls through to the public API and answers 404. The platform org lookup is public,
 // so the admin sign-in can name the org before anyone has a session.
 import { afterAll, expect, test } from "vite-plus/test";
-import { boxCache } from "@shopper/adapters-box";
+import { boxCache, boxRateLimiter } from "@shopper/adapters-box";
 import { serveRuntime } from "@shopper/api/runtime";
 import { baseURL, secret } from "../auth/setup";
 import { blobs, context, cookies, db, platformContext, queue, staff } from "./support";
+
+const rateLimiter = boxRateLimiter();
 
 const cache = boxCache(":memory:");
 afterAll(() => cache.close());
@@ -14,6 +16,7 @@ const send = (path: string, headers: Record<string, string> = {}) =>
   serveRuntime(new Request(`${baseURL}${path}`, { headers }), {
     database: db,
     cache: cache.cache,
+    rateLimiter,
     secret,
     baseURL,
     blobs,

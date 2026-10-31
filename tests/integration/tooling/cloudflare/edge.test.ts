@@ -3,7 +3,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { NOTIFICATION_RETRY } from "@shopper/ports";
+import { NOTIFICATION_RETRY, ratePolicies } from "@shopper/ports";
 import { beforeAll, expect, test } from "vite-plus/test";
 
 const edge = resolve("apps/edge");
@@ -117,6 +117,20 @@ test("the notifications queue has an edge consumer with five retries and a dead-
       maxBatchSize: 10,
     }),
   );
+});
+
+test("every rate-limit policy has its own edge binding with the same budget and window", () => {
+  const { env: bound } = worker();
+  const namespaces = new Set();
+  for (const [policy, budget] of Object.entries(ratePolicies)) {
+    const binding = `RATE_${policy.toUpperCase()}`;
+    expect(bound[binding]).toMatchObject({
+      type: "ratelimit",
+      simple: { limit: budget.limit, period: budget.period },
+    });
+    namespaces.add(bound[binding].namespace);
+  }
+  expect(namespaces.size).toBe(Object.keys(ratePolicies).length);
 });
 
 test("the only cron is the daily watchdog at 23:59 UTC", () => {

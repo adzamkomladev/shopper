@@ -164,14 +164,16 @@ export function useSaveAccess(member: UserView, onSaved: () => void) {
   });
 }
 
-/** Deactivates (signs out everywhere, refuses sign-in) or reactivates a member. */
+const DONE = { deactivate: "deactivated", reactivate: "reactivated", unlock: "unlocked" } as const;
+
+/** Deactivates (signs out everywhere, refuses sign-in), reactivates, or lifts a sign-in lockout. */
 export function useMemberStatus(onDone: () => void) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ member, action }: StatusChange) =>
       apiFetch(`/users/${member.id}/${action}`, changeResponse, { method: "POST" }),
     onSuccess: async (_result, { member, action }) => {
-      toast.success(`${member.name} ${action}d`);
+      toast.success(`${member.name} ${DONE[action]}`);
       onDone();
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["users"] }),

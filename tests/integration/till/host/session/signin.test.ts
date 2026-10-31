@@ -79,6 +79,13 @@ test("a wrong password is refused online and never falls back offline", async ()
     type: "error",
     code: "SIGN_IN_LOCKED",
   });
+  // Too many sign-ins from the shop is no lock on this account: no Manager unlock, just wait.
+  ctx.upstream.state.mode = "throttled";
+  expect(await ctx.signIn(ama.email, "changed on the server")).toMatchObject({
+    type: "error",
+    code: "SIGN_IN_UNAVAILABLE",
+    message: "Too many sign-ins from this shop. Try again in 60 seconds.",
+  });
 });
 
 test("sign-out clears the session and the next basket edit is refused", async () => {

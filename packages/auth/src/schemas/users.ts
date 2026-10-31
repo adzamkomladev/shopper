@@ -23,6 +23,8 @@ export const userListItem = v.object({
   protectedOwner: v.boolean(),
   /** When the member was deactivated (ISO), or null while active. */
   deactivatedAt: v.nullable(v.string()),
+  /** Until when a run of wrong PINs or passwords locks the member out (ISO), or null when it does not. */
+  lockedUntil: v.nullable(v.string()),
   /** The branches the member is limited to; empty means every branch. */
   branchIds: v.array(uuidV7Schema),
 });

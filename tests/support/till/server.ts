@@ -143,6 +143,7 @@ export async function hostConfiguration(
         : till.session;
   return {
     sqlitePath,
+    plaintext: true as const,
     identity: {
       orgId: context.orgId,
       storeId: saleConfig.storeId,

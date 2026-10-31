@@ -39,4 +39,5 @@ export const permissionNames = [
   "kyc.approve",
   "billing.manage",
   "org.kyb.submit",
+  "staff.unlock",
 ] as const;

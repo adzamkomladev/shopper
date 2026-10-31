@@ -4,6 +4,7 @@ import type {
   Cache,
   Json,
   Queue,
+  RateLimiter,
   QueueHandler,
   Renderer,
   Sequencer,
@@ -87,3 +88,5 @@ export interface LaneFixture {
   reopen(): Promise<void>;
   close(): Promise<void>;
 }
+
+export type RateLimiterFixture = () => Promise<{ limiter: RateLimiter }>;

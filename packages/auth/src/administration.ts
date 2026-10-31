@@ -1,5 +1,6 @@
-import { and, asc, count, eq, isNull } from "drizzle-orm";
+import { and, asc, count, eq, isNull, sql } from "drizzle-orm";
 import {
+  cashierPin,
   member,
   memberBranch,
   permission,
@@ -25,9 +26,14 @@ export async function listUsers(db: Database, orgId: string) {
       roleName: role.name,
       protectedOwner: role.protectedOwner,
       deactivatedAt: member.deactivatedAt,
+      // The later of the PIN and password lockouts, while either still holds.
+      lockedUntil: sql<
+        string | null
+      >`(SELECT max(locked) FROM (VALUES (${user.passwordLockedUntil}), (${cashierPin.lockedUntil})) AS lock(locked) WHERE locked > now())`,
     })
     .from(user)
     .innerJoin(member, and(eq(member.orgId, user.orgId), eq(member.userId, user.id)))
+    .leftJoin(cashierPin, and(eq(cashierPin.orgId, user.orgId), eq(cashierPin.userId, user.id)))
     .innerJoin(role, and(eq(role.orgId, member.orgId), eq(role.id, member.roleId)))
     .where(eq(user.orgId, orgId))
     .orderBy(asc(user.name), asc(user.id));

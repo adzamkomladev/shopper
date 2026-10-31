@@ -4,7 +4,7 @@ import * as XLSX from "xlsx";
 import { createStaff, signInAs } from "../../../support/admin/people";
 import { orgId } from "../../../support/customers/portal";
 import { shoot } from "../../../support/customers/shots";
-import { BOX_API } from "../../../support/e2e";
+import { BOX_API, PORTAL_ORIGIN } from "../../../support/e2e";
 
 // The VAT return worksheet. Its figures come from the integration suite's fixture month; here a quiet month
 // is real (the API answers it) and a busy one is the API's answer replayed, so every state is drawn.
@@ -43,7 +43,7 @@ test.describe.configure({ timeout: 180_000 });
 
 test.beforeEach(async ({ request }) => {
   await request.put(`${BOX_API}/tax/returns/${PERIOD}/input`, {
-    headers: { "X-Shopper-Org": await orgId(request) },
+    headers: { "X-Shopper-Org": await orgId(request), Origin: PORTAL_ORIGIN },
     data: { vat: 0, nhil: 0, getfund: 0 },
   });
 });

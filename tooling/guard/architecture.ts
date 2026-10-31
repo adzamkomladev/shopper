@@ -1,6 +1,6 @@
 import type { Violation } from "../guard";
 
-type Node = {
+export type Node = {
   type?: string;
   name?: string;
   value?: unknown;
@@ -146,7 +146,7 @@ export function architectureRules(file: string, program: unknown): Violation[] {
   return violations;
 }
 
-function walk(value: unknown, visit: (node: Node) => void): void {
+export function walk(value: unknown, visit: (node: Node) => void): void {
   if (!value || typeof value !== "object") return;
   if (Array.isArray(value)) {
     for (const item of value) walk(item, visit);

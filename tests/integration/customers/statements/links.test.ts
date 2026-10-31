@@ -3,7 +3,7 @@
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { sql } from "drizzle-orm";
 import { v7 } from "uuid";
-import { boxCache } from "@shopper/adapters-box";
+import { boxCache, boxRateLimiter } from "@shopper/adapters-box";
 import { boxRenderer } from "@shopper/adapters-box/renderer";
 import { createApi } from "@shopper/api";
 import { serveRuntime } from "@shopper/api/runtime";
@@ -22,6 +22,9 @@ import {
 import { addCustomer } from "../../../support/customers/seed";
 import { addEntryAt, auditCommands } from "../../../support/customers/ledger";
 import { linkRow, publicRead, statementApi } from "../../../support/customers/statements";
+
+// A still clock: the budget is spent by count, not by how fast a loaded machine sends 60 requests.
+const rateLimiter = boxRateLimiter(() => 0);
 
 let world: Awaited<ReturnType<typeof goldenWorld>>;
 let owner: Portal;
@@ -209,6 +212,7 @@ test("the runtime serves the public route without a session and rate-limits it",
     serveRuntime(new Request(`${baseURL}${path}`), {
       database: databases().db,
       cache: cache.cache,
+      rateLimiter,
       secret,
       baseURL,
       linkSecret,

@@ -15,11 +15,13 @@ import {
 import type { Cache } from "@shopper/ports";
 
 import { loginCommand } from "./login";
+import { registerUnlock } from "./unlock";
 import { hashPin } from "./pin";
 import { resolveUploadPrincipal } from "./upload";
 import { DeviceError, assign, consume, digest, issue } from "./commands";
 import {
   cashierLoginInput,
+  cashierUnlockInput,
   enrollmentInput,
   enrollmentIssueInput,
   pinInput,
@@ -149,7 +151,12 @@ export function createDeviceService(
           // Never discard committed session credentials because their cache mirror failed.
         }
       }
-      if ("error" in result) throw new DeviceError(result.error!, result.status!);
+      if ("error" in result)
+        throw new DeviceError(
+          result.error!,
+          result.status!,
+          result.status === 429 ? result.lockedUntil : undefined,
+        );
       return {
         id: result.id!,
         token: result.token!,
@@ -160,6 +167,19 @@ export function createDeviceService(
         userId: result.userId!,
         userName: result.userName!,
       };
+    },
+    async unlock(input: unknown) {
+      const data = v.parse(cashierUnlockInput, input);
+      const d = await credential(data.deviceId, data.deviceToken);
+      if (orgId && d.orgId !== orgId.toLowerCase())
+        throw new DeviceError("Invalid device credential");
+      const result = await registerUnlock(
+        db,
+        { orgId: d.orgId, deviceId: d.id, branchId: d.branchId, appVersion },
+        data,
+      );
+      if (!("change" in result)) throw new DeviceError(result.error, result.status);
+      return { userId: result.userId, lockedUntil: result.lockedUntil };
     },
     revoke: (p: DevicePrincipal, input: unknown) =>
       revokeCommand(db, ctx(p), v.parse(revokeDeviceInput, input)),

@@ -107,7 +107,11 @@ console.log(JSON.stringify({ port: server.port }));`,
     const started = performance.now();
     const changed = await fetch(`${upstream}/products/${product.id}/prices`, {
       method: "POST",
-      headers: { cookie: cookies.get("superadmin")!, "content-type": "application/json" },
+      headers: {
+        cookie: cookies.get("superadmin")!,
+        Origin: new URL(baseURL).origin,
+        "content-type": "application/json",
+      },
       body: JSON.stringify({ amount: 14000, reason: "Bun realtime verification" }),
     });
     expect(changed.status, await changed.text()).toBe(201);

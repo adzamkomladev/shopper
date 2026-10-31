@@ -1,6 +1,6 @@
 import { v7 } from "uuid";
 import { serveRuntime } from "@shopper/api/runtime";
-import { boxSequencer } from "@shopper/adapters-box";
+import { boxSequencer, boxRateLimiter } from "@shopper/adapters-box";
 import { serveHono, type HttpClient } from "./http";
 import {
   cache,
@@ -14,6 +14,8 @@ import {
   syncProtocol,
   type SaleEvent,
 } from "./server";
+
+const rateLimiter = boxRateLimiter();
 
 export function syncHeaders(org = context.orgId): Record<string, string> {
   return {
@@ -75,6 +77,7 @@ export async function createRuntimeApi(): Promise<HttpClient> {
       serveRuntime(request, {
         database: db,
         cache: cache.cache,
+        rateLimiter,
         secret: "sync-runtime-integration-secret-with-32-bytes",
         baseURL: "http://127.0.0.1",
         orgId: context.orgId,

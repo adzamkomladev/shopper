@@ -14,7 +14,7 @@ export function publicStatementRoutes(
 ) {
   const app = new Hono();
   // The token is in the URL: keep it out of caches and referrers.
-  app.use("*", async (c, next) => {
+  app.use("/public/statements/*", async (c, next) => {
     await next();
     c.header("Cache-Control", "no-store");
     c.header("Referrer-Policy", "no-referrer");

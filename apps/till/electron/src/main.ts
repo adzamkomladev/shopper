@@ -136,7 +136,9 @@ async function startRegister() {
   async function enrol(registration: object) {
     const register = { ...stored, ...registration, session: null };
     await writeAtomic(configPath, JSON.stringify(register, null, 2));
-    host.send({ type: "start", config: await prepare(register), renderer: "parent" });
+    const prepared = await prepare(register);
+    secrets.push(prepared.deviceToken, "databaseKey" in prepared && prepared.databaseKey);
+    host.send({ type: "start", config: prepared, renderer: "parent" });
   }
 }
 

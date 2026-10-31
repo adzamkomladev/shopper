@@ -40,8 +40,14 @@ export function createUpdates(
   updater.on("checking-for-update", () => {
     if (state.state !== "ready") set({ state: "checking", percent: null });
   });
-  updater.on("update-available", (info) => set({ state: "available", version: info.version }));
-  updater.on("update-not-available", () => set({ state: "idle", version: null, percent: null }));
+  // A download already made still installs on the next quit, so a later check never hides it.
+  updater.on("update-available", (info) => {
+    if (state.state !== "ready" || state.version !== info.version)
+      set({ state: "available", version: info.version });
+  });
+  updater.on("update-not-available", () => {
+    if (state.state !== "ready") set({ state: "idle", version: null, percent: null });
+  });
   updater.on("download-progress", (progress) =>
     set({ state: "downloading", percent: Math.round(progress.percent) }),
   );

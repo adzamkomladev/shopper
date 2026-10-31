@@ -8,14 +8,16 @@ import { AdministrationError, assertCanGrantRole, assertHasPermission } from "..
 type Reader = Pick<ShopperTransaction, "select">;
 
 /**
- * The target's membership, once the actor may manage it: `code`, every permission its role holds, and (for a
- * branch-scoped actor) a target scoped inside the actor's own branches.
+ * The target's membership, once the actor may manage it: `code`, every permission its role holds (unless `rank` is
+ * false, for an action that hands out no role), and (for a branch-scoped actor) a target scoped inside the actor's
+ * own branches.
  */
 export async function manageable(
   tx: ShopperTransaction,
   context: CommandContext,
   rawUserId: string,
   code: string,
+  rank = true,
 ) {
   const userId = v.parse(uuidV7Schema, rawUserId).toLowerCase();
   await assertHasPermission(tx, context, code);
@@ -32,7 +34,7 @@ export async function manageable(
     .where(and(eq(member.orgId, context.orgId), eq(member.userId, userId)))
     .for("update", { of: member });
   if (!target) throw new AdministrationError("User not found in this organization", 404);
-  await assertCanGrantRole(tx, context, target.roleId);
+  if (rank) await assertCanGrantRole(tx, context, target.roleId);
   const branchIds = await memberBranchIds(tx, context.orgId, target.userId);
   const actorScope = await memberBranchIds(tx, context.orgId, context.actorId!);
   if (actorScope.length) assertWithin(actorScope, branchIds);

@@ -7,7 +7,8 @@ import { manageable } from "./target";
 export const unlockMember = defineCommand({
   name: "auth.member.unlock",
   async run(tx, context, rawUserId: string) {
-    const target = await manageable(tx, context, rawUserId, "staff.unlock");
+    // Unlocking grants nothing, so it needs staff.unlock alone, as at the register; shop and branch still bind it.
+    const target = await manageable(tx, context, rawUserId, "staff.unlock", false);
     return {
       userId: target.userId,
       lockedUntil: null,

@@ -151,7 +151,7 @@ export function UsersScreen() {
                   : undefined
               }
               onUnlock={
-                canWriteRoles && held.includes("staff.unlock")
+                held.includes("staff.unlock")
                   ? (member) =>
                       statusChange.show({ member, action: "unlock" }, unlockButtonId(member.id))
                   : undefined

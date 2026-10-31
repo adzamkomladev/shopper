@@ -118,12 +118,30 @@ export const forgetStaff = defineCommand({
 export const unlockStaff = defineCommand({
   name: "session.unlock",
   async run(tx, context, input: { email: string; online: boolean }) {
+    const ofStaff = and(eq(tillStaff.orgId, context.orgId), eq(tillStaff.email, input.email));
     const [row] = await tx
-      .update(tillStaff)
-      .set({ attempts: 0, lockedUntil: null })
-      .where(and(eq(tillStaff.orgId, context.orgId), eq(tillStaff.email, input.email)))
-      .returning({ userId: tillStaff.userId });
-    return { userId: row?.userId ?? null };
+      .select({
+        userId: tillStaff.userId,
+        attempts: tillStaff.attempts,
+        lockedUntil: tillStaff.lockedUntil,
+      })
+      .from(tillStaff)
+      .where(ofStaff);
+    await tx.update(tillStaff).set({ attempts: 0, lockedUntil: null }).where(ofStaff);
+    return {
+      userId: row?.userId ?? null,
+      // Named like the server's unlock so the audit's secret filter keeps them.
+      before: {
+        signInFailures: row?.attempts ?? 0,
+        signInLockedUntil: row?.lockedUntil ? new Date(row.lockedUntil).toISOString() : null,
+      },
+    };
   },
   audit: (input, output) => ({ userId: output.userId, online: input.online }),
+  details: (_input, output) => ({
+    entity: "user",
+    entityId: output.userId ?? undefined,
+    before: output.before,
+    after: { signInFailures: 0, signInLockedUntil: null },
+  }),
 });

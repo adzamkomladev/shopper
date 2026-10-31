@@ -79,6 +79,12 @@ test("offline: only an approver holding staff.unlock with the right PIN lifts th
     actorId: manager,
     payload: { userId: ama.userId, online: false },
   });
+  // The lock it lifted stays on record: how many failures, and when it would have lapsed.
+  expect(audits[0]!.before).toMatchObject({
+    signInFailures: 5,
+    signInLockedUntil: expect.any(String),
+  });
+  expect(audits[0]!.after).toEqual({ signInFailures: 0, signInLockedUntil: null });
   expect(auditText(audits)).not.toContain("2468");
 });
 

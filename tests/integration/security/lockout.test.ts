@@ -200,3 +200,36 @@ test("at the register, a manager's PIN unlocks a cashier through the server; a w
   });
   expect(row!.before).toMatchObject({ signInFailures: 5 });
 });
+
+// Unlocking hands out no role, so it needs staff.unlock alone: a supervisor who cannot edit roles may still unlock.
+test("a role holding staff.unlock without role.write unlocks from the back office", async () => {
+  const cashier = await principalOf("cashier");
+  const admin = await principalOf("admin");
+  const [grant] = await db
+    .select({ id: schema.permission.id })
+    .from(schema.permission)
+    .where(
+      and(eq(schema.permission.orgId, context.orgId), eq(schema.permission.code, "staff.unlock")),
+    );
+  const [held] = await db
+    .insert(schema.rolePermission)
+    .values({ orgId: context.orgId, roleId: cashier.roleId, permissionId: grant!.id })
+    .returning();
+  await db
+    .update(schema.user)
+    .set({ passwordAttempts: 5, passwordLockedUntil: new Date(Date.now() + 600_000) })
+    .where(eq(schema.user.id, admin.userId));
+  const unlocked = await request(
+    api,
+    cookies.get("cashier")!,
+    `/users/${admin.userId}/unlock`,
+    "POST",
+  );
+  await db.delete(schema.rolePermission).where(eq(schema.rolePermission.id, held!.id));
+  expect(unlocked.status).toBe(200);
+  const [row] = await db
+    .select({ lockedUntil: schema.user.passwordLockedUntil })
+    .from(schema.user)
+    .where(eq(schema.user.id, admin.userId));
+  expect(row!.lockedUntil).toBeNull();
+});

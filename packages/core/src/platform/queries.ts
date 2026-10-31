@@ -9,6 +9,7 @@ export function platformTenants(db: ShopperDatabase, platformOrgId: string) {
       id: org.id,
       name: org.name,
       code: org.slug,
+      updateChannel: org.updateChannel,
       createdAt: org.createdAt,
       onboarding: onboarding.status,
       firstSaleAt: onboarding.firstSaleAt,

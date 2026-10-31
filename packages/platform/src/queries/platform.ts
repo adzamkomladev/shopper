@@ -1,6 +1,6 @@
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, currentShop } from "@shopper/backoffice/kit";
-import { kybCase, platformOrg, queue, tenants } from "../schemas/platform";
+import { kybCase, platformOrg, queue, tenantChannel, tenants } from "../schemas/platform";
 import type { KybStatus } from "../schemas/types";
 
 // Keys carry the signed-in org, so a different sign-in never reads another's answers.
@@ -38,5 +38,18 @@ export function useDecide(orgId: string) {
         body,
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: key() }),
+  });
+}
+
+/** Moves one shop's registers to the pilot or the stable till release feed. */
+export function useSetChannel() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { orgId: string; channel: "pilot" | "stable" }) =>
+      apiFetch(`/platform/tenants/${encodeURIComponent(body.orgId)}/channel`, tenantChannel, {
+        method: "POST",
+        body: { channel: body.channel },
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: key("tenants") }),
   });
 }

@@ -4,6 +4,7 @@ import { Badge } from "@shopper/ui/components/badge";
 import { DataTable, type DataTableColumn } from "@shopper/ui/components/data-table";
 import { STATUS_LABELS, statusVariant } from "../../../lib/kyb/status";
 import type { Tenant } from "../../../schemas/types";
+import { ChannelSelect } from "./channel";
 
 // A phone keeps the shop and where it stands; a tablet adds the first sale; a laptop shows when it joined.
 export const FROM_MD = "hidden md:table-cell";
@@ -60,6 +61,11 @@ export function TenantsTable({ tenants }: { tenants: Tenant[] }) {
         ) : (
           <span className="text-muted-foreground">Not started</span>
         ),
+    },
+    {
+      id: "updates",
+      header: "Till updates",
+      cell: ({ row }) => <ChannelSelect tenant={row.original} />,
     },
     {
       id: "joined",

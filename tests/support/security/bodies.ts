@@ -102,6 +102,7 @@ export const BODIES: Record<string, Body> = {
   "PUT /stock/reorder": (id) => ({ branchId: id, productId: id, levelThousandths: 1000 }),
   "PUT /tax/returns/:period/input": () => ({ vat: 0, nhil: 0, getfund: 0 }),
   "PUT /kyb": () => ({ businessName: "Sweep" }),
+  "POST /platform/tenants/:orgId/channel": () => ({ channel: "pilot" }),
   "POST /products/:id/prices/schedule": (id) => ({
     amount: 10_000,
     branchId: id,

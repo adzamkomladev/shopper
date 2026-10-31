@@ -4,7 +4,15 @@
 import { afterEach, expect, test } from "vite-plus/test";
 import { v7 } from "uuid";
 import { compareVersions } from "@shopper/utils";
-import { api, appVersion, setMinTillVersion, syncProtocol } from "../../support/till/server";
+import { eq } from "drizzle-orm";
+import { org } from "@shopper/db-pg";
+import {
+  api,
+  appVersion,
+  databases,
+  setMinTillVersion,
+  syncProtocol,
+} from "../../support/till/server";
 import { syncHeaders } from "../../support/till/requests";
 import { startRegister, type Register } from "../../support/hardware/host";
 
@@ -28,6 +36,12 @@ test("the handshake names the minimum till version and the org's update channel"
   expect(await handshake()).toMatchObject({ minTillVersion: null, updateChannel: "stable" });
   setMinTillVersion("0.1.1");
   expect(await handshake()).toMatchObject({ minTillVersion: "0.1.1", updateChannel: "stable" });
+  const { db, context } = databases();
+  const channel = (updateChannel: "pilot" | "stable") =>
+    db.update(org).set({ updateChannel }).where(eq(org.id, context.orgId));
+  await channel("pilot");
+  expect(await handshake()).toMatchObject({ updateChannel: "pilot" });
+  await channel("stable");
 });
 
 test("a register below the minimum uploads its sale and sells on its open shift", async () => {

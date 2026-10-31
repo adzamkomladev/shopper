@@ -1,5 +1,7 @@
 // Day 26 S3: session cookies, cross-site refusals and response headers on the shared runtime.
 import { afterAll, beforeAll, beforeEach, expect, test } from "vite-plus/test";
+import { eq } from "drizzle-orm";
+import * as schema from "@shopper/db-pg";
 import { boxRateLimiter } from "@shopper/adapters-box";
 import { serveRuntime } from "@shopper/api/runtime";
 import {
@@ -21,7 +23,7 @@ beforeEach(freshPortalTenants);
 const json = { "content-type": "application/json" };
 
 /** Bootstraps tenant 0's owner and returns the sign-in response, so a test can read its cookie. */
-async function signedIn() {
+async function signedIn(rememberMe = true) {
   const email = `owner-${crypto.randomUUID().slice(0, 8)}@portal.test`;
   const signup = await authRequest(0, "/api/auth/sign-up/email", {
     method: "POST",
@@ -32,7 +34,7 @@ async function signedIn() {
   const signin = await authRequest(0, "/api/auth/sign-in/email", {
     method: "POST",
     headers: { ...json, Origin: portalOrigin },
-    body: JSON.stringify({ email, password: portalPassword }),
+    body: JSON.stringify({ email, password: portalPassword, rememberMe }),
   });
   expect(signin.status).toBe(200);
   return signin;
@@ -47,6 +49,17 @@ test("over https the session cookie is __Secure-, Secure, HttpOnly, SameSite=Lax
   expect(cookie).toMatch(/;\s*SameSite=Lax/i);
   const maxAge = Number(cookie.match(/Max-Age=(\d+)/i)?.[1]);
   expect(maxAge).toBe(12 * 60 * 60);
+});
+
+// Better Auth gives a browser-session sign-in a fixed day on the server; the shift's 12 hours still apply.
+test("a sign-in without remember-me ends on the server within 12 hours too", async () => {
+  const cookie = sessionCookie(await signedIn(false));
+  const token = decodeURIComponent(cookie.split("=")[1]!).split(".")[0]!;
+  const [row] = await portalOptions(0)
+    .database.select({ expiresAt: schema.session.expiresAt })
+    .from(schema.session)
+    .where(eq(schema.session.token, token));
+  expect(row!.expiresAt.getTime()).toBeLessThanOrEqual(Date.now() + 12 * 3_600_000);
 });
 
 test("a cookie-bearing write is refused from another site or with no origin at all", async () => {

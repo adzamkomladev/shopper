@@ -45,11 +45,19 @@ async function budgetOf(request: Request, ip: string, orgId?: string) {
     path.match(/^\/invitations\/[^/]+\/(accept|preview)$/)?.[1];
   if (!operation) return undefined;
   // One account is budgeted on its own too, so spreading guesses over many addresses buys nothing.
-  const email: unknown = await request
-    .clone()
-    .json()
-    .then((body: { email?: unknown } | null) => body?.email)
-    .catch(() => undefined);
+  // Better Auth also takes form posts, and a guess in that encoding must spend the same budget.
+  const form = request.headers.get("content-type")?.startsWith("application/x-www-form-urlencoded");
+  const email: unknown = await (
+    form
+      ? request
+          .clone()
+          .text()
+          .then((body) => new URLSearchParams(body).get("email"))
+      : request
+          .clone()
+          .json()
+          .then((body: { email?: unknown } | null) => body?.email)
+  ).catch(() => undefined);
   return budget(
     "auth",
     `${ip}:${operation}`,

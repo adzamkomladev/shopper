@@ -78,6 +78,24 @@ test("one account is budgeted across many IPs, so rotating addresses does not bu
   expect((await guess("198.51.100.200")).status).toBe(429);
 });
 
+test("a form-encoded sign-in spends the same account budget as JSON", async () => {
+  const send = runtime();
+  const guess = (ip: string) =>
+    send(
+      "/api/auth/sign-in/email",
+      ip,
+      {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ email: "Form@Example.com", password: "wrong-password-1" }),
+      },
+      mart.orgId,
+    );
+  for (let call = 0; call < ratePolicies.auth.limit; call += 1)
+    expect((await guess(`192.0.2.${call + 1}`)).status).not.toBe(429);
+  expect((await guess("192.0.2.200")).status).toBe(429);
+});
+
 test("cashier sign-in is budgeted per shop and IP, till enrolment per IP across shops", async () => {
   const send = runtime();
   const login = (orgId: string) =>

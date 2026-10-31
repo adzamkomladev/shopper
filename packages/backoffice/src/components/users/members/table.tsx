@@ -5,6 +5,7 @@ import { editButtonId } from "../../admin/row/actions";
 import { formatDate } from "../../../lib/catalogue/detail/prices/groups";
 import { roleLabel } from "../../../queries/roles";
 import type { StatusChange, UserView } from "../../../queries/users";
+import { SHOP_TIME_ZONE } from "../../../lib/shop/time";
 
 type Props = {
   members: UserView[];
@@ -145,7 +146,11 @@ function within(self: UserView | undefined, member: UserView) {
 }
 
 function clock(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: SHOP_TIME_ZONE,
+  });
 }
 
 function branchesLabel(ids: string[], names: Map<string, string>) {

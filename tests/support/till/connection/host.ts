@@ -64,8 +64,8 @@ export async function createConnectionHost(
   let host: Awaited<ReturnType<typeof startTillHost>> | undefined;
   return {
     config,
-    async start() {
-      host = await startTillHost(config);
+    async start(startOptions?: Parameters<typeof startTillHost>[1]) {
+      host = await startTillHost(config, startOptions);
       return host;
     },
     async close() {

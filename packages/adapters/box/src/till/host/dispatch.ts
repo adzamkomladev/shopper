@@ -43,7 +43,15 @@ export function createDispatch(host: Host) {
   const refunds = createRefunds(host, localConfig);
   const shifts = createShifts(host, localConfig);
   const customers = createCustomers(host);
+  /** A refusal for want of a session republishes the status, so the register drops a cashier the host lacks. */
   return async function dispatch(request: BridgeRequest, trusted: boolean): Promise<BridgeMessage> {
+    const reply = await answer(request, trusted);
+    if (reply.type === "error" && ["SESSION_REQUIRED", "session"].includes(reply.code))
+      await host.publishStatus();
+    return reply;
+  };
+
+  async function answer(request: BridgeRequest, trusted: boolean): Promise<BridgeMessage> {
     try {
       switch (request.type) {
         case "recordSale": {
@@ -190,5 +198,5 @@ export function createDispatch(host: Host) {
       const code = request.type === "recordSale" ? "SALE_REJECTED" : caught.code;
       return error(request, code, caught.message);
     }
-  };
+  }
 }

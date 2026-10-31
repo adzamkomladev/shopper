@@ -131,6 +131,8 @@ export async function startTillHost(
     try {
       current = await status();
     } catch {
+      // The last status minus its user unless the session still holds one: never a cashier the host lacks.
+      const user = session.current() && lastKnownStatus?.user;
       current = {
         ...(lastKnownStatus ?? {
           server: "offline" as const,
@@ -155,6 +157,7 @@ export async function startTillHost(
           appVersion: buildInfo.version,
           protocol: buildInfo.syncProtocol,
         }),
+        user: user || null,
         server: "offline",
         lastError: {
           code: "STORAGE_FAILED",

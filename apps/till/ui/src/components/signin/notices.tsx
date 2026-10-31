@@ -13,6 +13,7 @@ const titles = {
   DEVICE_REJECTED: "This register needs to be enrolled again",
   SIGN_IN_UNAVAILABLE: "Sign-in is unavailable",
   HOST_UNREACHABLE: "Cannot reach the register host",
+  SESSION_ENDED: "Your session ended",
   OTHER: "Sign-in is unavailable",
 } as const;
 
@@ -21,6 +22,7 @@ const details = {
   OFFLINE_UNAVAILABLE:
     "This register has no recent sign-in for that email. Connect it to the internet, then try again.",
   DEVICE_REJECTED: "Ask a manager to enrol this register again from the portal.",
+  SESSION_ENDED: "Sign in again.",
 } as const;
 
 /** What the sign-in form tells the cashier: the host being unreachable, the last failure, or the offline notice. */
@@ -70,7 +72,7 @@ export function SignInNotices({
             {unreachable && (
               <Button
                 aria-keyshortcuts="Alt+C"
-                className="mt-3"
+                className="rounded-full mt-3"
                 disabled={host === "connecting"}
                 onClick={onReconnect}
                 size="touch"
@@ -83,7 +85,7 @@ export function SignInNotices({
             {shown.code === "SIGN_IN_LOCKED" && shown.email && (
               <Button
                 aria-keyshortcuts="Control+U Meta+U"
-                className="mt-3"
+                className="rounded-full mt-3"
                 disabled={unlocking}
                 id={unlockButtonId}
                 onClick={onUnlock}

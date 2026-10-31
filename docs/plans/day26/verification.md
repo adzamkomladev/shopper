@@ -182,6 +182,29 @@ The rules these slices set are written up in [security.md](../../engineering/sec
   - overrides for undici 7.30.1, seroval 1.6.12, zod 4.6.7 and fflate 0.7.5, which their parents hold back
 - The audit now finds no known vulnerabilities, and CI runs `vp pm audit --prod --audit-level=high`.
 
+## Whole-branch review (Codex `gpt-6.1-sol`)
+
+Four passes over the branch. Each fix has a test that failed first:
+
+- The portal and admin Workers had no rate-limit bindings, so cloud sign-in would have thrown. They now bind the
+  edge's four namespaces, so one budget counts across every Worker (`tooling/cloudflare/limits.test.ts`).
+- 0034 granted `staff.unlock` by role name. It now grants it to the owner and to every role holding
+  `cashier.pin.assign` (`db/security/migration.test.ts`).
+- Back-office unlock needed `role.write` as well. `staff.unlock` alone is now enough, as at the register, and
+  the shop and branch checks still apply.
+- The register's offline unlock audited no before/after. It now records the failures and the deadline it lifted.
+- The limiter's 429 at the register read as an account lock and offered Manager unlock. It now says to wait
+  for `Retry-After`.
+- Form-encoded sign-ins skipped the per-account budget.
+- A sign-in without remember-me lived 24 hours on the server. Every session now ends within 12.
+- The lock time on the Users screen now uses the shop's time zone.
+
+## Local runs
+
+This machine ran at load 16–26. Under that load the payments suites (Hubtel, OTP, acknowledgment) and the portal
+unlock spec time out on `waitFor` and 5 s expectations. The unlock spec's failure snapshot still shows the row
+with "Locked until 02:35" and the Unlock button. CI is the arbiter for these.
+
 ## Screenshots
 
 `screenshots/`:

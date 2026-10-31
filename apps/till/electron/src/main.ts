@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { app, BrowserWindow, dialog, Menu, nativeTheme } from "electron";
 import electronUpdater from "electron-updater";
 import { buildInfo } from "@shopper/config";
+import { startCrashReporting } from "./crash";
 import { openDisplay } from "./display";
 import { answerRender } from "./render";
 import { loadSecrets, writeAtomic } from "./secrets";
@@ -22,6 +23,10 @@ const here = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 const hostEntry =
   process.env.SHOPPER_TILL_HOST ??
   (app.isPackaged ? here("host/server.js") : here("../../host/dist/server.js"));
+
+// Before anything else, so a failure from here on is reported. These secrets are scrubbed from every event.
+const secrets: unknown[] = [];
+const crash = startCrashReporting(() => secrets);
 
 // The parent that spawned us over IPC owns our lifetime: when it goes, so do we (and the host).
 process.on("disconnect", () => app.quit());
@@ -70,10 +75,13 @@ async function startRegister() {
   const prepare = async (register: typeof stored) => {
     const ui = app.isPackaged && { ui: register.ui ?? here("ui") };
     if (register.identity === undefined) return { ...register, ...ui };
-    const { v: _version, ...secrets } = await loadSecrets(userData, register, configPath);
-    return { ...register, ...ui, ...secrets };
+    const { v: _version, ...sealed } = await loadSecrets(userData, register, configPath);
+    return { ...register, ...ui, ...sealed };
   };
   const config = await prepare(stored);
+  secrets.push(config.deviceToken, "databaseKey" in config && config.databaseKey);
+  if (config.identity)
+    crash.tag("register", (config.identity as { registerName: string }).registerName);
   const host = fork(hostEntry, [], { env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" } });
   // No feed configured (dev, tests) means no updater: nothing phones home.
   const updates = buildInfo.tillUpdateUrl ? startUpdates(host) : undefined;
@@ -108,14 +116,17 @@ async function startRegister() {
         | null,
     ) => {
       if (message?.type === "error" && !ready) cause = message.message;
-      else if (message?.type === "update-policy") updates?.policy(message as UpdatePolicy);
-      else if (message?.type === "update-install") updates?.install();
+      else if (message?.type === "update-policy") {
+        crash.tag("channel", (message as UpdatePolicy).channel);
+        updates?.policy(message as UpdatePolicy);
+      } else if (message?.type === "update-install") updates?.install();
       else if (message?.type === "enrolled" && message.registration)
         void enrol(message.registration).catch((error: unknown) => fail("Register stopped", error));
       else if (message?.type === "ready" && message.capability) {
         // After enrolment the host comes back on the same port and capability; the open window reconnects.
         if (ready) return;
         ready = true;
+        secrets.push(message.capability);
         openTill(message.capability, config.ui ? `http://127.0.0.1:${message.port}/` : tillUi);
       } else if (message?.type === "render")
         void answerRender(message).then((reply) => reply && host.connected && host.send(reply));
@@ -183,7 +194,7 @@ This is saved in ${log}`;
   }
   if (app.isPackaged || process.env.SHOPPER_TEST_NO_DIALOG !== "1")
     dialog.showErrorBox(title, body);
-  app.exit(1);
+  void crash.report(title, cause).finally(() => app.exit(1));
 }
 
 // The till UI draws its own 40px title bar (--card behind, --foreground on it); the OS only paints the window

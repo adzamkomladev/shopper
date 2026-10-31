@@ -19,6 +19,8 @@
   },
   "scripts": {},
   "dependencies": {
+    "@sentry/electron": "8.3.0",
+    "@shopper/audit": "workspace:*",
     "@shopper/config": "workspace:*",
     "@shopper/core": "workspace:*",
     "@shopper/hardware": "workspace:*",

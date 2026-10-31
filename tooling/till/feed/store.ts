@@ -34,7 +34,7 @@ export function feedStore(store: FeedStore) {
     async read(key: string) {
       return (await check(await client.fetch(url(key)), `GET ${key}`)).text();
     },
-    async put(key: string, body: Uint8Array | string) {
+    async put(key: string, body: Uint8Array<ArrayBuffer> | string) {
       await check(
         await client.fetch(url(key), {
           method: "PUT",

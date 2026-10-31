@@ -40,6 +40,8 @@ export const buildDefines = {
   TILL_UPDATE_URL: JSON.stringify(tillUpdateUrl),
   // The API a fresh install enrols with: the cloud API, or the shop's box for on-prem builds.
   TILL_UPSTREAM: JSON.stringify(process.env.SHOPPER_TILL_UPSTREAM ?? ""),
+  // Where the till's main process reports crashes; empty turns Sentry off.
+  SENTRY_DSN: JSON.stringify(process.env.SHOPPER_SENTRY_DSN ?? ""),
 };
 
 export function buildTask(command: string) {

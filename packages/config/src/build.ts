@@ -7,6 +7,7 @@ declare const ARCHIVE_FORMAT: number;
 declare const TILL_DOWNLOAD_URL: string;
 declare const TILL_UPDATE_URL: string;
 declare const TILL_UPSTREAM: string;
+declare const SENTRY_DSN: string;
 
 export const buildInfo = Object.freeze({
   version: SHOPPER_VERSION,
@@ -18,4 +19,5 @@ export const buildInfo = Object.freeze({
   tillDownloadUrl: TILL_DOWNLOAD_URL,
   tillUpdateUrl: TILL_UPDATE_URL,
   tillUpstream: TILL_UPSTREAM,
+  sentryDsn: SENTRY_DSN,
 });

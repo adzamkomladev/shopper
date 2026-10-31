@@ -8,6 +8,10 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./chain": {
+      "types": "./src/chain.ts",
+      "default": "./src/chain.ts"
+    },
     "./sqlite": {
       "types": "./src/sqlite/index.ts",
       "default": "./src/sqlite/index.ts"

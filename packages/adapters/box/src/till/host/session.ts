@@ -82,6 +82,13 @@ export function createHostSession(host: { database: TillDatabase; config: HostCo
     }
     if (response.status >= 500) return undefined;
     const body: unknown = await response.json().catch(() => null);
+    // The limiter's 429 carries Retry-After and is the shop's budget, not this account: no lock to unlock.
+    const retry = response.headers.get("Retry-After");
+    if (response.status === 429 && retry)
+      return new TillError(
+        "SIGN_IN_UNAVAILABLE",
+        `Too many sign-ins from this shop. Try again in ${retry} seconds.`,
+      );
     if (response.status === 429) {
       const until = (body as { lockedUntil?: unknown } | null)?.lockedUntil;
       return locked(typeof until === "string" ? Date.parse(until) : undefined);

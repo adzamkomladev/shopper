@@ -22,7 +22,7 @@ export function ReceiptMetadata({ sale }: { sale: TransactionDetail }) {
   return (
     <Card className="gap-0 py-0">
       <CardHeader className="border-b py-4">
-        <CardTitle className="text-lg">Receipt metadata</CardTitle>
+        <CardTitle className="text-base">Receipt metadata</CardTitle>
       </CardHeader>
       <dl className="grid gap-3 p-4 text-sm">
         {rows.map(([label, value]) => (
@@ -42,7 +42,7 @@ export function TransactionRefunds({ sale }: { sale: TransactionDetail }) {
   return (
     <Card className="gap-0 py-0">
       <CardHeader className="border-b py-4">
-        <CardTitle className="text-lg">Refunds</CardTitle>
+        <CardTitle className="text-base">Refunds</CardTitle>
       </CardHeader>
       <ul className="grid divide-y text-sm">
         {sale.refunds.map((refund) => (

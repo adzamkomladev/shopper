@@ -38,7 +38,7 @@ export function SettingsScreen({
     >
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-1">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
           <p className="text-sm text-muted-foreground">
             Manage your register, receipts, and cashier preferences.
           </p>

@@ -25,7 +25,7 @@ export function EmptyList({ icon: Icon, title, description, children }: EmptyPro
         <EmptyMedia variant="icon">
           <Icon aria-hidden />
         </EmptyMedia>
-        <h2 className="text-lg font-medium tracking-tight">{title}</h2>
+        <h2 className="text-base font-medium tracking-tight">{title}</h2>
         <EmptyDescription>{description}</EmptyDescription>
       </EmptyHeader>
       {children && (

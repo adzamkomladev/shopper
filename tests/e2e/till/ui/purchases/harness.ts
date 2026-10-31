@@ -1,10 +1,10 @@
 import { expect, type Locator, type Page } from "@playwright/test";
-import { openFromMenu, openSale } from "../sale/harness";
+import { openFromSidebar, openSale } from "../sale/harness";
 
 /** Previous purchases with fixture data; `scenario` picks the list, the sale, the host and the permissions. */
 export async function openPurchases(page: Page, scenario = "lines") {
   await openSale(page, scenario);
-  await openFromMenu(page, "Previous purchases");
+  await openFromSidebar(page, "Previous purchases");
   await expect(
     page.getByRole("heading", { name: "Previous purchases", exact: true }),
   ).toBeVisible();

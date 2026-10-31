@@ -2,12 +2,10 @@ import { useForm } from "@tanstack/react-form";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { FieldGroup, FieldLegend, FieldSet } from "@shopper/ui/components/field";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { focusFirstInvalid } from "../../lib/focus";
 import { editable, emptyDirector, kybValues } from "../../lib/kyb/values";
-import { MOD_KEY } from "../../lib/mod/key";
 import { useSaveKyb } from "../../queries/kyb";
 import { kybFormSchema, type KybView } from "../../schemas/kyb";
 import { SelectField } from "../fields/select";
@@ -191,9 +189,8 @@ export function KybForm({ view, banks }: Props) {
         <div className="flex flex-col gap-3">
           <SaveError error={save.error?.message} />
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" disabled={!ready}>
+            <Button aria-keyshortcuts="Control+Enter Meta+Enter" type="submit" disabled={!ready}>
               {save.isPending ? "Sending…" : "Submit for review"}
-              <Kbd aria-hidden>{MOD_KEY} ↵</Kbd>
             </Button>
             <Button
               type="button"

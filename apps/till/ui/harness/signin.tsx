@@ -30,6 +30,7 @@ const failures: Record<SignInFailureCode, string> = {
   DEVICE_REJECTED: "This register is no longer enrolled. Enroll it again.",
   SIGN_IN_UNAVAILABLE: "Sign-in is unavailable. Try again.",
   HOST_UNREACHABLE: "Cannot reach the register host.",
+  SESSION_ENDED: "Your session ended. Sign in again.",
   OTHER: "Sign-in is unavailable. Try again.",
 };
 const params = new URLSearchParams(location.search);

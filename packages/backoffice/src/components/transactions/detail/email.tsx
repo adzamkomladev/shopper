@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from "@shopper/ui/components/dialog";
 import { Input } from "@shopper/ui/components/input";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { Label } from "@shopper/ui/components/label";
 import { useEmailReceipt } from "../../../queries/transactions/detail";
 
@@ -38,7 +37,6 @@ export function EmailReceipt({ saleId, customerName, open, onOpenChange }: Props
       >
         <MailIcon aria-hidden />
         Email receipt
-        <Kbd aria-hidden>M</Kbd>
       </Button>
       <Dialog
         open={open}

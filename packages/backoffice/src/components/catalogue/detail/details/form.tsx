@@ -10,13 +10,11 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@shopper/ui/components/field";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { Switch } from "@shopper/ui/components/switch";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { SelectField } from "../../../fields/select";
 import { TextField } from "../../../fields/text";
 import { focusFirstInvalid } from "../../../../lib/focus";
-import { MOD_KEY } from "../../../../lib/mod/key";
 import { CategoryCombobox } from "../../list/category/combobox";
 import { TAX_CLASSES, UNITS } from "../../../../lib/catalogue/list/options";
 import {
@@ -164,12 +162,12 @@ export function DetailsForm({ product, formRef }: Props) {
             </p>
           )}
           <Button
+            aria-keyshortcuts="Control+Enter Meta+Enter"
             type="submit"
             disabled={!online || save.isPending}
             aria-describedby={online ? undefined : OFFLINE_NOTE_ID}
           >
             {save.isPending ? "Saving…" : "Save changes"}
-            <Kbd aria-hidden>{MOD_KEY} ↵</Kbd>
           </Button>
         </CardFooter>
       </Card>

@@ -2,13 +2,11 @@ import { useForm } from "@tanstack/react-form";
 import { Alert, AlertDescription } from "@shopper/ui/components/alert";
 import { Button } from "@shopper/ui/components/button";
 import { Field, FieldGroup, FieldLabel } from "@shopper/ui/components/field";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { SheetClose, SheetFooter } from "@shopper/ui/components/sheet";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { CircleAlertIcon } from "lucide-react";
 import { focusFirstInvalid } from "../../../../lib/focus";
-import { MOD_KEY } from "../../../../lib/mod/key";
 import { SelectField } from "../../../fields/select";
 import { TextField } from "../../../fields/text";
 import { CategoryCombobox } from "../category/combobox";
@@ -131,18 +129,12 @@ export function NewProductForm({ onCreated }: { onCreated: () => void }) {
           </Button>
         </SheetClose>
         <Button
+          aria-keyshortcuts="Control+Enter Meta+Enter"
           type="submit"
           disabled={!online || create.isPending}
           aria-describedby={online ? undefined : OFFLINE_NOTE_ID}
         >
-          {create.isPending ? (
-            "Saving…"
-          ) : (
-            <>
-              Save product
-              <Kbd aria-hidden>{MOD_KEY} ↵</Kbd>
-            </>
-          )}
+          {create.isPending ? "Saving…" : <>Save product</>}
         </Button>
       </SheetFooter>
     </form>

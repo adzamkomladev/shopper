@@ -3,10 +3,9 @@ import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
-import { AreaField, focusFirstInvalid, MOD_KEY, shiftTime } from "@shopper/backoffice/kit";
+import { AreaField, focusFirstInvalid, shiftTime } from "@shopper/backoffice/kit";
 import { Alert, AlertDescription } from "@shopper/ui/components/alert";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd, KbdGroup } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { STATUS_LABELS } from "../../../lib/kyb/status";
@@ -35,20 +34,20 @@ export function DecisionPanel({ kase }: { kase: KybCase }) {
           <>
             <div className="flex flex-wrap gap-3">
               <Button
+                aria-keyshortcuts="A"
                 variant={choice === "approved" ? "default" : "outline"}
                 aria-pressed={choice === "approved"}
                 onClick={() => choose("approved")}
               >
                 Approve
-                <Kbd aria-hidden>A</Kbd>
               </Button>
               <Button
+                aria-keyshortcuts="R"
                 variant={choice === "rejected" ? "destructive" : "outline"}
                 aria-pressed={choice === "rejected"}
                 onClick={() => choose("rejected")}
               >
                 Reject
-                <Kbd aria-hidden>R</Kbd>
               </Button>
             </div>
             {choice && <DecisionForm key={choice} kase={kase} choice={choice} decide={decide} />}
@@ -130,10 +129,6 @@ function DecisionForm({ kase, choice, decide }: FormProps) {
       >
         {decide.isPending && <Loader2Icon className="animate-spin" aria-hidden />}
         {approve ? "Approve business" : "Reject submission"}
-        <KbdGroup aria-hidden>
-          <Kbd>{MOD_KEY}</Kbd>
-          <Kbd>Enter</Kbd>
-        </KbdGroup>
       </Button>
     </form>
   );

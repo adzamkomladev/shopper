@@ -7,7 +7,7 @@ const tabs: Tab[] = [
   { view: "dashboard", label: "Dashboard", permission: "report.read", shortcut: "Mod+1" },
   { view: "sale", label: "Checkout", permission: "sale.create", shortcut: "Mod+2" },
   { view: "inventory", label: "Inventory", permission: "stock.read", shortcut: "Mod+3" },
-  { view: "reports", label: "Sales Reports", permission: "report.read", shortcut: "Mod+4" },
+  { view: "reports", label: "Sales reports", permission: "report.read", shortcut: "Mod+4" },
 ];
 
 export const visibleTabs = (permissions: readonly string[]) =>
@@ -23,5 +23,16 @@ export function landingView(permissions: readonly string[]): ShellView | null {
 export const menuShortcut = "Mod+M";
 export const signOutShortcut = "Mod+Shift+L";
 
-export const hint = (shortcut: string) => shortcut.replace("Mod", "Ctrl");
 export const aria = (shortcut: string) => shortcut.replace("Mod", "Control");
+
+const labels: Record<ShellView, string> = {
+  dashboard: "Dashboard",
+  sale: "Checkout",
+  inventory: "Inventory",
+  reports: "Sales reports",
+  purchases: "Previous purchases",
+  settings: "Register settings",
+  shift: "Shift",
+};
+
+export const viewLabel = (view: ShellView) => labels[view];

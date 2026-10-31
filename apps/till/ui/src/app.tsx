@@ -22,6 +22,7 @@ import { UpdateScreen } from "./screens/update/screen";
 import { UpdateBanner } from "./components/update/banner";
 import { enrolTill } from "./enrol/store";
 import { ShellFrame } from "./components/shell/frame";
+import { followThemeInTitleBar } from "./components/shell/titlebar";
 import { shellLink } from "./components/shell/link";
 import { RegisterSlot } from "./components/shell/slot";
 import { AccountPaymentDialog } from "./components/accounts/payment";
@@ -55,6 +56,7 @@ import { shiftActions, useShiftSnapshot } from "./shift/store";
 const display = new URLSearchParams(window.location.search).has("display");
 initializeConnection();
 initializeSession();
+followThemeInTitleBar();
 if (display) initializeDisplay();
 
 function Register() {

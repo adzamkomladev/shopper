@@ -32,10 +32,14 @@ export function CustomersToolbar(props: Props) {
           <Kbd aria-hidden>/</Kbd>
         </InputGroupAddon>
       </InputGroup>
-      <Button variant="outline" disabled={props.downloading} onClick={props.onDownload}>
+      <Button
+        aria-keyshortcuts="D"
+        variant="outline"
+        disabled={props.downloading}
+        onClick={props.onDownload}
+      >
         <DownloadIcon aria-hidden />
         {props.downloading ? "Preparing…" : "Download CSV"}
-        {!props.downloading && <Kbd aria-hidden>D</Kbd>}
       </Button>
     </div>
   );

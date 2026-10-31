@@ -177,12 +177,20 @@ export async function shoot(page: Page, name: string) {
   await page.screenshot({ path: `${shots}/${name}.png` });
 }
 
-/** Opens the shell harness on a tab; `permissions` decide which tabs exist, `extra` adds query flags. */
+/** Opens the shell harness on a section; `permissions` decide which sections exist, `extra` adds query flags. */
 export async function openShell(
   page: Page,
-  tab: "Dashboard" | "Inventory" | "Sales Reports",
+  tab: "Dashboard" | "Inventory" | "Sales reports",
   extra = "",
 ) {
   await page.goto(`/harness/index.html?scenario=lines${extra}`);
-  await page.getByRole("tab", { name: new RegExp(`^${tab}`) }).click();
+  await page.getByRole("banner").waitFor();
+  // The section keys work at every size; on a phone the sidebar is a closed sheet.
+  await page.keyboard.press(sectionKeys[tab]);
 }
+
+const sectionKeys = {
+  Dashboard: "Control+1",
+  Inventory: "Control+3",
+  "Sales reports": "Control+4",
+};

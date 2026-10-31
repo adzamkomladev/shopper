@@ -21,7 +21,7 @@ export const open = (page: Page, scenario: string, query = "") =>
 export async function openShiftScreen(page: Page, scenario = "shift-open", query = "") {
   await page.setViewportSize({ width: 1366, height: 768 });
   await open(page, scenario, query);
-  await page.getByRole("tablist", { name: "Register sections" }).waitFor();
+  await page.getByRole("banner").waitFor();
   await page.keyboard.press("Alt+H");
   await expect(page.getByRole("heading", { name: "Shift", exact: true })).toBeVisible();
 }

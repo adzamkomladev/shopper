@@ -1,5 +1,4 @@
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import type { AccountPanels } from "../../../hooks/customers/types";
 import type { CustomerView } from "../../../queries/customers/types";
 import { CreditNoteDialog } from "./note";
@@ -21,15 +20,24 @@ export function AccountActions({
   return (
     <div className="flex flex-col gap-2">
       <div role="group" aria-label="Account actions" className="flex flex-wrap gap-2">
-        <Button ref={panels.refs.pay} variant="outline" onClick={() => panels.pay.show()}>
+        <Button
+          aria-keyshortcuts="P"
+          ref={panels.refs.pay}
+          variant="outline"
+          onClick={() => panels.pay.show()}
+        >
           Record payment
-          <Kbd aria-hidden>P</Kbd>
-        </Button>
-        <Button ref={panels.refs.note} variant="outline" onClick={() => panels.note.show()}>
-          Credit note
-          <Kbd aria-hidden>C</Kbd>
         </Button>
         <Button
+          aria-keyshortcuts="C"
+          ref={panels.refs.note}
+          variant="outline"
+          onClick={() => panels.note.show()}
+        >
+          Credit note
+        </Button>
+        <Button
+          aria-keyshortcuts="L"
           ref={panels.refs.limit}
           variant="outline"
           disabled={!verified}
@@ -37,11 +45,14 @@ export function AccountActions({
           onClick={() => panels.limit.show()}
         >
           Set limit
-          <Kbd aria-hidden>L</Kbd>
         </Button>
-        <Button ref={panels.refs.transfer} variant="outline" onClick={() => panels.transfer.show()}>
+        <Button
+          aria-keyshortcuts="T"
+          ref={panels.refs.transfer}
+          variant="outline"
+          onClick={() => panels.transfer.show()}
+        >
           Transfer points
-          <Kbd aria-hidden>T</Kbd>
         </Button>
       </div>
       {!verified && (

@@ -5,7 +5,6 @@ import { CircleAlertIcon, DownloadIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@shopper/ui/components/alert";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { Gate, OfflineNote } from "../../../components/register/states";
@@ -64,7 +63,7 @@ export function TransactionsScreen() {
         <h1
           tabIndex={-1}
           ref={focusIfIdle}
-          className="text-3xl font-bold tracking-tight outline-none"
+          className="text-2xl font-semibold tracking-tight outline-none"
         >
           Transactions
         </h1>
@@ -76,7 +75,6 @@ export function TransactionsScreen() {
         >
           <DownloadIcon aria-hidden />
           {exporting ? "Exporting…" : "Export CSV"}
-          <Kbd aria-hidden>E</Kbd>
         </Button>
       </div>
       <Gate need="report.read" what="transactions" fallback={<TransactionsSkeleton />}>

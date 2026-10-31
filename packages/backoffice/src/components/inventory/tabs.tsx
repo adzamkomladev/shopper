@@ -41,7 +41,7 @@ export function InventoryPage({ active, action, children }: Props) {
         id="inventory-heading"
         tabIndex={-1}
         ref={focusIfIdle}
-        className="text-3xl font-bold tracking-tight outline-none"
+        className="text-2xl font-semibold tracking-tight outline-none"
       >
         Inventory
       </h1>

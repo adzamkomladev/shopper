@@ -1,4 +1,4 @@
-import { BrowserWindow } from "electron";
+import { BrowserWindow, nativeImage, screen } from "electron";
 import { PDFDocument } from "pdf-lib";
 import * as v from "valibot";
 import { receiptDocument, type ReceiptDocument } from "@shopper/core/receipts";
@@ -41,18 +41,21 @@ export async function answerRender(message: unknown): Promise<RenderReply | unde
 }
 
 /**
- * Loads `receiptHtml` into a hidden, script-less window sized to the paper's dots (device scale
- * factor 1, set in main) and captures it: `capturePage` for PNG, `printToPDF` for PDF.
+ * Loads `receiptHtml` into a hidden, script-less window and captures it: `capturePage` for PNG,
+ * `printToPDF` for PDF. The till may run at any Windows scaling, so the window zooms by
+ * 1/scaleFactor: the page lays out `dots` CSS px wide and paints exactly `dots` device px.
  */
 export async function renderReceipt(request: RenderRequest): Promise<Uint8Array> {
   const receipt = v.parse(receiptDocument, request.receipt);
   const { dots } = paper[request.paperMm];
+  const scale = screen.getPrimaryDisplay().scaleFactor;
   const window = new BrowserWindow({
     show: false,
-    width: dots,
+    width: Math.ceil(dots / scale),
     height: 100,
     useContentSize: true,
     webPreferences: {
+      zoomFactor: 1 / scale,
       javascript: false,
       nodeIntegration: false,
       contextIsolation: true,
@@ -68,21 +71,31 @@ export async function renderReceipt(request: RenderRequest): Promise<Uint8Array>
     timer = setTimeout(() => reject(new Error("Render timed out")), RENDER_TIMEOUT_MS);
   });
   try {
-    return await Promise.race([capture(window, request, receipt), timeout]);
+    return await Promise.race([capture(window, request, receipt, scale), timeout]);
   } finally {
     clearTimeout(timer);
     window.destroy();
   }
 }
 
-async function capture(window: BrowserWindow, request: RenderRequest, receipt: ReceiptDocument) {
+async function capture(
+  window: BrowserWindow,
+  request: RenderRequest,
+  receipt: ReceiptDocument,
+  scale: number,
+) {
   const { dots, mm } = paper[request.paperMm];
   const html = receiptHtml(receipt, { paperMm: request.paperMm, reprint: request.reprint });
   await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
   const height = await contentHeight(window);
   if (request.format === "png") {
-    window.setContentSize(dots, height);
-    return (await window.webContents.capturePage({ x: 0, y: 0, width: dots, height })).toPNG();
+    // Window sizes are whole DIPs, so capture a pixel or so extra and crop to exact device pixels.
+    const [width, tall] = [Math.ceil(dots / scale), Math.ceil(height / scale)];
+    window.setContentSize(width, tall);
+    const image = await window.webContents.capturePage({ x: 0, y: 0, width, height: tall });
+    // Re-read at 1x so the crop is in device pixels, not rounded DIPs.
+    const pixels = nativeImage.createFromBuffer(image.toPNG({ scaleFactor: scale }));
+    return pixels.crop({ x: 0, y: 0, width: dots, height }).toPNG();
   }
   // The page is laid out in CSS px at `dots` wide; scale it so 576 dots print exactly 72 mm.
   const widthInches = mm / MM_PER_INCH;

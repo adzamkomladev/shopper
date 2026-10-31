@@ -79,10 +79,9 @@ test("the keys and menu entries work from the Shift screen too", async ({ page }
   await page.keyboard.press("Alt+K");
   await expect(dialog(page, "Cash drop")).toBeVisible();
   await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: /^Menu/ }).click();
   await page
-    .getByRole("dialog", { name: "Menu" })
-    .getByRole("button", { name: /^No sale/ })
+    .getByRole("navigation", { name: "Register" })
+    .getByRole("button", { name: "No sale" })
     .click();
   await expect(dialog(page, "No sale")).toBeVisible();
 });
@@ -154,7 +153,7 @@ for (const size of sizes)
   test(`at ${size.name}: the drop and no-sale dialogs fit`, async ({ page }, testInfo) => {
     await page.setViewportSize(size);
     await open(page, "shift-open");
-    await page.getByRole("tablist", { name: "Register sections" }).waitFor();
+    await page.getByRole("banner").waitFor();
     for (const [key, name] of [
       ["Alt+K", "Cash drop"],
       ["Alt+J", "No sale"],

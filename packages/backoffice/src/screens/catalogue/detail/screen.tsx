@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowLeftIcon, HistoryIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { usePermissions } from "../../../queries/session/permissions";
 import { focusOnMount } from "../../../lib/focus";
@@ -67,7 +66,7 @@ export function ProductScreen() {
           <h1
             tabIndex={-1}
             ref={focusOnMount}
-            className="min-w-0 text-3xl font-bold tracking-tight wrap-break-word outline-none"
+            className="min-w-0 text-2xl font-semibold tracking-tight wrap-break-word outline-none"
           >
             {product.name}
           </h1>
@@ -76,7 +75,6 @@ export function ProductScreen() {
               <Link to="/audit" search={history} aria-keyshortcuts="H">
                 <HistoryIcon aria-hidden />
                 History
-                <Kbd aria-hidden>H</Kbd>
               </Link>
             </Button>
           )}

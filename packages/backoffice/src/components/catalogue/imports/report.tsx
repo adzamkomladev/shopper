@@ -2,9 +2,7 @@ import { CircleAlertIcon, CircleCheckIcon, Loader2Icon } from "lucide-react";
 import { Alert, AlertDescription } from "@shopper/ui/components/alert";
 import { Button } from "@shopper/ui/components/button";
 import { DataTable, type DataTableColumn } from "@shopper/ui/components/data-table";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { focusOnMount } from "../../../lib/focus";
-import { MOD_KEY } from "../../../lib/mod/key";
 import { importFailure, type ImportPreview } from "../../../queries/catalogue/imports";
 
 type ImportError = ImportPreview["errors"][number];
@@ -111,6 +109,7 @@ export function ImportReport({ report, running, online, error, onRun, onChooseAn
       )}
       <div className="flex flex-col gap-2 sm:flex-row">
         <Button
+          aria-keyshortcuts="Control+Enter Meta+Enter"
           type="button"
           disabled={none || running || !online}
           aria-describedby={online ? undefined : OFFLINE_NOTE_ID}
@@ -124,10 +123,7 @@ export function ImportReport({ report, running, online, error, onRun, onChooseAn
           ) : none ? (
             "Import products"
           ) : (
-            <>
-              Import {plural(report.rowsOk, "product", "products")}
-              <Kbd aria-hidden>{MOD_KEY} ↵</Kbd>
-            </>
+            <>Import {plural(report.rowsOk, "product", "products")}</>
           )}
         </Button>
         <Button type="button" variant="outline" disabled={running} onClick={onChooseAnother}>
@@ -136,7 +132,7 @@ export function ImportReport({ report, running, online, error, onRun, onChooseAn
       </div>
       {report.errors.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h2 className="text-lg font-semibold tracking-tight">Rows to fix</h2>
+          <h2 className="text-base font-semibold tracking-tight">Rows to fix</h2>
           <DataTable
             label="Rows with errors"
             columns={columns}

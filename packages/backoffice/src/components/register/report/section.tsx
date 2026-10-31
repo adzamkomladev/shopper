@@ -12,7 +12,7 @@ export function ReportSection({
 }) {
   return (
     <section aria-label={title} className="flex min-w-0 flex-col gap-3">
-      <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+      <h2 className="text-base font-semibold tracking-tight">{title}</h2>
       <div className="overflow-hidden rounded-2xl border bg-card">
         {empty ? <p className="p-6 text-sm text-muted-foreground">{empty}</p> : children}
       </div>

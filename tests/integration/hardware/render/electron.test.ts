@@ -11,6 +11,10 @@ import { electronRenderer, launchElectron, stopElectron } from "../../../support
 const receipt = goldenReceipt() as unknown as Json;
 
 rendererConformance("electron renderer", test, () => electronRenderer(receipt));
+// A till at 125% Windows scaling must still print 576 dots, not 720.
+rendererConformance("electron renderer at 125% scale", test, () =>
+  electronRenderer(receipt, ["--force-device-scale-factor=1.25"]),
+);
 
 const cleanup: Array<() => Promise<void>> = [];
 afterEach(async () => {

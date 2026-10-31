@@ -23,7 +23,7 @@ export function StockQueue() {
   const queue = useQuery(stockQueueQuery());
   return (
     <section aria-labelledby="stock-queue-title" className="flex min-w-0 flex-col gap-3">
-      <h2 className="text-lg font-semibold tracking-tight" id="stock-queue-title">
+      <h2 className="text-base font-semibold tracking-tight" id="stock-queue-title">
         Queue
       </h2>
       {queue.isError ? (

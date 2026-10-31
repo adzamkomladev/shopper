@@ -1,16 +1,25 @@
-import { useRef, useState, type ReactNode } from "react";
-import { Sheet } from "@shopper/ui/components/sheet";
+import { useState, type ReactNode } from "react";
+import { CircleHelp } from "lucide-react";
+import { Button } from "@shopper/ui/components/button";
+import { ShortcutsDialog } from "@shopper/ui/components/shortcuts/dialog";
+import { SidebarInset, SidebarTrigger } from "@shopper/ui/components/sidebar/parts";
+import { SidebarProvider } from "@shopper/ui/components/sidebar/provider";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
-import { MenuDrawer } from "./menu";
-import { ShellTabs } from "./tabs";
-import { StatusBar } from "./status";
+import { TILL_SHORTCUTS } from "../../shortcuts/registry";
+import { TillSidebar } from "./sidebar";
 import { TitleBar } from "./titlebar";
-import type { ShellAction, ShellLink, ShellView } from "./types";
-import { menuShortcut, signOutShortcut, visibleTabs } from "./views";
+import type { LinkState, ShellAction, ShellLink, ShellView } from "./types";
+import { menuShortcut, signOutShortcut, viewLabel, visibleTabs } from "./views";
+
+const dots: Record<LinkState, string> = {
+  good: "bg-success",
+  pending: "bg-muted-foreground",
+  problem: "bg-destructive",
+};
 
 /**
- * The signed-in desktop chrome of Figma "Dashboard": title bar, register status bar, tabs by permission
- * and the Menu drawer. The screens go in as `children`; the frame owns only the menu.
+ * The signed-in desktop chrome: title bar, the sidebar (a rail until opened) and a slim header with
+ * the register, its connection and Help. The screens go in as `children`.
  */
 export function ShellFrame({
   user,
@@ -35,21 +44,15 @@ export function ShellFrame({
   onSignOut: () => void;
   /** A dialog is open: it owns the keyboard, so none of the shell's keys fire behind it. */
   modal: boolean;
-  /** A banner under the status bar, such as a waiting update. */
+  /** A banner under the header, such as a waiting update. */
   notice?: ReactNode;
   children: ReactNode;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  // A screen chosen in the drawer opens once the drawer has closed, so focus is free for that screen to take.
-  const chosen = useRef<ShellView | ShellAction | null>(null);
+  const [help, setHelp] = useState(false);
   const can = (permission: string) => permissions.includes(permission);
   const shifts = can("shift.write");
   // A payment goes into the open shift's drawer and finds the customer by phone.
   const accounts = can("sale.create") && can("customer.read");
-  const go = (next: ShellView | ShellAction) => {
-    chosen.current = next;
-    setMenuOpen(false);
-  };
   const register = useShortcuts(
     modal
       ? {}
@@ -63,7 +66,8 @@ export function ShellFrame({
             "Alt+J": () => onAction("nosale"),
           }),
           ...(accounts && { "Alt+A": () => onAction("payment") }),
-          [menuShortcut]: () => setMenuOpen((open) => !open),
+          F1: () => setHelp(true),
+          "Mod+/": () => setHelp(true),
           [signOutShortcut]: onSignOut,
           ...Object.fromEntries(
             visibleTabs(permissions).map((tab) => [tab.shortcut, () => onView(tab.view)]),
@@ -71,33 +75,66 @@ export function ShellFrame({
         },
   );
   return (
-    <Sheet onOpenChange={setMenuOpen} open={menuOpen}>
-      <div className="flex h-svh min-h-0 flex-col bg-muted/50" ref={register}>
-        <TitleBar />
-        <StatusBar label={link.label} registerName={registerName} state={link.state} user={user} />
-        {notice}
-        <div className="flex min-h-0 flex-1 flex-col px-4 pt-1 pb-2 sm:px-8">
-          <ShellTabs onChange={onView} permissions={permissions} view={view} />
-          <div className="min-h-0 flex-1">{children}</div>
-        </div>
-      </div>
-      <MenuDrawer
-        onCloseAutoFocus={(event) => {
-          const next = chosen.current;
-          chosen.current = null;
-          if (!next) return;
-          event.preventDefault();
-          if (next === "drop" || next === "nosale" || next === "payment") onAction(next);
-          else onView(next);
-        }}
-        onSignOut={onSignOut}
-        onView={go}
-        accounts={accounts}
-        online={link.online}
-        shifts={shifts}
-        registerName={registerName}
-        user={user}
-      />
-    </Sheet>
+    <div className="flex h-svh min-h-0 flex-col" ref={register}>
+      <TitleBar />
+      {/* The till starts as an icon rail, so the sale keeps the width; Ctrl+M or Ctrl+B opens it. */}
+      <SidebarProvider
+        app="till"
+        defaultOpen={false}
+        touch
+        keys={modal ? [] : [menuShortcut]}
+        className="h-auto min-h-0 flex-1"
+      >
+        <TillSidebar
+          accounts={accounts}
+          onAction={onAction}
+          onHelp={() => setHelp(true)}
+          onSignOut={onSignOut}
+          onView={onView}
+          online={link.online}
+          permissions={permissions}
+          registerName={registerName}
+          shifts={shifts}
+          user={user}
+          view={view}
+        />
+        <SidebarInset className="bg-muted/50">
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-card px-2 sm:px-4">
+            <SidebarTrigger />
+            <p className="truncate text-sm font-semibold">{viewLabel(view)}</p>
+            <p className="hidden min-w-0 truncate text-sm text-muted-foreground md:block">
+              {[user, registerName].filter(Boolean).join(" · ")}
+            </p>
+            <p
+              aria-live="polite"
+              className="ml-auto flex items-center gap-2 text-sm font-medium text-muted-foreground"
+            >
+              <span>{link.label}</span>
+              <span aria-hidden="true" className={`size-2 rounded-full ${dots[link.state]}`} />
+            </p>
+            <Button
+              aria-keyshortcuts="F1 Control+/"
+              aria-label="Help"
+              className="size-11"
+              onClick={() => setHelp(true)}
+              size="icon"
+              variant="ghost"
+            >
+              <CircleHelp aria-hidden="true" />
+            </Button>
+          </header>
+          {notice}
+          <div className="flex min-h-0 flex-1 flex-col px-3 pt-2 pb-2 sm:px-6">
+            {!visibleTabs(permissions).length && (
+              <p className="mb-2 text-sm text-muted-foreground">
+                This account has no register sections. Ask a manager for access.
+              </p>
+            )}
+            <div className="min-h-0 flex-1">{children}</div>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+      <ShortcutsDialog groups={TILL_SHORTCUTS} onOpenChange={setHelp} open={help} title="Help" />
+    </div>
   );
 }

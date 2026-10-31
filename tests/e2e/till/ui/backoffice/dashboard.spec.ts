@@ -28,7 +28,7 @@ const expectTile = async (
   await expect(tile).toContainText(caption);
 };
 const current = (page: import("@playwright/test").Page) =>
-  page.getByRole("tablist", { name: "Register sections" }).locator('[aria-selected="true"]');
+  page.getByRole("navigation", { name: "Register" }).locator('[aria-current="page"]');
 
 for (const size of sizes) {
   test(`at ${size.name}: the tiles, range, Download and quick actions fit`, async ({ page }) => {
@@ -114,18 +114,24 @@ test("each quick action opens its tab", async ({ page }) => {
   await panel(page)
     .getByRole("button", { name: /Inventory Management/ })
     .click();
-  await expect(current(page)).toHaveText(/Inventory/);
+  await expect(current(page)).toHaveAccessibleName("Inventory");
   await expect(page.locator('[data-slot="register-inventory"]')).toBeVisible();
-  await page.getByRole("tab", { name: /^Dashboard/ }).click();
+  await page
+    .getByRole("navigation", { name: "Register" })
+    .getByRole("button", { name: "Dashboard", exact: true })
+    .click();
   await panel(page)
     .getByRole("button", { name: /Sales Reports/ })
     .click();
-  await expect(current(page)).toHaveText(/Sales Reports/);
-  await page.getByRole("tab", { name: /^Dashboard/ }).click();
+  await expect(current(page)).toHaveAccessibleName("Sales reports");
+  await page
+    .getByRole("navigation", { name: "Register" })
+    .getByRole("button", { name: "Dashboard", exact: true })
+    .click();
   await panel(page)
     .getByRole("button", { name: /Barcode Scanner/ })
     .click();
-  await expect(current(page)).toHaveText(/Checkout/);
+  await expect(current(page)).toHaveAccessibleName("Checkout");
   await expect(page.getByRole("combobox")).toBeFocused();
 });
 
@@ -158,7 +164,7 @@ test("keyboard only: Tab reaches Download and each quick action; Enter opens one
   await page.keyboard.press("Tab");
   await expect(panel(page).getByRole("button", { name: /Inventory Management/ })).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(current(page)).toHaveText(/Inventory/);
+  await expect(current(page)).toHaveAccessibleName("Inventory");
 });
 
 test("loading shows a skeleton shaped like the dashboard, then the tiles", async ({ page }) => {

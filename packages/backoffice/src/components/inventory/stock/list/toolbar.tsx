@@ -53,11 +53,8 @@ export function StockToolbar(props: Props) {
         open={props.branchOpen}
         onOpenChange={props.onBranchOpenChange}
       >
-        <SelectTrigger aria-label="Branch" className="w-full sm:w-48">
+        <SelectTrigger aria-label="Branch" aria-keyshortcuts="B" className="w-full sm:w-48">
           <SelectValue />
-          <Kbd aria-hidden className="ml-auto">
-            B
-          </Kbd>
         </SelectTrigger>
         <SelectContent>
           {branches.map((branch) => (
@@ -67,28 +64,22 @@ export function StockToolbar(props: Props) {
           ))}
         </SelectContent>
       </Select>
-      <Button variant={low ? "default" : "outline"} aria-pressed={low} onClick={props.onToggleLow}>
+      <Button
+        aria-keyshortcuts="L"
+        variant={low ? "default" : "outline"}
+        aria-pressed={low}
+        onClick={props.onToggleLow}
+      >
         Low stock
         {/* The default key chip (20% white on the primary) is under 4.5:1 with its letter; a fainter chip passes. */}
-        <Kbd
-          aria-hidden
-          className="[[data-slot=button][data-variant=default]_&]:bg-primary-foreground/5"
-        >
-          L
-        </Kbd>
       </Button>
       <Button
+        aria-keyshortcuts="Z"
         variant={negative ? "default" : "outline"}
         aria-pressed={negative}
         onClick={props.onToggleNegative}
       >
         Negative
-        <Kbd
-          aria-hidden
-          className="[[data-slot=button][data-variant=default]_&]:bg-primary-foreground/5"
-        >
-          Z
-        </Kbd>
       </Button>
     </div>
   );

@@ -4,7 +4,6 @@ import { useSuspenseInfiniteQuery, useSuspenseQuery } from "@tanstack/react-quer
 import { CircleAlertIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@shopper/ui/components/alert";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { BranchPicker } from "../../../../components/inventory/picker";
 import { NoBranch } from "../../../../components/inventory/stock/list/states";
@@ -33,11 +32,8 @@ export function TakesScreen() {
       active="takes"
       action={
         canWrite && (
-          <Button onClick={() => setStarting(true)} disabled={!online}>
+          <Button aria-keyshortcuts="N" onClick={() => setStarting(true)} disabled={!online}>
             Start a stock take
-            <Kbd aria-hidden className="bg-primary-foreground/5">
-              N
-            </Kbd>
           </Button>
         )
       }

@@ -2,7 +2,6 @@ import { Suspense, useRef, useState } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { useInfiniteQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { NewProductSheet } from "../../../components/catalogue/list/create/sheet";
 import { TableSkeleton } from "../../../components/catalogue/list/states";
 import { ProductResults } from "../../../components/catalogue/list/results";
@@ -30,11 +29,10 @@ export function ProductsScreen() {
   return (
     <div ref={shortcuts} className="flex min-h-0 flex-1 flex-col gap-6">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">Products</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Products</h1>
         {!isEmptyCatalogue && (
-          <Button ref={addRef} onClick={() => setSheetOpen(true)}>
+          <Button aria-keyshortcuts="N" ref={addRef} onClick={() => setSheetOpen(true)}>
             Add product
-            <Kbd aria-hidden>N</Kbd>
           </Button>
         )}
       </div>

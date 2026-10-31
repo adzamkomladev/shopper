@@ -24,7 +24,7 @@ export function AuditPage({ active, action, children }: Props) {
       <h1
         tabIndex={-1}
         ref={focusIfIdle}
-        className="text-3xl font-bold tracking-tight outline-none"
+        className="text-2xl font-semibold tracking-tight outline-none"
       >
         Audit
       </h1>

@@ -34,7 +34,7 @@ export function createPlatformRoutes(rootRoute: AnyRoute) {
     beforeLoad: ({ context }: Context) => requireStaff(context.queryClient),
     component: lazyRouteComponent(() => import("../screens/shell/screen"), "ShellScreen"),
     ...routeStates,
-    pendingComponent: ShellSkeleton,
+    pendingComponent: () => <ShellSkeleton app="admin" />,
   });
   const queueRoute = createRoute({
     getParentRoute: () => staffRoute,

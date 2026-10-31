@@ -2,7 +2,6 @@ import { useRef } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { TruckIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { FormSheet } from "../../components/admin/form/sheet";
@@ -34,9 +33,8 @@ function Suppliers() {
   const form = usePanel<SupplierView>(addRef);
   const shortcuts = useShortcuts({ N: () => canWrite && !form.open && form.show() });
   const add = canWrite && suppliers.length > 0 && (
-    <Button ref={addRef} onClick={() => form.show()}>
+    <Button aria-keyshortcuts="N" ref={addRef} onClick={() => form.show()}>
       Add supplier
-      <Kbd aria-hidden>N</Kbd>
     </Button>
   );
   return (
@@ -59,9 +57,8 @@ function Suppliers() {
             description="A supplier is who you buy stock from. Add them here, then name them when you record a delivery."
           >
             {canWrite && (
-              <Button ref={addRef} onClick={() => form.show()}>
+              <Button aria-keyshortcuts="N" ref={addRef} onClick={() => form.show()}>
                 Add supplier
-                <Kbd aria-hidden>N</Kbd>
               </Button>
             )}
           </EmptyList>

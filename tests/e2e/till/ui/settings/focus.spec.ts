@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { calls, openFromMenu, openSale } from "../sale/harness";
+import { calls, openFromSidebar, openSale, sidebarItem } from "../sale/harness";
 
 const scan = (page: Page) => page.getByRole("combobox", { name: "Scan barcode or search items" });
 
@@ -29,18 +29,18 @@ for (const [from, key] of [
     await expectScanWorks(page);
   });
 
-  test(`clicking the Sale tab from ${from} puts the cursor back in the scan field`, async ({
+  test(`clicking Checkout in the sidebar from ${from} puts the cursor back in the scan field`, async ({
     page,
   }) => {
     await openSale(page, "results");
-    await openFromMenu(page, from === "Purchases" ? "Previous purchases" : from);
+    await openFromSidebar(page, from === "Purchases" ? "Previous purchases" : "Register settings");
     await expect(
       page.getByRole("heading", {
         name: from === "Purchases" ? "Previous purchases" : from,
         exact: true,
       }),
     ).toBeVisible();
-    await page.getByRole("tab", { name: /^Checkout/ }).click();
+    await sidebarItem(page, "Checkout").click();
     await expectScanWorks(page);
   });
 }

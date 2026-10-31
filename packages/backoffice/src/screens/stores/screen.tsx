@@ -2,7 +2,6 @@ import { useRef } from "react";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { StoreIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { FormSheet } from "../../components/admin/form/sheet";
 import { PageHeader } from "../../components/admin/page/header";
@@ -54,9 +53,8 @@ export function StoresScreen() {
           description="A store groups your branches and sets how cash totals are rounded. Add one to start."
         >
           {canWrite && (
-            <Button ref={addRef} onClick={() => form.show()}>
+            <Button aria-keyshortcuts="N" ref={addRef} onClick={() => form.show()}>
               Add store
-              <Kbd aria-hidden>N</Kbd>
             </Button>
           )}
           <SetupStepLink step="store" />

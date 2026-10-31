@@ -5,7 +5,6 @@ import { CircleAlertIcon, DownloadIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@shopper/ui/components/alert";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { Gate, OfflineNote } from "../../../components/register/states";
@@ -60,7 +59,6 @@ export function AuditLogScreen() {
         >
           <DownloadIcon aria-hidden />
           {exporting ? "Exporting…" : "Export CSV"}
-          <Kbd aria-hidden>E</Kbd>
         </Button>
       }
     >

@@ -24,7 +24,7 @@ export function ShiftHeader({ shift }: { shift: ShiftView }) {
         <h1
           tabIndex={-1}
           ref={focusOnMount}
-          className="text-3xl font-bold tracking-tight wrap-break-word outline-none"
+          className="text-2xl font-semibold tracking-tight wrap-break-word outline-none"
         >
           {shift.deviceName}
         </h1>

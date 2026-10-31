@@ -1,5 +1,4 @@
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import {
   Sheet,
   SheetClose,
@@ -9,7 +8,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@shopper/ui/components/sheet";
-import { MOD_KEY } from "../../../lib/mod/key";
 
 type SheetProps = {
   open: boolean;
@@ -71,18 +69,12 @@ export function FormFooter({ label, pendingLabel = "Saving…", pending, online 
           </Button>
         </SheetClose>
         <Button
+          aria-keyshortcuts="Control+Enter Meta+Enter"
           type="submit"
           disabled={!online || pending}
           aria-describedby={online ? undefined : OFFLINE_NOTE_ID}
         >
-          {pending ? (
-            pendingLabel
-          ) : (
-            <>
-              {label}
-              <Kbd aria-hidden>{MOD_KEY} ↵</Kbd>
-            </>
-          )}
+          {pending ? pendingLabel : <>{label}</>}
         </Button>
       </SheetFooter>
     </>

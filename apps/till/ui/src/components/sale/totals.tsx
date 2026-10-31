@@ -45,7 +45,12 @@ export function CartTotals({
         </div>
         <div>
           <dt className="sr-only">Amount due</dt>
-          <dd className="text-lg font-medium tabular-nums">{formatGHS(totals.gross)}</dd>
+          <dd className="text-lg font-medium tabular-nums">
+            {/* Keyed by the amount, so each change remounts it and its tick plays once. */}
+            <span key={totals.gross} className="inline-block motion-safe:animate-tick">
+              {formatGHS(totals.gross)}
+            </span>
+          </dd>
         </div>
       </dl>
     </div>

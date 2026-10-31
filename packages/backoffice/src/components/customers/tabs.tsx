@@ -38,7 +38,7 @@ export function CustomersPage({ active, title = "Customers", action, children }:
       <h1
         tabIndex={-1}
         ref={focusIfIdle}
-        className="text-3xl font-bold tracking-tight outline-none"
+        className="text-2xl font-semibold tracking-tight outline-none"
       >
         {title}
       </h1>

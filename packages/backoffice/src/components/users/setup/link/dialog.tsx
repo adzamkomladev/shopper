@@ -12,7 +12,6 @@ import {
   DialogTitle,
 } from "@shopper/ui/components/dialog";
 import { Input } from "@shopper/ui/components/input";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { Label } from "@shopper/ui/components/label";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import type { Revealed } from "../../../../queries/users";
@@ -68,10 +67,9 @@ export function SetupLinkDialog({ revealed, open, onOpenChange, restoreFocus }: 
           <DialogClose asChild>
             <Button variant="outline">Done</Button>
           </DialogClose>
-          <Button ref={copyRef} onClick={() => void copy()}>
+          <Button aria-keyshortcuts="C" ref={copyRef} onClick={() => void copy()}>
             <CopyIcon aria-hidden />
             Copy link
-            <Kbd aria-hidden>C</Kbd>
           </Button>
         </DialogFooter>
       </DialogContent>

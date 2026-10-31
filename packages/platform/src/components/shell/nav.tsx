@@ -1,96 +1,86 @@
+import { createElement } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LogOutIcon } from "lucide-react";
+import { BadgeCheckIcon, StoreIcon } from "lucide-react";
 import { buildInfo } from "@shopper/config";
-import { Avatar, AvatarFallback } from "@shopper/ui/components/avatar";
 import { Badge } from "@shopper/ui/components/badge";
-import { Button } from "@shopper/ui/components/button";
+import { SidebarNav } from "@shopper/ui/components/sidebar/nav";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@shopper/ui/components/dropdown-menu";
-import { Kbd } from "@shopper/ui/components/kbd";
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarTrigger,
+} from "@shopper/ui/components/sidebar/parts";
+import { SidebarUser } from "@shopper/ui/components/sidebar/user";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useSignOut } from "../../queries/session";
 
 const LINKS = [
-  { to: "/kyb", label: "Verification", key: "V" },
-  { to: "/tenants", label: "Shops", key: "S" },
+  { to: "/kyb", label: "Verification", key: "V", icon: BadgeCheckIcon },
+  { to: "/tenants", label: "Shops", key: "S", icon: StoreIcon },
 ] as const;
 
-type Props = { user: { name: string; email: string } };
+type Props = { user: { name: string; email: string }; onShortcuts: () => void };
 
-/** The staff bar: the brand, the two pages (V and S), and the user menu. */
-export function StaffNav({ user }: Props) {
-  const navigate = useNavigate();
+/** The staff sidebar: the brand, the two pages (V and S), and the user menu. */
+export function StaffSidebar({ user, onShortcuts }: Props) {
   const path = useRouterState({ select: (state) => state.location.pathname });
-  const shortcuts = useShortcuts(
-    Object.fromEntries(LINKS.map((link) => [link.key, () => void navigate({ to: link.to })])),
-  );
+  const signOut = useSignOut();
+  const items = LINKS.map((link) => ({
+    label: link.label,
+    icon: link.icon,
+    shortcut: link.key,
+    active: path.startsWith(link.to),
+    render: createElement(Link, { to: link.to }),
+  }));
   return (
-    <nav ref={shortcuts} aria-label="Main" className="flex flex-wrap items-center gap-x-8 gap-y-3">
-      <Link to="/kyb" className="flex items-center gap-2 rounded-md">
-        <span className="text-2xl font-semibold tracking-tight text-primary">Shopper</span>
-        <Badge variant="secondary">Admin</Badge>
-      </Link>
-      <div className="order-last flex w-full gap-x-4 sm:order-none sm:w-auto">
-        {LINKS.map((link) => (
-          <Link
-            key={link.to}
-            to={link.to}
-            aria-current={path.startsWith(link.to) ? "page" : undefined}
-            aria-keyshortcuts={link.key}
-            className="-mx-2 flex items-center gap-2 rounded-md px-2 py-1 text-sm font-medium text-muted-foreground hover:text-foreground aria-[current=page]:text-foreground"
+    <Sidebar label="Main">
+      <SidebarHeader>
+        <Link
+          to="/kyb"
+          className="flex h-11 items-center gap-2 rounded-md px-1.5 group-data-[sidebar=collapsed]/sidebar:px-0.5"
+        >
+          <div
+            aria-hidden
+            className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground"
           >
-            {link.label}
-            <Kbd aria-hidden className="hidden lg:inline-flex">
-              {link.key}
-            </Kbd>
-          </Link>
-        ))}
-      </div>
-      <div className="ml-auto">
-        <UserMenu user={user} />
-      </div>
-    </nav>
+            S
+          </div>
+          <span className="flex items-center gap-2 group-data-[sidebar=collapsed]/sidebar:sr-only">
+            <span className="font-semibold tracking-tight">Shopper</span>
+            <Badge variant="secondary">Admin</Badge>
+          </span>
+        </Link>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarNav groups={[{ label: "Platform", items }]} />
+      </SidebarContent>
+      <SidebarFooter>
+        <SidebarUser
+          user={user}
+          version={buildInfo.version}
+          onShortcuts={onShortcuts}
+          onSignOut={() => signOut.mutate()}
+        />
+      </SidebarFooter>
+    </Sidebar>
   );
 }
 
-function UserMenu({ user }: Props) {
-  const signOut = useSignOut();
+/** The slim bar over every staff page: the sidebar toggle and the current page's name. */
+export function StaffHeader({ onShortcuts }: { onShortcuts: () => void }) {
+  const navigate = useNavigate();
+  const path = useRouterState({ select: (state) => state.location.pathname });
+  const shortcuts = useShortcuts({
+    ...Object.fromEntries(LINKS.map((link) => [link.key, () => void navigate({ to: link.to })])),
+    "?": onShortcuts,
+  });
   return (
-    <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full" aria-label={user.name}>
-          <Avatar>
-            <AvatarFallback className="text-foreground">
-              {user.name
-                .split(/\s+/)
-                .slice(0, 2)
-                .map((word) => word[0]?.toUpperCase())
-                .join("")}
-            </AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuLabel className="flex flex-col gap-0.5 font-normal">
-          <span className="truncate font-medium">{user.name}</span>
-          <span className="truncate text-muted-foreground">{user.email}</span>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => signOut.mutate()}>
-          <LogOutIcon aria-hidden />
-          Sign out
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-          Shopper {buildInfo.version}
-        </DropdownMenuLabel>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <header ref={shortcuts} className="flex h-12 shrink-0 items-center gap-2 border-b px-3 md:px-4">
+      <SidebarTrigger className="-ml-1" />
+      <p className="truncate text-sm font-medium">
+        {LINKS.find((link) => path.startsWith(link.to))?.label}
+      </p>
+    </header>
   );
 }

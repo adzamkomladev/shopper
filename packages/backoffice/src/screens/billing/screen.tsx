@@ -15,7 +15,7 @@ export function BillingScreen() {
       <h1
         tabIndex={-1}
         ref={focusIfIdle}
-        className="text-3xl font-bold tracking-tight outline-none"
+        className="text-2xl font-semibold tracking-tight outline-none"
       >
         Billing
       </h1>
@@ -31,7 +31,7 @@ function Billing() {
   return (
     <>
       <SubscriptionSummary subscription={data.subscription} />
-      <h2 className="text-lg font-semibold">Invoices</h2>
+      <h2 className="text-base font-semibold">Invoices</h2>
       {data.invoices.length ? <InvoiceTable invoices={data.invoices} /> : <NoInvoices />}
     </>
   );

@@ -3,7 +3,6 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { RefreshCwIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { MomoSettlement } from "../../../components/payments/reconciliation/momo";
@@ -49,7 +48,6 @@ export function ReconciliationScreen() {
           >
             <RefreshCwIcon aria-hidden />
             {refresh.isPending ? "Starting…" : "Refresh settlement"}
-            <Kbd aria-hidden>R</Kbd>
           </Button>
         )
       }

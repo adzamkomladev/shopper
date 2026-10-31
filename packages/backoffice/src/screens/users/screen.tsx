@@ -118,7 +118,7 @@ export function UsersScreen() {
         </p>
       )}
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Members</h2>
+        <h2 className="text-base font-semibold">Members</h2>
         <StatusTabs
           status={status}
           counts={{ active: everyone.length - deactivated.length, deactivated: deactivated.length }}
@@ -161,7 +161,7 @@ export function UsersScreen() {
         </StatusTabs>
       </section>
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Invitations</h2>
+        <h2 className="text-base font-semibold">Invitations</h2>
         {invitations.length === 0 ? (
           <EmptyList
             icon={MailIcon}

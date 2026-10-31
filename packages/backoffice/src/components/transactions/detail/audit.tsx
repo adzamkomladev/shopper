@@ -7,7 +7,7 @@ export function TransactionAudit({ audit }: { audit: TransactionDetail["audit"] 
   return (
     <Card className="gap-0 py-0">
       <CardHeader className="border-b py-4">
-        <CardTitle className="text-lg">Audit trail</CardTitle>
+        <CardTitle className="text-base">Audit trail</CardTitle>
         <CardDescription>The sale, its refunds and its payments, oldest first</CardDescription>
       </CardHeader>
       {audit.length === 0 ? (

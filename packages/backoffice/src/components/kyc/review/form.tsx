@@ -1,11 +1,9 @@
 import { useForm } from "@tanstack/react-form";
 import { Button } from "@shopper/ui/components/button";
 import { FieldGroup } from "@shopper/ui/components/field";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { focusFirstInvalid } from "../../../lib/focus";
-import { MOD_KEY } from "../../../lib/mod/key";
 import {
   approveSchema,
   limitText,
@@ -118,19 +116,13 @@ export function DecisionForm({
         {error && <StartError message={error} />}
       </FieldGroup>
       <Button
+        aria-keyshortcuts="Control+Enter Meta+Enter"
         type="submit"
         className="self-start"
         variant={approve ? "default" : "destructive"}
         disabled={!online || pending}
       >
-        {pending ? (
-          "Saving…"
-        ) : (
-          <>
-            {approve ? "Confirm approval" : "Confirm rejection"}
-            <Kbd aria-hidden>{MOD_KEY} ↵</Kbd>
-          </>
-        )}
+        {pending ? "Saving…" : <>{approve ? "Confirm approval" : "Confirm rejection"}</>}
       </Button>
     </form>
   );

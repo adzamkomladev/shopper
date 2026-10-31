@@ -44,7 +44,7 @@ export function CartControls({
       <Button
         aria-keyshortcuts="F11"
         aria-label="Clear cart"
-        className="h-14 min-w-36 flex-1 rounded-xl text-base text-destructive hover:text-destructive sm:max-w-48"
+        className="h-12 min-w-36 flex-1 rounded-xl text-base text-destructive hover:text-destructive sm:max-w-48"
         disabled={!canClear}
         onClick={onClear}
         variant="outline"

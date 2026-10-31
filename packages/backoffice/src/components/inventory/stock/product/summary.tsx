@@ -1,6 +1,5 @@
 import { money } from "@shopper/money";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { Money } from "@shopper/ui/components/money";
 import { quantityLabel } from "../../../../lib/inventory/format";
 import type { StockProduct } from "../../../../queries/inventory/types";
@@ -33,9 +32,14 @@ export function StockSummary({ product, lastCost, onEdit, editRef }: Props) {
         label="Reorder level"
         action={
           onEdit && (
-            <Button ref={editRef} variant="outline" size="sm" onClick={onEdit}>
+            <Button
+              aria-keyshortcuts="E"
+              ref={editRef}
+              variant="outline"
+              size="sm"
+              onClick={onEdit}
+            >
               Edit<span className="sr-only"> reorder level</span>
-              <Kbd aria-hidden>E</Kbd>
             </Button>
           )
         }

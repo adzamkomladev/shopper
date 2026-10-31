@@ -16,7 +16,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@shopper/ui/components/empty";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { Money } from "@shopper/ui/components/money";
 import { useNow } from "@shopper/ui/hooks/use-now";
 import {
@@ -64,9 +63,14 @@ export function PricesCard({ product, fetchedAt, setPriceRef, onSetPrice, onSche
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <div className="flex flex-wrap gap-2">
-          <Button ref={setPriceRef} type="button" variant="outline" onClick={onSetPrice}>
+          <Button
+            aria-keyshortcuts="P"
+            ref={setPriceRef}
+            type="button"
+            variant="outline"
+            onClick={onSetPrice}
+          >
             Set price
-            <Kbd aria-hidden>P</Kbd>
           </Button>
           <Button type="button" variant="outline" onClick={onSchedule}>
             Schedule price

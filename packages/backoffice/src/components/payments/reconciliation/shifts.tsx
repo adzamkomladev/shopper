@@ -21,7 +21,7 @@ const KINDS = [
 export function ShiftVariances({ shifts }: { shifts: ReconciliationView["shifts"] }) {
   return (
     <section aria-labelledby="shifts-heading" className="flex flex-col gap-4">
-      <h2 id="shifts-heading" className="text-lg font-semibold tracking-tight">
+      <h2 id="shifts-heading" className="text-base font-semibold tracking-tight">
         By shift
       </h2>
       {shifts.length === 0 ? (
@@ -44,7 +44,7 @@ export function ShiftVariances({ shifts }: { shifts: ReconciliationView["shifts"
               </TableHeader>
               <TableBody>
                 {shifts.map((shift) => (
-                  <TableRow key={shift.id} className="h-14 hover:bg-transparent">
+                  <TableRow key={shift.id} className="h-10 hover:bg-transparent">
                     <TableCell className="px-4">
                       <Link
                         to="/shifts/$shiftId"

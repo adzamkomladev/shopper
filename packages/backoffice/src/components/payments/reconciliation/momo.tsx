@@ -18,7 +18,7 @@ import { Tile } from "../../register/tile";
 export function MomoSettlement({ momo }: { momo: ReconciliationView["momo"] }) {
   return (
     <section aria-labelledby="momo-heading" className="flex flex-col gap-4">
-      <h2 id="momo-heading" className="text-lg font-semibold tracking-tight">
+      <h2 id="momo-heading" className="text-base font-semibold tracking-tight">
         MoMo settlement
       </h2>
       <div className="grid gap-5 sm:grid-cols-3">
@@ -62,7 +62,7 @@ export function MomoSettlement({ momo }: { momo: ReconciliationView["momo"] }) {
               </TableHeader>
               <TableBody>
                 {momo.mismatches.map((row) => (
-                  <TableRow key={row.paymentId} className="h-14 hover:bg-transparent">
+                  <TableRow key={row.paymentId} className="h-10 hover:bg-transparent">
                     <TableCell className="px-4">
                       <div className="flex flex-col items-start gap-1">
                         <Link

@@ -1,7 +1,6 @@
 import { useForm } from "@tanstack/react-form";
 import { Button } from "@shopper/ui/components/button";
 import { FieldGroup } from "@shopper/ui/components/field";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { focusFirstInvalid } from "../../../lib/focus";
 import { useKycActions } from "../../../queries/kyc/actions";
@@ -48,6 +47,7 @@ export function CodeStep({ kase, onVerified }: Props) {
           )}
         </form.Field>
         <Button
+          aria-keyshortcuts="Alt+R"
           type="button"
           variant="outline"
           className="self-start"
@@ -55,7 +55,6 @@ export function CodeStep({ kase, onVerified }: Props) {
           onClick={sendAnother}
         >
           Send a new code
-          <Kbd aria-hidden>Alt R</Kbd>
         </Button>
         {error && <StartError message={error.message} />}
       </FieldGroup>

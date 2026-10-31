@@ -2,7 +2,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { expectNoSeriousAxe } from "../../../../support/e2e";
 import { ama, expectFits, shoot, sizes } from "../customers/harness";
-import { calls, openFromMenu, openSale } from "../sale/harness";
+import { calls, openFromSidebar, openSale, sidebarItem } from "../sale/harness";
 import { expectTouchTargets } from "../targets";
 
 const form = (page: Page) => page.getByRole("dialog", { name: "Take account payment" });
@@ -48,19 +48,14 @@ test("Alt+A finds a customer by phone, shows what she owes and takes cash with C
   await expect(page.getByRole("combobox", { name: /Scan/ })).toBeFocused();
 });
 
-test("the Menu has the entry with its key", async ({ page }) => {
+test("the sidebar has the entry with its key", async ({ page }) => {
   await openSale(page, "payments");
-  await openFromMenu(page, "Take account payment");
+  await openFromSidebar(page, "Account payment");
   await expect(form(page)).toBeVisible();
   await expect(phone(page)).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(form(page)).toHaveCount(0);
-  await page.getByRole("button", { name: /^Menu/ }).click();
-  const entry = page
-    .getByRole("dialog", { name: "Menu" })
-    .getByRole("button", { name: /^Take account payment/ });
-  await expect(entry).toHaveAttribute("aria-keyshortcuts", "Alt+A");
-  await expect(entry).toContainText("Alt+A");
+  await expect(sidebarItem(page, "Account payment")).toHaveAttribute("aria-keyshortcuts", "Alt+A");
 });
 
 test("an unknown number says so and offers no way to add a customer", async ({ page }) => {
@@ -136,12 +131,7 @@ test("without customer access there is no entry and Alt+A does nothing", async (
   await page.getByRole("heading", { name: "Checkout", exact: true }).waitFor();
   await page.keyboard.press("Alt+A");
   await expect(form(page)).toHaveCount(0);
-  await page.getByRole("button", { name: /^Menu/ }).click();
-  await expect(
-    page
-      .getByRole("dialog", { name: "Menu" })
-      .getByRole("button", { name: /^Take account payment/ }),
-  ).toHaveCount(0);
+  await expect(sidebarItem(page, "Account payment")).toHaveCount(0);
 });
 
 for (const size of sizes.filter((s) => s.name !== "1440")) {

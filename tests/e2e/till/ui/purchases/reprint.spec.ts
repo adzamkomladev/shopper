@@ -1,13 +1,13 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { expectNoSeriousAxe } from "../../../../support/e2e";
-import { calls, openFromMenu, openSale } from "../sale/harness";
+import { calls, openFromSidebar, openSale } from "../sale/harness";
 import { expectNoOverflow, shoot } from "../settings/harness";
 import { expectTouchTargets } from "../targets";
 
 // Set SHOPPER_SCREENSHOTS_DIR=docs/plans/day12/screenshots/purchases to keep the shots.
 async function openDetail(page: Page, scenario = "lines") {
   await openSale(page, scenario);
-  await openFromMenu(page, "Previous purchases");
+  await openFromSidebar(page, "Previous purchases");
   await page.getByRole("button", { name: /#10482/ }).click();
   await expect(page.getByRole("heading", { name: /^Purchase #/ })).toBeVisible();
 }

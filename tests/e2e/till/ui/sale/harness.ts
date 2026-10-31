@@ -7,21 +7,25 @@ export async function openSale(page: Page, scenario: string) {
   await page.getByRole("heading", { name: "Checkout", exact: true }).waitFor();
 }
 
-/** Previous purchases and Settings live in the Menu drawer, not in the tabs. */
-export async function openFromMenu(
+/** The register's sidebar entry: its sections, then the register's own screens and cash actions. */
+export const sidebarItem = (page: Page, name: string) =>
+  page.getByRole("navigation", { name: "Register" }).getByRole("button", { name, exact: true });
+
+/** Opens a sidebar entry; the till's sidebar is an icon rail whose buttons keep their names. */
+export async function openFromSidebar(
   page: Page,
-  item: "Previous purchases" | "Settings" | "Take account payment",
+  item: "Previous purchases" | "Register settings" | "Account payment",
 ) {
-  await page.getByRole("button", { name: /^Menu/ }).click();
-  await page
-    .getByRole("dialog", { name: "Menu" })
-    .getByRole("button", { name: new RegExp(`^${item}`) })
-    .click();
+  await sidebarItem(page, item).click();
 }
 
 /** Checkout swaps the cart for the tender step; the tender specs start here. */
 export async function openCheckout(page: Page) {
-  await page.getByRole("button", { name: /^Checkout/ }).click();
+  // The sidebar's Checkout section is a button too; the cart's carries Ctrl+Enter.
+  await page
+    .getByRole("button", { name: /^Checkout/ })
+    .and(page.locator("[aria-keyshortcuts='Control+Enter']"))
+    .click();
   await page.getByRole("region", { name: "Tender" }).waitFor();
 }
 

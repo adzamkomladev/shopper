@@ -23,7 +23,7 @@ export function RegisterSlot({
       ref={(node) => takeFocus(node, active)}
       tabIndex={-1}
     >
-      <h1 className="mb-6 text-3xl font-bold tracking-tight" id={`${slot}-title`}>
+      <h1 className="mb-4 text-2xl font-semibold tracking-tight" id={`${slot}-title`}>
         {title}
       </h1>
       {children}

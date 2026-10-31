@@ -1,11 +1,9 @@
 import { useRef, useState } from "react";
 import { Trash2Icon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { ConfirmDialog } from "../../admin/confirm/dialog";
-import { MOD_KEY } from "../../../lib/mod/key";
 import { roleLabel, useDeleteRole, type RoleView } from "../../../queries/roles";
 
 const REASON_ID = "delete-role-reason";
@@ -32,6 +30,7 @@ export function DeleteRole({ role, onDeleted }: Props) {
   return (
     <div ref={shortcuts} className="flex flex-col gap-2 border-t pt-4">
       <Button
+        aria-keyshortcuts="Control+Shift+Backspace Meta+Shift+Backspace"
         ref={trigger}
         type="button"
         variant="outline"
@@ -42,7 +41,6 @@ export function DeleteRole({ role, onDeleted }: Props) {
       >
         <Trash2Icon aria-hidden />
         Delete role
-        <Kbd aria-hidden>{MOD_KEY}⇧⌫</Kbd>
       </Button>
       {blocked && (
         <p id={REASON_ID} className="text-sm text-muted-foreground">

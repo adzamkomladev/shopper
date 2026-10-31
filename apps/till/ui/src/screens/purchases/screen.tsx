@@ -60,7 +60,7 @@ export function PurchasesScreen({
     >
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Previous purchases</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Previous purchases</h1>
           <p className="text-sm text-muted-foreground">
             Today’s till records. Search to look through every day.
           </p>

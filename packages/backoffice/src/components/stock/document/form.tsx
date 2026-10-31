@@ -10,7 +10,6 @@ import {
   EmptyTitle,
 } from "@shopper/ui/components/empty";
 import { Input } from "@shopper/ui/components/input";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { Label } from "@shopper/ui/components/label";
 import { ApiError } from "../../../api/client";
 import { documentLines, lineErrors, quantityId, searchId } from "../../../lib/stock/lines";
@@ -168,7 +167,6 @@ export function DocumentForm({ kind, copy }: { kind: Kind; copy: DocumentCopy })
           size="touch"
         >
           {queue.isPending ? "Queuing" : copy.submit}{" "}
-          <Kbd className="max-sm:hidden">Ctrl+Enter</Kbd>
         </Button>
       </div>
     </div>

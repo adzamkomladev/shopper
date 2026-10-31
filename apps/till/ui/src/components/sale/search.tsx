@@ -74,7 +74,7 @@ export function ScanEntry({
           autoComplete="off"
           autoCorrect="off"
           autoFocus
-          className="h-15 rounded-xl bg-card pr-4 pl-12 text-lg md:text-lg"
+          className="h-12 rounded-xl bg-card pr-4 pl-12 text-base md:text-base"
           data-zone="scan"
           disabled={disabled}
           // A field that starts disabled (the basket is still loading after sign-in) cannot autofocus, so it remounts when it opens.

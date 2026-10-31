@@ -11,7 +11,7 @@ test("missing MoMo permission leaves cash checkout available", async ({ page }) 
   ).toBeVisible();
   await page.keyboard.press("Alt+2");
   await expect(page.getByRole("dialog", { name: "Mobile money payment" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Cash" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Cash", exact: true })).toBeEnabled();
   await page.keyboard.press("Alt+4");
   expect(await calls(page, "startMomo")).toHaveLength(0);
   expect(await calls(page, "addTender")).toEqual([

@@ -1,6 +1,5 @@
 import { Button } from "@shopper/ui/components/button";
 import { Field, FieldError, FieldLabel } from "@shopper/ui/components/field";
-import { Kbd } from "@shopper/ui/components/kbd";
 import {
   Select,
   SelectContent,
@@ -56,11 +55,8 @@ export function SupplierField({ suppliers, value, onChange, onAdd, addRef, error
             ))}
           </SelectContent>
         </Select>
-        <Button ref={addRef} type="button" variant="outline" onClick={onAdd}>
+        <Button aria-keyshortcuts="S" ref={addRef} type="button" variant="outline" onClick={onAdd}>
           Add supplier
-          <Kbd aria-hidden className="max-sm:hidden">
-            S
-          </Kbd>
         </Button>
       </div>
       {error && <FieldError id={`${id}-error`}>{error}</FieldError>}

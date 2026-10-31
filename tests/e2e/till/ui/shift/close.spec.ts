@@ -169,7 +169,7 @@ for (const size of sizes)
   test(`at ${size.name}: every close step fits`, async ({ page }, testInfo) => {
     await page.setViewportSize(size);
     await open(page, "shift-open");
-    await page.getByRole("tablist", { name: "Register sections" }).waitFor();
+    await page.getByRole("banner").waitFor();
     await page.keyboard.press("Alt+H");
     await page.keyboard.press("Alt+Z");
     await expect(flow(page)).toBeVisible();

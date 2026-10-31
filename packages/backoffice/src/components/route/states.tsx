@@ -9,6 +9,7 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@shopper/ui/components/empty";
+import { readSidebarOpen } from "@shopper/ui/components/sidebar/provider";
 import { Skeleton } from "@shopper/ui/components/skeleton";
 import { ApiError } from "../../api/client";
 
@@ -25,28 +26,37 @@ export const routeStates = {
 export function PageSkeleton() {
   return (
     <div className="flex flex-col gap-6" role="status" aria-busy="true" aria-label="Loading">
-      <Skeleton className="h-9 w-48" />
+      <Skeleton className="h-8 w-48" />
       <Skeleton className="h-64 w-full" />
     </div>
   );
 }
 
-export function ShellSkeleton() {
+/** The shell's shape while the session loads: the sidebar as the member left it, the header and a page. */
+export function ShellSkeleton({ app = "portal" }: { app?: string }) {
+  const open = readSidebarOpen(app) ?? true;
   return (
-    <AppBackdrop
-      className="flex flex-col gap-8"
-      role="status"
-      aria-busy="true"
-      aria-label="Loading"
-    >
-      <div className="flex items-center gap-6">
-        <Skeleton className="h-9 w-50" />
-        <Skeleton className="h-5 w-32" />
-        <Skeleton className="ml-auto h-9 w-72" />
-        <Skeleton className="size-8 rounded-full" />
+    <div className="flex h-svh bg-background" role="status" aria-busy="true" aria-label="Loading">
+      <div
+        className={`hidden shrink-0 flex-col gap-1 border-r bg-card p-2 md:flex ${open ? "w-60" : "w-12"}`}
+      >
+        <Skeleton className="mb-1 h-11 w-full" />
+        {Array.from({ length: 8 }, (_, index) => (
+          <Skeleton key={index} className="h-8 w-full" />
+        ))}
+        <Skeleton className="mt-auto h-11 w-full" />
       </div>
-      <PageSkeleton />
-    </AppBackdrop>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex h-12 shrink-0 items-center gap-2 border-b px-3 md:px-4">
+          <Skeleton className="size-8" />
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="ml-auto h-8 w-8 sm:w-56" />
+        </div>
+        <div className="px-4 py-5 md:px-8 md:py-6">
+          <PageSkeleton />
+        </div>
+      </div>
+    </div>
   );
 }
 

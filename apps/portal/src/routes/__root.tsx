@@ -8,6 +8,7 @@ import {
   Scripts,
   useRouter,
 } from "@tanstack/react-router";
+import { themeScript } from "@shopper/ui/hooks/theme";
 import { HostMeta } from "../components/host/meta";
 
 export const Route = createRootRouteWithContext<BackofficeContext>()({
@@ -34,8 +35,10 @@ function Portal() {
 
 function Document({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // The theme script sets data-theme before React hydrates.
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <HeadContent />
       </head>
       <body>

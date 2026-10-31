@@ -6,7 +6,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@shopper/ui/components/dropdown-menu";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useReportExport } from "../../queries/reports/reports";
 import type { ReportKind } from "../../schemas/reports/views";
 
@@ -34,7 +33,6 @@ export function ExportMenu({ kind, params, open, onOpenChange, disabled }: Props
         >
           <DownloadIcon aria-hidden />
           {download.isPending ? "Exporting…" : "Export"}
-          <Kbd aria-hidden>E</Kbd>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

@@ -29,7 +29,7 @@ export function TransactionLines({ lines }: { lines: TransactionDetail["lines"] 
     <Card className="gap-0 overflow-hidden py-0">
       <CardHeader className="flex flex-row items-start justify-between gap-3 border-b py-4">
         <div className="grid gap-1">
-          <CardTitle className="text-lg">Items purchased</CardTitle>
+          <CardTitle className="text-base">Items purchased</CardTitle>
           <CardDescription>Quantities, prices and tax captured at the time of sale</CardDescription>
         </div>
         <Badge variant="secondary">

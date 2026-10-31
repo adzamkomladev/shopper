@@ -1,6 +1,5 @@
 import { useNavigate, useRouter } from "@tanstack/react-router";
 import { CheckIcon } from "lucide-react";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { STEPS } from "../../lib/setup/steps";
 import type { SetupStep } from "../../schemas/setup";
 
@@ -41,9 +40,6 @@ export function SetupRail({ current, done }: Props) {
                   {finished ? <CheckIcon className="size-3.5" /> : index + 1}
                 </span>
                 {title}
-                <Kbd aria-hidden className="ml-auto hidden lg:inline-flex">
-                  Alt {index + 1}
-                </Kbd>
               </a>
               {/* Outside the link, so it describes the step without becoming part of its name. */}
               <span id={`setup-${step}-state`} hidden>

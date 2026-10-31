@@ -46,7 +46,11 @@ function ShiftGate({
           <EmptyMedia variant="icon">
             <Icon aria-hidden="true" />
           </EmptyMedia>
-          <EmptyTitle className="text-3xl font-bold tracking-tight" role="heading" aria-level={1}>
+          <EmptyTitle
+            className="text-2xl font-semibold tracking-tight"
+            role="heading"
+            aria-level={1}
+          >
             {counting ? "Drawer counted" : "Register closed"}
           </EmptyTitle>
           <EmptyDescription>

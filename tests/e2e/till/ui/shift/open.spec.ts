@@ -161,13 +161,12 @@ for (const [scenario, text] of [
     await expectNoSeriousAxe(page);
   });
 
-test("the Menu and the keys reach the shift screens, and a user without shift.write has none", async ({
+test("the sidebar and the keys reach the shift screens, and a user without shift.write has none", async ({
   page,
 }) => {
   await openSale(page, "shift-open");
-  await page.getByRole("button", { name: /^Menu/ }).click();
-  const menu = page.getByRole("dialog", { name: "Menu" });
-  await expect(menu.getByRole("button", { name: /^Shift/ })).toHaveAttribute(
+  const menu = page.getByRole("navigation", { name: "Register" });
+  await expect(menu.getByRole("button", { name: "Shift", exact: true })).toHaveAttribute(
     "aria-keyshortcuts",
     "Alt+H",
   );
@@ -184,9 +183,8 @@ test("the Menu and the keys reach the shift screens, and a user without shift.wr
   await expect(page.getByRole("heading", { name: "Shift", exact: true })).toBeVisible();
 
   await open(page, "shift-open", "&permissions=sale.create,shift.read");
-  await page.getByRole("button", { name: /^Menu/ }).click();
-  await expect(page.getByRole("dialog", { name: "Menu" })).toBeVisible();
-  await expect(page.getByRole("button", { name: /^(Shift|Cash drop|No sale)/ })).toHaveCount(0);
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole("button", { name: /^(Shift|Cash drop|No sale)$/ })).toHaveCount(0);
   await page.keyboard.press("Escape");
   await page.keyboard.press("Alt+H");
   await expect(page.getByRole("heading", { name: "Shift", exact: true })).toHaveCount(0);

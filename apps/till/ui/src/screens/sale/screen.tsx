@@ -9,7 +9,6 @@ import { CustomerChip } from "../../components/sale/customer/chip";
 import { CustomerDialog } from "../../components/sale/customer/dialog";
 import { Lines } from "../../components/sale/lines";
 import { SaleHeader } from "../../components/sale/header";
-import { ShortcutHints } from "../../components/sale/hints";
 import { addInputFor, ScanEntry, SearchResults } from "../../components/sale/search";
 import { SaleTiles } from "../../components/sale/tiles";
 import {
@@ -287,7 +286,6 @@ export function SaleScreen({
         </div>
       </div>
       <CustomerDialog actions={actions} controls={customer} onReturnFocus={focusScan} />
-      <ShortcutHints />
     </main>
   );
 }

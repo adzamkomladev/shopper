@@ -1,7 +1,6 @@
 import { Suspense, useRef } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { ReadOnlyNote } from "../../../components/admin/states";
@@ -23,9 +22,8 @@ export function CustomersScreen() {
   const addRef = useRef<HTMLButtonElement>(null);
   const form = usePanel(addRef);
   const add = canWrite && (
-    <Button ref={addRef} onClick={() => form.show()}>
+    <Button aria-keyshortcuts="N" ref={addRef} onClick={() => form.show()}>
       Add customer
-      <Kbd aria-hidden>N</Kbd>
     </Button>
   );
   return (

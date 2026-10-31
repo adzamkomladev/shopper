@@ -72,8 +72,13 @@ export const tenants = v.array(
     firstSaleAt: day,
     kybStatus: v.nullable(status),
     payouts: v.boolean(),
+    updateChannel: v.picklist(["pilot", "stable"]),
   }),
 );
+export const tenantChannel = v.object({
+  id: v.string(),
+  updateChannel: v.picklist(["pilot", "stable"]),
+});
 
 /** The queue's tab, kept in the address. */
 export const queueSearch = v.object({

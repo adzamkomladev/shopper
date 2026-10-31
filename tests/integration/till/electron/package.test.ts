@@ -1,8 +1,9 @@
 import { execFileSync, spawn } from "node:child_process";
-import { cp, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
+import { chromium } from "@playwright/test";
 import { stopElectron } from "../../../support/hardware/electron";
 import { healthy, register } from "../../../support/hardware/register";
 
@@ -103,3 +104,68 @@ test("the packaged app is named Shopper, so its userData is where till:provision
   ).toString();
   expect(output.trim()).toBe("Shopper");
 }, 60_000);
+
+test("a fresh install with no register file writes one and opens on the enrol screen", async () => {
+  const userData = join(copy, "fresh-user-data");
+  await mkdir(userData);
+  const debugging = 9300 + Math.floor(Math.random() * 500);
+  const app = [
+    executable(),
+    "--no-sandbox",
+    "--disable-gpu",
+    `--user-data-dir=${userData}`,
+    "--password-store=basic",
+    `--remote-debugging-port=${debugging}`,
+  ];
+  const [command, ...args] = windows ? app : ["xvfb-run", "-a", ...app];
+  const child = spawn(command!, args, {
+    detached: !windows,
+    env: {
+      ...process.env,
+      SHOPPER_TILL_UPSTREAM: "http://127.0.0.1:9",
+      SHOPPER_TEST_NO_DIALOG: "1",
+    },
+    stdio: "ignore",
+  });
+  cleanup.push(() => stopElectron(child));
+  const browser = await connect(debugging);
+  cleanup.push(() => browser.close());
+  const page = await waitForPage(browser);
+  await expect
+    .poll(() => page.getByRole("heading", { name: "Set up this till" }).count(), {
+      timeout: 60_000,
+    })
+    .toBe(1);
+  const written = JSON.parse(await readFile(join(userData, "register.json"), "utf8"));
+  expect(written).toEqual({
+    upstream: "http://127.0.0.1:9",
+    sqlitePath: join(userData, "register.sqlite"),
+    origins: [],
+    port: 0,
+  });
+}, 180_000);
+
+/** Chromium's DevTools endpoint answers once Electron is up; until then the connection is refused. */
+async function connect(port: number) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
+    } catch (error) {
+      if (attempt > 120) throw error;
+      await new Promise((done) => setTimeout(done, 500));
+    }
+  }
+}
+
+async function waitForPage(browser: Awaited<ReturnType<typeof connect>>) {
+  for (let attempt = 0; attempt < 120; attempt++) {
+    const page = browser
+      .contexts()
+      .flatMap((context) => context.pages())
+      // The register window, not the customer display (`?display`).
+      .find((candidate) => /^http:\/\/127\.0\.0\.1:\d+\/(#|$)/.test(candidate.url()));
+    if (page) return page;
+    await new Promise((done) => setTimeout(done, 500));
+  }
+  throw new Error("The register never opened its window");
+}

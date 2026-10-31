@@ -35,6 +35,7 @@ export const cashRoundingModes = ["none", "10p"] as const;
 export const priceModes = ["inclusive", "exclusive"] as const;
 export const statementSchedules = ["off", "monthly"] as const;
 export const momoProviders = ["paystack", "hubtel"] as const;
+export const updateChannels = ["pilot", "stable"] as const;
 export const org = pgTable(
   "org",
   {
@@ -90,12 +91,15 @@ export const org = pgTable(
       .default(sql`'{ghana_card,passport,voter_id,drivers_licence}'`),
     /** Who collects the org's till MoMo; each payment snapshots it when it starts. */
     momoProvider: text("momo_provider", { enum: momoProviders }).notNull().default("paystack"),
+    /** Which till release feed the org's registers follow; a platform admin moves pilot shops. */
+    updateChannel: text("update_channel", { enum: updateChannels }).notNull().default("stable"),
     ...times(),
   },
   (t) => [
     unique().on(t.orgId, t.id),
     unique().on(t.slug),
     check("org_mode", sql`${t.mode} IN ('full', 'relay')`),
+    check("org_update_channel", sql`${t.updateChannel} IN ('pilot', 'stable')`),
     check("org_cash_rounding", sql`${t.cashRounding} IN ('none', '10p')`),
     check("org_price_mode", sql`${t.priceMode} IN ('inclusive', 'exclusive')`),
     check(

@@ -1,6 +1,8 @@
 import { saleVersion, saleSession } from "../schemas/sync/routes";
 import { handshake, envelope, identity } from "../schemas/sync/routes";
 import { Hono } from "hono";
+import { eq } from "drizzle-orm";
+import { org } from "@shopper/db-pg";
 import { bodyLimit } from "hono/body-limit";
 import * as v from "valibot";
 import { negotiateProtocol } from "@shopper/sync/versions";
@@ -39,6 +41,8 @@ export function createSyncRoutes(options: {
   notifications?: Queue;
   lane?: Lane;
   now?: () => number;
+  /** SHOPPER_MIN_TILL_VERSION: below it a till opens no new shift. Empty or unset means no minimum. */
+  minTillVersion?: string;
 }) {
   const protocol = options.protocol ?? buildInfo.syncProtocol;
   const app = new Hono();
@@ -84,6 +88,13 @@ export function createSyncRoutes(options: {
         data.receiptLastUsed,
         data.appVersion,
       ),
+      minTillVersion: options.minTillVersion || null,
+      updateChannel: (
+        await options.database
+          .select({ channel: org.updateChannel })
+          .from(org)
+          .where(eq(org.id, principal.orgId))
+      )[0]!.channel,
     });
   });
   app.post("/sync/push", async (c) => {

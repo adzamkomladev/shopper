@@ -4,9 +4,14 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { app, BrowserWindow, dialog, Menu, nativeTheme } from "electron";
+import electronUpdater from "electron-updater";
+import { buildInfo } from "@shopper/config";
+import { startCrashReporting } from "./crash";
 import { openDisplay } from "./display";
 import { answerRender } from "./render";
 import { loadSecrets, writeAtomic } from "./secrets";
+import type { UpdatePolicy } from "./types";
+import { createUpdates } from "./updates";
 import { lockDown } from "./window";
 
 // Chromium must paint at 1 CSS px = 1 device px so a receipt window is exactly `dots` wide.
@@ -18,6 +23,10 @@ const here = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 const hostEntry =
   process.env.SHOPPER_TILL_HOST ??
   (app.isPackaged ? here("host/server.js") : here("../../host/dist/server.js"));
+
+// Before anything else, so a failure from here on is reported. These secrets are scrubbed from every event.
+const secrets: unknown[] = [];
+const crash = startCrashReporting(() => secrets);
 
 // The parent that spawned us over IPC owns our lifetime: when it goes, so do we (and the host).
 process.on("disconnect", () => app.quit());
@@ -51,7 +60,10 @@ async function startRegister() {
     process.argv.slice(1).find((arg) => arg.endsWith(".json")) ??
     process.env.SHOPPER_TILL_CONFIG ??
     join(userData, "register.json");
-  const text = await readFile(configPath, "utf8");
+  const text = await readFile(configPath, "utf8").catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== "ENOENT") throw error;
+    return firstRun(configPath, userData);
+  });
   let stored: { ui?: string; deviceToken?: unknown; sqlitePath?: unknown; identity?: unknown };
   try {
     stored = JSON.parse(text);
@@ -63,11 +75,16 @@ async function startRegister() {
   const prepare = async (register: typeof stored) => {
     const ui = app.isPackaged && { ui: register.ui ?? here("ui") };
     if (register.identity === undefined) return { ...register, ...ui };
-    const { v: _version, ...secrets } = await loadSecrets(userData, register, configPath);
-    return { ...register, ...ui, ...secrets };
+    const { v: _version, ...sealed } = await loadSecrets(userData, register, configPath);
+    return { ...register, ...ui, ...sealed };
   };
   const config = await prepare(stored);
+  secrets.push(config.deviceToken, "databaseKey" in config && config.databaseKey);
+  if (config.identity)
+    crash.tag("register", (config.identity as { registerName: string }).registerName);
   const host = fork(hostEntry, [], { env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" } });
+  // No feed configured (dev, tests) means no updater: nothing phones home.
+  const updates = buildInfo.tillUpdateUrl ? startUpdates(host) : undefined;
   app.on("window-all-closed", () => app.quit());
   let quitting = false;
   let ready = false;
@@ -88,21 +105,29 @@ async function startRegister() {
   host.on(
     "message",
     (
-      message: {
-        type?: string;
-        capability?: string;
-        port?: number;
-        message?: string;
-        registration?: object;
-      } | null,
+      message:
+        | ({
+            type?: string;
+            capability?: string;
+            port?: number;
+            message?: string;
+            registration?: object;
+          } & Partial<UpdatePolicy>)
+        | null,
     ) => {
       if (message?.type === "error" && !ready) cause = message.message;
+      else if (message?.type === "update-policy") {
+        crash.tag("channel", (message as UpdatePolicy).channel);
+        updates?.policy(message as UpdatePolicy);
+      } else if (message?.type === "update-install") updates?.install();
+      else if (message?.type === "update-check") updates?.check();
       else if (message?.type === "enrolled" && message.registration)
         void enrol(message.registration).catch((error: unknown) => fail("Register stopped", error));
       else if (message?.type === "ready" && message.capability) {
         // After enrolment the host comes back on the same port and capability; the open window reconnects.
         if (ready) return;
         ready = true;
+        secrets.push(message.capability);
         openTill(message.capability, config.ui ? `http://127.0.0.1:${message.port}/` : tillUi);
       } else if (message?.type === "render")
         void answerRender(message).then((reply) => reply && host.connected && host.send(reply));
@@ -116,6 +141,36 @@ async function startRegister() {
     await writeAtomic(configPath, JSON.stringify(register, null, 2));
     host.send({ type: "start", config: await prepare(register), renderer: "parent" });
   }
+}
+
+/**
+ * A fresh install has no register file: write the install half of one, and the host starts as an enrolment host
+ * on the "Set up this till" screen. The packaged app serves its own UI, so it needs no other origin.
+ */
+async function firstRun(configPath: string, userData: string) {
+  const upstream = process.env.SHOPPER_TILL_UPSTREAM ?? buildInfo.tillUpstream;
+  if (!upstream)
+    throw new Error("This build names no server to enrol with (SHOPPER_TILL_UPSTREAM)");
+  const origins = app.isPackaged ? [] : [new URL(tillUi).origin];
+  const text = JSON.stringify(
+    { upstream, sqlitePath: join(userData, "register.sqlite"), origins, port: 0 },
+    null,
+    2,
+  );
+  await writeAtomic(configPath, text);
+  return text;
+}
+
+/** electron-updater on the build's feed; the host hears every state change and folds it into its status. */
+function startUpdates(host: ReturnType<typeof fork>) {
+  const updater = electronUpdater.autoUpdater;
+  // An unpackaged build checks too when a feed is set, so a dev can run it against a local feed.
+  updater.forceDevUpdateConfig = !app.isPackaged;
+  const updates = createUpdates(updater, buildInfo.tillUpdateUrl, (state) => {
+    if (host.connected) host.send({ type: "update-state", ...state });
+  });
+  app.once("before-quit", updates.stop);
+  return updates;
 }
 
 /**
@@ -140,7 +195,7 @@ This is saved in ${log}`;
   }
   if (app.isPackaged || process.env.SHOPPER_TEST_NO_DIALOG !== "1")
     dialog.showErrorBox(title, body);
-  app.exit(1);
+  void crash.report(title, cause).finally(() => app.exit(1));
 }
 
 // The till UI draws its own 40px title bar (--card behind, --foreground on it); the OS only paints the window

@@ -7,15 +7,26 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./updates": {
+      "types": "./src/updates.ts",
+      "default": "./src/updates.ts"
+    },
+    "./types": {
+      "types": "./src/types.ts",
+      "default": "./src/types.ts"
     }
   },
   "scripts": {},
   "dependencies": {
+    "@sentry/electron": "8.3.0",
+    "@shopper/audit": "workspace:*",
     "@shopper/config": "workspace:*",
     "@shopper/core": "workspace:*",
     "@shopper/hardware": "workspace:*",
     "better-sqlite3-multiple-ciphers": "13.0.3",
     "electron": "44.9.2",
+    "electron-updater": "6.8.11",
     "pdf-lib": "1.17.1",
     "serialport": "13.0.0",
     "valibot": "1.5.0"

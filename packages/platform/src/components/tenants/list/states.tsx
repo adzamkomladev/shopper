@@ -27,6 +27,7 @@ const COLUMNS = [
   ["Onboarding", "", "h-6 w-24 rounded-full"],
   ["First sale", FROM_MD, "h-5 w-32"],
   ["Verification", "", "h-6 w-24 rounded-full"],
+  ["Till updates", "", "h-8 w-28"],
   ["Joined", FROM_LG, "h-5 w-32"],
 ] as const;
 

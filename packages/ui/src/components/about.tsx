@@ -1,6 +1,7 @@
 import { buildInfo } from "@shopper/config";
 
-export function About() {
+/** `channel` is the till's update channel; the web apps have none. */
+export function About({ channel }: { channel?: string }) {
   return (
     <section aria-label="About Shopper" className="grid gap-4">
       <div>
@@ -12,6 +13,12 @@ export function About() {
         <dd className="truncate font-medium">{buildInfo.gitSha}</dd>
         <dt className="text-muted-foreground">Built</dt>
         <dd className="font-medium">{buildInfo.buildDate}</dd>
+        {channel && (
+          <>
+            <dt className="text-muted-foreground">Updates</dt>
+            <dd className="font-medium capitalize">{channel}</dd>
+          </>
+        )}
       </dl>
     </section>
   );

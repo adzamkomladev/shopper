@@ -13,6 +13,8 @@ try {
 } catch {
   /* Initial workspace has no commit yet. */
 }
+// The till's release feed (an R2 bucket on a custom domain): /pilot/ and /stable/, each with its latest.yml.
+const tillUpdateUrl = process.env.SHOPPER_TILL_UPDATE_URL ?? "";
 export const buildDefines = {
   SHOPPER_VERSION: JSON.stringify(manifest.version),
   GIT_SHA: JSON.stringify(process.env.GITHUB_SHA ?? gitSha),
@@ -29,15 +31,31 @@ export const buildDefines = {
   ),
   SYNC_PROTOCOL: "5",
   ARCHIVE_FORMAT: "1",
-  // Where owners download the till installer; empty until a signed installer is published (Day 27).
-  TILL_DOWNLOAD_URL: JSON.stringify(process.env.SHOPPER_TILL_DOWNLOAD_URL ?? ""),
+  // Where owners download the till installer: the stable feed's alias, which till:promote rewrites.
+  TILL_DOWNLOAD_URL: JSON.stringify(
+    process.env.SHOPPER_TILL_DOWNLOAD_URL ??
+      (tillUpdateUrl && `${tillUpdateUrl}/stable/Shopper-Setup-x64.exe`),
+  ),
+  // Empty turns the till's updater off, so dev and tests never phone home.
+  TILL_UPDATE_URL: JSON.stringify(tillUpdateUrl),
+  // The API a fresh install enrols with: the cloud API, or the shop's box for on-prem builds.
+  TILL_UPSTREAM: JSON.stringify(process.env.SHOPPER_TILL_UPSTREAM ?? ""),
+  // Where the till's main process reports crashes; empty turns Sentry off.
+  SENTRY_DSN: JSON.stringify(process.env.SHOPPER_SENTRY_DSN ?? ""),
 };
 
 export function buildTask(command: string) {
   return {
     command,
     cache: {
-      env: ["GITHUB_SHA", "BUILD_DATE"],
+      env: [
+        "GITHUB_SHA",
+        "BUILD_DATE",
+        "SHOPPER_TILL_UPDATE_URL",
+        "SHOPPER_TILL_DOWNLOAD_URL",
+        "SHOPPER_TILL_UPSTREAM",
+        "SHOPPER_SENTRY_DSN",
+      ],
       input: [
         { auto: true },
         { pattern: ".git/HEAD", base: "workspace" as const },

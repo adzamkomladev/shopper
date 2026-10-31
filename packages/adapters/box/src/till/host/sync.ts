@@ -13,6 +13,7 @@ import {
   createStockUploadWorker,
   refreshApprovers,
   createClockAnchor,
+  type PushOptions,
 } from "@shopper/sync";
 import type { TillDatabase } from "@shopper/db-sqlite";
 import { readReceiptStatus } from "@shopper/core/till";
@@ -29,6 +30,8 @@ export function createHostSync(
   onPulled?: () => Promise<void>,
   /** A manager's answer to this register's remote approval, pushed through the live socket. */
   onApproval?: (payload: unknown) => Promise<void>,
+  /** What each handshake said about updates. */
+  onHandshake?: PushOptions["onHandshake"],
 ) {
   const identity = config.identity;
   const options = {
@@ -133,6 +136,10 @@ export function createHostSync(
     ...options,
     onStatus: notify,
     onClockMeasured: clock.measured,
+    onHandshake(release) {
+      onHandshake?.(release);
+      notify();
+    },
     onAcknowledgment: () => {
       void pullAndRefresh();
       void uploads.trigger();

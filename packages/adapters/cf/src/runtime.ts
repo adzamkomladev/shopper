@@ -89,6 +89,7 @@ export async function cloudflareRuntime(
         : undefined,
     storeDays: env.STORE_DAY ? cloudflareLauncher(env.STORE_DAY) : undefined,
     linkSecret: env.SHOPPER_LINK_SECRET,
+    minTillVersion: env.SHOPPER_MIN_TILL_VERSION,
     publicOnboarding: true,
   }).catch(async (error: unknown) => {
     await connection.close();

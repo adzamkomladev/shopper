@@ -18,7 +18,22 @@ Electron shell for the till.
 Build with `vp -C apps/till/electron run build` (`dist/main.js`, `electron` external). Tests run it under
 `xvfb-run -a` with `--no-sandbox --disable-gpu`; see `docs/engineering/testing.md`.
 
-## Packaging note
+## Packaging
+
+`vp run till:package -- --win nsis` builds `release/Shopper-Setup-<version>-x64.exe` from the config in
+`tooling/build/installer.ts` (written to `release/electron-builder.json`): a one-click, per-user NSIS installer (no
+UAC prompt; userData is `%APPDATA%\Shopper`). `--channel pilot|stable` bakes that channel's feed into
+`app-update.yml`; `--sign` requires the Azure Trusted Signing environment (`AZURE_TENANT_ID`, `AZURE_CLIENT_ID`,
+`AZURE_CLIENT_SECRET`, `AZURE_TRUSTED_SIGNING_{ENDPOINT,ACCOUNT,PROFILE,PUBLISHER}`). x64 only:
+better-sqlite3-multiple-ciphers 13.0.3 has no win32-ia32 prebuild, and nothing is rebuilt for Electron. There is
+no app icon yet (Electron's default) until the designer supplies the mark.
+
+Build-time constants (`tooling/build/info.ts`): `SHOPPER_TILL_UPSTREAM` is the API a fresh install enrols with
+(a missing `register.json` is written with it, so the first screen is "Set up this till"); `SHOPPER_TILL_UPDATE_URL`
+is the release feed (empty turns `src/updates.ts` off). `vp run till:release` and `vp run till:promote` publish to
+it; see `docs/engineering/deployment.md`.
+
+## Runtime files
 
 The till host loads `satori` and `@resvg/resvg-wasm` (including `index_bg.wasm`) from `node_modules` at runtime
 when it renders receipt PDFs itself (`tooling/build/server.mjs` marks them external). Any installer must

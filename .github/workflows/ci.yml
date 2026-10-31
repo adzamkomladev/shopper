@@ -122,9 +122,43 @@ jobs:
         with:
           name: playwright-results-public
           path: test-results/
+  till-windows:
+    # The NSIS installer end to end: build it, install it silently, start it fresh and see the enrol window load.
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - run: vp run till:package -- --win nsis --x64
+      - name: Install, start and uninstall
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem apps/till/electron/release/Shopper-Setup-*-x64.exe | Select-Object -First 1
+          Start-Process $installer.FullName -ArgumentList "/S" -Wait
+          # Per-user NSIS installs under the package name; the silent installer returns before its files land.
+          $dir = "$env:LOCALAPPDATA\Programs\shopper-register"
+          $app = "$dir\Shopper.exe"
+          for ($i = 0; $i -lt 60 -and -not (Test-Path $app); $i++) { Start-Sleep 1 }
+          if (-not (Test-Path $app)) { throw "The installer did not put Shopper.exe at $app" }
+          # Nothing answers on port 9: a fresh till only needs an upstream to write register.json and show enrolment.
+          $env:SHOPPER_TILL_UPSTREAM = "http://127.0.0.1:9"
+          $env:SHOPPER_TEST_NO_DIALOG = "1"
+          Start-Process $app -ArgumentList "--remote-debugging-port=9333"
+          $loaded = $false
+          for ($i = 0; $i -lt 90 -and -not $loaded; $i++) {
+            Start-Sleep 2
+            try {
+              $pages = Invoke-RestMethod http://127.0.0.1:9333/json/list
+              $loaded = [bool]($pages | Where-Object { $_.url -match '^http://127\.0\.0\.1:\d+/(#|$)' })
+            } catch {}
+          }
+          Get-Process Shopper -ErrorAction SilentlyContinue | Stop-Process -Force
+          if (-not $loaded) { throw "The installed register never opened its window from its host" }
+          if (-not (Test-Path "$env:APPDATA\Shopper\register.json")) { throw "First run wrote no register.json" }
+          Start-Process "$dir\Uninstall Shopper.exe" -ArgumentList "/S" -Wait
   ci:
     if: always()
-    needs: [check, guard, typecheck, build, integration, e2e, e2e-public]
+    needs: [check, guard, typecheck, build, integration, e2e, e2e-public, till-windows]
     runs-on: ubuntu-latest
     steps:
       - run: test "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}" = "false"

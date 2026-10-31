@@ -9,10 +9,11 @@ import {
   kybQueue,
   platformTenants,
   recordPlatformDecision,
+  setTenantChannel,
 } from "@shopper/core/platform";
 import { org } from "@shopper/db-pg";
 import { BlobUploadUnavailable, uuidV7Schema } from "@shopper/ports";
-import { queueStatus } from "../schemas/platform";
+import { queueStatus, tenantChannel } from "../schemas/platform";
 import { commandContext } from "./stock/context";
 import { problem } from "../middleware/problem";
 import { requirePermission } from "../middleware/require/permission";
@@ -50,12 +51,22 @@ export function platformRoutes(options: PlatformOptions) {
     return found ? c.json(found) : c.json({ error: "No platform org" }, 404);
   });
   app.use("/platform/tenants", staff("platform.tenant.read"));
+  app.use("/platform/tenants/:orgId/channel", staff("platform.tenant.update"));
   app.use("/platform/kyb", staff("platform.kyb.review"));
   app.use("/platform/kyb/*", staff("platform.kyb.review"));
 
   app.get("/platform/tenants", async (c) =>
     c.json(await platformTenants(database, c.get("principal").orgId)),
   );
+  app.post("/platform/tenants/:orgId/channel", async (c) => {
+    const orgId = tenant(c);
+    const body = v.parse(tenantChannel, await c.req.json());
+    await setTenantChannel(database, commandContext(c.get("principal")), {
+      orgId,
+      channel: body.channel,
+    });
+    return c.json({ id: orgId, updateChannel: body.channel });
+  });
   app.get("/platform/kyb", async (c) =>
     c.json(await kybQueue(database, v.parse(queueStatus, c.req.query("status")))),
   );

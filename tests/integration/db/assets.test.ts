@@ -63,7 +63,7 @@ test("asset migration constraint and index names match the owning Drizzle models
 test("current migration metadata includes asset and all published receipt fields", async () => {
   const snapshot = JSON.parse(
     await readFile(
-      new URL("../../../packages/db/pg/migrations/meta/0031_snapshot.json", import.meta.url),
+      new URL("../../../packages/db/pg/migrations/meta/0035_snapshot.json", import.meta.url),
       "utf8",
     ),
   );

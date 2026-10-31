@@ -51,6 +51,8 @@ export class TillError extends Error {
       | "REFUND_EXCEEDS_SALE"
       | "SHIFT_REQUIRED"
       | "SHIFT_OPEN"
+      | "UPDATE_REQUIRED"
+      | "UPDATE_NOT_READY"
       | "SHIFT_COUNTED"
       | "SHIFT_BUSY"
       // What the server answers when it refuses a refund of another register's sale.

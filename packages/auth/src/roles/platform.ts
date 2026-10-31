@@ -6,7 +6,11 @@ import { permission, role, rolePermission } from "@shopper/db-pg";
  * What Shopper staff may do across shops. Only the platform org has these rows, and only its protected owner role
  * is granted them here, so no shop's role can ever hold them, whatever it is given in its own org.
  */
-export const platformPermissionNames = ["platform.tenant.read", "platform.kyb.review"] as const;
+export const platformPermissionNames = [
+  "platform.tenant.read",
+  "platform.tenant.update",
+  "platform.kyb.review",
+] as const;
 
 /** Gives the platform org its permission rows and grants them to its owner role; replaying changes nothing. */
 export const seedPlatformRoles = defineCommand({

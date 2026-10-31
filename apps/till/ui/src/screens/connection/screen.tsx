@@ -111,7 +111,7 @@ export function ConnectionScreen({ onSell }: { onSell: () => void }) {
               <DialogContent>
                 <DialogTitle>About Shopper</DialogTitle>
                 <DialogDescription>Register application details.</DialogDescription>
-                <About />
+                <About channel={status?.update?.channel} />
               </DialogContent>
             </Dialog>
           </div>

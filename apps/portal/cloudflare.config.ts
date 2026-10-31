@@ -48,6 +48,8 @@ export default defineConfig(({ mode }) => {
       env: {
         ASSETS: bindings.assets(),
         SHOPPER_ENVIRONMENT: bindings.text(stage),
+        // Tills below it update before their next shift; empty is no minimum. Raise it per environment.
+        SHOPPER_MIN_TILL_VERSION: bindings.text(""),
         SHOPPER_AUTH_URL: bindings.text(
           stage === "staging" ? "https://shopper-staging.temtem.dev" : "http://localhost:5173",
         ),

@@ -20,6 +20,8 @@ import { SettingsScreen } from "../src/screens/settings/screen";
 import { ShiftScreen } from "../src/screens/shift/screen";
 import { AccountPaymentDialog } from "../src/components/accounts/payment";
 import { CheckoutGate } from "../src/components/shift/gate";
+import { UpdateBanner } from "../src/components/update/banner";
+import { pendingUpdate } from "./pending";
 import { ShiftDialogs } from "../src/components/shift/dialogs/host";
 import { useShiftDialogs } from "../src/hooks/shift/dialog/state";
 import { scenarios } from "./scenarios";
@@ -87,6 +89,7 @@ function Harness() {
       <ShellFrame
         link={link}
         modal={modal}
+        notice={<UpdateBanner update={pendingUpdate(params.get("update"))} />}
         onAction={dialogs.start}
         onSignOut={record("signOut")}
         onView={navigate}

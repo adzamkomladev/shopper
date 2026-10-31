@@ -21,6 +21,7 @@ import { createHostReceipts } from "./receipts";
 import { createPeripherals } from "./peripherals";
 import { createHostSession } from "./session";
 import { createApprovals } from "./approvals";
+import { createUpdates } from "./updates";
 import { mountDesktop } from "./http/desktop";
 import type { Host } from "./types";
 import { openHostTransport, error } from "./transport";
@@ -62,6 +63,7 @@ export async function startTillHost(
     transport?.broadcast(message);
   });
   const approvals = createApprovals({ database, config });
+  const updates = createUpdates(send);
   const worker = createHostSync(
     database,
     config,
@@ -71,6 +73,7 @@ export async function startTillHost(
     payments,
     () => receipts.refreshSigned(),
     (payload) => approvals.receive(payload),
+    updates.handshake,
   );
   const receipts = createHostReceipts({
     database,
@@ -98,6 +101,8 @@ export async function startTillHost(
     const settings = await readRegisterSettings(database, identity);
     const permissions = config.session?.permissions ?? [];
     const signedIn = session.current();
+    const shift = await shiftSummary(database, identity);
+    updates.tell(shift.current !== null);
     lastKnownStatus = {
       ...(await worker.status()),
       user: signedIn && {
@@ -115,7 +120,8 @@ export async function startTillHost(
       registerCode,
       appVersion: buildInfo.version,
       protocol: buildInfo.syncProtocol,
-      shift: await shiftSummary(database, identity),
+      shift,
+      update: updates.status(),
     };
     return lastKnownStatus;
   }
@@ -170,6 +176,7 @@ export async function startTillHost(
     peripherals,
     session,
     approvals,
+    updates,
     status,
     publishStatus,
     sync: () => worker.trigger(),
@@ -224,6 +231,7 @@ export async function startTillHost(
   });
   return {
     async receive(value: unknown) {
+      if (updates.receive(value)) return publishStatus();
       const parsed = v.safeParse(bridgeRequest, value);
       send(
         parsed.success

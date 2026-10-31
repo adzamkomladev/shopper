@@ -1,0 +1,35 @@
+name: Release till
+# Builds the signed Windows installer and puts it on the pilot feed. Promotion to stable is a separate run of
+# `vp run till:promote` once the pilot shop has run it (docs/engineering/deployment.md).
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: release-till
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    # Signing and R2 secrets live on this environment, so a release needs its approval.
+    environment: till-release
+    env:
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_TRUSTED_SIGNING_ENDPOINT: ${{ vars.AZURE_TRUSTED_SIGNING_ENDPOINT }}
+      AZURE_TRUSTED_SIGNING_ACCOUNT: ${{ vars.AZURE_TRUSTED_SIGNING_ACCOUNT }}
+      AZURE_TRUSTED_SIGNING_PROFILE: ${{ vars.AZURE_TRUSTED_SIGNING_PROFILE }}
+      AZURE_TRUSTED_SIGNING_PUBLISHER: ${{ vars.AZURE_TRUSTED_SIGNING_PUBLISHER }}
+      SHOPPER_TILL_UPDATE_URL: ${{ vars.SHOPPER_TILL_UPDATE_URL }}
+      SHOPPER_TILL_UPSTREAM: ${{ vars.SHOPPER_TILL_UPSTREAM }}
+      SHOPPER_SENTRY_DSN: ${{ vars.SHOPPER_SENTRY_DSN }}
+      SHOPPER_TILL_RELEASE_ENDPOINT: ${{ secrets.SHOPPER_TILL_RELEASE_ENDPOINT }}
+      SHOPPER_TILL_RELEASE_ACCESS_KEY_ID: ${{ secrets.SHOPPER_TILL_RELEASE_ACCESS_KEY_ID }}
+      SHOPPER_TILL_RELEASE_SECRET_ACCESS_KEY: ${{ secrets.SHOPPER_TILL_RELEASE_SECRET_ACCESS_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - run: vp run till:package -- --win nsis --x64 --channel pilot --sign
+      - run: vp run till:release -- --channel pilot

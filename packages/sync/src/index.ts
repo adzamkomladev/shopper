@@ -17,3 +17,4 @@ export { createClockAnchor } from "./clock";
 export { sessionCredential } from "./session";
 export { createPushTransport } from "./push/http";
 export { documentOutcome } from "./schemas/uploads/documents";
+export { readHandshake } from "./connection";

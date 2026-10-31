@@ -60,6 +60,8 @@ export function createShifts(host: Host, localConfig: LocalConfig) {
     const at = new Date();
     switch (request.type) {
       case "shift.open":
+        if (host.updates.status().required)
+          throw new TillError("UPDATE_REQUIRED", "Update this register before opening a shift");
         await openShift(database, localConfig, session(), {
           at,
           ...(request.counts ? { counts: request.counts } : { float: request.float }),

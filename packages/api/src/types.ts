@@ -69,6 +69,8 @@ export interface ApiOptions {
   kyb?: { banks(): Promise<{ name: string; code: string; type: string }[]> };
   /** The admin app's API, cloud only: the org whose members are Shopper staff, by its code. */
   platform?: { orgSlug: string };
+  /** SHOPPER_MIN_TILL_VERSION: the handshake tells tills below it to update before their next shift. */
+  minTillVersion?: string;
 }
 
 export interface RuntimeOptions {
@@ -103,6 +105,7 @@ export interface RuntimeOptions {
   storeDays?: WorkflowLauncher;
   kyb?: ApiOptions["kyb"];
   platform?: ApiOptions["platform"];
+  minTillVersion?: string;
   linkSecret?: string;
   publicOnboarding?: boolean;
 }

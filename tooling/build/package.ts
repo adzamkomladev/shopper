@@ -5,8 +5,11 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runtimeExternals as externals } from "./externals.mjs";
 import { buildDefines } from "./info.ts";
+import { installerConfig } from "./installer.ts";
 
 // Packages the desktop register: `vp run till:package -- --linux dir` or `-- --win nsis` (NSIS needs Windows).
+// `--channel pilot|stable` (default stable) picks the feed baked into app-update.yml; `--sign` requires the Azure
+// Trusted Signing environment (installer.ts), which also signs without the flag whenever it is all there.
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const electronApp = resolve(root, "apps/till/electron");
 const stage = resolve(electronApp, ".app");
@@ -54,6 +57,26 @@ writeFileSync(
 );
 run("pnpm", ["install", "--ignore-workspace", "--prod", "--ignore-scripts"], stage);
 
+const args = process.argv.slice(2).filter((arg) => arg !== "--");
+const channelAt = args.indexOf("--channel");
+const channel = channelAt >= 0 ? args.splice(channelAt, 2)[1] : "stable";
+if (channel !== "pilot" && channel !== "stable") throw new Error("--channel is pilot or stable");
+const signAt = args.indexOf("--sign");
+if (signAt >= 0) args.splice(signAt, 1);
+const config = resolve(electronApp, "release/electron-builder.json");
+mkdirSync(dirname(config), { recursive: true });
+writeFileSync(
+  config,
+  JSON.stringify(
+    installerConfig({
+      channel,
+      sign: signAt >= 0,
+      feed: JSON.parse(buildDefines.TILL_UPDATE_URL),
+      env: process.env,
+    }),
+  ),
+);
+
 const load = createRequire(resolve(electronApp, "package.json"));
 const electronDist = dirname(load("electron") as string);
 const electronVersion = manifest("apps/till/electron/package.json").dependencies.electron;
@@ -63,9 +86,9 @@ run(process.execPath, [
   "--projectDir",
   stage,
   "--config",
-  resolve(electronApp, "electron-builder.yml"),
+  config,
   `-c.electronDist=${electronDist}`,
   `-c.electronVersion=${electronVersion}`,
   `-c.directories.output=${resolve(electronApp, "release")}`,
-  ...process.argv.slice(2).filter((arg) => arg !== "--"),
+  ...args,
 ]);

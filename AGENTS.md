@@ -19,6 +19,7 @@ Read the doc for the area you are touching **before** you change it:
 | [deployment.md](docs/engineering/deployment.md)                     | Releases, versions, migrations, environments                 |
 | [developer-experience.md](docs/engineering/developer-experience.md) | Setup, commands, tooling, git, MCP servers                   |
 | [ai-workflow.md](docs/engineering/ai-workflow.md)                   | Planning, subagents, models, the Codex review loop           |
+| [security.md](docs/engineering/security.md)                         | Auth, sessions, new routes, audit payloads, till storage     |
 
 ## General Principles
 
@@ -166,6 +167,11 @@ function requireConfig(input: unknown) {
 - Migrations are forward-only and idempotent. Breaking changes use expand-then-contract.
 - Every synced event carries a version `v`; bump it and add an upcaster when its shape changes.
 - Never hard-code a version string; read the build-time constants (SHOPPER_VERSION etc.).
+- Every route is in the tenant sweep (`tests/integration/security/tenant/sweep.test.ts`) by default; never
+  read `orgId` from a request. A new write needs a valid body in `tests/support/security/bodies.ts` (or
+  `till.ts`), and a route that is public on purpose goes in the sweep's `PUBLIC` list.
+- Audit payloads mask phones, TINs and Ghana Card numbers to the last 4 by key name; name fields for what they
+  hold so `redact()` sees them. Never put a secret in an audit payload.
 
 ## Enforced by `vp run guard` (CI fails)
 

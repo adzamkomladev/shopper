@@ -55,7 +55,10 @@ async function startRegister() {
     process.argv.slice(1).find((arg) => arg.endsWith(".json")) ??
     process.env.SHOPPER_TILL_CONFIG ??
     join(userData, "register.json");
-  const text = await readFile(configPath, "utf8");
+  const text = await readFile(configPath, "utf8").catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== "ENOENT") throw error;
+    return firstRun(configPath, userData);
+  });
   let stored: { ui?: string; deviceToken?: unknown; sqlitePath?: unknown; identity?: unknown };
   try {
     stored = JSON.parse(text);
@@ -126,6 +129,24 @@ async function startRegister() {
     await writeAtomic(configPath, JSON.stringify(register, null, 2));
     host.send({ type: "start", config: await prepare(register), renderer: "parent" });
   }
+}
+
+/**
+ * A fresh install has no register file: write the install half of one, and the host starts as an enrolment host
+ * on the "Set up this till" screen. The packaged app serves its own UI, so it needs no other origin.
+ */
+async function firstRun(configPath: string, userData: string) {
+  const upstream = process.env.SHOPPER_TILL_UPSTREAM ?? buildInfo.tillUpstream;
+  if (!upstream)
+    throw new Error("This build names no server to enrol with (SHOPPER_TILL_UPSTREAM)");
+  const origins = app.isPackaged ? [] : [new URL(tillUi).origin];
+  const text = JSON.stringify(
+    { upstream, sqlitePath: join(userData, "register.sqlite"), origins, port: 0 },
+    null,
+    2,
+  );
+  await writeAtomic(configPath, text);
+  return text;
 }
 
 /** electron-updater on the build's feed; the host hears every state change and folds it into its status. */

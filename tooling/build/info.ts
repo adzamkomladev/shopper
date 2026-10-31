@@ -38,6 +38,8 @@ export const buildDefines = {
   ),
   // Empty turns the till's updater off, so dev and tests never phone home.
   TILL_UPDATE_URL: JSON.stringify(tillUpdateUrl),
+  // The API a fresh install enrols with: the cloud API, or the shop's box for on-prem builds.
+  TILL_UPSTREAM: JSON.stringify(process.env.SHOPPER_TILL_UPSTREAM ?? ""),
 };
 
 export function buildTask(command: string) {

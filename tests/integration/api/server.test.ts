@@ -3,6 +3,7 @@ import { promisify } from "node:util";
 import { beforeAll, expect, test } from "vite-plus/test";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "@shopper/db-pg";
+import { ratePolicies } from "@shopper/ports";
 import { postgresFixture } from "../../fixtures/postgres";
 import { migrateDatabase } from "../../../tooling/database/migrate";
 import { provisionOrg, provisioningContext } from "../../../tooling/database/seed";
@@ -35,6 +36,7 @@ test("the built Bun entry serves health and fails closed without runtime configu
 });
 
 test("Bun socket peers determine authentication limits despite forwarded headers", async () => {
+  const limit = ratePolicies.auth.limit;
   const fixture = await postgresFixture();
   try {
     const db = drizzle(fixture.client, { schema });
@@ -50,13 +52,13 @@ test("Bun socket peers determine authentication limits despite forwarded headers
       const server = Bun.serve({ ...configuration, hostname: "::", port: 0 });
       const statuses = [];
       try {
-        for (let attempt = 0; attempt < 5; attempt++) {
-          const peer = attempt === 4 ? "[::1]" : "127.0.0.1";
+        for (let attempt = 0; attempt <= ${limit + 1}; attempt++) {
+          const peer = attempt === ${limit + 1} ? "[::1]" : "127.0.0.1";
           const response = await fetch("http://" + peer + ":" + server.port + "/api/auth/sign-in/email", {
             method: "POST",
             headers: { "content-type": "application/json", "X-Forwarded-For": "203.0.113." + attempt,
               "X-Shopper-Client-IP": "203.0.113." + attempt },
-            body: JSON.stringify({ email: "missing@socket.invalid", password: "wrong-password" }),
+            body: JSON.stringify({ email: "missing" + attempt + "@socket.invalid", password: "wrong-password" }),
           });
           statuses.push(response.status);
         }
@@ -78,7 +80,8 @@ test("Bun socket peers determine authentication limits despite forwarded headers
         timeout: 30000,
       },
     );
-    expect(JSON.parse(stdout)).toEqual([401, 401, 401, 429, 401]);
+    // The socket peer is the key: forwarded headers never reset it, and another peer has its own budget.
+    expect(JSON.parse(stdout)).toEqual([...Array(limit).fill(401), 429, 401]);
   } finally {
     await fixture.close();
   }

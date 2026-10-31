@@ -20,8 +20,8 @@ test.describe("as the owner of E2E Mart", () => {
   });
 
   test("lists the seeded roles with how many permissions each holds", async ({ page }) => {
-    await expect(row(page, "Owner")).toContainText("40 of 40");
-    await expect(row(page, "cashier")).toContainText("8 of 40");
+    await expect(row(page, "Owner")).toContainText("41 of 41");
+    await expect(row(page, "cashier")).toContainText("8 of 41");
     await expect(page.getByRole("button", { name: "View permissions for Owner" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Edit permissions for cashier" })).toBeVisible();
   });
@@ -34,7 +34,7 @@ test.describe("as the owner of E2E Mart", () => {
     await expect(dialog(page)).toContainText("always has every permission");
     await expect(dialog(page).getByLabel("Name", { exact: true })).toBeDisabled();
     const switches = dialog(page).getByRole("switch");
-    await expect(switches).toHaveCount(40);
+    await expect(switches).toHaveCount(41);
     for (const toggle of await switches.all()) {
       await expect(toggle).toBeChecked();
       await expect(toggle).toBeDisabled();
@@ -65,7 +65,7 @@ test.describe("as the owner of E2E Mart", () => {
     await page.keyboard.press("ControlOrMeta+Enter");
     await expect(page.getByText("Role saved")).toBeVisible();
     await expect(dialog(page)).toBeHidden();
-    await expect(row(page, role.name)).toContainText("1 of 40");
+    await expect(row(page, role.name)).toContainText("1 of 41");
     await expect(trigger).toBeFocused();
     expect((await roleNamed(request, role.name)).permissionCodes).toEqual(["stock.write"]);
   });
@@ -101,7 +101,7 @@ test.describe("as the owner of E2E Mart", () => {
     }
     await page.keyboard.press("ControlOrMeta+Enter");
     await expect(page.getByText("Role created")).toBeVisible();
-    await expect(row(page, name)).toContainText("2 of 40");
+    await expect(row(page, name)).toContainText("2 of 41");
     expect((await roleNamed(request, name)).permissionCodes.sort()).toEqual([
       "product.read",
       "sale.create",
@@ -119,7 +119,7 @@ test.describe("as the owner of E2E Mart", () => {
   test("the till badge marks which permissions apply on a till", async ({ page }) => {
     await page.getByRole("button", { name: "Edit permissions for cashier" }).click();
     await expect(dialog(page).getByRole("group", { name: "Sales" })).toContainText("Till");
-    await expect(dialog(page).getByRole("group", { name: "People" })).not.toContainText("Till");
+    await expect(dialog(page).getByRole("group", { name: "Payments" })).not.toContainText("Till");
   });
 
   test("a slow list shows a skeleton; an unreachable server offers Try again", async ({

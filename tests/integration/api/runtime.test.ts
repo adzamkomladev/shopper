@@ -4,6 +4,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
 import { createBoxApp } from "@shopper/box";
+import { ratePolicies } from "@shopper/ports";
 import { migrateDatabase } from "../../../tooling/database/migrate";
 import { provisionOrg, provisioningContext } from "../../../tooling/database/seed";
 import { postgresFixture } from "../../fixtures/postgres";
@@ -159,7 +160,8 @@ test("box ignores caller IP spoofing when limiting password attempts", async () 
     SHOPPER_CACHE_PATH: ":memory:",
   });
   let status = 0;
-  for (let attempt = 0; attempt < 4; attempt++) {
+  // A fresh email each time, so only the address budget can refuse: the spoofed headers must not reset it.
+  for (let attempt = 0; attempt <= ratePolicies.auth.limit; attempt++) {
     const response = await runtime.fetch(
       new Request("http://localhost/api/auth/sign-in/email", {
         method: "POST",
@@ -168,7 +170,10 @@ test("box ignores caller IP spoofing when limiting password attempts", async () 
           "X-Shopper-Client-IP": `203.0.113.${attempt + 1}`,
           "X-Forwarded-For": `203.0.113.${attempt + 1}`,
         },
-        body: JSON.stringify({ email: "nonexistent@runtime.invalid", password: "wrong-password" }),
+        body: JSON.stringify({
+          email: `nonexistent${attempt}@runtime.invalid`,
+          password: "wrong-password",
+        }),
       }),
       { requestIP: () => ({ address: "192.0.2.40" }) },
     );
@@ -180,7 +185,7 @@ test("box ignores caller IP spoofing when limiting password attempts", async () 
     new Request("http://localhost/api/auth/sign-in/email", {
       method: "POST",
       headers: { "content-type": "application/json", "X-Shopper-Client-IP": "192.0.2.40" },
-      body: JSON.stringify({ email: "nonexistent@runtime.invalid", password: "wrong-password" }),
+      body: JSON.stringify({ email: "another@runtime.invalid", password: "wrong-password" }),
     }),
     { requestIP: () => ({ address: "192.0.2.41" }) },
   );

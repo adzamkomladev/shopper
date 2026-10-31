@@ -6,7 +6,7 @@ import { TILL_BODIES } from "./till";
  * every reference it takes. Validation then lets the request through, so the tenant check is what has to refuse it.
  * What a request creates gets a fresh id of its own: A never ends up holding one of B's ids.
  */
-export const BODIES: Record<string, (id: string, own: Session) => unknown> = {
+export const BODIES: Record<string, Body> = {
   "PATCH /catalogue/barcodes/mappings/:id": () => ({ decimals: 2 }),
   "PATCH /categories/:id": (id) => ({ name: "Sweep", parentId: id }),
   "PATCH /customers/:id": () => ({ name: "Sweep" }),
@@ -146,6 +146,11 @@ export const BODIES: Record<string, (id: string, own: Session) => unknown> = {
   "PUT /users/:id/branches": (id) => ({ branchIds: [id] }),
 };
 
+/**
+ * A body for one of B's ids. `own` is A's register and session; `other` is B's, for the one upload that hands A's
+ * register B's real credential to show only the shop check stands in the way.
+ */
+export type Body = (id: string, own: Session, other: Session) => unknown;
 export type Session = {
   sessionId: string;
   proof: string;

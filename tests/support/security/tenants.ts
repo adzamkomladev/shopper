@@ -70,8 +70,11 @@ export async function startTenants() {
     paystackSecret: "sk_test_tenant_sweep",
   };
   const [a, b] = [await tenant("a"), await tenant("b")];
-  await fill(b);
-  return { a: { ...a, till: await till(a, (await shop(a, "Shop A")).branch.id, "Shop A") }, b };
+  const tillB = await fill(b);
+  return {
+    a: { ...a, till: await till(a, (await shop(a, "Shop A")).branch.id, "Shop A") },
+    b: { ...b, till: tillB },
+  };
 }
 
 export async function stopTenants() {
@@ -170,7 +173,7 @@ async function fill(b: Tenant) {
     customer: { id: v7(), name: `${SENTINEL} customer`, phone: "0244000111" },
   });
   await seedStock(db, actor, branch.id);
-  await till(b, branch.id, SENTINEL);
+  return till(b, branch.id, SENTINEL);
 }
 
 async function shop(t: Tenant, name: string) {

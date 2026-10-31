@@ -1,13 +1,14 @@
 import { v7 } from "uuid";
 import { buildInfo } from "@shopper/config";
-import type { Session } from "./bodies";
+import { GENESIS_HASH, hashEntry } from "@shopper/audit";
+import type { Body, Session } from "./bodies";
 
 /**
  * A register's uploads, each a real till event that says truthfully it is A's (shop, register, session) and points
  * every reference at B, so the check behind the scope is the one that must refuse it. The audit row claims B's
  * shop outright: a till may only upload its own chain.
  */
-export const TILL_BODIES: Record<string, (id: string, own: Session) => unknown> = {
+export const TILL_BODIES: Record<string, Body> = {
   "POST /sync/handshake": () => ({
     requestId: v7(),
     appVersion: "0.0.0",
@@ -23,35 +24,8 @@ export const TILL_BODIES: Record<string, (id: string, own: Session) => unknown> 
     },
     proof: own.proof,
   }),
-  // A chain row that claims B's shop and register; the hashes are well formed, so only the scope can refuse it.
-  "POST /sync/audit": (id) => ({
-    requestId: v7(),
-    entries: [
-      {
-        id: v7(),
-        orgId: id,
-        actorId: id,
-        role: "cashier",
-        deviceId: id,
-        branchId: id,
-        approverId: null,
-        reason: null,
-        deviceTime: new Date().toISOString(),
-        entity: "sale",
-        entityId: id,
-        before: null,
-        after: null,
-        appVersion: buildInfo.version,
-        command: "sale.record",
-        payload: {},
-        chainSeq: 1,
-        prevHash: "0".repeat(64),
-        hash: "0".repeat(64),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ],
-  }),
+  // A chain row that claims B's shop, correctly hashed: only the shop check can refuse it.
+  "POST /sync/audit": async (id) => ({ requestId: v7(), entries: [await foreignEntry(id)] }),
   "POST /sync/stock": (id, own) => ({
     requestId: v7(),
     document: {
@@ -65,10 +39,11 @@ export const TILL_BODIES: Record<string, (id: string, own: Session) => unknown> 
     },
     proof: own.proof,
   }),
-  "POST /sync/sessions": (id, own) => ({
-    proof: own.proof,
+  // B's real session and proof, offered from A's register: only the shop check stands in the way.
+  "POST /sync/sessions": (_id, _own, other) => ({
+    proof: `${other.proof}.${v7()}`,
     offline: {
-      parentSessionId: id,
+      parentSessionId: other.sessionId,
       issuedAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
       permissions: ["sale.create"],
@@ -181,4 +156,39 @@ function refund(id: string, own: Session) {
     pointsValue: 0,
     tender: { kind: "cash" },
   };
+}
+
+/** The first row of a register's chain, written as if in B's shop. */
+async function foreignEntry(id: string) {
+  const at = new Date().toISOString();
+  const entry = {
+    id: v7(),
+    orgId: id,
+    actorId: id,
+    role: "cashier",
+    deviceId: id,
+    branchId: id,
+    approverId: null,
+    reason: null,
+    deviceTime: at,
+    entity: "sale",
+    entityId: id,
+    before: null,
+    after: null,
+    appVersion: buildInfo.version,
+    command: "sale.record",
+    payload: {},
+    chainSeq: 1,
+    prevHash: GENESIS_HASH,
+    createdAt: at,
+    updatedAt: at,
+  };
+  // The chain hashes its timestamps as dates; the upload carries them as text.
+  const dated = {
+    ...entry,
+    deviceTime: new Date(at),
+    createdAt: new Date(at),
+    updatedAt: new Date(at),
+  };
+  return { ...entry, hash: await hashEntry({ ...dated, hash: null } as never) };
 }

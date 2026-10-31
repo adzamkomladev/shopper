@@ -36,6 +36,15 @@ const FOREIGN_KEYS = [
 // sale may not have synced yet, so the request keeps the id as written, and the refund itself is checked in A's
 // shop when it arrives (the sweep's own refund of B's sale is refused).
 const REFERENCES_KEPT = ["public.approval_request"];
+// Services this runtime leaves off: Hubtel's credentials, the settlement workflow, the PDF renderer, and presigned
+// uploads (filesystem blobs never take client files). The two upload grants carry file metadata, never an id.
+const UNAVAILABLE = [
+  "POST /webhooks/hubtel",
+  "POST /reconciliation/settlements/refresh",
+  "GET /public/statements/:token/pdf",
+  "POST /catalogue/imports/uploads",
+  "POST /kyb/documents",
+];
 // A till's own calls: sync uploads, MoMo, and asking the back office for an approval.
 const FROM_TILL = /^(POST|GET) \/(sync|payments)(\/|$)|^POST \/approvals$/;
 // The input never reached the handler: the request proves nothing about the shop check behind it.
@@ -55,25 +64,26 @@ test("every route, called as shop A with shop B's ids, returns nothing of B and 
   let reached = 0;
   for (const route of routes()) {
     const key = `${route.method} ${route.path}`;
-    const attempts = route.path.includes(":") ? foreign : [foreign[1]!];
+    const write = route.method !== "GET";
+    // Writes carry B's ids in their bodies too: each is tried with every one, so a reference meets its own table.
+    const attempts = write || route.path.includes(":") ? foreign : [foreign[1]!];
     for (const id of attempts) {
       const path = route.path.replace(
         /:([A-Za-z]+)(\{[^}]*\})?\??|\*/g,
         (_match, name?: string) => (name && PARAMS[name]) || id,
       );
       const query = FOREIGN_KEYS.map((field) => `${field}=${id}`).join("&");
-      const write = route.method !== "GET";
       const response = await call(a, write ? path : `${path}?${query}`, {
         method: route.method,
         body: write
-          ? (BODIES[key]?.(id, a.till) ??
+          ? ((await BODIES[key]?.(id, a.till, b.till)) ??
             Object.fromEntries(FOREIGN_KEYS.map((field) => [field, id])))
           : undefined,
         till: FROM_TILL.test(key) ? a.till : undefined,
       });
       if (![401, 403].includes(response.status)) reached += 1;
-      // 503 is a runtime without that optional service (Hubtel, settlements); anything else is a crash.
-      if (response.status >= 500 && response.status !== 503)
+      // Only a service this runtime leaves off may answer 503; any other 5xx is a crash, even a refused write.
+      if (response.status >= 500 && !(response.status === 503 && UNAVAILABLE.includes(key)))
         crashes.push(`${route.method} ${path} (${response.status})`);
       const raw = await response.text();
       if (!UNCHECKED.test(raw)) checked.add(key);
@@ -102,7 +112,7 @@ test("every route, called as shop A with shop B's ids, returns nothing of B and 
   // Every id A created is its own: none of B's ids became a row of A's, and none of A's rows points at B.
   expect([...(await heldBy(db, tables, a.orgId, foreign))]).toEqual([]);
   expect(await referencesTo(db, tables, a.orgId, foreign)).toEqual(REFERENCES_KEPT);
-}, 600_000);
+}, 1_800_000);
 
 test("A's session naming B as the shop is refused everywhere, and B's own lists stay B's", async () => {
   const lists = routes().filter((route) => route.method === "GET" && !route.path.includes(":"));

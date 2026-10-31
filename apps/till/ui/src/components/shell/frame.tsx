@@ -22,6 +22,7 @@ export function ShellFrame({
   onAction,
   onSignOut,
   modal,
+  notice,
   children,
 }: {
   user: string;
@@ -34,6 +35,8 @@ export function ShellFrame({
   onSignOut: () => void;
   /** A dialog is open: it owns the keyboard, so none of the shell's keys fire behind it. */
   modal: boolean;
+  /** A banner under the status bar, such as a waiting update. */
+  notice?: ReactNode;
   children: ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -72,6 +75,7 @@ export function ShellFrame({
       <div className="flex h-svh min-h-0 flex-col bg-muted/50" ref={register}>
         <TitleBar />
         <StatusBar label={link.label} registerName={registerName} state={link.state} user={user} />
+        {notice}
         <div className="flex min-h-0 flex-1 flex-col px-4 pt-1 pb-2 sm:px-8">
           <ShellTabs onChange={onView} permissions={permissions} view={view} />
           <div className="min-h-0 flex-1">{children}</div>

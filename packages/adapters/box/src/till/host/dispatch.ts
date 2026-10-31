@@ -165,6 +165,9 @@ export function createDispatch(host: Host) {
           host.updates.install((await shiftSummary(database, identity)).current !== null);
           break;
         }
+        case "register.update.check":
+          host.updates.check();
+          break;
         case "device.enrol":
           return error(request, "ALREADY_ENROLLED", "This till is already enrolled");
         case "shutdown":

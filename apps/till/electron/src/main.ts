@@ -120,6 +120,7 @@ async function startRegister() {
         crash.tag("channel", (message as UpdatePolicy).channel);
         updates?.policy(message as UpdatePolicy);
       } else if (message?.type === "update-install") updates?.install();
+      else if (message?.type === "update-check") updates?.check();
       else if (message?.type === "enrolled" && message.registration)
         void enrol(message.registration).catch((error: unknown) => fail("Register stopped", error));
       else if (message?.type === "ready" && message.capability) {

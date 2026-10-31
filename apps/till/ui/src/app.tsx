@@ -8,7 +8,7 @@ import {
   RegisterReports,
 } from "@shopper/backoffice/register";
 import { AppBackdrop } from "@shopper/ui/components/app-backdrop";
-import { Toaster } from "@shopper/ui/components/sonner";
+import { Toaster, toast } from "@shopper/ui/components/sonner";
 import { ShortcutRoot } from "@shopper/ui/hooks/shortcuts";
 import { DisplayScreen } from "./screens/display/screen";
 import { ConnectionScreen } from "./screens/connection/screen";
@@ -18,6 +18,8 @@ import { SettingsScreen } from "./screens/settings/screen";
 import { ShiftScreen } from "./screens/shift/screen";
 import { SignInScreen } from "./screens/signin/screen";
 import { EnrolScreen } from "./screens/enrol/screen";
+import { UpdateScreen } from "./screens/update/screen";
+import { UpdateBanner } from "./components/update/banner";
 import { enrolTill } from "./enrol/store";
 import { ShellFrame } from "./components/shell/frame";
 import { shellLink } from "./components/shell/link";
@@ -28,7 +30,12 @@ import { ShiftDialogs } from "./components/shift/dialogs/host";
 import { useShiftDialogs } from "./hooks/shift/dialog/state";
 import type { ShellView } from "./components/shell/types";
 import { landingView } from "./components/shell/views";
-import { connectRegister, initializeConnection, useConnectionSnapshot } from "./connection/store";
+import {
+  connectRegister,
+  initializeConnection,
+  request,
+  useConnectionSnapshot,
+} from "./connection/store";
 import { initializeDisplay, useDisplaySnapshot } from "./display/store";
 import { paymentActions } from "./sale/accounts";
 import { saleActions, useSaleSnapshot } from "./sale/store";
@@ -77,6 +84,18 @@ function Register() {
         snapshot={signing}
       />
     );
+  const update = connection.status?.update;
+  // Below the server's minimum no new shift opens; one already open runs to its close with the shell's banner.
+  if (update?.required && !connection.status?.shift?.current)
+    return (
+      <UpdateScreen
+        offline={connection.status?.server === "offline"}
+        onRestart={() => void askUpdate("register.update.install")}
+        onRetry={() => void askUpdate("register.update.check")}
+        onSignOut={() => void signOut()}
+        update={update}
+      />
+    );
   return view === "till" ? (
     <Workspace key={user?.userId ?? "register"} onRegister={() => setView("connection")} />
   ) : (
@@ -84,6 +103,11 @@ function Register() {
       <ConnectionScreen onSell={() => setView("till")} />
     </AppBackdrop>
   );
+}
+
+async function askUpdate(type: "register.update.install" | "register.update.check") {
+  const reply = await request({ type });
+  if (reply?.type === "error") toast.error(reply.message);
 }
 
 function Workspace({ onRegister }: { onRegister: () => void }) {
@@ -113,6 +137,7 @@ function Workspace({ onRegister }: { onRegister: () => void }) {
       <ShellFrame
         link={link}
         modal={modal}
+        notice={<UpdateBanner update={status?.update} />}
         onAction={dialogs.start}
         onSignOut={() => void signOut()}
         onView={navigate}

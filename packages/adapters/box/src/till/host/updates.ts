@@ -61,6 +61,7 @@ export function createUpdates(send: (message: unknown) => void) {
       policy = JSON.stringify(next);
       send(next);
     },
+    check: () => send({ type: "update-check" }),
     install(shiftOpen: boolean) {
       if (shiftOpen)
         throw new TillError("SHIFT_OPEN", "Close the shift before restarting to update");

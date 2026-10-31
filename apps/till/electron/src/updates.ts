@@ -74,6 +74,8 @@ export function createUpdates(
       installNow();
       return true;
     },
+    /** A cashier's Retry after a failed download. */
+    check,
     stop: () => clearInterval(timer),
   };
 }

@@ -33,9 +33,10 @@ export const updateStatus = v.strictObject({
   channel: v.picklist(updateChannels),
 });
 
-/** Restart into a downloaded update; refused while a shift is open. */
+/** Restart into a downloaded update (refused while a shift is open), or read the feed again after a failure. */
 export const updateRequests = [
   v.strictObject({ id: uuidV7Schema, type: v.literal("register.update.install") }),
+  v.strictObject({ id: uuidV7Schema, type: v.literal("register.update.check") }),
 ] as const;
 export const updateRequestTypes = updateRequests.map((schema) => schema.entries.type.literal);
 

@@ -87,6 +87,18 @@ test("a feed that is down leaves the register usable with the state at error", a
   expect(updates!.install()).toBe(false);
 });
 
+test("Retry after the feed was down reads it again and downloads", async () => {
+  releases.stable = null;
+  const { states } = start();
+  updates!.policy({ channel: "stable", required: false, shiftOpen: false });
+  await expect.poll(() => states.at(-1)?.state).toBe("error");
+  releases.stable = "0.1.2";
+  updates!.check();
+  await expect
+    .poll(() => states.at(-1))
+    .toEqual({ state: "ready", version: "0.1.2", percent: 100 });
+});
+
 function start() {
   const updater = new FeedUpdater();
   const states: UpdateState[] = [];

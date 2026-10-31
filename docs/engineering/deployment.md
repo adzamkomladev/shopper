@@ -119,6 +119,35 @@ move to stable releases, drop the waiver entries, and migrate `apps/shop`.
 - On start, the binary runs pending migrations, records the version in `shopper_meta`, then serves.
 - Rollback = restore the pre-upgrade backup + previous binary. Migrations never run backwards.
 
+## Till release (Day 27)
+
+The register ships as a per-user NSIS installer (x64 only: `better-sqlite3-multiple-ciphers` has no win32-ia32
+prebuild) and updates itself with electron-updater from an R2 feed.
+
+- **Feed.** Bucket `shopper-till-releases` behind a custom domain, set as `SHOPPER_TILL_UPDATE_URL` at build time.
+  Each channel is a folder, `pilot/` and `stable/`, each with `latest.yml`, the installer and its blockmap.
+  `stable/Shopper-Setup-x64.exe` is the download alias the onboarding wizard links to (`SHOPPER_TILL_DOWNLOAD_URL`
+  defaults to it). `latest.yml` and the alias are `no-cache`; versioned files are immutable.
+- **Release.** Bump `package.json`, then run the `Release till` workflow (`.github/workflows/release-till.yml`,
+  environment `till-release`). It builds a signed installer (`till:package -- --win nsis --x64 --channel pilot
+  --sign`) and `till:release -- --channel pilot` uploads it, refusing a version already there and a `latest.yml`
+  whose sha512 does not match. `latest.yml` goes last, so a till never sees a version whose files are missing.
+- **Signing.** Azure Trusted Signing. Secrets `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`;
+  variables `AZURE_TRUSTED_SIGNING_ENDPOINT`, `_ACCOUNT`, `_PROFILE`, `_PUBLISHER`. `--sign` without all seven fails
+  and names the missing ones.
+- **Channels.** Each org has `update_channel` (`stable` by default). Platform staff with `platform.tenant.update`
+  move an org on the admin Tenants list. The till hears its channel in the sync handshake and follows that feed.
+- **Promotion.** Once the pilot shop has run a build, `vp run till:promote` copies pilot's current release to
+  `stable/` and repoints the alias.
+- **Minimum version.** `SHOPPER_MIN_TILL_VERSION` (edge and portal text binding, box environment) is sent in the
+  handshake. A till below it finishes its open shift, then opens no new one until it updates (`UPDATE_REQUIRED`);
+  with no shift open, main installs the update as soon as it is downloaded. Empty means no minimum.
+- **Installs.** A downloaded update installs when the register next quits, never during a shift. Restart now on the
+  Update required screen installs at once (needs `register.settings` and no open shift).
+- **Rollback.** There is no downgrade: publish a higher patch with the fix (or the previous code) and promote it.
+- **Crashes.** `SHOPPER_SENTRY_DSN` at build time turns on Sentry in the main process. Events are scrubbed with
+  `redact()`, the register's secrets and Ghana phone numbers before they leave the till.
+
 ## Versions (never hard-code one)
 
 - `package.json` owns the product version (SemVer). `tooling/build/info.ts` injects
@@ -288,5 +317,5 @@ engine, and has no subscription, so it is never read-only. Billing is cloud only
 - The admin Worker deploys like the portal (`apps/admin`, staging and production environments) and sets
   `SHOPPER_PLATFORM_ORG` to the platform org's code. Seed that org with its owner before the first sign-in.
 - `SHOPPER_TILL_DOWNLOAD_URL` is read at build time for the wizard's installer link. Unset, the Till step says the
-  installer is coming soon and still issues enrolment codes. The signed installer is Day 27.
+  installer is coming soon and still issues enrolment codes. Day 27 defaults it to the stable feed's alias.
 - KYB documents live in the receipts bucket under `receipts/kyb/`.

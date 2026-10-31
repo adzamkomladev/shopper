@@ -194,6 +194,13 @@ transport delivery; business processes still use Workflows.
 
 Direct browser asset uploads are managed by `@shopper/assets` and use presigned PUT to R2/RustFS. Imports, till receipt PDFs (`receipts/` keys, own bucket) and generated snapshots have separate policies; no upload bytes pass through Hono. Blobs supports bounded reads for integrity validation immediately before processing. Server-generated objects retain the existing R2/filesystem paths; an unavailable S3 upload store fails rather than proxying bytes. See [assets.md](assets.md).
 
+### Till update feed (Day 27)
+
+The till update feed is static files in R2 (`shopper-till-releases`), read by electron-updater's generic provider
+over the bucket's custom domain; no Worker serves it. `tooling/till/feed/store.ts` writes it through the S3 API with
+aws4fetch (`SHOPPER_TILL_RELEASE_*`), so the release tooling runs against RustFS in tests. The policy (channel and
+minimum version) comes from PostgreSQL through the sync handshake, not from the feed.
+
 ## KYC workflow
 
 `KycWorkflow` is the cloud shell behind `KYC_FLOWS` (`shopper-kyc-<stage>`); `boxKycFlows` is the on-prem

@@ -18,7 +18,9 @@
     "storage:setup": "tsx tooling/storage/setup.ts",
     "fonts:receipt": "tsx tooling/fonts/receipt.ts",
     "till:package": "tsx tooling/build/package.ts",
-    "till:provision": "tsx tooling/till/provision.ts"
+    "till:provision": "tsx tooling/till/provision.ts",
+    "till:release": "tsx tooling/till/release.ts",
+    "till:promote": "tsx tooling/till/promote.ts"
   },
   "devDependencies": {
     "@babel/core": "7.29.7",

@@ -12,11 +12,24 @@ export type Row = { id: string; name: string };
 /** A short id that is new on every run, so tests never collide on a reused server. */
 export const unique = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 
-/** Headers that address one shop as the signed-in owner (the request fixture carries the cookie). */
+/**
+ * Headers that address one shop as the signed-in owner (the request fixture carries the cookie). A shop's id never
+ * changes, so it is looked up once per worker: the lookup spends the public rate limit, and seeding bursts past it.
+ */
 export async function shopHeaders(request: APIRequestContext, shop: Shop = MART) {
-  const org = await request.get(`${BOX_API}/orgs/${shop.code}`);
-  const { id } = (await org.json()) as { id: string };
+  const id = await (orgIds.get(shop.code) ?? lookUp(request, shop));
   return { "X-Shopper-Org": id, Origin: PORTAL_ORIGIN };
+}
+
+const orgIds = new Map<string, Promise<string>>();
+function lookUp(request: APIRequestContext, shop: Shop) {
+  const id = request.get(`${BOX_API}/orgs/${shop.code}`).then(async (org) => {
+    expect(org.status(), `look up ${shop.code}`).toBe(200);
+    return ((await org.json()) as { id: string }).id;
+  });
+  orgIds.set(shop.code, id);
+  id.catch(() => orgIds.delete(shop.code));
+  return id;
 }
 
 export async function post<T>(request: APIRequestContext, path: string, data: unknown) {

@@ -1,5 +1,6 @@
 import { expect, type APIRequestContext, type Page } from "@playwright/test";
-import { BOX_API, MART, PORTAL_ORIGIN } from "./e2e";
+import { BOX_API } from "./e2e";
+import { shopHeaders } from "./admin";
 
 // Runs on the saved owner session. Earlier runs may have left products behind on a reused server,
 // so every test names its products with a tag that is new each time.
@@ -8,16 +9,10 @@ export const barcodeOf = () => String(Date.now()).padStart(13, "0");
 
 export type Draft = { name: string; sku: string; barcode?: string };
 
-async function orgHeaders(request: APIRequestContext) {
-  const org = await request.get(`${BOX_API}/orgs/${MART.code}`);
-  const { id } = (await org.json()) as { id: string };
-  return { "X-Shopper-Org": id, Origin: PORTAL_ORIGIN };
-}
-
 /** Creates a product through the API as the saved owner (there is no tax class list: it is a fixed set). */
 export async function seed(request: APIRequestContext, draft: Draft) {
   const created = await request.post(`${BOX_API}/products`, {
-    headers: await orgHeaders(request),
+    headers: await shopHeaders(request),
     data: {
       name: draft.name,
       sku: draft.sku,
@@ -51,7 +46,7 @@ export async function fillSheet(page: Page, draft: Draft) {
 /** Gives a product an org-wide price (in money units, 1 GHS = 10000) through the API. */
 export async function seedPrice(request: APIRequestContext, productId: string, amount: number) {
   const created = await request.post(`${BOX_API}/products/${productId}/prices`, {
-    headers: await orgHeaders(request),
+    headers: await shopHeaders(request),
     data: { amount, reason: "Seeded price" },
   });
   expect(created.status(), await created.text()).toBe(201);

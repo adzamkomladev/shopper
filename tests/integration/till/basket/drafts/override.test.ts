@@ -7,7 +7,7 @@ import { verifyChain, type AuditEntry } from "@shopper/audit";
 import { setDraftPrice } from "@shopper/core/till";
 import { tillAudit } from "@shopper/db-sqlite";
 import { manager, startWithManager } from "../../../../support/till/host/approvals";
-import { pin as managerPin } from "../../../../support/till/approvers";
+import { auditText, pin as managerPin } from "../../../../support/till/approvers";
 import {
   add,
   at,
@@ -59,7 +59,7 @@ it("Override without manager PIN is refused; with PIN, audit shows both actor an
     before: { unitPrice: 12_000 },
     after: { unitPrice: 9_000, reason, lineId },
   });
-  expect(JSON.stringify(rows)).not.toContain(managerPin);
+  expect(auditText(rows)).not.toContain(managerPin);
   expect(await verifyChain(rows as AuditEntry[])).toMatchObject({ valid: true });
 });
 

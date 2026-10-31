@@ -125,7 +125,7 @@ test("every rate-limit policy has its own edge binding with the same budget and 
   for (const [policy, budget] of Object.entries(ratePolicies)) {
     const binding = `RATE_${policy.toUpperCase()}`;
     expect(bound[binding]).toMatchObject({
-      type: "ratelimit",
+      type: "rate-limit",
       simple: { limit: budget.limit, period: budget.period },
     });
     namespaces.add(bound[binding].namespace);

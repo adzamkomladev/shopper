@@ -40,7 +40,13 @@ test("provision enrolls with a code and writes a 0600 register.json", async () =
     host.fetch(
       new Request(`http://localhost${path}`, {
         method: "POST",
-        headers: { "content-type": "application/json", "X-Shopper-Org": tenant.orgId, ...headers },
+        // A browser names its origin; a cookie write without one is refused as cross-site.
+        headers: {
+          "content-type": "application/json",
+          Origin: "http://localhost",
+          "X-Shopper-Org": tenant.orgId,
+          ...headers,
+        },
         body: JSON.stringify(data),
       }),
     );

@@ -196,7 +196,8 @@ test("real Worker auth session authorizes audited store routes", async () => {
     expect(cookie).toBeTruthy();
     const created = await SELF.fetch("https://shopper.test/stores", {
       method: "POST",
-      headers: { ...headers, cookie: cookie! },
+      // A cookie write names its origin, the way a browser does, or it is refused as cross-site.
+      headers: { ...headers, cookie: cookie!, Origin: "https://shopper.test" },
       body: JSON.stringify({ name: "Authenticated Worker store" }),
     });
     expect(created.status).toBe(201);

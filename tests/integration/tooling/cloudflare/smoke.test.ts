@@ -20,20 +20,31 @@ const options = { attempts: 2, delayMs: 0 };
 const html = { "content-type": "text/html" };
 const json = { "content-type": "application/json" };
 const health = [200, { ...json, "Shopper-Version": "1.2.3" }, '{"status":"ok"}'] as const;
+const ready = [200, json, '{"status":"ready","checks":{}}'] as const;
 
-test("edge passes when /health is ok and reports the expected version", async () => {
-  const url = await serve({ "/health": [...health] });
+test("edge passes when /health is ok and reports the expected version, and it is ready", async () => {
+  const url = await serve({ "/health": [...health], "/health/ready": [...ready] });
   expect(await smoke("edge", url, "1.2.3", options)).toEqual([]);
 });
 
 test("edge fails on a wrong version header and on an unhealthy status", async () => {
-  const wrong = await serve({ "/health": [...health] });
+  const wrong = await serve({ "/health": [...health], "/health/ready": [...ready] });
   expect(await smoke("edge", wrong, "9.9.9", options)).toEqual([
     "GET /health: Shopper-Version 1.2.3, expected 9.9.9",
   ]);
   server?.close();
-  const down = await serve({ "/health": [503, {}, "down"] });
+  const down = await serve({ "/health": [503, {}, "down"], "/health/ready": [...ready] });
   expect(await smoke("edge", down, "1.2.3", options)).toEqual(["GET /health: status 503"]);
+});
+
+test("edge fails while its database, schema or cache is not ready", async () => {
+  const url = await serve({
+    "/health": [...health],
+    "/health/ready": [503, json, '{"status":"not ready","checks":{"schema":"error"}}'],
+  });
+  expect(await smoke("edge", url, "1.2.3", options)).toEqual([
+    'GET /health/ready: status 503 {"status":"not ready","checks":{"schema":"error"}}',
+  ]);
 });
 
 test("portal passes with the shell on / and /products and JSON on /api/health", async () => {
@@ -75,9 +86,9 @@ test("portal fails a shell prerendered against the dev client entry", async () =
 
 test("a check that recovers on a later attempt passes", async () => {
   let calls = 0;
-  server = createServer((_request, response) => {
+  server = createServer((request, response) => {
     response.writeHead(++calls === 1 ? 502 : 200, { ...json, "Shopper-Version": "1.2.3" });
-    response.end('{"status":"ok"}');
+    response.end(request.url === "/health/ready" ? '{"status":"ready"}' : '{"status":"ok"}');
   });
   await new Promise<void>((done) => server!.listen(0, "127.0.0.1", done));
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;

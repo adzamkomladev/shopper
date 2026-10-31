@@ -21,13 +21,13 @@ const secrets = [
   "MAILEROO_API_KEY",
   "MAILEROO_FROM",
   "PAYSTACK_SECRET_KEY",
-  "HUBTEL_CLIENT_ID",
-  "HUBTEL_CLIENT_SECRET",
-  "HUBTEL_MERCHANT_ACCOUNT",
   "ARKESEL_API_KEY",
   "SHOPPER_S3_ACCESS_KEY_ID",
   "SHOPPER_S3_SECRET_ACCESS_KEY",
 ];
+// Hubtel is optional. A declared secret is required at deploy, so only dev declares these (dev
+// loads declared keys alone from .dev.vars); on staging, `cf secret put` binds them undeclared.
+const hubtel = ["HUBTEL_CLIENT_ID", "HUBTEL_CLIENT_SECRET", "HUBTEL_MERCHANT_ACCOUNT"];
 
 export default defineConfig(({ mode }) => {
   const stage = mode === "staging" ? "staging" : "dev";
@@ -158,7 +158,12 @@ export default defineConfig(({ mode }) => {
         SHOPPER_S3_REGION: bindings.text("auto"),
         // The registered Arkesel sender ID (11 characters at most).
         ARKESEL_SENDER: bindings.text("Shopper"),
-        ...Object.fromEntries(secrets.map((secret) => [secret, bindings.secret()])),
+        ...Object.fromEntries(
+          [...secrets, ...(stage === "dev" ? hubtel : [])].map((secret) => [
+            secret,
+            bindings.secret(),
+          ]),
+        ),
         ...(stage === "dev" ? { SHOPPER_BOOTSTRAP_TOKEN: bindings.secret() } : {}),
       },
       // Declarative exports, not migrations: staging was first deployed with `exports` and

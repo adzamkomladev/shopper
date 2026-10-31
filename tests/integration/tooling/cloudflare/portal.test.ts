@@ -107,6 +107,11 @@ test("configuration is text, credentials are secrets, and the prerender flag nev
     type: "text",
     value: "shopper-receipts-staging",
   });
+  expect(env.PAYSTACK_SECRET_KEY).toMatchObject({ type: "secret" });
+  // Hubtel is optional: a declared secret is required at deploy, so staging leaves it undeclared.
+  expect(env.HUBTEL_CLIENT_ID).toBeUndefined();
+  expect(env.HUBTEL_CLIENT_SECRET).toBeUndefined();
+  expect(env.HUBTEL_MERCHANT_ACCOUNT).toBeUndefined();
   expect(env.TSS_PRERENDERING).toBeUndefined();
   const files = readdirSync(output, { recursive: true }).map(String);
   expect(files.filter((file) => file.includes(".dev.vars"))).toEqual([]);

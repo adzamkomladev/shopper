@@ -11,6 +11,8 @@ const ids = {
     hyperdrive: "dfa4e3a17ca546ed8213ed257912db3f",
     d1: "44230678-333c-446c-af51-22fe0c8eb20e",
   },
+  // Filled when production is provisioned (docs/pilot/cutover.md); deploy.ts refuses a build without them.
+  production: { hyperdrive: "", d1: "" },
 } as const;
 const localPostgres = "postgresql://shopper:shopper_dev_only@127.0.0.1:5432/shopper";
 // Credentials stay secrets; everything else the S3 signer needs is plain configuration.
@@ -26,11 +28,12 @@ const secrets = [
   "SHOPPER_S3_SECRET_ACCESS_KEY",
 ];
 // Hubtel is optional. A declared secret is required at deploy, so only dev declares these (dev
-// loads declared keys alone from .dev.vars); on staging, `cf secret put` binds them undeclared.
+// loads declared keys alone from .dev.vars); deployed, `cf secret put` binds them undeclared.
 const hubtel = ["HUBTEL_CLIENT_ID", "HUBTEL_CLIENT_SECRET", "HUBTEL_MERCHANT_ACCOUNT"];
 
 export default defineConfig(({ mode }) => {
-  const stage = mode === "staging" ? "staging" : "dev";
+  // A plain `vite build` already runs in mode "production", so the production release builds as "prod".
+  const stage = mode === "staging" ? "staging" : mode === "prod" ? "production" : "dev";
   const name = `shopper-edge-${stage}`;
   const workflow = (flow: string) => `shopper-${flow}-${stage}`;
   const remoteInDev = stage === "dev" ? { dev: { remote: true } } : {};
@@ -45,6 +48,7 @@ export default defineConfig(({ mode }) => {
       ...(stage === "staging"
         ? { workersDev: true, domains: ["shopper-api-staging.temtem.dev"] }
         : {}),
+      ...(stage === "production" ? { domains: ["shopper-api.temtem.dev"] } : {}),
       // Failed notifications retry five times, then land in the dead-letter queue. The config
       // loader cannot import workspace packages; edge.test.ts pins these to NOTIFICATION_RETRY.
       triggers: [

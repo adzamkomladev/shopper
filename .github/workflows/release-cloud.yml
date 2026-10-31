@@ -1,0 +1,43 @@
+name: Release cloud
+# Production Workers, edge then portal then admin. Without "promote" each Worker uploads a version that serves
+# nothing; with it, the edge migrates, every Worker goes to all traffic and is smoke tested
+# (tooling/cloudflare/deploy.ts, docs/pilot/cutover.md). Staging stays on Workers Builds.
+on:
+  workflow_dispatch:
+    inputs:
+      promote:
+        description: Migrate and send all traffic to this build
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: release-cloud
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # Production credentials live on this environment, so a release needs its approval.
+    environment: cloud-production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_SEND_TELEMETRY: "false"
+      # The direct, non-pooled Neon production URL: the edge's migrations run over it.
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      FLAGS: ${{ inputs.promote && '--promote' || '' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+      - run: vp run build:production
+        working-directory: apps/edge
+      - run: vp run deploy:production -- $FLAGS
+        working-directory: apps/edge
+      - run: vp run build:production
+        working-directory: apps/portal
+      - run: vp run deploy:production -- $FLAGS
+        working-directory: apps/portal
+      - run: vp run build:production
+        working-directory: apps/admin
+      - run: vp run deploy:production -- $FLAGS
+        working-directory: apps/admin

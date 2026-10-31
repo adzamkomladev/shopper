@@ -11,6 +11,12 @@ const ids = {
     hyperdrive: "dfa4e3a17ca546ed8213ed257912db3f",
     d1: "44230678-333c-446c-af51-22fe0c8eb20e",
   },
+  // Filled when production is provisioned (docs/pilot/cutover.md); deploy.ts refuses a build without them.
+  production: { hyperdrive: "", d1: "" },
+} as const;
+const origins = {
+  staging: "https://shopper-staging.temtem.dev",
+  production: "https://shopper.temtem.dev",
 } as const;
 const localPostgres = "postgresql://shopper:shopper_dev_only@127.0.0.1:5432/shopper";
 const secrets = [
@@ -22,11 +28,12 @@ const secrets = [
   "SHOPPER_S3_SECRET_ACCESS_KEY",
 ];
 // Hubtel is optional. A declared secret is required at deploy, so only dev declares these (dev
-// loads declared keys alone from .dev.vars); on staging, `cf secret put` binds them undeclared.
+// loads declared keys alone from .dev.vars); deployed, `cf secret put` binds them undeclared.
 const hubtel = ["HUBTEL_CLIENT_ID", "HUBTEL_CLIENT_SECRET", "HUBTEL_MERCHANT_ACCOUNT"];
 
 export default defineConfig(({ mode }) => {
-  const stage = mode === "staging" ? "staging" : "dev";
+  // A plain `vite build` already runs in mode "production", so the production release builds as "prod".
+  const stage = mode === "staging" ? "staging" : mode === "prod" ? "production" : "dev";
   // The Durable Objects and Workflows live in the edge Worker; apps never import each other,
   // so the portal names it.
   const edge = `shopper-edge-${stage}`;
@@ -44,15 +51,13 @@ export default defineConfig(({ mode }) => {
         notFoundHandling: "single-page-application",
         runWorkerFirst: ["/api/*", "/_serverFn/*"],
       },
-      ...(stage === "staging" ? { domains: ["shopper-staging.temtem.dev"] } : {}),
+      ...(stage === "dev" ? {} : { domains: [origins[stage].slice("https://".length)] }),
       env: {
         ASSETS: bindings.assets(),
         SHOPPER_ENVIRONMENT: bindings.text(stage),
         // Tills below it update before their next shift; empty is no minimum. Raise it per environment.
         SHOPPER_MIN_TILL_VERSION: bindings.text(""),
-        SHOPPER_AUTH_URL: bindings.text(
-          stage === "staging" ? "https://shopper-staging.temtem.dev" : "http://localhost:5173",
-        ),
+        SHOPPER_AUTH_URL: bindings.text(stage === "dev" ? "http://localhost:5173" : origins[stage]),
         CACHE_DB: bindings.d1({ name: `shopper-cache-${stage}`, id: ids[stage].d1 }),
         HYPERDRIVE: bindings.hyperdrive({
           id: ids[stage].hyperdrive,

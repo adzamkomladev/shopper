@@ -64,6 +64,11 @@ export default defineConfig(({ mode }) => {
         IMPORTS: bindings.r2({ name: `shopper-imports-${stage}`, ...remoteInDev }),
         RECEIPTS: bindings.r2({ name: `shopper-receipts-${stage}`, ...remoteInDev }),
         NOTIFICATIONS: bindings.queue({ name: `shopper-notifications-${stage}` }),
+        // The edge's namespaces: one budget per client across every Worker that serves the API.
+        RATE_AUTH: bindings.rateLimit({ namespace: "2601", simple: { limit: 5, period: 10 } }),
+        RATE_PUBLIC: bindings.rateLimit({ namespace: "2602", simple: { limit: 30, period: 10 } }),
+        RATE_ENROL: bindings.rateLimit({ namespace: "2603", simple: { limit: 10, period: 60 } }),
+        RATE_CASHIER: bindings.rateLimit({ namespace: "2604", simple: { limit: 20, period: 60 } }),
         STORE_SEQUENCER: bindings.durableObject({ worker: edge, exportName: "StoreSequencer" }),
         STORE_HUB: bindings.durableObject({ worker: edge, exportName: "StoreHub" }),
         PRICE_CHANGE: bindings.workflow({

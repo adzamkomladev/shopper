@@ -13,7 +13,7 @@ import {
   UPLOAD_SECONDS,
 } from "./schemas/policy";
 
-const receiptKey = (saleId: string) => `receipts/${saleId}.pdf`;
+export const receiptKey = (saleId: string) => `receipts/${saleId}.pdf`;
 
 /** The sale of this device, or 404: other registers never learn that a sale exists. */
 async function ownSale(

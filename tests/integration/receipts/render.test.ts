@@ -1,6 +1,8 @@
 // Online-order receipts are rendered once, when the order is paid, stored beside till PDFs and never rendered again.
 //   renderSaleReceipt({ db, blobs, renderer, appVersion }, orgId, saleId)   (@shopper/assets)
 //     -> { assetId, key, rendered }   rendered is false when the sale already had a verified, linked PDF
+//   Each render writes its own object (receipts/<saleId>/<assetId>.pdf), so a racing render can never overwrite
+//   the bytes another one recorded.
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { and, eq } from "drizzle-orm";
 import { v7 } from "uuid";
@@ -49,12 +51,12 @@ test("the first call renders the stored receipt to a PDF, keeps it and links a v
   const saleId = await paidSale(true);
   const result = await renderSaleReceipt(deps(), ids.org, saleId);
 
-  expect(result).toMatchObject({ key: `receipts/${saleId}.pdf`, rendered: true });
+  expect(result).toMatchObject({ key: `receipts/${saleId}/${result.assetId}.pdf`, rendered: true });
   expect(renders).toHaveLength(1);
   expect(renders[0]!.format).toBe("pdf");
   expect(renders[0]!.options).toEqual({ paperMm: 80, reprint: false });
   expect(renders[0]!.receipt).toMatchObject({ kind: "sale" });
-  const bytes = stored.get(`${ids.org}/receipts/${saleId}.pdf`)!;
+  const bytes = stored.get(`${ids.org}/${result.key}`)!;
   expect(new TextDecoder().decode(bytes)).toBe("%PDF-1.7 rendered 1");
 
   const db = databases().db;
@@ -123,6 +125,40 @@ test("a sale whose till uploaded its own PDF is never rendered over", async () =
   });
   expect(renders).toHaveLength(before);
   expect(stored.has(`${ids.org}/receipts/${saleId}.pdf`)).toBe(false);
+});
+
+test("racing renders agree on one asset whose digest is the bytes stored under its key", async () => {
+  const saleId = await paidSale();
+  // A writes its bytes, then is held until B has rendered, written and committed; only then does A commit.
+  let putCalled!: () => void;
+  const aPut = new Promise<void>((resolve) => (putCalled = resolve));
+  let releaseA!: () => void;
+  const aHeld = new Promise<void>((resolve) => (releaseA = resolve));
+  const held = {
+    ...blobs,
+    put: async (orgId: string, key: string, value: Uint8Array) => {
+      stored.set(`${orgId}/${key}`, value);
+      putCalled();
+      await aHeld;
+    },
+  } as unknown as Blobs;
+  const a = renderSaleReceipt({ ...deps(), blobs: held }, ids.org, saleId);
+  await aPut;
+  const b = await renderSaleReceipt(deps(), ids.org, saleId);
+  releaseA();
+  expect((await a).assetId).toBe(b.assetId);
+
+  const db = databases().db;
+  const [row] = await db
+    .select()
+    .from(asset)
+    .where(and(eq(asset.orgId, ids.org), eq(asset.id, b.assetId)));
+  expect(row!.verifiedSha256).toBe(await sha256(stored.get(`${ids.org}/${row!.key}`)!));
+  const [linked] = await db
+    .select({ receiptAssetId: sale.receiptAssetId })
+    .from(sale)
+    .where(and(eq(sale.orgId, ids.org), eq(sale.id, saleId)));
+  expect(linked!.receiptAssetId).toBe(b.assetId);
 });
 
 test("a sale of another shop, or none at all, is not found", async () => {

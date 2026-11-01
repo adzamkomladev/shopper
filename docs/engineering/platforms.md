@@ -49,27 +49,27 @@ Rivet workflow. The live example of this pattern is `nextStoreSequence()`, which
 
 ## Feature map
 
-| Concern                        | Cloud: Cloudflare                                                               | On-prem: Rivet / Bun                                             | Shared code                                     |
-| ------------------------------ | ------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------- |
-| HTTP API                       | Workers + Hono (`apps/edge`)                                                    | Hono on Bun’s native server (`apps/box`)                         | `@shopper/api`                                  |
-| Portal (Start SPA mode)        | Static shell on Workers Static Assets; one Worker for `/api/*` + `/_serverFn/*` | Embedded in the box binary                                       | `@shopper/backoffice`                           |
-| Customer shop (SSR)            | TanStack Start on Workers, **service binding** to the API Worker                | (v1.5 online orders)                                             | `apps/shop`                                     |
-| System of record               | Neon PostgreSQL via **Hyperdrive**                                              | PostgreSQL 18                                                    | Drizzle + `@shopper/db-pg`                      |
-| Cache, short-term store        | **D1**                                                                          | SQLite inside Rivet actors                                       | `@shopper/db-sqlite` + Cache port               |
-| Rarely-changing config         | **KV**                                                                          | Box config file / PG                                             | `@shopper/config`                               |
-| Blobs (images, archives, PDFs) | **R2** (unstorage)                                                              | RustFS (S3) or fs (unstorage), mirrored to R2 nightly            | Blobs port                                      |
-| Hot coordination (5 classes)   | **Durable Objects**, SQLite storage + alarms                                    | **Rivet actors**: state, SQLite, `schedule`, actions             | Sequencer / Lane / StockHold ports              |
-| Till realtime (StoreHub)       | DO **WebSocket hibernation**                                                    | Actor **connections + events/broadcast**                         | Realtime port                                   |
-| Business processes             | **Workflows** (`sleep`, `sleepUntil`, `waitForEvent`, retries)                  | **Rivet Workflows** (steps, timers, queues, rollback)            | Workflow port                                   |
-| Fire-and-forget fan-out        | **Queues** + dead-letter queue                                                  | Rivet actor **queues**                                           | Queue port                                      |
-| The one watchdog               | One **Cron Trigger**                                                            | One Rivet **cron job / schedule**                                | Scheduler port                                  |
-| Till storage and secrets       | Electron `safeStorage` (DPAPI) seals the SQLCipher key and device token         | same (the till is identical)                                     | SQLite3 Multiple Ciphers, `register.secret`     |
-| Receipt PNG/PDF                | **Browser Run** `quickAction` (cloud) · Electron `printToPDF` (till)            | Satori → resvg-wasm → pdf-lib in the binary                      | Renderer port + receipt JSON                    |
-| Abuse protection               | **Turnstile** on public shop forms; one **Rate Limiting** binding per policy    | `boxRateLimiter` in process; the RateLimiter actor on day 36     | RateLimiter port, policies in `ports/limits.ts` |
-| Secrets                        | `cf workers secrets` / **Secrets Store**                                        | Sealed box config, never in the repo                             | `@shopper/config` reads both                    |
-| Logs and traces                | **Workers Logs + Traces** (enabled in `cloudflare.config.ts`) , structured JSON | Rivet **inspector** + **OpenTelemetry** for actors and workflows | One log shape: `{ event, orgId, storeId, ... }` |
-| Usage metrics                  | **Workers Analytics Engine** (requests, sales count per tenant)                 | Local counters in PG                                             | Never used for reports                          |
-| Releases                       | **Versions + gradual deployments**, staging env                                 | Signed binary + migration on start                               | [deployment.md](deployment.md)                  |
+| Concern                        | Cloud: Cloudflare                                                                           | On-prem: Rivet / Bun                                             | Shared code                                     |
+| ------------------------------ | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------- |
+| HTTP API                       | Workers + Hono (`apps/edge`)                                                                | Hono on Bun’s native server (`apps/box`)                         | `@shopper/api`                                  |
+| Portal (Start SPA mode)        | Static shell on Workers Static Assets; one Worker for `/api/*` + `/_serverFn/*`             | Embedded in the box binary                                       | `@shopper/backoffice`                           |
+| Customer shop (SSR)            | TanStack Start on Workers (`shopper-shop-<stage>`), service binding `API` to the API Worker | (v1.5 online orders)                                             | `apps/shop`                                     |
+| System of record               | Neon PostgreSQL via **Hyperdrive**                                                          | PostgreSQL 18                                                    | Drizzle + `@shopper/db-pg`                      |
+| Cache, short-term store        | **D1**                                                                                      | SQLite inside Rivet actors                                       | `@shopper/db-sqlite` + Cache port               |
+| Rarely-changing config         | **KV**                                                                                      | Box config file / PG                                             | `@shopper/config`                               |
+| Blobs (images, archives, PDFs) | **R2** (unstorage)                                                                          | RustFS (S3) or fs (unstorage), mirrored to R2 nightly            | Blobs port                                      |
+| Hot coordination (5 classes)   | **Durable Objects**, SQLite storage + alarms                                                | **Rivet actors**: state, SQLite, `schedule`, actions             | Sequencer / Lane / StockHold ports              |
+| Till realtime (StoreHub)       | DO **WebSocket hibernation**                                                                | Actor **connections + events/broadcast**                         | Realtime port                                   |
+| Business processes             | **Workflows** (`sleep`, `sleepUntil`, `waitForEvent`, retries)                              | **Rivet Workflows** (steps, timers, queues, rollback)            | Workflow port                                   |
+| Fire-and-forget fan-out        | **Queues** + dead-letter queue                                                              | Rivet actor **queues**                                           | Queue port                                      |
+| The one watchdog               | One **Cron Trigger**                                                                        | One Rivet **cron job / schedule**                                | Scheduler port                                  |
+| Till storage and secrets       | Electron `safeStorage` (DPAPI) seals the SQLCipher key and device token                     | same (the till is identical)                                     | SQLite3 Multiple Ciphers, `register.secret`     |
+| Receipt PNG/PDF                | **Browser Run** `quickAction` (cloud) · Electron `printToPDF` (till)                        | Satori → resvg-wasm → pdf-lib in the binary                      | Renderer port + receipt JSON                    |
+| Abuse protection               | **Turnstile** on public shop forms; one **Rate Limiting** binding per policy                | `boxRateLimiter` in process; the RateLimiter actor on day 36     | RateLimiter port, policies in `ports/limits.ts` |
+| Secrets                        | `cf workers secrets` / **Secrets Store**                                                    | Sealed box config, never in the repo                             | `@shopper/config` reads both                    |
+| Logs and traces                | **Workers Logs + Traces** (enabled in `cloudflare.config.ts`) , structured JSON             | Rivet **inspector** + **OpenTelemetry** for actors and workflows | One log shape: `{ event, orgId, storeId, ... }` |
+| Usage metrics                  | **Workers Analytics Engine** (requests, sales count per tenant)                             | Local counters in PG                                             | Never used for reports                          |
+| Releases                       | **Versions + gradual deployments**, staging env                                             | Signed binary + migration on start                               | [deployment.md](deployment.md)                  |
 
 ### The portal Worker
 
@@ -91,6 +91,16 @@ Portal = TanStack Start in SPA mode: a prerendered static shell served by Worker
   environment, so a small plugin in `vite.config.ts` writes a preview-only `dist/server/.dev.vars`
   that tells Start it is prerendering; deployment tooling never ships that file, and the preview
   does not open the remote `IMPORTS` bucket.
+
+The shop (`apps/shop`) is TanStack Start rendered on Workers. Its Worker forwards only
+`/api/shop/*` to `shopper-edge-<stage>` through the `API` service binding (`serveShop` in
+`@shopper/api/shop`); `cloudflareShopContext(env)` keeps the binding inside the adapter. The sign-in
+page is server-rendered with the shop's name (`readShop`, the one server function). Account and
+receipt pages are `ssr: false` and fetch in the browser, so personal data is never rendered on the
+server. Sign-in codes go out as `shop.otp` messages on the notifications queue, sent by Arkesel.
+Online-order receipts are rendered once (`renderSaleReceipt` in `@shopper/assets`) with the
+`Renderer` port, stored next to till PDFs and linked as a verified asset; viewing a receipt never
+renders it.
 
 Before using a Cloudflare product that is not in this table, load the `cloudflare` and
 `workers-best-practices` skills (Claude) or check the Cloudflare docs MCP. For Rivet, check

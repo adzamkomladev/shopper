@@ -12,7 +12,10 @@ const ids = {
     d1: "44230678-333c-446c-af51-22fe0c8eb20e",
   },
   // Filled when production is provisioned (docs/pilot/cutover.md); deploy.ts refuses a build without them.
-  production: { hyperdrive: "c6f5172419c14142abace7482a17340c", d1: "9451f586-2b64-4804-8eb2-ff31ac659a69" },
+  production: {
+    hyperdrive: "c6f5172419c14142abace7482a17340c",
+    d1: "9451f586-2b64-4804-8eb2-ff31ac659a69",
+  },
 } as const;
 const localPostgres = "postgresql://shopper:shopper_dev_only@127.0.0.1:5432/shopper";
 // Credentials stay secrets; everything else the S3 signer needs is plain configuration.

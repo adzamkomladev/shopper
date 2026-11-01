@@ -7,11 +7,12 @@ import { smoke, type SmokeTarget } from "./smoke";
 
 /**
  * Deploys one Worker from the app folder, after that app's `build:<stage>`:
- * `pnpm --filter <app> run deploy:staging` or `deploy:production`.
+ * `vp run deploy:staging` or `deploy:production` in the app folder.
  *
  * Staging goes straight to traffic. Production is two steps: `deploy:production` uploads a version
  * that serves nothing (the bindings and secrets resolve, nothing changes), and `deploy:production
- * --promote` migrates, deploys the build to all traffic and smoke tests it. `--dry-run` prints the plan.
+ * --promote` migrates, deploys the build to all traffic and smoke tests it. `--dry-run` has `cf` validate
+ * the build without credentials, migrating and smoke testing nothing; `--plan` only prints the steps.
  */
 const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
 const modes = { staging: "staging", production: "prod" } as const;
@@ -31,11 +32,12 @@ const [target, ...flags] = process.argv.slice(2);
 const stage = flags[flags.indexOf("--stage") + 1];
 if (!["edge", "portal", "admin"].includes(target ?? "") || !flags.includes("--stage"))
   throw new Error(
-    "Usage: tsx tooling/cloudflare/deploy.ts <edge|portal|admin> --stage staging|production [--promote] [--dry-run]",
+    "Usage: tsx tooling/cloudflare/deploy.ts <edge|portal|admin> --stage staging|production [--promote] [--dry-run|--plan]",
   );
 if (stage !== "staging" && stage !== "production")
   throw new Error("--stage staging|production is required");
 const dryRun = flags.includes("--dry-run");
+const plan = flags.includes("--plan");
 const promote = flags.includes("--promote");
 if (promote && stage !== "production") throw new Error("--promote is for production only");
 const app = process.cwd();
@@ -51,17 +53,14 @@ for (const [name, binding] of Object.entries(config.env))
     throw new Error(`${name} has no id: provision ${stage} and set it in cloudflare.config.ts`);
 
 const live = stage === "staging" || promote;
-if (target === "edge" && live) migrate();
-if (live)
-  await withSecrets((secrets) =>
-    run("cf", ["deploy", ...prebuilt(), "--no-provision", ...secrets]),
-  );
-else
-  await withSecrets((secrets) =>
-    run("cf", ["workers", "versions", "create", ...prebuilt(), ...secrets]),
-  );
-if (live) await verify();
-if (!live && !dryRun)
+if (target === "edge" && live && !dryRun) migrate();
+const upload = live
+  ? ["deploy", ...prebuilt(), "--no-provision"]
+  : ["workers", "versions", "create", ...prebuilt()];
+if (dryRun) run("cf", [...upload, "--dry-run"]);
+else await withSecrets((secrets) => run("cf", [...upload, ...secrets]));
+if (live && !dryRun) await verify();
+if (!live && !dryRun && !plan)
   console.log(
     `${config.name}: version uploaded, serving nothing. Promote with deploy:production --promote.`,
   );
@@ -81,12 +80,12 @@ function prebuilt() {
 function migrate() {
   if (!process.env.DATABASE_URL)
     throw new Error(`DATABASE_URL (the direct, non-pooled ${stage} URL) is required to migrate`);
-  run("pnpm", ["--dir", repoRoot, "run", "db:migrate"]);
+  run("vp", ["run", "db:migrate"], "inherit", repoRoot);
   const database = Object.values(config.env).find((binding) => binding.type === "d1")?.id;
   if (!database) throw new Error(`No D1 binding in the ${config.name} config to migrate`);
   const directory = ["--dir", resolve(repoRoot, "packages/db/sqlite/migrations")];
   run("cf", ["d1", "migrations", "apply", database, ...directory]);
-  if (dryRun) return;
+  if (plan) return;
   // `list` prints the unapplied migrations as JSON: an empty array means the database is current.
   const pending = JSON.parse(
     run("cf", ["d1", "migrations", "list", database, ...directory], "pipe"),
@@ -102,7 +101,7 @@ async function withSecrets(upload: (args: string[]) => void) {
       .filter(([name, binding]) => binding.type === "secret" && process.env[name])
       .map(([name]) => [name, process.env[name]]),
   );
-  if (dryRun || Object.keys(secrets).length === 0) return upload([]);
+  if (plan || Object.keys(secrets).length === 0) return upload([]);
   const directory = mkdtempSync(join(tmpdir(), "shopper-secrets-"));
   try {
     const file = join(directory, "secrets.json");
@@ -116,7 +115,7 @@ async function withSecrets(upload: (args: string[]) => void) {
 async function verify() {
   const domain = config.domains?.[0];
   if (!domain) throw new Error(`No custom domain in the ${config.name} config to smoke test`);
-  if (dryRun) return console.log(`smoke ${target} https://${domain}`);
+  if (plan) return console.log(`smoke ${target} https://${domain}`);
   const failures = await smoke(target as SmokeTarget, `https://${domain}`, version());
   for (const failure of failures) console.error(`smoke failed: ${failure}`);
   if (failures.length > 0) throw new Error(`${config.name} deployed but failed its smoke test`);
@@ -128,10 +127,12 @@ function version() {
     .version;
 }
 
-function run(command: string, args: string[], stdio: "inherit" | "pipe" = "inherit") {
-  if (dryRun) {
+function run(command: string, args: string[], stdio: "inherit" | "pipe" = "inherit", cwd = app) {
+  if (plan) {
     console.log([command, ...args].join(" "));
     return "";
   }
-  return execFileSync(command, args, { cwd: app, stdio, encoding: "utf8" }) ?? "";
+  // On Windows `vp` and `cf` are .cmd shims, which only a shell can start.
+  const shell = process.platform === "win32";
+  return execFileSync(command, args, { cwd, stdio, encoding: "utf8", shell }) ?? "";
 }

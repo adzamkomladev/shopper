@@ -47,7 +47,7 @@ test("production uploads a version that serves nothing, and migrates nothing", (
     "edge",
     "--stage",
     "production",
-    "--dry-run",
+    "--plan",
   );
   expect(result.status).toBe(0);
   expect(result.out).toContain("cf workers versions create --prebuilt --mode prod");
@@ -62,7 +62,7 @@ test("--promote migrates, deploys the build to all traffic and smoke tests it", 
     "--stage",
     "production",
     "--promote",
-    "--dry-run",
+    "--plan",
   );
   expect(result.status).toBe(0);
   const lines = result.out.trim().split("\n");
@@ -78,7 +78,7 @@ test("staging still deploys straight to traffic", () => {
     "edge",
     "--stage",
     "staging",
-    "--dry-run",
+    "--plan",
   );
   expect(result.status).toBe(0);
   expect(result.out).toMatch(/^cf deploy --prebuilt --mode staging --tag v\S+ --no-provision$/m);
@@ -86,15 +86,15 @@ test("staging still deploys straight to traffic", () => {
 
 test("a build for another stage, or a production build without its resource ids, is refused", () => {
   const staging = built("shopper-edge-staging", "staging");
-  expect(deploy(staging, "edge", "--stage", "production", "--dry-run").err).toMatch(
+  expect(deploy(staging, "edge", "--stage", "production", "--plan").err).toMatch(
     /Refusing to deploy "shopper-edge-staging" as production/,
   );
   const unprovisioned = built("shopper-edge-production", "prod", "");
-  expect(deploy(unprovisioned, "edge", "--stage", "production", "--dry-run").err).toMatch(
+  expect(deploy(unprovisioned, "edge", "--stage", "production", "--plan").err).toMatch(
     /CACHE_DB has no id/,
   );
-  expect(deploy(staging, "edge", "--dry-run").err).toMatch(/--stage staging\|production/);
-  expect(deploy(staging, "edge", "--stage", "staging", "--promote", "--dry-run").err).toMatch(
+  expect(deploy(staging, "edge", "--plan").err).toMatch(/--stage staging\|production/);
+  expect(deploy(staging, "edge", "--stage", "staging", "--promote", "--plan").err).toMatch(
     /--promote is for production/,
   );
 });

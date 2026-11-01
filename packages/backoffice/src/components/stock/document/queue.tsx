@@ -35,8 +35,8 @@ export function StockQueue() {
           className="flex flex-col gap-2"
           role="status"
         >
-          <Skeleton className="h-16 rounded-xl" />
-          <Skeleton className="h-16 rounded-xl" />
+          <Skeleton className="h-17 rounded-xl" />
+          <Skeleton className="h-17 rounded-xl" />
         </div>
       ) : queue.data.length === 0 ? (
         <p className="flex items-center gap-3 rounded-2xl border border-dashed bg-card p-4 text-sm text-muted-foreground">

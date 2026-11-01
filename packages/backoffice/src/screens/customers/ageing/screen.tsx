@@ -4,7 +4,10 @@ import { Button } from "@shopper/ui/components/button";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { EmptyList } from "../../../components/admin/states";
-import { AgeingBodySkeleton } from "../../../components/customers/ageing/states";
+import {
+  AgeingBodySkeleton,
+  AgeingTableSkeleton,
+} from "../../../components/customers/ageing/states";
 import { AgeingTable } from "../../../components/customers/ageing/table";
 import { QueryPanel } from "../../../components/customers/detail/panel";
 import { CustomersPage } from "../../../components/customers/tabs";
@@ -48,7 +51,7 @@ function Ageing({ onDownload }: { onDownload: () => void }) {
           You're seeing the ageing loaded earlier. It updates when you reconnect.
         </OfflineNote>
       )}
-      <QueryPanel query={query} what="ageing">
+      <QueryPanel query={query} what="ageing" skeleton={<AgeingTableSkeleton />}>
         {({ items }) =>
           items.length === 0 ? (
             <EmptyList

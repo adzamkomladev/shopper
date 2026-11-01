@@ -28,6 +28,7 @@ import {
   type PriceMode,
 } from "../../../../schemas/product";
 import { branchesQuery, useSavePrice } from "../../../../queries/catalogue/detail";
+import { DateField } from "../../../fields/date";
 
 const OFFLINE_NOTE_ID = "price-offline-note";
 const COPY = {
@@ -128,10 +129,10 @@ function PriceForm({ productId, mode, onSaved }: FormProps) {
           <>
             <form.Field name="startsAt">
               {(field) => (
-                <TextField
+                <DateField
                   field={field}
                   label="Starts"
-                  type="datetime-local"
+                  kind="datetime"
                   serverError={failure("startsAt")}
                   onChange={clearError}
                 />
@@ -139,10 +140,10 @@ function PriceForm({ productId, mode, onSaved }: FormProps) {
             </form.Field>
             <form.Field name="endsAt">
               {(field) => (
-                <TextField
+                <DateField
                   field={field}
                   label="Ends"
-                  type="datetime-local"
+                  kind="datetime"
                   serverError={failure("endsAt")}
                   onChange={clearError}
                 />

@@ -38,21 +38,21 @@ export function TransactionLines({ lines }: { lines: TransactionDetail["lines"] 
       </CardHeader>
       {/* Columns follow the card's width, not the window's: beside the sidebar a wide window is a narrow card. */}
       <div className="@container/lines overflow-x-auto">
-        <Table aria-label="Items purchased">
+        <Table bare aria-label="Items purchased">
           <TableHeader>
-            <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="px-4">Product</TableHead>
+            <TableRow>
+              <TableHead>Product</TableHead>
               <TableHead className="text-right">Qty</TableHead>
               <TableHead className="hidden text-right @2xl/lines:table-cell">Unit price</TableHead>
               <TableHead className="hidden text-right @2xl/lines:table-cell">Discount</TableHead>
               <TableHead className="hidden text-right @xl/lines:table-cell">Tax</TableHead>
-              <TableHead className="px-4 text-right">Line total</TableHead>
+              <TableHead className="text-right">Line total</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {lines.map((line) => (
-              <TableRow key={line.id} className="hover:bg-transparent">
-                <TableCell className="px-4 py-3 whitespace-normal">
+              <TableRow key={line.id}>
+                <TableCell className="py-3 whitespace-normal">
                   <div className="font-medium">{line.name}</div>
                   {line.sku && <div className="text-xs text-muted-foreground">SKU {line.sku}</div>}
                 </TableCell>
@@ -70,7 +70,7 @@ export function TransactionLines({ lines }: { lines: TransactionDetail["lines"] 
                 <TableCell className="hidden @xl/lines:table-cell">
                   <Money amount={lineTax(line)} />
                 </TableCell>
-                <TableCell className="px-4">
+                <TableCell>
                   <Money amount={money(line.total)} className="font-semibold" />
                 </TableCell>
               </TableRow>
@@ -79,7 +79,7 @@ export function TransactionLines({ lines }: { lines: TransactionDetail["lines"] 
           <TableFooter>
             <TableRow className="hover:bg-muted/50">
               {/* One cell across the table, whichever columns the width shows. */}
-              <TableCell colSpan={6} className="px-4">
+              <TableCell colSpan={6}>
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-xs font-normal text-muted-foreground">
                     Lines total, tax included

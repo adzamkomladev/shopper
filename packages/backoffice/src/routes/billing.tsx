@@ -1,5 +1,5 @@
 import { createRoute, lazyRouteComponent, type AnyRoute } from "@tanstack/react-router";
-import { BillingSkeleton } from "../components/billing/states";
+import { BillingPending } from "../components/billing/states";
 import { routeStates } from "../components/route/states";
 import { billingQuery } from "../queries/billing";
 import type { BackofficeContext } from "../types";
@@ -18,12 +18,7 @@ export function billingRoutes(shopRoute: AnyRoute) {
       ),
     component: lazyRouteComponent(() => import("../screens/billing/screen"), "BillingScreen"),
     ...routeStates,
-    pendingComponent: () => (
-      <div className="flex flex-col gap-6">
-        <div className="h-9" />
-        <BillingSkeleton />
-      </div>
-    ),
+    pendingComponent: BillingPending,
   });
   return [billingRoute];
 }

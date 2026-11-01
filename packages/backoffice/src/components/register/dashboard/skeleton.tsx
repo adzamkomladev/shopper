@@ -1,4 +1,6 @@
+import { Separator } from "@shopper/ui/components/separator";
 import { Skeleton } from "@shopper/ui/components/skeleton";
+import { RangeBarSkeleton } from "../range";
 import { TileSkeleton } from "../tile";
 
 export const tilesGrid = "grid gap-5 sm:grid-cols-2 xl:grid-cols-3";
@@ -14,14 +16,34 @@ export function TilesSkeleton() {
   );
 }
 
+/** Quick Actions' own card: heading and lead, then a row per tab the member can open. */
+function QuickActionsSkeleton() {
+  return (
+    <section className="flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
+      <div className="flex flex-col gap-1.5 p-4">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-5 w-72 max-w-full" />
+      </div>
+      <Separator />
+      <ul className="flex flex-col gap-2 p-4">
+        {Array.from({ length: 3 }, (_, index) => (
+          <li key={index}>
+            <Skeleton className="h-20 rounded-xl" />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 /** The whole dashboard's shape: the range bar, six tiles and the quick actions. */
 export function DashboardSkeleton() {
   return (
-    <div className="flex flex-col gap-6">
-      <Skeleton className="h-17 w-full max-w-xl" />
+    <div className="flex flex-col gap-6 pb-6">
+      <RangeBarSkeleton />
       <div className={dashboardGrid}>
         <TilesSkeleton />
-        <Skeleton className="h-80 rounded-2xl" />
+        <QuickActionsSkeleton />
       </div>
     </div>
   );

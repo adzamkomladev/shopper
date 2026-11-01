@@ -50,13 +50,13 @@ export function CompleteForm({ link, email, shopCode, onSignedIn }: Props) {
     >
       <form
         noValidate
-        className="flex flex-col gap-9"
+        className="flex flex-col gap-6"
         onSubmit={(event) => {
           event.preventDefault();
           void form.handleSubmit();
         }}
       >
-        <FieldGroup className="gap-6">
+        <FieldGroup className="gap-4">
           <form.Field name="password">
             {(passwordField) => (
               <TextField
@@ -107,7 +107,7 @@ export function CompleteForm({ link, email, shopCode, onSignedIn }: Props) {
         <Button
           type="submit"
           size="lg"
-          className="w-full rounded-full"
+          className="w-full"
           disabled={complete.isPending || signIn.isPending}
         >
           {(complete.isPending || signIn.isPending) && <Loader2Icon className="animate-spin" />}

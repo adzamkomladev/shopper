@@ -3,11 +3,12 @@ import { useMutation } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@shopper/ui/components/button";
-import { Input } from "@shopper/ui/components/input";
 import { Label } from "@shopper/ui/components/label";
+import { Skeleton } from "@shopper/ui/components/skeleton";
 import { rangeError } from "../../lib/register/range";
 import type { DayRange } from "../../lib/register/types";
 import { downloadReportCsv } from "../../queries/register/csv";
+import { DatePicker } from "@shopper/ui/components/picker/date";
 
 const field = "flex flex-col gap-1.5";
 
@@ -30,27 +31,25 @@ export function RangeBar({
       <div className="flex flex-wrap items-end gap-3">
         <div className={field}>
           <Label htmlFor={`${id}-from`}>From</Label>
-          <Input
+          <DatePicker
             aria-describedby={error ? `${id}-error` : undefined}
             aria-invalid={error ? true : undefined}
             className="w-44 bg-card"
             id={`${id}-from`}
-            onChange={(event) => onChange({ ...range, from: event.target.value })}
+            onValueChange={(value) => onChange({ ...range, from: value })}
             touch
-            type="date"
             value={range.from}
           />
         </div>
         <div className={field}>
           <Label htmlFor={`${id}-to`}>To</Label>
-          <Input
+          <DatePicker
             aria-describedby={error ? `${id}-error` : undefined}
             aria-invalid={error ? true : undefined}
             className="w-44 bg-card"
             id={`${id}-to`}
-            onChange={(event) => onChange({ ...range, to: event.target.value })}
+            onValueChange={(value) => onChange({ ...range, to: value })}
             touch
-            type="date"
             value={range.to}
           />
         </div>
@@ -67,6 +66,21 @@ export function RangeBar({
           {error}
         </p>
       )}
+    </div>
+  );
+}
+
+/** The range bar's fields and button, drawn in the same sizes while the figures load. */
+export function RangeBarSkeleton() {
+  return (
+    <div className="flex flex-wrap items-end gap-3">
+      {[0, 1].map((index) => (
+        <div key={index} className={field}>
+          <Skeleton className="h-3.5 w-8" />
+          <Skeleton className="h-11 w-44" />
+        </div>
+      ))}
+      <Skeleton className="h-11 w-32" />
     </div>
   );
 }

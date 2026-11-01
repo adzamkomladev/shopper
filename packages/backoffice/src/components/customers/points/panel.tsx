@@ -6,6 +6,7 @@ import { customerLoyaltyQuery } from "../../../queries/customers/account";
 import type { CustomerLoyalty } from "../../../schemas/customers/account";
 import { EmptyList, ReadOnlyNote } from "../../admin/states";
 import { QueryPanel } from "../detail/panel";
+import { PointsSkeleton } from "../detail/skeletons";
 
 type Entry = CustomerLoyalty["entries"][number];
 
@@ -40,7 +41,7 @@ const columns: DataTableColumn<Entry>[] = [
 export function PointsPanel({ customerId }: { customerId: string }) {
   const query = useQuery(customerLoyaltyQuery(customerId));
   return (
-    <QueryPanel query={query} what="points history">
+    <QueryPanel query={query} what="points history" skeleton={<PointsSkeleton />}>
       {({ entries, enabled }) => (
         <>
           {!enabled && (

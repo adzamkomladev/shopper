@@ -7,8 +7,8 @@ import {
   EmptyMedia,
 } from "@shopper/ui/components/empty";
 import { Skeleton } from "@shopper/ui/components/skeleton";
-
-const SKELETON_ROWS = 5;
+import { DataTableSkeleton } from "@shopper/ui/components/table/skeleton";
+import type { DataTableSkeletonColumn } from "@shopper/ui/components/table/skeleton";
 
 type EmptyProps = {
   icon: LucideIcon;
@@ -35,23 +35,92 @@ export function EmptyList({ icon: Icon, title, description, children }: EmptyPro
   );
 }
 
-/** Heading, button and rows in the shape of the loaded list, so nothing jumps when it arrives. */
-export function ListSkeleton({ label }: { label: string }) {
+/** One block per text line of a loaded cell: `h-5` for body text, `h-4` for the small line under it. */
+export function CellLines({ lines }: { lines: string[] }) {
   return (
-    <div className="flex flex-col gap-6" role="status" aria-busy="true" aria-label={label}>
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-9 w-48" />
-        <Skeleton className="h-9 w-32" />
+    <div className="flex flex-col">
+      {lines.map((line, index) => (
+        <Skeleton key={index} className={line} />
+      ))}
+    </div>
+  );
+}
+
+const ACTIONS = { header: "", cell: <Skeleton className="ml-auto h-7 w-24" /> };
+const text = (width: string) => <Skeleton className={`h-5 ${width}`} />;
+
+// Each list's columns as its `DataTable` declares them, and what sits between the heading row and the table.
+const LISTS = {
+  stores: {
+    label: "Loading stores",
+    columns: [
+      { header: "Store", cell: text("w-40") },
+      {
+        header: "Cash rounding",
+        className: "text-right",
+        cell: <Skeleton className="ml-auto h-5 w-16" />,
+      },
+      ACTIONS,
+    ],
+  },
+  branches: {
+    label: "Loading branches",
+    columns: [
+      { header: "Branch", cell: text("w-40") },
+      { header: "Store", cell: text("w-32") },
+      ACTIONS,
+    ],
+  },
+  roles: {
+    label: "Loading roles",
+    columns: [
+      { header: "Role", cell: text("w-32") },
+      { header: "Permissions", cell: text("w-16") },
+      { header: "Members", cell: text("w-20") },
+      ACTIONS,
+    ],
+  },
+  devices: {
+    label: "Loading devices",
+    columns: [
+      { header: "Device", cell: text("w-32") },
+      { header: "Branch", cell: text("w-28") },
+      { header: "Status", cell: text("w-16") },
+      { header: "Added", cell: text("w-24") },
+      ACTIONS,
+    ],
+  },
+  layouts: {
+    label: "Loading barcode layouts",
+    note: true,
+    columns: [
+      { header: "Prefix", cell: text("w-8") },
+      { header: "Label", cell: text("w-24") },
+      { header: "Product code", cell: text("w-24") },
+      { header: "Value", cell: text("w-24") },
+      ACTIONS,
+    ],
+  },
+} satisfies Record<string, { label: string; note?: boolean; columns: DataTableSkeletonColumn[] }>;
+
+const LIST_ROWS = 5;
+
+/** The heading row and table of an administration list, as `PageHeader` and `DataTable` draw them. */
+export function ListSkeleton({ list }: { list: keyof typeof LISTS }) {
+  const { label, columns, ...extra } = LISTS[list];
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between gap-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-8 w-28" />
       </div>
-      <div className="flex flex-col rounded-lg border">
-        <Skeleton className="h-10 rounded-b-none" />
-        {Array.from({ length: SKELETON_ROWS }, (_, index) => (
-          <div key={index} className="flex h-16.5 items-center gap-6 border-t px-4">
-            <Skeleton className="h-5 w-56" />
-            <Skeleton className="ml-auto h-8 w-28" />
-          </div>
-        ))}
-      </div>
+      {"note" in extra && (
+        <div className="flex max-w-2xl flex-col" aria-hidden>
+          <Skeleton className="h-5 w-full" />
+          <Skeleton className="h-5 w-4/5" />
+        </div>
+      )}
+      <DataTableSkeleton label={label} columns={columns} rows={LIST_ROWS} />
     </div>
   );
 }

@@ -6,8 +6,8 @@ import { shiftTime } from "../../../../lib/shifts/format";
 import type { TakeSummary } from "../../../../queries/inventory/types";
 import { TakeStatus } from "../status";
 
-const FROM_MD = "hidden md:table-cell";
-const FROM_LG = "hidden lg:table-cell";
+export const FROM_MD = "hidden md:table-cell";
+export const FROM_LG = "hidden lg:table-cell";
 
 const Dash = () => <span className="text-muted-foreground">—</span>;
 /** How much of the sheet is counted, like "12 of 40". */

@@ -1,33 +1,48 @@
 import { Skeleton } from "@shopper/ui/components/skeleton";
+import { CellLines } from "../admin/states";
+import { DataTableSkeleton } from "@shopper/ui/components/table/skeleton";
 
 const MEMBER_ROWS = 5;
 
 /**
- * The Users screen while it loads: heading, the Members tabs and table, at the sizes they take loaded. Under lg the
- * members table fills the height the screen leaves it, so the block is fixed. Invitations are left out: they draw
- * below the members without moving them, and a skeleton taller than the screen would scroll with nothing to focus.
+ * The Users screen while it loads: the heading row, the Members tabs and table, at the sizes they take loaded. The
+ * members table is capped at `max-h-96`; below lg the action buttons wrap and each row grows to fill it. Invitations
+ * are left out: they draw below the members without moving them, and a skeleton taller than the screen would scroll
+ * with nothing to focus.
  */
 export function UsersSkeleton() {
   return (
-    <div className="flex flex-col gap-6" role="status" aria-busy="true" aria-label="Loading users">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-9 w-20" />
-        <Skeleton className="h-9 w-32" />
+    <div
+      className="flex min-h-0 flex-1 flex-col gap-6"
+      role="status"
+      aria-busy="true"
+      aria-label="Loading users"
+    >
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
+        <Skeleton className="h-8 w-23" />
       </div>
       <section className="flex flex-col gap-3">
-        <Skeleton className="h-7 w-28" />
-        <Skeleton className="h-9 w-48" />
-        <div className="flex h-96 flex-col overflow-hidden rounded-lg border lg:h-auto">
-          <Skeleton className="h-10 shrink-0 rounded-b-none" />
-          {Array.from({ length: MEMBER_ROWS }, (_, index) => (
-            <div
-              key={index}
-              className="flex h-21.75 shrink-0 items-center gap-6 border-t px-4 lg:h-16.5"
-            >
-              <Skeleton className="h-5 w-56" />
-              <Skeleton className="ml-auto h-8 w-28" />
-            </div>
-          ))}
+        <h2 className="text-base font-semibold">Members</h2>
+        <div className="flex flex-col gap-3">
+          <div className="flex h-9 w-full items-center gap-4 border-b">
+            <Skeleton className="h-5 w-16" />
+            <Skeleton className="h-5 w-24" />
+          </div>
+          <DataTableSkeleton
+            className="max-h-96"
+            rows={MEMBER_ROWS}
+            columns={[
+              { header: "Name", cell: <CellLines lines={["h-5 w-36", "h-5.5 w-48"]} /> },
+              { header: "Role", cell: <Skeleton className="h-5 w-24" /> },
+              {
+                header: "Branches",
+                className: "hidden md:table-cell",
+                cell: <Skeleton className="h-5 w-24" />,
+              },
+              { header: "", cell: <Skeleton className="ml-auto h-25 w-28 lg:h-7" /> },
+            ]}
+          />
         </div>
       </section>
     </div>

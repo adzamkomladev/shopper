@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { PaymentsPage } from "../../../components/payments/page";
 import { PaymentSettingsForm } from "../../../components/payments/settings/form";
-import { PaymentSettingsSkeleton } from "../../../components/payments/settings/states";
+import { PaymentSettingsBodySkeleton } from "../../../components/payments/settings/states";
 import { Gate } from "../../../components/register/states";
 import { paymentSettingsQuery } from "../../../queries/payments/settings";
 
@@ -13,7 +13,7 @@ export function PaymentSettingsScreen() {
         need="register.settings"
         what="payment settings"
         verb="change"
-        fallback={<PaymentSettingsSkeleton />}
+        fallback={<PaymentSettingsBodySkeleton />}
       >
         <div className="max-w-2xl">
           <Settings />

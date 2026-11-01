@@ -33,7 +33,7 @@ function ProductsBody() {
         onBranch={(branchId) => go({ branchId })}
         exporting={{ kind: "products", params }}
       />
-      <Suspense fallback={<ReportSkeleton label="Loading products" toolbar={false} />}>
+      <Suspense fallback={<ReportSkeleton kind="products" toolbar={false} />}>
         <ProductsFigures params={params} />
       </Suspense>
     </>

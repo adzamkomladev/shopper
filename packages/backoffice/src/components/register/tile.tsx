@@ -30,6 +30,18 @@ export function Tile({
   );
 }
 
+/** A tile's own card with blocks the size of its label, figure and caption, so it is as tall as a loaded one. */
 export function TileSkeleton() {
-  return <Skeleton className="h-32.5 rounded-2xl" />;
+  return (
+    <Card className="min-w-0 gap-3 rounded-2xl py-6 shadow-none">
+      <div className="flex items-center justify-between gap-4 px-6">
+        <Skeleton className="h-5 w-24" />
+        <Skeleton className="size-4 shrink-0" />
+      </div>
+      <div className="flex flex-col gap-1 px-6">
+        <Skeleton className="h-6 w-28" />
+        <Skeleton className="h-5 w-40 max-w-full" />
+      </div>
+    </Card>
+  );
 }

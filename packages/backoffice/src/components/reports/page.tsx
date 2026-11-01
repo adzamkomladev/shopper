@@ -41,9 +41,9 @@ export function ReportsPage({
         Reports
       </h1>
       <Tabs value={active} activationMode="manual" className="min-h-0 flex-1 gap-6">
-        <TabsList aria-label="Reports" className="max-w-full justify-start overflow-x-auto">
+        <TabsList aria-label="Reports">
           {TABS.map(({ value, to, label }, index) => (
-            <TabsTrigger key={value} value={value} asChild className="px-3 sm:px-4">
+            <TabsTrigger key={value} value={value} asChild>
               <Link to={to} aria-keyshortcuts={String(index + 1)}>
                 {label}
               </Link>
@@ -51,11 +51,7 @@ export function ReportsPage({
           ))}
         </TabsList>
         <TabsContent value={active} className="flex min-h-0 flex-1 flex-col gap-6">
-          <Gate
-            need="report.read"
-            what="reports"
-            fallback={<ReportSkeleton label="Loading reports" />}
-          >
+          <Gate need="report.read" what="reports" fallback={<ReportSkeleton kind={active} />}>
             {children}
           </Gate>
         </TabsContent>

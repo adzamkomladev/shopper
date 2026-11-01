@@ -3,6 +3,7 @@ import { CustomersPage } from "../../../components/customers/tabs";
 import { LoyaltyForm } from "../../../components/settings/loyalty/form";
 import { TierSection } from "../../../components/settings/loyalty/tiers/section";
 import { SettingsPage } from "../../../components/settings/page";
+import { SETTINGS_COPY } from "../../../components/settings/states";
 import { settingsQuery } from "../../../queries/settings/resource";
 import { tiersQuery } from "../../../queries/settings/tiers";
 
@@ -12,7 +13,7 @@ export function LoyaltySettingsScreen() {
   const { data: tiers } = useSuspenseQuery(tiersQuery());
   return (
     <CustomersPage active="loyalty" title="Loyalty">
-      <SettingsPage description="Customers earn points when they pay and spend them at the till. These rules apply to every branch.">
+      <SettingsPage description={SETTINGS_COPY.loyalty.description}>
         <LoyaltyForm settings={settings} />
         <TierSection tiers={tiers.items} />
       </SettingsPage>

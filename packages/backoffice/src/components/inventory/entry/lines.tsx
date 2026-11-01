@@ -29,26 +29,18 @@ type Props = {
 export function EntryLines({ lines, errors, costed, effect, onEdit, onRemove }: Props) {
   return (
     <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-      <Table>
+      <Table bare>
         <TableHeader className="max-sm:hidden">
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="h-10 bg-muted/50 px-4 text-xs font-semibold text-muted-foreground">
-              Product
-            </TableHead>
-            <TableHead className="h-10 w-32 bg-muted/50 px-4 text-xs font-semibold text-muted-foreground sm:w-40">
-              Quantity
-            </TableHead>
+          <TableRow>
+            <TableHead>Product</TableHead>
+            <TableHead className="w-32 sm:w-40">Quantity</TableHead>
             {costed && (
               <>
-                <TableHead className="h-10 w-28 bg-muted/50 px-4 text-xs font-semibold text-muted-foreground sm:w-44">
-                  Unit cost
-                </TableHead>
-                <TableHead className="hidden h-10 w-32 bg-muted/50 px-4 text-right text-xs font-semibold text-muted-foreground lg:table-cell">
-                  Line total
-                </TableHead>
+                <TableHead className="w-28 sm:w-44">Unit cost</TableHead>
+                <TableHead className="hidden w-32 text-right lg:table-cell">Line total</TableHead>
               </>
             )}
-            <TableHead className="h-10 w-14 bg-muted/50 px-4">
+            <TableHead className="w-14">
               <span className="sr-only">Remove</span>
             </TableHead>
           </TableRow>
@@ -62,7 +54,7 @@ export function EntryLines({ lines, errors, costed, effect, onEdit, onRemove }: 
                 key={line.productId}
                 className="hover:bg-transparent max-sm:grid max-sm:grid-cols-2 max-sm:gap-x-3 max-sm:px-3 max-sm:pb-3"
               >
-                <TableCell className="max-w-0 px-4 align-top max-sm:col-start-1 max-sm:row-start-1 max-sm:max-w-none max-sm:px-1">
+                <TableCell className="max-w-0 align-top max-sm:col-start-1 max-sm:row-start-1 max-sm:max-w-none max-sm:px-1">
                   <span title={line.name} className="line-clamp-2 font-medium wrap-break-word">
                     {line.name}
                   </span>
@@ -104,7 +96,7 @@ export function EntryLines({ lines, errors, costed, effect, onEdit, onRemove }: 
                 </TableCell>
                 {costed && (
                   <>
-                    <TableCell className="px-4 align-top max-sm:px-1">
+                    <TableCell className="align-top max-sm:px-1">
                       <MobileLabel>Unit cost</MobileLabel>
                       <InputGroup>
                         <InputGroupAddon className="max-sm:hidden">GH₵</InputGroupAddon>
@@ -132,7 +124,7 @@ export function EntryLines({ lines, errors, costed, effect, onEdit, onRemove }: 
                         </FieldMessage>
                       )}
                     </TableCell>
-                    <TableCell className="hidden px-4 align-top lg:table-cell">
+                    <TableCell className="hidden align-top lg:table-cell">
                       <div className="pt-1.5">
                         {total === null ? (
                           <span className="block text-right text-muted-foreground">—</span>
@@ -143,7 +135,7 @@ export function EntryLines({ lines, errors, costed, effect, onEdit, onRemove }: 
                     </TableCell>
                   </>
                 )}
-                <TableCell className="px-4 align-top max-sm:col-start-2 max-sm:row-start-1 max-sm:justify-self-end max-sm:px-1">
+                <TableCell className="align-top max-sm:col-start-2 max-sm:row-start-1 max-sm:justify-self-end max-sm:px-1">
                   <Button
                     type="button"
                     variant="ghost"

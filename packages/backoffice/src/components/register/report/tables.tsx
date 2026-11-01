@@ -16,7 +16,7 @@ const right = "text-right";
 
 export function TendersTable({ tenders }: { tenders: RegisterReport["tenders"] }) {
   return (
-    <Table>
+    <Table bare>
       <TableHeader>
         <TableRow>
           <TableHead>Method</TableHead>
@@ -39,7 +39,7 @@ export function TendersTable({ tenders }: { tenders: RegisterReport["tenders"] }
 
 export function ProductsTable({ products }: { products: RegisterReport["topProducts"] }) {
   return (
-    <Table>
+    <Table bare>
       <TableHeader>
         <TableRow>
           <TableHead>Product</TableHead>

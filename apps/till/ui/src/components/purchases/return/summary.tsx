@@ -58,10 +58,10 @@ export function ReturnSummary({
             value={remote.mode}
           >
             <TabsList className="h-12 w-full">
-              <TabsTrigger className="h-11" value="pin">
+              <TabsTrigger className="h-11 flex-1" value="pin">
                 Manager here <Kbd className="max-sm:hidden">Alt+P</Kbd>
               </TabsTrigger>
-              <TabsTrigger className="h-11" value="remote">
+              <TabsTrigger className="h-11 flex-1" value="remote">
                 Ask remotely <Kbd className="max-sm:hidden">Alt+R</Kbd>
               </TabsTrigger>
             </TabsList>

@@ -9,6 +9,7 @@ import {
 } from "../../../schemas/tax/rules";
 import { AccountDialog, AccountForm } from "../../customers/account/shell";
 import { TextField } from "../../fields/text";
+import { DateField } from "../../fields/date";
 
 type Props = {
   /** The scheduled rule being changed; none schedules a new one. */
@@ -56,9 +57,8 @@ function RuleForm({ rule, onSaved }: { rule?: TaxRuleView; onSaved: () => void }
     >
       <form.Field name="effectiveFrom">
         {(field) => (
-          <TextField
+          <DateField
             field={field}
-            type="date"
             label="Starts on"
             description="Tomorrow at the earliest."
             autoFocus

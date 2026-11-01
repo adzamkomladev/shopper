@@ -81,7 +81,7 @@ export function PurchaseRows({
         className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-card"
       >
         <div className="min-h-0 flex-1 overflow-auto">
-          <Table>
+          <Table bare>
             <PurchaseHead />
             <TableBody>
               {purchases.map((purchase) => (

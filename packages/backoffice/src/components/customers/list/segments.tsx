@@ -20,14 +20,9 @@ type Props = {
 export function Segments({ segment, q, children }: Props) {
   return (
     <Tabs value={segment ?? "all"} activationMode="manual" className="min-h-0 flex-1 gap-6">
-      <TabsList variant="line" aria-label="Which customers" className="w-full justify-start">
+      <TabsList variant="line" aria-label="Which customers">
         {SEGMENTS.map((entry) => (
-          <TabsTrigger
-            key={entry.label}
-            value={entry.segment ?? "all"}
-            asChild
-            className="flex-none px-2 sm:px-3"
-          >
+          <TabsTrigger key={entry.label} value={entry.segment ?? "all"} asChild>
             <Link to="/customers" search={{ q, segment: entry.segment }} replace>
               {entry.label}
             </Link>

@@ -48,13 +48,13 @@ export function JoinForm({ link, preview, onJoined }: Props) {
     >
       <form
         noValidate
-        className="flex flex-col gap-9"
+        className="flex flex-col gap-6"
         onSubmit={(event) => {
           event.preventDefault();
           void form.handleSubmit();
         }}
       >
-        <FieldGroup className="gap-6">
+        <FieldGroup className="gap-4">
           {!existing && (
             <form.Field name="name">
               {(field) => (
@@ -90,7 +90,7 @@ export function JoinForm({ link, preview, onJoined }: Props) {
             </AlertDescription>
           </Alert>
         )}
-        <Button type="submit" size="lg" className="w-full rounded-full" disabled={join.isPending}>
+        <Button type="submit" size="lg" className="w-full" disabled={join.isPending}>
           {join.isPending && <Loader2Icon className="animate-spin" />}
           {join.isPending ? "Joining…" : existing ? "Sign in and join" : "Create account and join"}
         </Button>

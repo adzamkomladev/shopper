@@ -1,6 +1,7 @@
 import type * as v from "valibot";
 import { createRoute, lazyRouteComponent, type AnyRoute } from "@tanstack/react-router";
 import { routeStates } from "../components/route/states";
+import { ReportsPage } from "../components/reports/page";
 import { ReportSkeleton } from "../components/reports/states";
 import { rangeOf } from "../lib/reports/range";
 import { shopToday } from "../lib/tax/dates";
@@ -47,7 +48,11 @@ export function reportRoutes(shopRoute: AnyRoute) {
       "ReportsDashboardScreen",
     ),
     ...routeStates,
-    pendingComponent: () => <ReportSkeleton label="Loading the dashboard" tiles />,
+    pendingComponent: () => (
+      <ReportsPage active="dashboard">
+        <ReportSkeleton kind="dashboard" />
+      </ReportsPage>
+    ),
   });
   const salesRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -60,7 +65,11 @@ export function reportRoutes(shopRoute: AnyRoute) {
       "SalesReportScreen",
     ),
     ...routeStates,
-    pendingComponent: () => <ReportSkeleton label="Loading sales" />,
+    pendingComponent: () => (
+      <ReportsPage active="sales">
+        <ReportSkeleton kind="sales" />
+      </ReportsPage>
+    ),
   });
   const productsRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -73,7 +82,11 @@ export function reportRoutes(shopRoute: AnyRoute) {
       "ProductsReportScreen",
     ),
     ...routeStates,
-    pendingComponent: () => <ReportSkeleton label="Loading products" />,
+    pendingComponent: () => (
+      <ReportsPage active="products">
+        <ReportSkeleton kind="products" />
+      </ReportsPage>
+    ),
   });
   const deadStockRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -86,7 +99,11 @@ export function reportRoutes(shopRoute: AnyRoute) {
       "DeadStockScreen",
     ),
     ...routeStates,
-    pendingComponent: () => <ReportSkeleton label="Loading dead stock" />,
+    pendingComponent: () => (
+      <ReportsPage active="stock">
+        <ReportSkeleton kind="stock" />
+      </ReportsPage>
+    ),
   });
   const branchesRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -99,7 +116,11 @@ export function reportRoutes(shopRoute: AnyRoute) {
       "BranchComparisonScreen",
     ),
     ...routeStates,
-    pendingComponent: () => <ReportSkeleton label="Loading the branch comparison" />,
+    pendingComponent: () => (
+      <ReportsPage active="branches">
+        <ReportSkeleton kind="branches" />
+      </ReportsPage>
+    ),
   });
   const journalRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -112,7 +133,11 @@ export function reportRoutes(shopRoute: AnyRoute) {
       "JournalScreen",
     ),
     ...routeStates,
-    pendingComponent: () => <ReportSkeleton label="Loading the journal" />,
+    pendingComponent: () => (
+      <ReportsPage active="journal">
+        <ReportSkeleton kind="journal" />
+      </ReportsPage>
+    ),
   });
   return [dashboardRoute, salesRoute, productsRoute, deadStockRoute, branchesRoute, journalRoute];
 }

@@ -5,7 +5,7 @@ import { Money } from "@shopper/ui/components/money";
 import { quantityLabel } from "../../../lib/inventory/format";
 import type { ValuationLine } from "../../../queries/inventory/types";
 
-const FROM_MD = "hidden md:table-cell";
+export const FROM_MD = "hidden md:table-cell";
 
 /** Why a line is worth what it is: no receipt had a cost, or stock is below zero. The words carry it. */
 function Flag({ flag }: { flag: ValuationLine["flag"] }) {

@@ -1,6 +1,6 @@
 import { createRoute, lazyRouteComponent, type AnyRoute } from "@tanstack/react-router";
 import { routeStates } from "../components/route/states";
-import { SettingsSkeleton } from "../components/settings/states";
+import { LoyaltySkeleton, SettingsSkeleton } from "../components/settings/states";
 import { settingsQuery } from "../queries/settings/resource";
 import { tiersQuery } from "../queries/settings/tiers";
 import type { BackofficeContext } from "../types";
@@ -22,7 +22,7 @@ export function settingsRoutes(shopRoute: AnyRoute) {
       "LoyaltySettingsScreen",
     ),
     ...routeStates,
-    pendingComponent: () => <SettingsSkeleton label="Loading loyalty settings" fields={4} />,
+    pendingComponent: () => <LoyaltySkeleton />,
   });
   const creditRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -33,7 +33,7 @@ export function settingsRoutes(shopRoute: AnyRoute) {
       "CreditSettingsScreen",
     ),
     ...routeStates,
-    pendingComponent: () => <SettingsSkeleton label="Loading credit settings" fields={2} />,
+    pendingComponent: () => <SettingsSkeleton page="credit" />,
   });
   const kycRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -44,7 +44,7 @@ export function settingsRoutes(shopRoute: AnyRoute) {
       "KycSettingsScreen",
     ),
     ...routeStates,
-    pendingComponent: () => <SettingsSkeleton label="Loading identity check settings" fields={2} />,
+    pendingComponent: () => <SettingsSkeleton page="kyc" />,
   });
   const statementsRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -56,7 +56,7 @@ export function settingsRoutes(shopRoute: AnyRoute) {
       "StatementsSettingsScreen",
     ),
     ...routeStates,
-    pendingComponent: () => <SettingsSkeleton label="Loading statement settings" fields={3} />,
+    pendingComponent: () => <SettingsSkeleton page="statements" />,
   });
   return [loyaltyRoute, creditRoute, statementsRoute, kycRoute];
 }

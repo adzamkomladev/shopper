@@ -1,8 +1,8 @@
 import { DownloadIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Input } from "@shopper/ui/components/input";
 import { Label } from "@shopper/ui/components/label";
 import type { FiscalArchive } from "../../../schemas/tax/fiscal";
+import { DatePicker } from "@shopper/ui/components/picker/date";
 
 type Props = { date: string; archives: FiscalArchive[]; onDate: (date: string) => void };
 
@@ -24,12 +24,11 @@ export function FiscalArchiveList({ date, archives, onDate }: Props) {
         </div>
         <div className="grid gap-1">
           <Label htmlFor="fiscal-archive-date">Day</Label>
-          <Input
+          <DatePicker
             id="fiscal-archive-date"
-            type="date"
             className="w-44"
             value={date}
-            onChange={(event) => event.target.value && onDate(event.target.value)}
+            onValueChange={(value) => value && onDate(value)}
           />
         </div>
       </div>

@@ -10,15 +10,15 @@ export function LoginSuccess({ onContinue }: { onContinue: () => void }) {
     <CardContent className="flex flex-col items-center gap-9 px-6 text-center sm:px-22">
       <CircleCheckIcon
         aria-hidden
-        className="size-27 fill-success text-success-foreground [&>circle]:stroke-success"
+        className="size-12 fill-success text-success-foreground [&>circle]:stroke-success"
       />
-      <div className="flex flex-col gap-5">
-        <h1 className="text-4xl font-semibold tracking-tight">You're signed in</h1>
-        <p className="text-lg font-medium">
+      <div className="flex flex-col gap-1.5">
+        <h1 className="text-xl font-semibold tracking-tight">You're signed in</h1>
+        <p className="text-sm text-muted-foreground">
           {shop ? `You're signed in to ${shop.name}.` : "You can now use the back office."}
         </p>
       </div>
-      <Button size="lg" className="w-full rounded-full" onClick={onContinue} ref={focusOnMount}>
+      <Button size="lg" className="w-full" onClick={onContinue} ref={focusOnMount}>
         Continue to products
       </Button>
     </CardContent>

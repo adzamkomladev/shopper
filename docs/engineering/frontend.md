@@ -111,6 +111,9 @@ If none of these fit, stop and ask. Do not work around the guard with a custom w
   keeps its keys in `apps/till/ui/src/shortcuts/registry.ts`, shown by Help (F1, Ctrl+/).
 - **Proportions:** buttons and inputs are `h-8` by default (`sm` 7, `lg` 9, `touch` 11), page titles
   `text-2xl font-semibold`, section and card titles `text-base`, table rows `h-10`.
+- **Signed-out screens:** one compact `max-w-sm` card on the teal backdrop (`AuthFrame`, `AuthPanel`):
+  mark and wordmark, an `text-xl` h1, a `text-sm` lead, `gap-4` fields and a full-width `lg` button.
+  Buttons are never pills (`rounded-full`) on these screens or on the till's sign-in.
 - **Motion:** 150 ms colour and press feedback (`active:scale-97`), `animate-shimmer` skeletons,
   `animate-tick` on a changed total (key the span by the amount), `draw-stroke` for the sale-complete
   check. Every animation is `motion-safe` or token-driven, so reduced motion turns it off.
@@ -122,6 +125,22 @@ If none of these fit, stop and ask. Do not work around the guard with a custom w
   within 50 ms on a 4x slower CPU, measured on a production build.
 
 ## Tables and data
+
+- **One table look.** `DataTable` and the `Table` primitive draw the same thing: a bordered card
+  (`rounded-lg border bg-card shadow-sm`), an `h-10` muted header in `text-xs font-semibold`, and
+  `h-10` rows with `px-4` cells. Screens do not restyle heads, cells or header rows. A table that sits
+  flush inside a Card or a framed section passes `bare` to drop its own frame.
+- **Two tab looks, one rule.** `TabsList` (pill) switches a page's own areas (Customers, Ageing,
+  Loyalty); `TabsList variant="line"` filters the list inside a page (All, Completed, Refunded). Put a
+  count in `TabsCount`. The list scrolls sideways on a phone with no scrollbar; do not add overflow,
+  padding or width classes at the call site.
+- **No native pickers.** Dates, times, months and date-times use `DatePicker`, `TimePicker`,
+  `MonthPicker` and `DateTimePicker` (`@shopper/ui/components/picker/*`), and in a TanStack form
+  `DateField` (`backoffice/components/fields/date.tsx`). Each is a typed field plus a Radix popover
+  (calendar, hour and minute columns, months); values stay the ISO strings the native inputs gave
+  (`2026-11-01`, `08:30`, `2026-11`, `2026-11-01T08:30`), so `fill()` in tests still works. Choices
+  use the shadcn `Select`, never `<select>`.
+- **Scrollbars.** The sidebar and tab rows scroll without a visible bar (`no-scrollbar` utility).
 
 - `DataTable` columns take `meta: { align?: "right", className? }`. Money columns use
   `align: "right"`. The file starts with `"use no memo"` because TanStack Table and Virtual return

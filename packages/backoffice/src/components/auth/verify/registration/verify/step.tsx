@@ -30,7 +30,7 @@ export function VerifyStep({ link, email, shopName }: Props) {
         )}
         <Button
           size="lg"
-          className="w-full rounded-full"
+          className="w-full"
           onClick={() => verify.mutate()}
           disabled={verify.isPending}
           ref={focusOnMount}

@@ -6,6 +6,7 @@ import { dayTime, fullDay } from "../../../lib/customers/format";
 import { statementDeliveriesQuery, statementLinksQuery } from "../../../queries/customers/account";
 import { useRevokeStatementLink } from "../../../queries/customers/statements";
 import { QueryPanel } from "../detail/panel";
+import { ListLineSkeleton } from "../detail/skeletons";
 
 const CHANNELS = { sms: "SMS", email: "Email", pdf: "PDF" } as const;
 const section = "flex min-w-0 flex-col gap-3 rounded-lg border bg-card p-4 shadow-sm";
@@ -21,7 +22,7 @@ export function ActiveLinks({ customerId, canManage }: { customerId: string; can
       <h3 id="links-heading" className="font-medium">
         Active links
       </h3>
-      <QueryPanel query={query} what="links">
+      <QueryPanel query={query} what="links" skeleton={<ListLineSkeleton label="Loading links" />}>
         {(links) => {
           const active = links.filter(
             (link) => !link.revokedAt && Date.parse(link.expiresAt) > Date.now(),
@@ -71,7 +72,11 @@ export function Deliveries({ customerId }: { customerId: string }) {
       <h3 id="deliveries-heading" className="font-medium">
         Sent statements
       </h3>
-      <QueryPanel query={query} what="sent statements">
+      <QueryPanel
+        query={query}
+        what="sent statements"
+        skeleton={<ListLineSkeleton label="Loading sent statements" />}
+      >
         {({ items }) =>
           items.length === 0 ? (
             <p className={empty}>Nothing has been sent yet.</p>

@@ -30,9 +30,9 @@ export function AuditPage({ active, action, children }: Props) {
       </h1>
       <Tabs value={active} activationMode="manual" className="min-h-0 flex-1 gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <TabsList aria-label="Audit" className="max-w-full justify-start overflow-x-auto">
+          <TabsList aria-label="Audit">
             {TABS.map(({ value, to, label }) => (
-              <TabsTrigger key={value} value={value} asChild className="px-3 sm:px-4">
+              <TabsTrigger key={value} value={value} asChild>
                 <Link to={to}>{label}</Link>
               </TabsTrigger>
             ))}

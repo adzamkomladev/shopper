@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@shopper/ui/components/tabs";
+import { Tabs, TabsContent, TabsCount, TabsList, TabsTrigger } from "@shopper/ui/components/tabs";
 import { SEGMENTS } from "../../../lib/kyc/status";
 import type { Segment } from "../../../lib/kyc/types";
 
@@ -15,15 +15,12 @@ type Props = {
 export function Segments({ active, counts, children }: Props) {
   return (
     <Tabs value={active} activationMode="manual" className="min-h-0 flex-1 gap-6">
-      <TabsList
-        aria-label="Identity check segments"
-        className="max-w-full justify-start overflow-x-auto"
-      >
+      <TabsList variant="line" aria-label="Identity check segments">
         {SEGMENTS.map(({ value, label }) => (
-          <TabsTrigger key={value} value={value} asChild className="px-3 sm:px-4">
+          <TabsTrigger key={value} value={value} asChild>
             <Link to="/kyc" search={{ segment: value }}>
               {label}
-              <span className="text-xs text-muted-foreground tabular-nums">{counts[value]}</span>
+              <TabsCount>{counts[value]}</TabsCount>
             </Link>
           </TabsTrigger>
         ))}

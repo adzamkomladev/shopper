@@ -14,6 +14,7 @@ import { SelectField } from "../../fields/select";
 import { SwitchField } from "../../fields/switch";
 import { TextField } from "../../fields/text";
 import { SaveBar } from "../../settings/page";
+import { DateField } from "../../fields/date";
 
 const PRICE_MODES = [
   { value: "inclusive", label: "Shelf prices include VAT and levies" },
@@ -85,9 +86,8 @@ export function TaxSettingsForm({
             </form.Field>
             <form.Field name="vatRegisteredFrom">
               {(field) => (
-                <TextField
+                <DateField
                   field={field}
-                  type="date"
                   label="Registered from"
                   description="Sales from this date on carry VAT. Sales already made keep the tax they were rung up with."
                   onChange={clearError}

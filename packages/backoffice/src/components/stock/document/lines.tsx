@@ -29,7 +29,7 @@ export function DocumentLines({
   onRemove: (productId: string) => void;
 }) {
   return (
-    <Table>
+    <Table bare>
       <TableHeader>
         <TableRow>
           <TableHead>Product</TableHead>

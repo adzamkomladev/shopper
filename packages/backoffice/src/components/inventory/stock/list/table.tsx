@@ -5,7 +5,7 @@ import type { StockItem } from "../../../../queries/inventory/types";
 import { LowBadge, NegativeBadge } from "../badge";
 
 // A phone keeps the product, what is on hand and whether it is low; the level needs a tablet.
-const FROM_MD = "hidden md:table-cell";
+export const FROM_MD = "hidden md:table-cell";
 
 type Props = { items: StockItem[]; branchId: string; onEndReached: () => void };
 

@@ -1,11 +1,17 @@
 import { ArchiveIcon, BuildingIcon, SearchXIcon, UsersIcon, WalletIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { Skeleton } from "@shopper/ui/components/skeleton";
+import {
+  DataTableSkeleton,
+  type DataTableSkeletonColumn,
+} from "@shopper/ui/components/table/skeleton";
 import type { CustomersSearch } from "../../../queries/customers/types";
 import { EmptyList } from "../../admin/states";
+import { CustomersPage } from "../tabs";
+import { FROM_MD } from "./table";
 
 // More rows than any window shows: the table fills the space the loaded one will, and the rest is clipped.
-const SKELETON_ROWS = 12;
+const SKELETON_ROWS = 16;
 
 type Segment = CustomersSearch["segment"];
 
@@ -65,33 +71,48 @@ export function NoMatch({ query, onClear }: { query: string; onClear: () => void
   );
 }
 
+const COLUMNS: DataTableSkeletonColumn[] = [
+  {
+    header: "Customer",
+    // A phone shows the customer's phone under the name, so the row is two lines there.
+    cell: (
+      <div className="flex items-center gap-3">
+        <Skeleton className="size-6 shrink-0 rounded-full" />
+        <div className="flex flex-col">
+          <Skeleton className="my-0.5 h-4 w-40" />
+          <Skeleton className="my-0.5 h-3 w-24 md:hidden" />
+        </div>
+      </div>
+    ),
+  },
+  { header: "Phone", className: FROM_MD, cell: <Skeleton className="h-4 w-24" /> },
+  { header: "Type", className: FROM_MD, cell: <Skeleton className="h-4 w-16" /> },
+  { header: "Owed", className: "text-right", cell: <Skeleton className="ml-auto h-4 w-16" /> },
+  {
+    header: "Points",
+    className: `${FROM_MD} text-right`,
+    cell: <Skeleton className="ml-auto h-4 w-8" />,
+  },
+  {
+    header: "Last visit",
+    className: "hidden text-right lg:table-cell",
+    cell: <Skeleton className="ml-auto h-4 w-16" />,
+  },
+];
+
 export function TableSkeleton() {
   return (
-    <div
-      aria-busy="true"
-      role="status"
-      aria-label="Loading customers"
-      className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border"
-    >
-      <Skeleton className="h-10 shrink-0 rounded-b-none" />
-      {Array.from({ length: SKELETON_ROWS }, (_, index) => (
-        <div key={index} className="flex h-16.5 shrink-0 items-center gap-3 border-t px-4">
-          <Skeleton className="size-6 shrink-0 rounded-full" />
-          <Skeleton className="h-4 w-40" />
-          <Skeleton className="ml-auto h-4 w-20" />
-        </div>
-      ))}
-    </div>
+    <DataTableSkeleton label="Loading customers" columns={COLUMNS} rows={SKELETON_ROWS} fill />
   );
 }
 
-/** The segments and the search box's own boxes, then the rows, so the table starts where it will. */
+/** The search and Download CSV boxes and the segments, then the table, so the table starts where it will. */
 export function CustomersBodySkeleton() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6">
       <div className="flex flex-wrap gap-3">
-        <Skeleton className="h-9 min-w-0 flex-1 basis-64" />
-        <Skeleton className="h-9 w-43.75" />
+        <Skeleton className="h-8 min-w-0 flex-1 basis-64" />
+        <Skeleton className="h-8 w-35.75" />
       </div>
       <Skeleton className="h-9 w-72 max-w-full" />
       <TableSkeleton />
@@ -99,16 +120,11 @@ export function CustomersBodySkeleton() {
   );
 }
 
-/** The heading, tab and Add customer button, then the body: the page as it loads. */
+/** The page's own heading and tabs with the button's box, then the body: the page as it loads. */
 export function CustomersSkeleton() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-6">
-      <Skeleton className="h-9 w-40" />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Skeleton className="h-9 w-28" />
-        <Skeleton className="h-9 w-38" />
-      </div>
+    <CustomersPage active="customers" action={<Skeleton className="h-8 w-29" />}>
       <CustomersBodySkeleton />
-    </div>
+    </CustomersPage>
   );
 }

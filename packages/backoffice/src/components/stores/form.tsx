@@ -9,6 +9,7 @@ import { TextField } from "../fields/text";
 import { focusFirstInvalid } from "../../lib/focus";
 import { emptyStore, storeFormSchema, storeValues, type StoreView } from "../../schemas/management";
 import { useSaveStore } from "../../queries/stores";
+import { DateField } from "../fields/date";
 
 type Props = { store?: StoreView; onSaved: () => void };
 
@@ -66,13 +67,11 @@ export function StoreForm({ store, onSaved }: Props) {
         </form.Field>
         <div className="grid grid-cols-2 gap-4">
           <form.Field name="opensAt">
-            {(field) => (
-              <TextField field={field} label="Opens" type="time" step={60} onChange={clearError} />
-            )}
+            {(field) => <DateField field={field} label="Opens" kind="time" onChange={clearError} />}
           </form.Field>
           <form.Field name="closesAt">
             {(field) => (
-              <TextField field={field} label="Closes" type="time" step={60} onChange={clearError} />
+              <DateField field={field} label="Closes" kind="time" onChange={clearError} />
             )}
           </form.Field>
         </div>

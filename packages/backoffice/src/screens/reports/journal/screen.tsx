@@ -33,7 +33,7 @@ function JournalBody() {
         onBranch={(branchId) => go({ branchId })}
         exporting={{ kind: "journal", params }}
       />
-      <Suspense fallback={<ReportSkeleton label="Loading the journal" toolbar={false} />}>
+      <Suspense fallback={<ReportSkeleton kind="journal" toolbar={false} />}>
         <JournalFigures params={params} />
       </Suspense>
     </>

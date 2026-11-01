@@ -27,10 +27,10 @@ export function EnrolScreen({
     <div className="flex h-svh min-h-0 flex-col bg-background" ref={register}>
       <TitleBar />
       <main className="grid min-h-0 flex-1 place-items-center overflow-y-auto px-4 py-8">
-        <div className="grid w-full max-w-xl gap-8">
-          <div className="grid gap-3 text-center">
-            <h1 className="text-4xl font-semibold tracking-tight">Set up this till</h1>
-            <p className="text-base font-medium text-muted-foreground">
+        <div className="grid w-full max-w-md gap-6 rounded-xl border bg-card p-6 shadow-sm sm:p-8">
+          <div className="grid gap-1.5">
+            <h1 className="text-xl font-semibold tracking-tight">Set up this till</h1>
+            <p className="text-sm text-muted-foreground">
               In the portal, open Devices and choose Create enrolment code. Type the codes it shows,
               or scan its QR code.
             </p>
@@ -44,7 +44,7 @@ export function EnrolScreen({
                 <p>Start the register host, then reconnect.</p>
                 <Button
                   aria-keyshortcuts="Alt+C"
-                  className="rounded-full mt-3"
+                  className="mt-3"
                   onClick={onReconnect}
                   size="touch"
                   variant="outline"

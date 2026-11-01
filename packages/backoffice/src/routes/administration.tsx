@@ -30,7 +30,7 @@ export function administrationRoutes(shopRoute: AnyRoute) {
       ]),
     component: lazyRouteComponent(() => import("../screens/stores/screen"), "StoresScreen"),
     ...routeStates,
-    pendingComponent: () => <ListSkeleton label="Loading stores" />,
+    pendingComponent: () => <ListSkeleton list="stores" />,
   });
   const branchesRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -46,7 +46,7 @@ export function administrationRoutes(shopRoute: AnyRoute) {
     },
     component: lazyRouteComponent(() => import("../screens/branches/screen"), "BranchesScreen"),
     ...routeStates,
-    pendingComponent: () => <ListSkeleton label="Loading branches" />,
+    pendingComponent: () => <ListSkeleton list="branches" />,
   });
   const usersRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -66,7 +66,7 @@ export function administrationRoutes(shopRoute: AnyRoute) {
     loader: ({ context }: Context) => loadAll(context, rolesScreenQueries()),
     component: lazyRouteComponent(() => import("../screens/roles/screen"), "RolesScreen"),
     ...routeStates,
-    pendingComponent: () => <ListSkeleton label="Loading roles" />,
+    pendingComponent: () => <ListSkeleton list="roles" />,
   });
   const devicesRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -74,7 +74,7 @@ export function administrationRoutes(shopRoute: AnyRoute) {
     loader: ({ context }: Context) => loadAll(context, devicesScreenQueries()),
     component: lazyRouteComponent(() => import("../screens/devices/screen"), "DevicesScreen"),
     ...routeStates,
-    pendingComponent: () => <ListSkeleton label="Loading devices" />,
+    pendingComponent: () => <ListSkeleton list="devices" />,
   });
   return [storesRoute, branchesRoute, usersRoute, rolesRoute, devicesRoute];
 }

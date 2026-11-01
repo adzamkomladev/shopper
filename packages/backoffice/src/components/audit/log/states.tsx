@@ -1,7 +1,11 @@
 import { ScrollTextIcon, SearchXIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { Skeleton } from "@shopper/ui/components/skeleton";
-import { EmptyList } from "../../admin/states";
+import { CellLines, EmptyList } from "../../admin/states";
+import { DataTableSkeleton } from "@shopper/ui/components/table/skeleton";
+
+// Two-line rows fill a tall laptop screen; the table clips what does not fit, as the loaded one scrolls it.
+const AUDIT_ROWS = 14;
 
 export function NoAuditEntries({ filtered, onClear }: { filtered: boolean; onClear: () => void }) {
   return filtered ? (
@@ -23,40 +27,43 @@ export function NoAuditEntries({ filtered, onClear }: { filtered: boolean; onCle
   );
 }
 
-/** The table's place while the log loads: the header and rows of the loaded table. */
+/** The table's place while the log loads: its card, header and rows, clipped like the loaded table is. */
 export function AuditRowsSkeleton() {
   return (
-    <div
-      role="status"
-      aria-busy="true"
-      aria-label="Loading the audit log"
-      className="flex flex-col rounded-lg border"
-    >
-      <Skeleton className="h-10 rounded-b-none" />
-      {Array.from({ length: 8 }, (_, index) => (
-        <div key={index} className="flex h-16.5 items-center gap-6 border-t px-4">
-          <Skeleton className="h-9 w-40" />
-          <Skeleton className="h-9 w-32" />
-          <Skeleton className="hidden h-9 w-32 md:block" />
-          <Skeleton className="hidden h-6 w-28 lg:block" />
-        </div>
-      ))}
-    </div>
+    <DataTableSkeleton
+      label="Loading the audit log"
+      className="min-h-96"
+      rows={AUDIT_ROWS}
+      columns={[
+        { header: "Action", cell: <CellLines lines={["h-5 w-36", "h-4 w-32"]} /> },
+        { header: "Who", cell: <CellLines lines={["h-5 w-28", "h-4 w-20"]} /> },
+        {
+          header: "Where",
+          className: "hidden md:table-cell",
+          cell: <Skeleton className="h-5 w-24" />,
+        },
+        {
+          header: "Approved by",
+          className: "hidden lg:table-cell",
+          cell: <Skeleton className="h-5 w-4" />,
+        },
+      ]}
+    />
   );
 }
 
 /** The filters and table of the loaded tab, so nothing moves when the data arrives. */
 export function AuditLogSkeleton() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
       <div
         role="presentation"
         className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8"
       >
         {Array.from({ length: 8 }, (_, index) => (
-          <div key={index} className="flex flex-col gap-1.5">
+          <div key={index} className="flex min-w-0 flex-col gap-1.5">
             <Skeleton className="h-3.5 w-16" />
-            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-8 w-full" />
           </div>
         ))}
       </div>

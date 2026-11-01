@@ -2,33 +2,57 @@ import { Link } from "@tanstack/react-router";
 import { PackageOpenIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { Skeleton } from "@shopper/ui/components/skeleton";
+import {
+  DataTableSkeleton,
+  type DataTableSkeletonColumn,
+} from "@shopper/ui/components/table/skeleton";
 import { EmptyList } from "../../admin/states";
-import { InventorySkeleton } from "../states";
+import { InventoryPage } from "../tabs";
+import { FROM_MD } from "./table";
 
-const SKELETON_ROWS = 6;
+// More rows than any window shows: the table fills the space the loaded one will, and the rest is clipped.
+const SKELETON_ROWS = 16;
 
-/** The summary card and table as they load, under the branch picker, which is already there. */
+const COLUMNS: DataTableSkeletonColumn[] = [
+  {
+    header: "Product",
+    // A phone adds what is on hand and its cost under the name.
+    cell: (
+      <div className="flex flex-col">
+        <Skeleton className="my-0.5 h-4 w-48" />
+        <Skeleton className="my-0.5 h-3 w-28" />
+      </div>
+    ),
+  },
+  {
+    header: "On hand",
+    className: `${FROM_MD} text-right`,
+    cell: <Skeleton className="ml-auto h-4 w-16" />,
+  },
+  {
+    header: "Last unit cost",
+    className: `${FROM_MD} text-right`,
+    cell: <Skeleton className="ml-auto h-4 w-16" />,
+  },
+  { header: "Value", className: "text-right", cell: <Skeleton className="ml-auto h-4 w-20" /> },
+  // Most lines carry no flag, so most flag cells are empty.
+  { header: "Flags", className: FROM_MD, cell: null },
+];
+
+/** The summary cards and table as they load, under the branch picker, which is already there. */
 export function ValuationResultsSkeleton() {
   return (
-    <div
-      aria-busy="true"
-      role="status"
-      aria-label="Loading stock valuation"
-      className="flex min-h-0 flex-1 flex-col gap-6"
-    >
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:max-w-2xl">
-        <Skeleton className="h-28 sm:h-30.5" />
-        <Skeleton className="h-30 sm:h-30.5" />
+        <Skeleton className="h-30.5" />
+        <Skeleton className="h-30.5" />
       </div>
-      <div className="flex min-h-52 flex-col overflow-hidden rounded-lg border">
-        <Skeleton className="h-10 rounded-b-none" />
-        {Array.from({ length: SKELETON_ROWS }, (_, index) => (
-          <div key={index} className="flex h-16.5 items-center gap-6 border-t px-4">
-            <Skeleton className="h-9 w-56" />
-            <Skeleton className="ml-auto h-4 w-20" />
-          </div>
-        ))}
-      </div>
+      <DataTableSkeleton
+        label="Loading stock valuation lines"
+        columns={COLUMNS}
+        rows={SKELETON_ROWS}
+        fill
+      />
     </div>
   );
 }
@@ -36,7 +60,7 @@ export function ValuationResultsSkeleton() {
 export function ValuationBodySkeleton() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6">
-      <Skeleton className="h-9 w-full sm:w-48" />
+      <Skeleton className="h-8 w-full sm:w-48" />
       <ValuationResultsSkeleton />
     </div>
   );
@@ -44,9 +68,9 @@ export function ValuationBodySkeleton() {
 
 export function ValuationSkeleton() {
   return (
-    <InventorySkeleton>
+    <InventoryPage active="valuation">
       <ValuationBodySkeleton />
-    </InventorySkeleton>
+    </InventoryPage>
   );
 }
 

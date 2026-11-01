@@ -127,7 +127,7 @@ export function createBackofficeRoutes(
       "MappingsScreen",
     ),
     ...routeStates,
-    pendingComponent: () => <ListSkeleton label="Loading barcode layouts" />,
+    pendingComponent: () => <ListSkeleton list="layouts" />,
   });
   const importsRoute = createRoute({
     getParentRoute: () => shopRoute,

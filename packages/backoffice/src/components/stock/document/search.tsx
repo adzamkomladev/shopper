@@ -98,11 +98,11 @@ export function ProductSearch<P extends Product>({
             <div
               aria-busy="true"
               aria-label="Searching"
-              className="flex flex-col gap-2 p-3"
+              className="flex flex-col divide-y"
               role="status"
             >
-              <Skeleton className="h-8" />
-              <Skeleton className="h-8" />
+              <Skeleton className="h-11 rounded-none rounded-t-xl" />
+              <Skeleton className="h-11 rounded-none rounded-b-xl" />
             </div>
           ) : matches.length === 0 ? (
             <p className="p-4 text-sm text-muted-foreground">No product matches "{search}".</p>

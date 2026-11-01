@@ -119,7 +119,7 @@ export function DocumentForm({ kind, copy }: { kind: Kind; copy: DocumentCopy })
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="overflow-hidden rounded-2xl border bg-card">
+        <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
           <DocumentLines
             kind={kind}
             errors={errors}

@@ -1,15 +1,12 @@
 import { ShieldCheckIcon } from "lucide-react";
 import { Skeleton } from "@shopper/ui/components/skeleton";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@shopper/ui/components/table/primitive";
+  DataTableSkeleton,
+  type DataTableSkeletonColumn,
+} from "@shopper/ui/components/table/skeleton";
 import type { Segment } from "../../../lib/kyc/types";
 import { EmptyList } from "../../admin/states";
+import { CustomersPage } from "../../customers/tabs";
 import { FROM_LG, FROM_MD } from "./table";
 
 const EMPTY: Record<Segment, { title: string; description: string }> = {
@@ -37,56 +34,48 @@ export function NoChecks({ segment, children }: { segment: Segment; children?: R
   );
 }
 
-const SKELETON_ROWS = 5;
-// Header, hidden-below class and skeleton size of each column, as in the loaded table.
-const COLUMNS = [
-  ["Phone", "", "h-5 w-28"],
-  ["Asked for", `${FROM_MD} text-right`, "h-5 w-20 ml-auto"],
-  ["ID", FROM_LG, "h-5 w-44"],
-  ["Status", "", "h-6 w-36 rounded-full"],
-] as const;
+// More rows than any window shows: the table fills the space the loaded one will, and the rest is clipped.
+const SKELETON_ROWS = 12;
+const COLUMNS: DataTableSkeletonColumn[] = [
+  {
+    header: "Phone",
+    cell: (
+      <div className="flex flex-col">
+        <Skeleton className="my-0.5 h-4 w-28" />
+        <Skeleton className="my-0.5 h-3 w-14" />
+      </div>
+    ),
+  },
+  {
+    header: "Asked for",
+    className: `${FROM_MD} text-right`,
+    cell: <Skeleton className="ml-auto h-4 w-20" />,
+  },
+  { header: "ID", className: FROM_LG, cell: <Skeleton className="h-4 w-44" /> },
+  {
+    header: "Status",
+    cell: (
+      <div className="flex flex-col items-start gap-1">
+        <Skeleton className="h-5.5 w-24 rounded-full" />
+        <Skeleton className="my-0.5 h-3 w-28" />
+      </div>
+    ),
+  },
+];
 
-/** The loaded page's own heading, button, tabs and table, with blocks in the cells, so nothing jumps when it arrives. */
+/** The page's own heading and tabs with the button's box, then the segments and the table: the page as it loads. */
 export function KycQueueSkeleton() {
   return (
-    <div
-      className="flex flex-col gap-6"
-      role="status"
-      aria-busy="true"
-      aria-label="Loading identity checks"
-    >
-      <div className="flex items-center justify-between gap-4">
-        <Skeleton className="h-9 w-56" />
-        <Skeleton className="h-9 w-36" />
+    <CustomersPage active="kyc" title="Identity checks" action={<Skeleton className="h-8 w-25" />}>
+      <div className="flex min-h-0 flex-1 flex-col gap-6">
+        <Skeleton className="h-9 w-72 max-w-full" />
+        <DataTableSkeleton
+          label="Loading identity checks"
+          columns={COLUMNS}
+          rows={SKELETON_ROWS}
+          fill
+        />
       </div>
-      <Skeleton className="h-9 w-96 max-w-full" />
-      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              {COLUMNS.map(([label, only]) => (
-                <TableHead
-                  key={label}
-                  className={`h-10 bg-muted/50 px-4 text-xs font-semibold text-muted-foreground ${only}`}
-                >
-                  {label}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {Array.from({ length: SKELETON_ROWS }, (_, row) => (
-              <TableRow key={row} className="h-16.5 hover:bg-transparent">
-                {COLUMNS.map(([label, only, size]) => (
-                  <TableCell key={label} className={`px-4 ${only}`}>
-                    <Skeleton className={size} />
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    </CustomersPage>
   );
 }

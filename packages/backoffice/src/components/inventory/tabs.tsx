@@ -49,14 +49,13 @@ export function InventoryPage({ active, action, children }: Props) {
         <div className="flex flex-wrap items-center justify-between gap-3">
           {tabs.length > 0 && (
             // Five tabs are wider than a phone: the strip scrolls, and the tab showing is brought into view.
-            <TabsList aria-label="Inventory" className="max-w-full justify-start overflow-x-auto">
+            <TabsList aria-label="Inventory">
               {tabs.map(({ value, to, label }) => (
                 <TabsTrigger
                   key={value}
                   value={value}
                   asChild
                   ref={value === active ? revealTab : undefined}
-                  className="px-3 sm:px-4"
                 >
                   <Link to={to}>{label}</Link>
                 </TabsTrigger>

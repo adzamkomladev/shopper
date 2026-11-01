@@ -39,7 +39,7 @@ function DashboardBody() {
         onBranch={(branchId) => go({ branchId })}
         exporting={{ kind: "dashboard", params }}
       />
-      <Suspense fallback={<ReportSkeleton label="Loading the dashboard" tiles toolbar={false} />}>
+      <Suspense fallback={<ReportSkeleton kind="dashboard" toolbar={false} />}>
         <DashboardFigures params={params} />
       </Suspense>
     </>

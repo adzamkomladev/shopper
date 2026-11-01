@@ -1,7 +1,15 @@
 import type * as v from "valibot";
 import { createRoute, lazyRouteComponent, type AnyRoute } from "@tanstack/react-router";
 import { routeStates } from "../components/route/states";
-import { TaxBodySkeleton } from "../components/tax/states";
+import { Skeleton } from "@shopper/ui/components/skeleton";
+import { TaxPage } from "../components/tax/tabs";
+import {
+  RatesSkeleton,
+  ReturnSkeleton,
+  RulesActionSkeleton,
+  SummarySkeleton,
+  TaxSettingsSkeleton,
+} from "../components/tax/states";
 import { lastMonth, shopToday } from "../lib/tax/dates";
 import { settingsQuery } from "../queries/settings/resource";
 import { taxRulesQuery } from "../queries/tax/rules";
@@ -38,7 +46,11 @@ export function taxRoutes(shopRoute: AnyRoute) {
       "TaxSummaryScreen",
     ),
     ...routeStates,
-    pendingComponent: () => <TaxBodySkeleton label="Loading the tax summary" />,
+    pendingComponent: () => (
+      <TaxPage active="summary">
+        <SummarySkeleton />
+      </TaxPage>
+    ),
   });
   const returnsRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -53,7 +65,11 @@ export function taxRoutes(shopRoute: AnyRoute) {
       }),
     component: lazyRouteComponent(() => import("../screens/tax/returns/screen"), "VatReturnScreen"),
     ...routeStates,
-    pendingComponent: () => <TaxBodySkeleton label="Loading the VAT return" />,
+    pendingComponent: () => (
+      <TaxPage active="returns" action={<Skeleton className="h-8 w-36.25" />}>
+        <ReturnSkeleton />
+      </TaxPage>
+    ),
   });
   const fiscalRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -69,7 +85,11 @@ export function taxRoutes(shopRoute: AnyRoute) {
       ),
     component: lazyRouteComponent(() => import("../screens/tax/fiscal/screen"), "FiscalScreen"),
     ...routeStates,
-    pendingComponent: () => <FiscalSkeleton />,
+    pendingComponent: () => (
+      <TaxPage active="fiscal">
+        <FiscalSkeleton />
+      </TaxPage>
+    ),
   });
   const rulesRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -78,7 +98,11 @@ export function taxRoutes(shopRoute: AnyRoute) {
       whenHeld(context, "tax.read", () => context.queryClient.ensureQueryData(taxRulesQuery())),
     component: lazyRouteComponent(() => import("../screens/tax/rules/screen"), "TaxRulesScreen"),
     ...routeStates,
-    pendingComponent: () => <TaxBodySkeleton label="Loading tax rates" />,
+    pendingComponent: () => (
+      <TaxPage active="rules" action={<RulesActionSkeleton />}>
+        <RatesSkeleton />
+      </TaxPage>
+    ),
   });
   const settingsRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -92,7 +116,11 @@ export function taxRoutes(shopRoute: AnyRoute) {
       "TaxSettingsScreen",
     ),
     ...routeStates,
-    pendingComponent: () => <TaxBodySkeleton label="Loading tax settings" />,
+    pendingComponent: () => (
+      <TaxPage active="settings">
+        <TaxSettingsSkeleton />
+      </TaxPage>
+    ),
   });
   return [summaryRoute, returnsRoute, fiscalRoute, rulesRoute, settingsRoute];
 }

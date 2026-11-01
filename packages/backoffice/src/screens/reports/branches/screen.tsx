@@ -28,7 +28,7 @@ function BranchesBody() {
   return (
     <>
       <ReportToolbar period={rangePeriod(params, go)} exporting={{ kind: "branches", params }} />
-      <Suspense fallback={<ReportSkeleton label="Loading the branch comparison" toolbar={false} />}>
+      <Suspense fallback={<ReportSkeleton kind="branches" toolbar={false} />}>
         <BranchesFigures params={params} />
       </Suspense>
     </>

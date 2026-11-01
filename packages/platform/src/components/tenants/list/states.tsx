@@ -1,15 +1,7 @@
 import { StoreIcon } from "lucide-react";
-import { EmptyList } from "@shopper/backoffice/kit";
+import { CellLines, EmptyList } from "@shopper/backoffice/kit";
 import { Skeleton } from "@shopper/ui/components/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@shopper/ui/components/table/primitive";
-import { FROM_LG, FROM_MD } from "./table";
+import { DataTableSkeleton } from "@shopper/ui/components/table/skeleton";
 
 export function NoTenants() {
   return (
@@ -21,47 +13,38 @@ export function NoTenants() {
   );
 }
 
-const SKELETON_ROWS = 6;
-const COLUMNS = [
-  ["Shop", "", "h-9 w-40"],
-  ["Onboarding", "", "h-6 w-24 rounded-full"],
-  ["First sale", FROM_MD, "h-5 w-32"],
-  ["Verification", "", "h-6 w-24 rounded-full"],
-  ["Till updates", "", "h-8 w-28"],
-  ["Joined", FROM_LG, "h-5 w-32"],
-] as const;
+// Two-line rows fill a tall laptop screen; the table clips what does not fit, as the loaded one scrolls it.
+const SKELETON_ROWS = 14;
 
+/** The heading with its count, then the table's card, header and rows, which fill what the page leaves. */
 export function TenantsSkeleton() {
   return (
-    <div className="flex flex-col gap-6" role="status" aria-busy="true" aria-label="Loading shops">
-      <Skeleton className="h-9 w-32" />
-      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              {COLUMNS.map(([label, only]) => (
-                <TableHead
-                  key={label}
-                  className={`h-10 bg-muted/50 px-4 text-xs font-semibold text-muted-foreground ${only}`}
-                >
-                  {label}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {Array.from({ length: SKELETON_ROWS }, (_, row) => (
-              <TableRow key={row} className="h-16.5 hover:bg-transparent">
-                {COLUMNS.map(([label, only, size]) => (
-                  <TableCell key={label} className={`px-4 ${only}`}>
-                    <Skeleton className={size} />
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
+      <div className="flex items-baseline gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight">Shops</h1>
+        <Skeleton className="h-5 w-5" />
       </div>
+      <DataTableSkeleton
+        label="Loading shops"
+        className="min-h-0"
+        rows={SKELETON_ROWS}
+        columns={[
+          { header: "Shop", cell: <CellLines lines={["h-5 w-40", "h-4 w-24"]} /> },
+          { header: "Onboarding", cell: <Skeleton className="h-5 w-20 rounded-full" /> },
+          {
+            header: "First sale",
+            className: "hidden md:table-cell",
+            cell: <Skeleton className="h-5 w-32" />,
+          },
+          { header: "Verification", cell: <Skeleton className="h-5 w-24 rounded-full" /> },
+          { header: "Till updates", cell: <Skeleton className="h-8 w-28" /> },
+          {
+            header: "Joined",
+            className: "hidden lg:table-cell",
+            cell: <Skeleton className="h-5 w-32" />,
+          },
+        ]}
+      />
     </div>
   );
 }

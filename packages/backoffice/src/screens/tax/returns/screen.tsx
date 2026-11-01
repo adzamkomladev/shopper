@@ -3,18 +3,18 @@ import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { DownloadIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Input } from "@shopper/ui/components/input";
 import { Label } from "@shopper/ui/components/label";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { Gate, OfflineNote } from "../../../components/register/states";
 import { InputForm } from "../../../components/tax/returns/input";
 import { InputTax, Worksheet } from "../../../components/tax/returns/worksheet";
-import { TaxBodySkeleton } from "../../../components/tax/states";
+import { ReturnSheet, ReturnSkeleton } from "../../../components/tax/states";
 import { TaxPage } from "../../../components/tax/tabs";
 import { lastMonth, shopToday } from "../../../lib/tax/dates";
 import { useReturnWorkbook, vatReturnQuery } from "../../../queries/tax/returns";
 import { usePermissions } from "../../../queries/session/permissions";
+import { MonthPicker } from "@shopper/ui/components/picker/month";
 
 /** The month's VAT return worksheet, the input tax claimed, and the workbook for the accountant to file from. */
 export function VatReturnScreen() {
@@ -43,11 +43,7 @@ export function VatReturnScreen() {
           )
         }
       >
-        <Gate
-          need="tax.read"
-          what="VAT returns"
-          fallback={<TaxBodySkeleton label="Loading the VAT return" />}
-        >
+        <Gate need="tax.read" what="VAT returns" fallback={<ReturnSkeleton />}>
           <ReturnBody period={period} />
         </Gate>
       </TaxPage>
@@ -67,23 +63,22 @@ function ReturnBody({ period }: { period: string }) {
       )}
       <div className="flex flex-col gap-2">
         <Label htmlFor="return-period">Month</Label>
-        <Input
+        <MonthPicker
           id="return-period"
-          type="month"
           value={period}
           max={shopToday().slice(0, 7)}
-          onChange={(event) =>
-            event.target.value &&
+          onValueChange={(value) =>
+            value &&
             void navigate({
               to: "/tax/returns",
-              search: { period: event.target.value },
+              search: { period: value },
               replace: true,
             })
           }
           className="w-48"
         />
       </div>
-      <Suspense fallback={<TaxBodySkeleton label="Loading the VAT return" />}>
+      <Suspense fallback={<ReturnSheet />}>
         <ReturnResults period={period} />
       </Suspense>
     </div>

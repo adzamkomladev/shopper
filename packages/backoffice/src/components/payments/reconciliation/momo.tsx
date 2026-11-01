@@ -50,20 +50,20 @@ export function MomoSettlement({ momo }: { momo: ReconciliationView["momo"] }) {
       {momo.mismatches.length > 0 && (
         <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
           <div className="overflow-x-auto">
-            <Table aria-label="Settlement mismatches">
+            <Table bare aria-label="Settlement mismatches">
               <TableHeader>
-                <TableRow className="bg-muted/50 hover:bg-muted/50">
-                  <TableHead className="px-4">Receipt</TableHead>
+                <TableRow>
+                  <TableHead>Receipt</TableHead>
                   <TableHead className="hidden md:table-cell">Reference</TableHead>
                   <TableHead className="hidden text-right sm:table-cell">Sale</TableHead>
                   <TableHead className="hidden text-right sm:table-cell">Paid out</TableHead>
-                  <TableHead className="px-4 text-right">Difference</TableHead>
+                  <TableHead className="text-right">Difference</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {momo.mismatches.map((row) => (
-                  <TableRow key={row.paymentId} className="h-10 hover:bg-transparent">
-                    <TableCell className="px-4">
+                  <TableRow key={row.paymentId}>
+                    <TableCell>
                       <div className="flex flex-col items-start gap-1">
                         <Link
                           to="/transactions/$saleId"
@@ -84,7 +84,7 @@ export function MomoSettlement({ momo }: { momo: ReconciliationView["momo"] }) {
                     <TableCell className="hidden sm:table-cell">
                       <Money amount={money(row.settled)} />
                     </TableCell>
-                    <TableCell className="px-4">
+                    <TableCell>
                       <Money
                         amount={sub(money(row.settled), money(row.expected))}
                         className="font-semibold text-destructive"

@@ -35,7 +35,8 @@ export function ShellHeader({ onShortcuts }: { onShortcuts: () => void }) {
       >
         {trail.map((part, index) => (
           <span
-            key={part}
+            // An area and its page can share a name ("Customers / Customers"), so the place is the key.
+            key={index}
             className={
               index === trail.length - 1
                 ? "truncate font-medium"

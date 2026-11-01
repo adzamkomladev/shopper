@@ -56,7 +56,7 @@ export function SidebarContent({ className, ...props }: React.ComponentProps<"di
   return (
     <div
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-1 overflow-x-hidden overflow-y-auto p-2",
+        "no-scrollbar flex min-h-0 flex-1 flex-col gap-1 overflow-x-hidden overflow-y-auto p-2",
         className,
       )}
       {...props}

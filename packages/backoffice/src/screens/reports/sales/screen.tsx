@@ -66,7 +66,7 @@ function SalesBody() {
           </div>
         }
       />
-      <Suspense fallback={<ReportSkeleton label="Loading sales" toolbar={false} />}>
+      <Suspense fallback={<ReportSkeleton kind="sales" toolbar={false} />}>
         <SalesFigures params={params} />
       </Suspense>
     </>

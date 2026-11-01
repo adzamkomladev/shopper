@@ -31,8 +31,8 @@
 
 The pad no longer repaints on a typed digit. The median digit is about 40 ms. The budget is 50 ms, and the worst
 digit still crosses it on some runs: four repeats gave 2 passed and 2 failed (47 / 65.5 / 44.5 ms and
-50.6 / 9.5 / 39.9 ms). The slow digit is the first one or scheduler noise. The budget was left as written; the owner
-decides whether it stays.
+50.6 / 9.5 / 39.9 ms). The slow digit is the first one or scheduler noise. The owner kept the 50 ms budget, so the
+spec stays strict until the first digit is faster.
 
 ## Not verified here
 

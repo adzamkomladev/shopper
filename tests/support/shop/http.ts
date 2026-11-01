@@ -5,14 +5,15 @@
 import { boxCache, boxRateLimiter } from "@shopper/adapters-box";
 import { serveRuntime, type RuntimeOptions } from "@shopper/api/runtime";
 import { loginCode } from "@shopper/core/shop";
-import type { shopWorld } from "./world";
+import type { ShopperDatabase } from "@shopper/db-pg";
+import type { Queue } from "@shopper/ports";
 import { linkSecret } from "./world";
 
 export const shopOrigin = "https://shop.test";
 let ips = 0;
 export const freshIp = () => `203.0.113.${(++ips % 250) + 1}`;
 
-type World = Pick<Awaited<ReturnType<typeof shopWorld>>, "db" | "queue">;
+type World = { db: ShopperDatabase; queue: Queue };
 type Init = {
   method?: string;
   body?: unknown;

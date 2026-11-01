@@ -25,7 +25,7 @@ let http: ReturnType<typeof shopHttp>;
 let shop: { slug: string };
 const grants: { orgId: string; key: string; seconds: number }[] = [];
 let rendered = 0;
-let mine: { id: string; receiptNumber: string };
+let mine: { id: string; receiptNumber: string | null };
 let merged: string;
 let theirs: string;
 

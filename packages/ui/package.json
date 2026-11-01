@@ -52,6 +52,10 @@
       "types": "./src/hooks/use/now.ts",
       "default": "./src/hooks/use/now.ts"
     },
+    "./hooks/use-mobile": {
+      "types": "./src/hooks/use/mobile.ts",
+      "default": "./src/hooks/use/mobile.ts"
+    },
     "./hooks/use-online": {
       "types": "./src/hooks/use/online.ts",
       "default": "./src/hooks/use/online.ts"

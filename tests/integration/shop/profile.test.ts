@@ -65,7 +65,11 @@ test("a shopper names themself without touching the shop's customer record", asy
 
 test("addresses: the first is the default, a new default takes over, deleting it passes it on", async () => {
   const cookie = await http.signIn(world.a, "0245550200");
-  const first = await call("/shop/account/addresses", cookie, "POST", home);
+  // The form always sends its checkbox; the first address is the default even when it is unticked.
+  const first = await call("/shop/account/addresses", cookie, "POST", {
+    ...home,
+    isDefault: false,
+  });
   expect(first.status).toBe(201);
   expect(first.body).toMatchObject({ label: "Home", phone: "0245550101", isDefault: true });
 

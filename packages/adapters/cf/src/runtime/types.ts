@@ -68,3 +68,8 @@ export interface CloudflareRuntimeEnvironment extends AuthEnvironment, RateLimit
   ONBOARDING_FLOWS?: Parameters<typeof cloudflareLauncher>[0];
   KYB_FLOWS?: Parameters<typeof cloudflareLoopLauncher>[0];
 }
+
+/** The shop Worker's bindings: the edge Worker that runs the API, reached through a service binding. */
+export interface CloudflareShopEnvironment {
+  API: Fetcher;
+}

@@ -140,6 +140,11 @@ export interface PortalHealth {
   blobs: "ok" | "error";
 }
 /** What a host injects into the portal's server entry: the API plus the host-only server functions. */
+/** What the shop Worker hands TanStack Start: the shopper API at `/api/shop/*`, wherever it runs. */
+export interface ShopContext {
+  shopApi: (request: Request) => Promise<Response>;
+}
+
 export interface PortalContext {
   portalRuntime: (request: Request) => Promise<Response>;
   portalHost: () => PortalHost;

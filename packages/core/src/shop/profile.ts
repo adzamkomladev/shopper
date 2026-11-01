@@ -107,7 +107,8 @@ const saveAddress = defineCommand({
     const current = input.id ? others.find((row) => row.id === input.id) : undefined;
     if (input.id && !current) throw new ShopError("We could not find that address", 404);
     // The first address is the default whether or not they said so.
-    const isDefault = input.data.isDefault ?? (current?.isDefault || others.length === 0);
+    const alone = others.every((row) => row.id === input.id);
+    const isDefault = alone || (input.data.isDefault ?? current?.isDefault ?? false);
     const id = input.id ?? v7();
     if (isDefault)
       await tx

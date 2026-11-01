@@ -35,7 +35,10 @@ export function shopSignInRoutes(options: ShopOptions) {
     const input = await body(c);
     if (
       options.turnstile &&
-      !(await options.turnstile(String(input.turnstile ?? ""), options.clientIP))
+      !(await options.turnstile(
+        typeof input.turnstile === "string" ? input.turnstile : "",
+        options.clientIP,
+      ))
     )
       return c.json({ error: "Please confirm you are not a robot and try again" }, 403);
     const started = await options.access.start(found.id, input.phone);

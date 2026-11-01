@@ -58,15 +58,22 @@ export function SignInScreen({
     <div className="flex h-svh min-h-0 flex-col bg-background" ref={register}>
       <TitleBar />
       <main className="grid min-h-0 flex-1 place-items-center overflow-y-auto px-4 py-8">
-        <div className="grid w-full max-w-xl gap-8 sm:gap-10">
-          <h1 className="flex items-center justify-center gap-3 text-4xl font-semibold tracking-tight">
-            <span aria-hidden="true" className="size-12 rounded-full bg-border" />
-            Shopper App
-          </h1>
-          <p className="text-center text-base font-medium">
-            For security reasons please enter your username and password to continue using Point Of
-            Sales
-          </p>
+        <div className="grid w-full max-w-md gap-6 rounded-xl border bg-card p-6 shadow-sm sm:p-8">
+          <div className="grid gap-1.5">
+            <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
+              <span
+                aria-hidden="true"
+                className="flex size-7 items-center justify-center rounded-md bg-primary text-sm text-primary-foreground"
+              >
+                S
+              </span>
+              Shopper App
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              For security reasons please enter your username and password to continue using Point
+              Of Sales
+            </p>
+          </div>
           <SignInNotices
             failure={snapshot.failure}
             host={host}

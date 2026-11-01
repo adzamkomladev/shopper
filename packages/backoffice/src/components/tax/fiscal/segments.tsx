@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@shopper/ui/components/tabs";
+import { Tabs, TabsContent, TabsCount, TabsList, TabsTrigger } from "@shopper/ui/components/tabs";
 import { FISCAL_SEGMENTS } from "../../../lib/tax/fiscal";
 import type { FiscalSearch, FiscalSegment } from "../../../schemas/tax/fiscal";
 
@@ -15,26 +15,17 @@ type Props = {
 export function FiscalSegments({ active, counts, search, children }: Props) {
   return (
     <Tabs value={active} activationMode="manual" className="min-h-80 flex-1 gap-4">
-      <TabsList
-        variant="line"
-        aria-label="Fiscal document status"
-        className="w-full justify-start overflow-x-auto max-sm:gap-0"
-      >
+      <TabsList variant="line" aria-label="Fiscal document status">
         {FISCAL_SEGMENTS.map(({ value, label }, index) => (
-          <TabsTrigger
-            key={value}
-            value={value}
-            asChild
-            className="flex-none px-2 max-sm:text-xs sm:px-3"
-          >
+          <TabsTrigger key={value} value={value} asChild>
             <Link
               to="/tax/fiscal"
               search={{ ...search, status: value }}
               replace
               aria-keyshortcuts={String(index + 1)}
             >
-              {label}{" "}
-              <span className="text-xs text-muted-foreground tabular-nums">{counts[value]}</span>
+              {label}
+              <TabsCount>{counts[value]}</TabsCount>
             </Link>
           </TabsTrigger>
         ))}

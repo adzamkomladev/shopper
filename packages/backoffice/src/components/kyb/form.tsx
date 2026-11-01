@@ -12,6 +12,7 @@ import { SelectField } from "../fields/select";
 import { TextField } from "../fields/text";
 import { UploadField } from "./upload";
 import { SaveError } from "./status";
+import { DateField } from "../fields/date";
 
 /** `banks` is undefined while the list loads and null when it failed to. */
 type Props = { view: KybView; banks: { name: string; code: string }[] | undefined | null };
@@ -138,7 +139,7 @@ export function KybForm({ view, banks }: Props) {
                     )}
                   </form.Field>
                   <form.Field name={`directors[${index}].cardExpiresOn`}>
-                    {(field) => <TextField field={field} type="date" label="Card expires on" />}
+                    {(field) => <DateField field={field} label="Card expires on" />}
                   </form.Field>
                   <form.Field name={`directors[${index}].cardAssetId`}>
                     {(field) => (
@@ -173,9 +174,8 @@ export function KybForm({ view, banks }: Props) {
               </form.Field>
               <form.Field name={`${document.kind}.expiresOn`}>
                 {(field) => (
-                  <TextField
+                  <DateField
                     field={field}
-                    type="date"
                     label={`${document.label} expires on`}
                     description="Leave empty if it does not expire."
                   />

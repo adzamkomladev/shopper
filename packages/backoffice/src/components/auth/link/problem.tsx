@@ -48,24 +48,24 @@ export function linkProblemScreen(subject: "verification" | "invitation") {
     const copy = kind === "broken" ? broken[subject] : others[kind];
     return (
       <AuthFrame>
-        <CardContent className="flex flex-col items-start gap-9 px-6 sm:px-22">
+        <CardContent className="flex flex-col items-start gap-6 p-6 sm:p-8">
           {kind === "unreachable" ? (
             <WifiOffIcon aria-hidden className="size-10 text-muted-foreground" />
           ) : (
             <LinkIcon aria-hidden className="size-10 text-muted-foreground" />
           )}
-          <div className="flex flex-col gap-5">
-            <h1 className="text-4xl font-semibold tracking-tight">{copy.title}</h1>
-            <p className="text-lg font-medium text-muted-foreground">{copy.description}</p>
+          <div className="flex flex-col gap-1.5">
+            <h1 className="text-xl font-semibold tracking-tight">{copy.title}</h1>
+            <p className="text-sm text-muted-foreground">{copy.description}</p>
           </div>
           {kind === "broken" ? (
-            <Button asChild size="lg" className="rounded-full">
+            <Button asChild size="lg">
               <Link to={broken[subject].action.to}>{broken[subject].action.label}</Link>
             </Button>
           ) : (
             <Button
               size="lg"
-              className="rounded-full"
+
               onClick={() => {
                 reset();
                 void router.invalidate();

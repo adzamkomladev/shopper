@@ -29,7 +29,7 @@ export function auditRoutes(shopRoute: AnyRoute) {
     ...routeStates,
     // The heading, tabs and action stay put; only the tab's body is a skeleton.
     pendingComponent: () => (
-      <AuditPage active="log" action={<Skeleton className="h-9 w-38.5" />}>
+      <AuditPage active="log" action={<Skeleton className="h-8 w-30.25" />}>
         <AuditLogSkeleton />
       </AuditPage>
     ),
@@ -47,7 +47,7 @@ export function auditRoutes(shopRoute: AnyRoute) {
     ),
     ...routeStates,
     pendingComponent: () => (
-      <AuditPage active="integrity" action={<Skeleton className="h-9 w-33.5" />}>
+      <AuditPage active="integrity" action={<Skeleton className="h-8 w-25.25" />}>
         <IntegritySkeleton />
       </AuditPage>
     ),

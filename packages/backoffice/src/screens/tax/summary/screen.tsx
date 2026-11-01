@@ -1,26 +1,26 @@
 import { Suspense } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Input } from "@shopper/ui/components/input";
 import { Label } from "@shopper/ui/components/label";
 import { RadioGroup, RadioGroupItem } from "@shopper/ui/components/radio-group";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { Gate, OfflineNote } from "../../../components/register/states";
-import { NothingTaxed, TaxBodySkeleton } from "../../../components/tax/states";
+import {
+  NothingTaxed,
+  SummaryResultsSkeleton,
+  SummarySkeleton,
+} from "../../../components/tax/states";
 import { SummaryTable, SummaryTotals } from "../../../components/tax/summary/table";
 import { TaxPage } from "../../../components/tax/tabs";
 import { shopToday } from "../../../lib/tax/dates";
 import { taxSummaryQuery } from "../../../queries/tax/returns";
+import { DatePicker } from "@shopper/ui/components/picker/date";
 
 /** Tax charged and given back, by period, branch and class, over a range of shop dates. */
 export function TaxSummaryScreen() {
   return (
     <TaxPage active="summary">
-      <Gate
-        need="tax.read"
-        what="the tax summary"
-        fallback={<TaxBodySkeleton label="Loading the tax summary" />}
-      >
+      <Gate need="tax.read" what="the tax summary" fallback={<SummarySkeleton />}>
         <SummaryBody />
       </Gate>
     </TaxPage>
@@ -49,23 +49,21 @@ function SummaryBody() {
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-2">
           <Label htmlFor="tax-from">From</Label>
-          <Input
+          <DatePicker
             id="tax-from"
-            type="date"
             value={range.from}
             max={range.to}
-            onChange={(event) => event.target.value && go({ from: event.target.value })}
+            onValueChange={(value) => value && go({ from: value })}
             className="w-44"
           />
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="tax-to">To</Label>
-          <Input
+          <DatePicker
             id="tax-to"
-            type="date"
             value={range.to}
             min={range.from}
-            onChange={(event) => event.target.value && go({ to: event.target.value })}
+            onValueChange={(value) => value && go({ to: value })}
             className="w-44"
           />
         </div>
@@ -88,7 +86,7 @@ function SummaryBody() {
           </RadioGroup>
         </div>
       </div>
-      <Suspense fallback={<TaxBodySkeleton label="Loading the tax summary" />}>
+      <Suspense fallback={<SummaryResultsSkeleton />}>
         <SummaryResults range={range} />
       </Suspense>
     </div>

@@ -31,10 +31,10 @@ export function ShiftVariances({ shifts }: { shifts: ReconciliationView["shifts"
       ) : (
         <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
           <div className="overflow-x-auto">
-            <Table aria-label="By shift">
+            <Table bare aria-label="By shift">
               <TableHeader>
-                <TableRow className="bg-muted/50 hover:bg-muted/50">
-                  <TableHead className="px-4">Closed</TableHead>
+                <TableRow>
+                  <TableHead>Closed</TableHead>
                   {KINDS.map(([kind, label]) => (
                     <TableHead key={kind} className={kind === "cash" ? "" : "hidden sm:table-cell"}>
                       {label}
@@ -44,8 +44,8 @@ export function ShiftVariances({ shifts }: { shifts: ReconciliationView["shifts"
               </TableHeader>
               <TableBody>
                 {shifts.map((shift) => (
-                  <TableRow key={shift.id} className="h-10 hover:bg-transparent">
-                    <TableCell className="px-4">
+                  <TableRow key={shift.id}>
+                    <TableCell>
                       <Link
                         to="/shifts/$shiftId"
                         params={{ shiftId: shift.id }}

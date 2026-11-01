@@ -25,9 +25,9 @@ export function CustomerTabs({ customer, tab, canManage }: Props) {
   const active: Tab = tab ?? "purchases";
   return (
     <Tabs value={active} activationMode="manual" className="gap-6">
-      <TabsList aria-label="Customer history" className="max-w-full justify-start overflow-x-auto">
+      <TabsList aria-label="Customer history">
         {TABS.map(({ value, search, label }) => (
-          <TabsTrigger key={value} value={value} asChild className="px-3 sm:px-4">
+          <TabsTrigger key={value} value={value} asChild>
             <Link
               to="/customers/$customerId"
               params={{ customerId: customer.id }}

@@ -19,24 +19,18 @@ export function Entries({ entries }: { entries: StatementDocument["entries"] }) 
     );
   return (
     <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-      <Table aria-label="Entries">
+      <Table bare aria-label="Entries">
         <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="h-10 bg-muted/50 px-4 text-xs font-semibold text-muted-foreground">
-              Entry
-            </TableHead>
-            <TableHead className="h-10 bg-muted/50 px-4 text-right text-xs font-semibold text-muted-foreground">
-              Amount
-            </TableHead>
-            <TableHead className="h-10 bg-muted/50 px-4 text-right text-xs font-semibold text-muted-foreground">
-              Balance
-            </TableHead>
+          <TableRow>
+            <TableHead>Entry</TableHead>
+            <TableHead className="text-right">Amount</TableHead>
+            <TableHead className="text-right">Balance</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {entries.map((entry, index) => (
-            <TableRow key={index} className="hover:bg-transparent">
-              <TableCell className="px-4 whitespace-normal">
+            <TableRow key={index}>
+              <TableCell className="whitespace-normal">
                 <div className="flex flex-col">
                   <span className="font-medium">{entryName(entry.kind, entry.method)}</span>
                   <time dateTime={entry.occurredAt} className="text-xs text-muted-foreground">
@@ -44,12 +38,8 @@ export function Entries({ entries }: { entries: StatementDocument["entries"] }) 
                   </time>
                 </div>
               </TableCell>
-              <TableCell className="px-4 text-right tabular-nums">
-                {signedGHS(entry.amount)}
-              </TableCell>
-              <TableCell className="px-4 text-right tabular-nums">
-                {signedGHS(entry.balance)}
-              </TableCell>
+              <TableCell className="text-right tabular-nums">{signedGHS(entry.amount)}</TableCell>
+              <TableCell className="text-right tabular-nums">{signedGHS(entry.balance)}</TableCell>
             </TableRow>
           ))}
         </TableBody>

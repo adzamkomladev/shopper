@@ -8,6 +8,7 @@ import { customerSalesQuery } from "../../../queries/customers/account";
 import type { CustomerSale } from "../../../schemas/customers/account";
 import { EmptyList } from "../../admin/states";
 import { QueryPanel } from "../detail/panel";
+import { PurchasesSkeleton } from "../detail/skeletons";
 
 const columns: DataTableColumn<CustomerSale>[] = [
   {
@@ -40,7 +41,7 @@ const columns: DataTableColumn<CustomerSale>[] = [
 export function PurchasesPanel({ customerId, name }: { customerId: string; name: string }) {
   const query = useQuery(customerSalesQuery(customerId));
   return (
-    <QueryPanel query={query} what="purchases">
+    <QueryPanel query={query} what="purchases" skeleton={<PurchasesSkeleton />}>
       {({ items }) =>
         items.length === 0 ? (
           <EmptyList

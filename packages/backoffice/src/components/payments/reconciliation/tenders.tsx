@@ -19,21 +19,21 @@ import { tenderLabel } from "../../transactions/list/format";
 export function TenderTable({ tenders }: { tenders: ReconciliationView["tenders"] }) {
   return (
     <section aria-label="By tender" className="overflow-hidden rounded-lg border bg-card shadow-sm">
-      <Table aria-label="By tender">
+      <Table bare aria-label="By tender">
         <TableHeader>
-          <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className="px-4">Tender</TableHead>
+          <TableRow>
+            <TableHead>Tender</TableHead>
             <TableHead className="hidden text-right sm:table-cell">Taken</TableHead>
             <TableHead className="hidden text-right lg:table-cell">Expected</TableHead>
             <TableHead className="hidden text-right lg:table-cell">Declared</TableHead>
             <TableHead>Variance</TableHead>
-            <TableHead className="hidden px-4 text-right sm:table-cell">Settled</TableHead>
+            <TableHead className="hidden text-right sm:table-cell">Settled</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {tenders.map((row) => (
-            <TableRow key={row.tender} className="h-10 hover:bg-transparent">
-              <TableCell className="px-4 font-medium">{tenderLabel(row.tender)}</TableCell>
+            <TableRow key={row.tender}>
+              <TableCell className="font-medium">{tenderLabel(row.tender)}</TableCell>
               <TableCell className="hidden sm:table-cell">
                 <Money amount={money(row.taken)} />
               </TableCell>
@@ -46,7 +46,7 @@ export function TenderTable({ tenders }: { tenders: ReconciliationView["tenders"
               <TableCell>
                 <VarianceBadge short={Math.min(row.variance, 0)} over={Math.max(row.variance, 0)} />
               </TableCell>
-              <TableCell className="hidden px-4 text-right tabular-nums sm:table-cell">
+              <TableCell className="hidden text-right tabular-nums sm:table-cell">
                 {row.settled === null ? (
                   <>
                     <span aria-hidden className="text-muted-foreground">

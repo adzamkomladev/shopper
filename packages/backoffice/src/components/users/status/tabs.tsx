@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@shopper/ui/components/tabs";
+import { Tabs, TabsContent, TabsCount, TabsList, TabsTrigger } from "@shopper/ui/components/tabs";
 import type { UsersSearch } from "../../../schemas/users";
 
 type Props = {
@@ -23,12 +23,12 @@ export function StatusTabs({ status, counts, children }: Props) {
   ];
   return (
     <Tabs value={value} activationMode="manual" className="gap-3">
-      <TabsList variant="line" aria-label="Member status" className="w-full justify-start">
+      <TabsList variant="line" aria-label="Member status">
         {tabs.map((tab) => (
-          <TabsTrigger key={tab.value} value={tab.value} asChild className="flex-none px-3">
+          <TabsTrigger key={tab.value} value={tab.value} asChild>
             <Link to="/users" search={{ status: tab.status }} replace>
-              {tab.label}{" "}
-              <span className="text-xs text-muted-foreground tabular-nums">{tab.total}</span>
+              {tab.label}
+              <TabsCount>{tab.total}</TabsCount>
             </Link>
           </TabsTrigger>
         ))}

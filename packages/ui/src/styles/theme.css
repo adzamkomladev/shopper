@@ -114,12 +114,13 @@
 /* Figma focus ring: 2px background gap, then 4px primary. Unlayered so it wins over each
    component's own ring utilities. Invalid fields keep the destructive ring, and an input inside
    an input group hands the ring to the group (see InputGroup), and the palette input sits inside
-   a bordered popover that needs none. */
+   a bordered popover that needs none. A tab rings itself inside, where its scrolling list cannot clip it. */
 :focus-visible:not(
   [aria-invalid="true"],
   [tabindex="-1"],
   [data-slot="input-group-control"],
-  [data-slot="command-input"]
+  [data-slot="command-input"],
+  [data-slot="tabs-trigger"]
 ) {
   box-shadow:
     0 0 0 2px var(--background),
@@ -130,6 +131,14 @@
   box-shadow:
     0 0 0 2px var(--background),
     0 0 0 4px var(--ring);
+}
+
+/* A region that scrolls by wheel, touch or keys but never draws a scrollbar: tab rows, the sidebar. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Electron's frameless window: the title bar drags the window, its controls stay clickable. */

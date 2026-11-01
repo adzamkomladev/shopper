@@ -7,7 +7,7 @@ import type { CustomerView } from "../../../queries/customers/types";
 import { Balance } from "../balance";
 
 // A phone keeps the customer (with their phone beneath) and what they owe; the rest needs a tablet.
-const FROM_MD = "hidden md:table-cell";
+export const FROM_MD = "hidden md:table-cell";
 
 /** The customer as the Purchases table shows them (Figma 99:2496): a small initials avatar and the name. */
 const columns: DataTableColumn<CustomerView>[] = [

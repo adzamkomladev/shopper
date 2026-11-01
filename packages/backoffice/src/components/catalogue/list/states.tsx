@@ -11,9 +11,11 @@ import {
 } from "@shopper/ui/components/empty";
 import { Skeleton } from "@shopper/ui/components/skeleton";
 import { EmptyList } from "../../admin/states";
+import { DataTableSkeleton } from "@shopper/ui/components/table/skeleton";
+import type { DataTableSkeletonColumn } from "@shopper/ui/components/table/skeleton";
 import { SetupStepLink } from "../../setup/back";
 
-const SKELETON_ROWS = 6;
+const DESKTOP_ONLY = "hidden md:table-cell";
 
 export function EmptyCatalogue({
   onAdd,
@@ -63,34 +65,54 @@ export function NoMatch({ query, onClear }: { query?: string; onClear: () => voi
   );
 }
 
+const COLUMNS: DataTableSkeletonColumn[] = [
+  {
+    header: "Product",
+    className: "whitespace-normal",
+    cell: (
+      <>
+        <Skeleton className="h-5 w-52" />
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-4 w-28 md:hidden" />
+      </>
+    ),
+  },
+  { header: "Category", className: DESKTOP_ONLY, cell: <Skeleton className="h-5 w-16" /> },
+  { header: "Unit", className: DESKTOP_ONLY, cell: <Skeleton className="h-5 w-14" /> },
+  {
+    header: "Price",
+    className: "text-right",
+    cell: <Skeleton className="ml-auto h-5 w-14" />,
+  },
+  {
+    header: "Tax class",
+    className: DESKTOP_ONLY,
+    cell: <Skeleton className="h-5 w-14 rounded-full" />,
+  },
+  {
+    header: "Online",
+    className: DESKTOP_ONLY,
+    cell: <Skeleton className="h-5 w-14 rounded-full" />,
+  },
+];
+
+/** The products table in the loaded one's columns, filling the page as it does. */
 export function TableSkeleton() {
-  return (
-    <div
-      aria-busy="true"
-      role="status"
-      aria-label="Loading products"
-      className="flex flex-col rounded-lg border"
-    >
-      <Skeleton className="h-10 rounded-b-none" />
-      {Array.from({ length: SKELETON_ROWS }, (_, index) => (
-        <div key={index} className="flex h-16.5 items-center gap-6 border-t px-4">
-          <Skeleton className="h-9 w-56" />
-          <Skeleton className="ml-auto h-4 w-20" />
-        </div>
-      ))}
-    </div>
-  );
+  return <DataTableSkeleton label="Loading products" columns={COLUMNS} />;
 }
 
-/** Same shape as the loaded screen: heading, toolbar, then rows. */
+/** Same shape as the loaded screen: heading, toolbar, then the table. */
 export function ProductsSkeleton() {
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-9 w-48" />
-        <Skeleton className="h-9 w-32" />
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
+      <div className="flex items-center justify-between gap-4">
+        <Skeleton className="h-8 w-25" />
+        <Skeleton className="h-8 w-26" />
       </div>
-      <Skeleton className="h-9 w-full" />
+      <div className="flex flex-wrap gap-3">
+        <Skeleton className="h-8 min-w-0 flex-1 basis-64" />
+        <Skeleton className="h-8 w-full sm:w-52" />
+      </div>
       <TableSkeleton />
     </div>
   );

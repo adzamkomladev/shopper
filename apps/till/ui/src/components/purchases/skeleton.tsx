@@ -15,7 +15,7 @@ export function PurchaseSkeleton() {
     >
       <span className="sr-only">Loading purchases</span>
       <div aria-hidden="true" className="min-h-0 flex-1 overflow-hidden">
-        <Table>
+        <Table bare>
           <PurchaseHead />
           <TableBody>
             {Array.from({ length: 5 }, (_, index) => (

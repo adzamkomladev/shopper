@@ -28,13 +28,13 @@ export function SignupForm({ onStarted }: { onStarted: (started: Started) => voi
     >
       <form
         noValidate
-        className="flex flex-col gap-9"
+        className="flex flex-col gap-6"
         onSubmit={(event) => {
           event.preventDefault();
           void form.handleSubmit();
         }}
       >
-        <FieldGroup className="gap-6">
+        <FieldGroup className="gap-4">
           <form.Field name="name">
             {(field) => <TextField field={field} label="Your name" autoFocus autoComplete="name" />}
           </form.Field>
@@ -76,12 +76,7 @@ export function SignupForm({ onStarted }: { onStarted: (started: Started) => voi
           </Alert>
         )}
         <div className="flex flex-col gap-4">
-          <Button
-            type="submit"
-            size="lg"
-            className="w-full rounded-full"
-            disabled={start.isPending}
-          >
+          <Button type="submit" size="lg" className="w-full" disabled={start.isPending}>
             {start.isPending && <Loader2Icon className="animate-spin" />}
             {start.isPending ? "Sending the link…" : "Continue"}
           </Button>

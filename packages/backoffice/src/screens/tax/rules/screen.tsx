@@ -11,7 +11,7 @@ import { Gate } from "../../../components/register/states";
 import { RuleDialog } from "../../../components/tax/rules/dialog";
 import { RulesTable, ruleRows } from "../../../components/tax/rules/table";
 import type { RuleRow } from "../../../schemas/tax/rules";
-import { TaxBodySkeleton } from "../../../components/tax/states";
+import { RatesSkeleton } from "../../../components/tax/states";
 import { TaxPage } from "../../../components/tax/tabs";
 import { usePanel } from "../../../hooks/admin/panel";
 import { shopToday } from "../../../lib/tax/dates";
@@ -47,11 +47,7 @@ export function TaxRulesScreen() {
           )
         }
       >
-        <Gate
-          need="tax.read"
-          what="tax rates"
-          fallback={<TaxBodySkeleton label="Loading tax rates" />}
-        >
+        <Gate need="tax.read" what="tax rates" fallback={<RatesSkeleton />}>
           <RulesBody
             onEdit={canWrite && online ? (rule, trigger) => editor.show(rule, trigger) : undefined}
             onRemove={

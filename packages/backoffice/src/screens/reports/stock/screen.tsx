@@ -66,7 +66,7 @@ function DeadStockBody() {
           </div>
         }
       />
-      <Suspense fallback={<ReportSkeleton label="Loading dead stock" toolbar={false} />}>
+      <Suspense fallback={<ReportSkeleton kind="stock" toolbar={false} />}>
         <DeadStockFigures params={params} />
       </Suspense>
     </>

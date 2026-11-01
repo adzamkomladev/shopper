@@ -9,6 +9,7 @@ import {
 } from "@shopper/ui/components/empty";
 import { Skeleton } from "@shopper/ui/components/skeleton";
 import { ApiError } from "../../../api/client";
+import { TileSkeleton } from "../../register/tile";
 import { routeStates } from "../../route/states";
 import { BackToShifts } from "./header";
 
@@ -53,14 +54,16 @@ export function ShiftError(props: ErrorComponentProps) {
   );
 }
 
-// Heights of the Z report's sections for a typical shift, measured in the loaded page; a phone stacks and wraps more.
+// The Z report's sections in the order they sit in the grid, with the card heights of a typical shift
+// (3 tenders, a count of two faces, two drops, one cashier), measured in the loaded page.
 const SECTIONS = [
-  ["w-24", "h-38.25 max-sm:h-39.25"],
-  ["w-48", "h-46.75"],
-  ["w-36", "h-53.75"],
-  ["w-44", "h-17.5"],
-  ["w-24", "h-11.5"],
-  ["w-32", "h-18.5 max-sm:h-22.5"],
+  ["w-24", "h-40.5"],
+  ["w-48", "h-53.75"],
+  ["w-36", "h-48.5"],
+  ["w-32", "h-32.75"],
+  ["w-44", "h-30.75"],
+  ["w-24", "h-22.75"],
+  ["w-28", "h-18.5"],
 ] as const;
 // Opened and Closed wrap to two lines in a phone's half-width column.
 const FACT_VALUES = ["h-5", "h-5 max-sm:h-10", "h-5 max-sm:h-10", "h-5", "h-5"] as const;
@@ -77,8 +80,8 @@ export function ShiftSkeleton() {
       <div className="flex flex-col gap-3">
         <BackToShifts />
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Skeleton className="h-9 w-60" />
-          <Skeleton className="h-5.5 w-28 rounded-full" />
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-5.5 w-26 rounded-full" />
         </div>
         <div className="grid grid-cols-2 gap-x-6 gap-y-3 lg:grid-cols-5">
           {FACT_VALUES.map((value, index) => (
@@ -88,19 +91,27 @@ export function ShiftSkeleton() {
             </div>
           ))}
         </div>
+        <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+          {["w-44", "w-28"].map((label) => (
+            <div key={label} className="flex flex-col gap-0.5">
+              <Skeleton className={`h-4 ${label}`} />
+              <Skeleton className="h-5 w-64 max-w-full" />
+            </div>
+          ))}
+        </div>
       </div>
       <div className="flex flex-col gap-6">
         <Skeleton className="h-7 w-28" />
         <div className="grid gap-5 sm:grid-cols-3">
           {Array.from({ length: 3 }, (_, index) => (
-            <Skeleton key={index} className="h-32.5 rounded-2xl" />
+            <TileSkeleton key={index} />
           ))}
         </div>
         <div className="grid items-start gap-6 xl:grid-cols-2">
           {SECTIONS.map(([title, card]) => (
             <div key={card} className="flex flex-col gap-3">
-              <Skeleton className={`h-7 ${title}`} />
-              <Skeleton className={`rounded-2xl ${card}`} />
+              <Skeleton className={`h-6 ${title}`} />
+              <Skeleton className={`rounded-lg ${card}`} />
             </div>
           ))}
         </div>

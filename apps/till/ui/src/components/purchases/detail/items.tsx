@@ -1,5 +1,4 @@
 import { add, formatGHS, money } from "@shopper/money";
-import { cn } from "cn";
 import { Badge } from "@shopper/ui/components/badge";
 import {
   TableBody,
@@ -12,8 +11,6 @@ import type { PurchaseDetails } from "@shopper/sync/bridge";
 import { formatQuantity } from "@shopper/utils";
 import { lineCounts } from "../../../purchases/policy";
 import type { EligibilityView } from "../../../sale/types";
-
-const head = "h-10 text-xs font-semibold text-muted-foreground";
 
 export function DetailItems({ purchase }: { purchase: PurchaseDetails }) {
   const receipt = purchase.receipt;
@@ -41,14 +38,14 @@ export function DetailItems({ purchase }: { purchase: PurchaseDetails }) {
       <div aria-label="Purchase item table" className="overflow-x-auto" role="region" tabIndex={0}>
         <table aria-label="Items purchased" className="min-w-176 w-full caption-bottom text-sm">
           <TableHeader>
-            <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className={cn(head, "w-full")}>Product</TableHead>
-              <TableHead className={cn(head, "text-right")}>Qty</TableHead>
-              <TableHead className={cn(head, "text-right")}>Unit price</TableHead>
-              <TableHead className={cn(head, "text-right")}>Discount</TableHead>
-              <TableHead className={cn(head, "text-right")}>Tax</TableHead>
-              {eligibility && <TableHead className={cn(head, "text-right")}>Returns</TableHead>}
-              <TableHead className={cn(head, "text-right")}>Line total</TableHead>
+            <TableRow>
+              <TableHead className="w-full">Product</TableHead>
+              <TableHead className="text-right">Qty</TableHead>
+              <TableHead className="text-right">Unit price</TableHead>
+              <TableHead className="text-right">Discount</TableHead>
+              <TableHead className="text-right">Tax</TableHead>
+              {eligibility && <TableHead className="text-right">Returns</TableHead>}
+              <TableHead className="text-right">Line total</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

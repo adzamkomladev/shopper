@@ -1,27 +1,50 @@
+import { ShieldCheckIcon } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@shopper/ui/components/alert";
 import { Skeleton } from "@shopper/ui/components/skeleton";
+import { CellLines } from "../../admin/states";
+import { DataTableSkeleton } from "@shopper/ui/components/table/skeleton";
+
+// A shop has its back office chain and a chain per register.
+const CHAIN_ROWS = 3;
+
+/** What verifying does. Static, so the loading tab shows it too. */
+export function IntegrityNote() {
+  return (
+    <Alert>
+      <ShieldCheckIcon aria-hidden />
+      <AlertTitle>Every entry seals the one before it</AlertTitle>
+      <AlertDescription>
+        Verifying re-hashes a chain from its first entry. A changed, missing or reordered entry
+        fails the check and names where. Each day's last entries are also emailed to the owners.
+      </AlertDescription>
+    </Alert>
+  );
+}
 
 /** The note and chains table of the loaded tab, so nothing moves when the data arrives. */
 export function IntegritySkeleton() {
   return (
-    <div
-      role="status"
-      aria-busy="true"
-      aria-label="Loading the audit chains"
-      className="flex flex-col gap-6"
-    >
-      {/* The note wraps to three lines on a tablet and five on a phone. */}
-      <Skeleton className="h-37 w-full md:h-27 lg:h-17" />
-      <div className="flex flex-col rounded-lg border">
-        <Skeleton className="h-10 rounded-b-none" />
-        {Array.from({ length: 3 }, (_, index) => (
-          <div key={index} className="flex h-16.5 items-center gap-6 border-t px-4">
-            <Skeleton className="h-9 w-40" />
-            <Skeleton className="hidden h-5 w-40 md:block" />
-            <Skeleton className="hidden h-5 w-32 lg:block" />
-            <Skeleton className="ml-auto h-8 w-20" />
-          </div>
-        ))}
-      </div>
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
+      <IntegrityNote />
+      <DataTableSkeleton
+        label="Loading the audit chains"
+        className="min-h-0"
+        rows={CHAIN_ROWS}
+        columns={[
+          { header: "Chain", cell: <CellLines lines={["h-5 w-28", "h-4 w-20"]} /> },
+          {
+            header: "Head",
+            className: "hidden md:table-cell",
+            cell: <Skeleton className="h-5 w-40" />,
+          },
+          {
+            header: "Last anchor",
+            className: "hidden lg:table-cell",
+            cell: <Skeleton className="h-5 w-32" />,
+          },
+          { header: "Check", cell: <Skeleton className="h-7 w-16" /> },
+        ]}
+      />
     </div>
   );
 }

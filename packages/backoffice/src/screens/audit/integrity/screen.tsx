@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ShieldCheckIcon } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@shopper/ui/components/alert";
 import { Button } from "@shopper/ui/components/button";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { Gate, OfflineNote } from "../../../components/register/states";
-import { IntegritySkeleton } from "../../../components/audit/integrity/states";
+import { IntegrityNote, IntegritySkeleton } from "../../../components/audit/integrity/states";
 import { StreamsTable } from "../../../components/audit/integrity/streams";
 import { AuditPage } from "../../../components/audit/tabs";
 import { auditStreamsQuery, verifyStream } from "../../../queries/audit/integrity";
@@ -56,14 +55,7 @@ function IntegrityBody() {
     >
       <div ref={shortcuts} className="flex min-h-0 flex-1 flex-col gap-6">
         {!online && <OfflineNote>Checking a chain needs a connection.</OfflineNote>}
-        <Alert>
-          <ShieldCheckIcon aria-hidden />
-          <AlertTitle>Every entry seals the one before it</AlertTitle>
-          <AlertDescription>
-            Verifying re-hashes a chain from its first entry. A changed, missing or reordered entry
-            fails the check and names where. Each day's last entries are also emailed to the owners.
-          </AlertDescription>
-        </Alert>
+        <IntegrityNote />
         <StreamsTable
           streams={streams}
           verdicts={verdicts}

@@ -8,3 +8,6 @@ export type ReportColumn<T> = {
   /** Shown on phones only, standing in for columns that start at `sm`. */
   phone?: boolean;
 };
+
+/** The reports, which each have a toolbar and a body of their own. */
+export type ReportKind = "dashboard" | "sales" | "products" | "stock" | "branches" | "journal";

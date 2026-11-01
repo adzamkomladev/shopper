@@ -98,12 +98,11 @@ export function DataTable<TData extends RowData>({
       <table aria-rowcount={rows.length + headerRows} className="w-full text-sm">
         <TableHeader className="sticky top-0 z-10 bg-card">
           {table.getHeaderGroups().map((group, index) => (
-            <TableRow key={group.id} aria-rowindex={index + 1} className="hover:bg-transparent">
+            <TableRow key={group.id} aria-rowindex={index + 1}>
               {group.headers.map((header) => (
                 <TableHead
                   key={header.id}
                   className={cn(
-                    "h-10 bg-muted/50 px-4 text-xs font-semibold text-muted-foreground",
                     header.column.columnDef.meta?.align === "right" && "text-right",
                     header.column.columnDef.meta?.className,
                   )}
@@ -124,13 +123,11 @@ export function DataTable<TData extends RowData>({
                 ref={virtualizer.measureElement}
                 data-index={item.index}
                 aria-rowindex={item.index + 1 + headerRows}
-                className="h-10"
               >
                 {row.getAllCells().map((cell) => (
                   <TableCell
                     key={cell.id}
                     className={cn(
-                      "px-4",
                       cell.column.columnDef.meta?.align === "right" && "text-right",
                       cell.column.columnDef.meta?.className,
                     )}

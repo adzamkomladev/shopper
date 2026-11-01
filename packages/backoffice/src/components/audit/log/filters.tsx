@@ -1,6 +1,5 @@
 import { XIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Input } from "@shopper/ui/components/input";
 import { Label } from "@shopper/ui/components/label";
 import {
   Select,
@@ -11,6 +10,7 @@ import {
 } from "@shopper/ui/components/select";
 import { commandLabel } from "../../../lib/audit/diff";
 import type { AuditFacets, AuditSearch } from "../../../schemas/audit";
+import { DatePicker } from "@shopper/ui/components/picker/date";
 
 const ANY = "any";
 export const FILTERS_ID = "audit-filter-actor";
@@ -145,13 +145,12 @@ function Day({ id, label, value, min, max, onChange }: DayProps) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <Label htmlFor={id}>{label}</Label>
-      <Input
+      <DatePicker
         id={id}
-        type="date"
         value={value ?? ""}
         min={min}
         max={max}
-        onChange={(event) => onChange(event.target.value || undefined)}
+        onValueChange={(value) => onChange(value || undefined)}
       />
     </div>
   );

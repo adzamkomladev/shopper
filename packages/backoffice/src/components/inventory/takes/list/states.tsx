@@ -1,36 +1,45 @@
 import { ClipboardCheckIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { Skeleton } from "@shopper/ui/components/skeleton";
+import {
+  DataTableSkeleton,
+  type DataTableSkeletonColumn,
+} from "@shopper/ui/components/table/skeleton";
 import { EmptyList } from "../../../admin/states";
-import { InventorySkeleton } from "../../states";
+import { InventoryPage } from "../../tabs";
+import { FROM_LG, FROM_MD } from "./table";
 
-const SKELETON_ROWS = 6;
+// More rows than any window shows: the table fills the space the loaded one will, and the rest is clipped.
+const SKELETON_ROWS = 16;
+
+const COLUMNS: DataTableSkeletonColumn[] = [
+  {
+    header: "Started",
+    cell: (
+      <div className="flex flex-col items-start gap-1">
+        <Skeleton className="my-0.5 h-4 w-28" />
+        <Skeleton className="h-5.5 w-16 rounded-full md:hidden" />
+      </div>
+    ),
+  },
+  { header: "Status", className: FROM_MD, cell: <Skeleton className="h-5.5 w-20 rounded-full" /> },
+  { header: "Covers", cell: <Skeleton className="h-4 w-32" /> },
+  { header: "Counted", cell: <Skeleton className="h-4 w-16" /> },
+  { header: "Started by", className: FROM_LG, cell: <Skeleton className="h-4 w-24" /> },
+  { header: "Closed", className: FROM_LG, cell: <Skeleton className="h-4 w-28" /> },
+];
 
 /** The table as it loads, under the branch picker, which is already there. */
 export function TakesResultsSkeleton() {
   return (
-    <div
-      aria-busy="true"
-      role="status"
-      aria-label="Loading stock takes"
-      className="flex min-h-0 flex-col overflow-hidden rounded-lg border"
-    >
-      <Skeleton className="h-10 rounded-b-none" />
-      {Array.from({ length: SKELETON_ROWS }, (_, index) => (
-        <div key={index} className="flex h-16.5 items-center gap-6 border-t px-4">
-          <Skeleton className="h-9 w-40" />
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="ml-auto h-4 w-20" />
-        </div>
-      ))}
-    </div>
+    <DataTableSkeleton label="Loading stock takes" columns={COLUMNS} rows={SKELETON_ROWS} fill />
   );
 }
 
 export function TakesBodySkeleton() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6">
-      <Skeleton className="h-9 w-full sm:w-48" />
+      <Skeleton className="h-8 w-full sm:w-48" />
       <TakesResultsSkeleton />
     </div>
   );
@@ -38,9 +47,9 @@ export function TakesBodySkeleton() {
 
 export function TakesSkeleton() {
   return (
-    <InventorySkeleton action>
+    <InventoryPage active="takes" action={<Skeleton className="h-8 w-35.25" />}>
       <TakesBodySkeleton />
-    </InventorySkeleton>
+    </InventoryPage>
   );
 }
 

@@ -45,7 +45,7 @@ export function CheckEmail({ started, onChangeEmail }: Props) {
         <div className="flex flex-col gap-4 sm:flex-row">
           <Button
             size="lg"
-            className="rounded-full sm:flex-1"
+            className=" sm:flex-1"
             onClick={() => resend.mutate()}
             disabled={resend.isPending}
             ref={focusOnMount}
@@ -56,7 +56,7 @@ export function CheckEmail({ started, onChangeEmail }: Props) {
           <Button
             size="lg"
             variant="outline"
-            className="rounded-full sm:flex-1"
+            className=" sm:flex-1"
             onClick={() => void delivery.refetch()}
             disabled={delivery.isFetching}
           >

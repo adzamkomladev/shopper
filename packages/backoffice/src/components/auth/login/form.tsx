@@ -3,10 +3,10 @@ import { Link } from "@tanstack/react-router";
 import { CircleAlertIcon, Loader2Icon } from "lucide-react";
 import { Alert, AlertDescription } from "@shopper/ui/components/alert";
 import { Button } from "@shopper/ui/components/button";
-import { CardContent } from "@shopper/ui/components/card";
 import { FieldGroup } from "@shopper/ui/components/field";
 import { ApiError } from "../../../api/client";
 import { TextField } from "../../fields/text";
+import { AuthPanel } from "../frame";
 import { loginSchema } from "../../../schemas/auth/login/input";
 import { useSignIn } from "../../../queries/auth/login";
 
@@ -18,10 +18,10 @@ type Props = {
   lead?: string;
 };
 
-const LEAD =
-  "For security reasons please enter your email and password to continue using point of sale";
+const LEAD = "Enter your shop code, email and password to continue.";
+const BOX_LEAD = "Enter your email and password to continue.";
 
-export function LoginForm({ box, defaultShopCode, onSignedIn, lead = LEAD }: Props) {
+export function LoginForm({ box, defaultShopCode, onSignedIn, lead }: Props) {
   const signIn = useSignIn(box, onSignedIn);
   const form = useForm({
     defaultValues: { shopCode: defaultShopCode, email: "", password: "" },
@@ -40,31 +40,26 @@ export function LoginForm({ box, defaultShopCode, onSignedIn, lead = LEAD }: Pro
   const shopCodeError =
     error instanceof ApiError && error.field === "shopCode" ? error.message : undefined;
   return (
-    <CardContent className="px-6 sm:px-22">
+    <AuthPanel
+      title="Log in to Shopper"
+      place={box?.name}
+      description={lead ?? (box ? BOX_LEAD : LEAD)}
+    >
       <form
         noValidate
-        className="flex flex-col gap-9"
+        className="flex flex-col gap-6"
         onSubmit={(event) => {
           event.preventDefault();
           void form.handleSubmit();
         }}
       >
-        <h1 className="sr-only">Log in to Shopper</h1>
-        <div className="flex flex-col gap-2">
-          <p aria-hidden className="text-4xl font-semibold tracking-tight text-primary">
-            Shopper
-          </p>
-          {box && <p className="text-lg font-medium text-muted-foreground">{box.name}</p>}
-        </div>
-        <p className="text-lg font-medium">{lead}</p>
-        <FieldGroup className="gap-9">
+        <FieldGroup className="gap-4">
           {!box && (
             <form.Field name="shopCode">
               {(field) => (
                 <TextField
                   field={field}
                   label="Shop code"
-                  className="h-10"
                   serverError={shopCodeError}
                   autoFocus={focusFirst === "shopCode"}
                   autoComplete="organization"
@@ -79,7 +74,6 @@ export function LoginForm({ box, defaultShopCode, onSignedIn, lead = LEAD }: Pro
               <TextField
                 field={field}
                 label="Email"
-                className="h-10"
                 type="email"
                 autoFocus={focusFirst === "email"}
                 autoComplete="username"
@@ -91,7 +85,6 @@ export function LoginForm({ box, defaultShopCode, onSignedIn, lead = LEAD }: Pro
               <TextField
                 field={field}
                 label="Password"
-                className="h-10"
                 type="password"
                 autoComplete="current-password"
               />
@@ -104,7 +97,7 @@ export function LoginForm({ box, defaultShopCode, onSignedIn, lead = LEAD }: Pro
             <AlertDescription>{error.message}</AlertDescription>
           </Alert>
         )}
-        <Button type="submit" size="lg" className="w-full rounded-full" disabled={signIn.isPending}>
+        <Button type="submit" size="lg" className="w-full" disabled={signIn.isPending}>
           {signIn.isPending && <Loader2Icon className="animate-spin" />}
           {signIn.isPending ? "Logging in…" : "Log in"}
         </Button>
@@ -121,6 +114,6 @@ export function LoginForm({ box, defaultShopCode, onSignedIn, lead = LEAD }: Pro
           </p>
         )}
       </form>
-    </CardContent>
+    </AuthPanel>
   );
 }

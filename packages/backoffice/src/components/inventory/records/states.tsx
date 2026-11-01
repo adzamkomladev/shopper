@@ -2,29 +2,48 @@ import { Link } from "@tanstack/react-router";
 import { ClipboardListIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { Skeleton } from "@shopper/ui/components/skeleton";
+import {
+  DataTableSkeleton,
+  type DataTableSkeletonColumn,
+} from "@shopper/ui/components/table/skeleton";
 import { EmptyList } from "../../admin/states";
-import { InventorySkeleton } from "../states";
+import { InventoryPage } from "../tabs";
+import { FROM_LG, FROM_MD } from "./table";
 
-const SKELETON_ROWS = 6;
+// More rows than any window shows: the table fills the space the loaded one will, and the rest is clipped.
+const SKELETON_ROWS = 16;
+
+const COLUMNS: DataTableSkeletonColumn[] = [
+  {
+    header: "Date",
+    // A phone adds the type and the cost under the date.
+    cell: (
+      <div className="flex flex-col items-start gap-1">
+        <Skeleton className="my-0.5 h-4 w-28" />
+        <Skeleton className="h-5.5 w-16 rounded-full md:hidden" />
+      </div>
+    ),
+  },
+  {
+    header: "Type",
+    className: FROM_MD,
+    cell: <Skeleton className="h-5.5 w-16 rounded-full" />,
+  },
+  { header: "Supplier or cause", cell: <Skeleton className="h-4 w-32" /> },
+  { header: "Reference", className: FROM_LG, cell: <Skeleton className="h-4 w-24" /> },
+  { header: "Items", className: FROM_LG, cell: <Skeleton className="h-4 w-20" /> },
+  { header: "By", className: FROM_LG, cell: <Skeleton className="h-4 w-24" /> },
+  {
+    header: "Total cost",
+    className: `${FROM_MD} text-right`,
+    cell: <Skeleton className="ml-auto h-4 w-20" />,
+  },
+];
 
 /** The table as it loads, under the segments, which are already there. */
 export function RecordsResultsSkeleton() {
   return (
-    <div
-      aria-busy="true"
-      role="status"
-      aria-label="Loading stock records"
-      className="flex min-h-0 flex-col overflow-hidden rounded-lg border"
-    >
-      <Skeleton className="h-10 rounded-b-none" />
-      {Array.from({ length: SKELETON_ROWS }, (_, index) => (
-        <div key={index} className="flex h-16.5 items-center gap-6 border-t px-4">
-          <Skeleton className="h-9 w-40" />
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="ml-auto h-4 w-20" />
-        </div>
-      ))}
-    </div>
+    <DataTableSkeleton label="Loading stock records" columns={COLUMNS} rows={SKELETON_ROWS} fill />
   );
 }
 
@@ -32,7 +51,7 @@ export function RecordsResultsSkeleton() {
 export function RecordsBodySkeleton() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6">
-      <Skeleton className="h-9 w-full sm:w-48" />
+      <Skeleton className="h-8 w-full sm:w-48" />
       <Skeleton className="h-9 w-96 max-w-full" />
       <RecordsResultsSkeleton />
     </div>
@@ -41,9 +60,9 @@ export function RecordsBodySkeleton() {
 
 export function RecordsSkeleton() {
   return (
-    <InventorySkeleton action>
+    <InventoryPage active="records" action={<Skeleton className="h-8 w-33" />}>
       <RecordsBodySkeleton />
-    </InventorySkeleton>
+    </InventoryPage>
   );
 }
 

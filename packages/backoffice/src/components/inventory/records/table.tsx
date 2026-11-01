@@ -8,8 +8,8 @@ import { CAUSE_LABELS, kindOf } from "../../../lib/inventory/records";
 import { shiftTime } from "../../../lib/shifts/format";
 import type { RecordSummary } from "../../../queries/inventory/types";
 
-const FROM_MD = "hidden md:table-cell";
-const FROM_LG = "hidden lg:table-cell";
+export const FROM_MD = "hidden md:table-cell";
+export const FROM_LG = "hidden lg:table-cell";
 const BADGE = { receipt: "default", adjustment: "secondary", count: "outline" } as const;
 
 const Dash = () => <span className="text-muted-foreground">—</span>;

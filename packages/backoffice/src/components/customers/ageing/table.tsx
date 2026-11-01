@@ -4,7 +4,7 @@ import { DataTable, type DataTableColumn } from "@shopper/ui/components/data-tab
 import { Money } from "@shopper/ui/components/money";
 import { AGEING_BUCKETS, type AgeingRow } from "../../../schemas/customers/account";
 
-const BUCKET_LABELS = {
+export const BUCKET_LABELS = {
   current: "Current",
   "1-30": "1–30 days",
   "31-60": "31–60 days",

@@ -8,10 +8,16 @@ import {
 } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { Skeleton } from "@shopper/ui/components/skeleton";
+import {
+  DataTableSkeleton,
+  type DataTableSkeletonColumn,
+} from "@shopper/ui/components/table/skeleton";
 import { EmptyList } from "../../../admin/states";
-import { InventorySkeleton } from "../../states";
+import { InventoryPage } from "../../tabs";
+import { FROM_MD } from "./table";
 
-const SKELETON_ROWS = 6;
+// More rows than any window shows: the table fills the space the loaded one will, and the rest is clipped.
+const SKELETON_ROWS = 16;
 
 export function NoBranch() {
   return (
@@ -72,33 +78,39 @@ export function NoMatch({ query, filter, branchName, onClear }: NoMatchProps) {
   );
 }
 
+const COLUMNS: DataTableSkeletonColumn[] = [
+  {
+    header: "Product",
+    cell: (
+      <div className="flex flex-col">
+        <Skeleton className="my-0.5 h-4 w-48" />
+        <Skeleton className="my-0.5 h-3 w-28" />
+      </div>
+    ),
+  },
+  { header: "On hand", className: "text-right", cell: <Skeleton className="ml-auto h-4 w-16" /> },
+  {
+    header: "Reorder level",
+    className: `${FROM_MD} text-right`,
+    cell: <Skeleton className="ml-auto h-4 w-16" />,
+  },
+  // Most products are neither low nor negative, so most status cells are empty.
+  { header: "Status", cell: null },
+];
+
 export function TableSkeleton() {
-  return (
-    <div
-      aria-busy="true"
-      role="status"
-      aria-label="Loading stock"
-      className="flex flex-col rounded-lg border"
-    >
-      <Skeleton className="h-10 rounded-b-none" />
-      {Array.from({ length: SKELETON_ROWS }, (_, index) => (
-        <div key={index} className="flex h-16.5 items-center gap-6 border-t px-4">
-          <Skeleton className="h-9 w-56" />
-          <Skeleton className="ml-auto h-4 w-20" />
-        </div>
-      ))}
-    </div>
-  );
+  return <DataTableSkeleton label="Loading stock" columns={COLUMNS} rows={SKELETON_ROWS} fill />;
 }
 
 /** The toolbar's own boxes and wrapping, then the rows, so the table starts where it will. */
 export function StockBodySkeleton() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-h-0 flex-1 flex-col gap-6">
       <div className="flex flex-wrap gap-3">
-        <Skeleton className="h-9 min-w-0 flex-1 basis-64" />
-        <Skeleton className="h-9 w-full sm:w-48" />
-        <Skeleton className="h-9 w-32.5" />
+        <Skeleton className="h-8 min-w-0 flex-1 basis-64" />
+        <Skeleton className="h-8 w-full sm:w-48" />
+        <Skeleton className="h-8 w-23.5" />
+        <Skeleton className="h-8 w-21" />
       </div>
       <TableSkeleton />
     </div>
@@ -107,8 +119,8 @@ export function StockBodySkeleton() {
 
 export function StockSkeleton() {
   return (
-    <InventorySkeleton>
+    <InventoryPage active="stock">
       <StockBodySkeleton />
-    </InventorySkeleton>
+    </InventoryPage>
   );
 }

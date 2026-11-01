@@ -72,7 +72,7 @@ export function SignInNotices({
             {unreachable && (
               <Button
                 aria-keyshortcuts="Alt+C"
-                className="rounded-full mt-3"
+                className="mt-3"
                 disabled={host === "connecting"}
                 onClick={onReconnect}
                 size="touch"
@@ -85,7 +85,7 @@ export function SignInNotices({
             {shown.code === "SIGN_IN_LOCKED" && shown.email && (
               <Button
                 aria-keyshortcuts="Control+U Meta+U"
-                className="rounded-full mt-3"
+                className="mt-3"
                 disabled={unlocking}
                 id={unlockButtonId}
                 onClick={onUnlock}

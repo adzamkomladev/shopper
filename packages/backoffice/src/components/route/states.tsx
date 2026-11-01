@@ -1,7 +1,5 @@
 import { Link, useRouter, type ErrorComponentProps } from "@tanstack/react-router";
-import { AppBackdrop } from "@shopper/ui/components/app-backdrop";
 import { Button } from "@shopper/ui/components/button";
-import { Card, CardContent } from "@shopper/ui/components/card";
 import {
   Empty,
   EmptyContent,
@@ -12,6 +10,7 @@ import {
 import { readSidebarOpen } from "@shopper/ui/components/sidebar/provider";
 import { Skeleton } from "@shopper/ui/components/skeleton";
 import { ApiError } from "../../api/client";
+import { AuthSkeleton } from "../auth/skeleton";
 
 // A skeleton shows after this long, so a fast load never flashes one.
 const PENDING_MS = 300;
@@ -32,27 +31,45 @@ export function PageSkeleton() {
   );
 }
 
+// The nav's rows as the loaded sidebar draws them: Overview holds one page, Manage fills the rest.
+const NAV_GROUPS = [1, 12] as const;
+
 /** The shell's shape while the session loads: the sidebar as the member left it, the header and a page. */
 export function ShellSkeleton({ app = "portal" }: { app?: string }) {
   const open = readSidebarOpen(app) ?? true;
   return (
     <div className="flex h-svh bg-background" role="status" aria-busy="true" aria-label="Loading">
-      <div
-        className={`hidden shrink-0 flex-col gap-1 border-r bg-card p-2 md:flex ${open ? "w-60" : "w-12"}`}
+      <nav
+        className={`hidden shrink-0 flex-col border-r bg-card md:flex ${open ? "w-60" : "w-12"}`}
       >
-        <Skeleton className="mb-1 h-11 w-full" />
-        {Array.from({ length: 8 }, (_, index) => (
-          <Skeleton key={index} className="h-8 w-full" />
-        ))}
-        <Skeleton className="mt-auto h-11 w-full" />
-      </div>
+        <div className="p-2">
+          <Skeleton className="h-11" />
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-hidden p-2">
+          {NAV_GROUPS.map((rows, group) => (
+            <div key={group} className="flex flex-col gap-0.5">
+              {open && (
+                <div className="flex h-7 items-center px-2">
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              )}
+              {Array.from({ length: rows }, (_, row) => (
+                <Skeleton key={row} className="h-8" />
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="mt-auto border-t p-2">
+          <Skeleton className="h-11" />
+        </div>
+      </nav>
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex h-12 shrink-0 items-center gap-2 border-b px-3 md:px-4">
           <Skeleton className="size-8" />
           <Skeleton className="h-4 w-32" />
           <Skeleton className="ml-auto h-8 w-8 sm:w-56" />
         </div>
-        <div className="px-4 py-5 md:px-8 md:py-6">
+        <div className="min-h-0 flex-1 overflow-hidden px-4 py-5 md:px-8 md:py-6">
           <PageSkeleton />
         </div>
       </div>
@@ -60,25 +77,9 @@ export function ShellSkeleton({ app = "portal" }: { app?: string }) {
   );
 }
 
+/** The login card while the shop is looked up: the same compact card, with the shop code field and the sign-up line. */
 export function LoginSkeleton() {
-  return (
-    <AppBackdrop
-      className="grid place-items-center bg-transparent p-0 shadow-none"
-      role="status"
-      aria-busy="true"
-      aria-label="Loading"
-    >
-      <Card className="w-full max-w-3xl rounded-3xl border-0 p-10">
-        <CardContent className="flex flex-col gap-9">
-          <Skeleton className="h-10 w-40" />
-          <Skeleton className="h-14 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full rounded-full" />
-        </CardContent>
-      </Card>
-    </AppBackdrop>
-  );
+  return <AuthSkeleton fields={3} footer />;
 }
 
 function RouteError({ error, reset }: ErrorComponentProps) {

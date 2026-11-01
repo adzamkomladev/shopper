@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@shopper/ui/components/tabs";
+import { Tabs, TabsContent, TabsCount, TabsList, TabsTrigger } from "@shopper/ui/components/tabs";
 import { KINDS } from "../../../lib/inventory/records";
 import type { RecordsSearch } from "../../../queries/inventory/types";
 
@@ -30,18 +30,9 @@ export function Segments({ counts, kind, branchId, children }: Props) {
   ];
   return (
     <Tabs value={kind ?? "all"} activationMode="manual" className="min-h-0 flex-1 gap-6">
-      <TabsList
-        variant="line"
-        aria-label="Kind of record"
-        className="w-full justify-start max-sm:gap-0"
-      >
+      <TabsList variant="line" aria-label="Kind of record">
         {segments.map((segment) => (
-          <TabsTrigger
-            key={segment.label}
-            value={segment.kind ?? "all"}
-            asChild
-            className="flex-none px-2 max-sm:text-xs sm:px-3"
-          >
+          <TabsTrigger key={segment.label} value={segment.kind ?? "all"} asChild>
             <Link
               to="/stock/records"
               search={{ branch: branchId, kind: segment.kind }}
@@ -49,14 +40,7 @@ export function Segments({ counts, kind, branchId, children }: Props) {
               data-segment={segment.kind ?? "all"}
             >
               {segment.label}
-              {segment.total !== undefined && (
-                <>
-                  {" "}
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {segment.total}
-                  </span>
-                </>
-              )}
+              {segment.total !== undefined && <TabsCount>{segment.total}</TabsCount>}
             </Link>
           </TabsTrigger>
         ))}

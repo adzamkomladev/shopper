@@ -84,10 +84,18 @@ export function AuditEntrySheet({ row, entry, readError, ...sheet }: Props) {
             </Button>
           </div>
         ) : (
-          <div role="status" aria-label="Loading the entry" className="grid gap-3">
-            {Array.from({ length: 5 }, (_, index) => (
-              <Skeleton key={index} className="h-5 w-full" />
-            ))}
+          // What changed (a heading and a few field rows), the recorded details and the chain lines.
+          <div role="status" aria-label="Loading the entry" className="flex flex-col gap-5">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-5 w-28" />
+              <Skeleton className="h-30.75 w-full" />
+            </div>
+            <Skeleton className="h-5 w-36" />
+            <div className="flex flex-col gap-2">
+              {[0, 1, 2].map((line) => (
+                <Skeleton key={line} className="h-4 w-full" />
+              ))}
+            </div>
           </div>
         )}
       </div>

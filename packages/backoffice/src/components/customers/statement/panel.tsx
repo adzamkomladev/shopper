@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Field, FieldError, FieldLabel } from "@shopper/ui/components/field";
-import { Input } from "@shopper/ui/components/input";
 import { thisMonth, validRange } from "../../../lib/customers/range";
 import type { Range } from "../../../lib/customers/types";
 import { statementQuery } from "../../../queries/customers/account";
 import type { CustomerView } from "../../../queries/customers/types";
 import { QueryPanel } from "../detail/panel";
+import { StatementTableSkeleton } from "../detail/skeletons";
 import { StatementActions } from "./actions";
 import { ActiveLinks, Deliveries } from "./history";
 import { StatementTable } from "./table";
+import { DatePicker } from "@shopper/ui/components/picker/date";
 
 type Props = { customer: CustomerView; canManage: boolean };
 
@@ -47,7 +48,7 @@ export function StatementPanel({ customer, canManage }: Props) {
         )}
       </div>
       {valid ? (
-        <QueryPanel query={query} what="the statement">
+        <QueryPanel query={query} what="the statement" skeleton={<StatementTableSkeleton />}>
           {(statement) => <StatementTable statement={statement} />}
         </QueryPanel>
       ) : null}
@@ -71,13 +72,12 @@ function DayField({ label, value, onChange, invalid }: DayProps) {
   return (
     <Field data-invalid={invalid} className="w-auto">
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      <Input
+      <DatePicker
         id={id}
-        type="date"
         value={value}
         aria-invalid={invalid}
         aria-describedby={invalid ? "statement-range-error" : undefined}
-        onChange={(event) => onChange(event.target.value)}
+        onValueChange={onChange}
       />
       {invalid && (
         <FieldError id="statement-range-error">

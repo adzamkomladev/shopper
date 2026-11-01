@@ -13,13 +13,13 @@ export function KycReviewSkeleton() {
       <div className="flex flex-col gap-3">
         <BackToChecks />
         <div className="flex items-center gap-4">
-          <Skeleton className="h-9 w-56" />
+          <Skeleton className="h-8 w-56" />
           <Skeleton className="h-5.5 w-32 rounded-full" />
         </div>
         <Skeleton className="h-5 w-28" />
       </div>
-      <Skeleton className="h-52 w-full rounded-lg sm:h-44" />
-      <Skeleton className="h-32 w-full rounded-lg" />
+      <Skeleton className="h-34 w-full rounded-lg" />
+      <Skeleton className="h-25.5 w-full rounded-lg" />
     </div>
   );
 }

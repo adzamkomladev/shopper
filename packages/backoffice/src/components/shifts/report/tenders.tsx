@@ -27,7 +27,7 @@ export function TendersTable({ report }: { report: XReport | ZReport }) {
 
 function ExpectedTable({ report }: { report: XReport }) {
   return (
-    <Table aria-label="Tenders" className={compact}>
+    <Table bare aria-label="Tenders" className={compact}>
       <TableHeader>
         <TableRow>
           <TableHead>Tender</TableHead>
@@ -63,7 +63,7 @@ export function VarianceTable({
   label: string;
 }) {
   return (
-    <Table aria-label={label} className={compact}>
+    <Table bare aria-label={label} className={compact}>
       <TableHeader>
         <TableRow>
           <TableHead>Tender</TableHead>

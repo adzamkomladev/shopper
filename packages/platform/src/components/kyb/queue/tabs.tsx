@@ -7,12 +7,9 @@ import type { QueueTab } from "../../../schemas/types";
 export function QueueTabs({ active, children }: { active: QueueTab; children: React.ReactNode }) {
   return (
     <Tabs value={active} activationMode="manual" className="min-h-0 flex-1 gap-6">
-      <TabsList
-        aria-label="Verification status"
-        className="max-w-full justify-start overflow-x-auto"
-      >
+      <TabsList variant="line" aria-label="Verification status">
         {QUEUE_TABS.map((status) => (
-          <TabsTrigger key={status} value={status} asChild className="px-3 sm:px-4">
+          <TabsTrigger key={status} value={status} asChild>
             <Link to="/kyb" search={{ status }}>
               {STATUS_LABELS[status]}
             </Link>

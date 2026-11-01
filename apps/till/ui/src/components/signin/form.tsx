@@ -75,7 +75,7 @@ export function SignInForm({
       <Button
         aria-busy={signing}
         size="touch"
-        className="w-full rounded-full"
+        className="w-full"
         disabled={signing || disabled}
         type="submit"
       >

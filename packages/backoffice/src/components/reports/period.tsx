@@ -1,9 +1,9 @@
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Input } from "@shopper/ui/components/input";
 import { Kbd } from "@shopper/ui/components/kbd";
 import { Label } from "@shopper/ui/components/label";
 import type { Period } from "../../lib/reports/types";
+import { DatePicker } from "@shopper/ui/components/picker/date";
 
 /** The period's date fields between previous and next buttons (`[` and `]`). */
 export function PeriodControls({ period }: { period: Period }) {
@@ -25,11 +25,10 @@ export function PeriodControls({ period }: { period: Period }) {
       {period.kind === "day" ? (
         <div className="flex flex-col gap-2 max-sm:flex-1">
           <Label htmlFor="report-day">Day</Label>
-          <Input
+          <DatePicker
             id="report-day"
-            type="date"
             value={period.day}
-            onChange={(event) => event.target.value && period.onDay(event.target.value)}
+            onValueChange={(value) => value && period.onDay(value)}
             className="w-full sm:w-44"
           />
         </div>
@@ -38,27 +37,21 @@ export function PeriodControls({ period }: { period: Period }) {
         <div className="grid grid-cols-2 gap-2 max-sm:w-full sm:flex">
           <div className="flex flex-col gap-2">
             <Label htmlFor="report-from">From</Label>
-            <Input
+            <DatePicker
               id="report-from"
-              type="date"
               value={period.from}
               max={period.to}
-              onChange={(event) =>
-                event.target.value && period.onRange({ from: event.target.value, to: period.to })
-              }
+              onValueChange={(value) => value && period.onRange({ from: value, to: period.to })}
               className="w-full sm:w-40"
             />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="report-to">To</Label>
-            <Input
+            <DatePicker
               id="report-to"
-              type="date"
               value={period.to}
               min={period.from}
-              onChange={(event) =>
-                event.target.value && period.onRange({ from: period.from, to: event.target.value })
-              }
+              onValueChange={(value) => value && period.onRange({ from: period.from, to: value })}
               className="w-full sm:w-40"
             />
           </div>

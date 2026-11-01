@@ -78,7 +78,6 @@ function UnlockForm({
       {manager.problem && <FieldError>{manager.problem}</FieldError>}
       <DialogFooter>
         <Button
-          className="rounded-full"
           aria-keyshortcuts="Escape"
           onClick={onCancel}
           size="touch"
@@ -88,7 +87,6 @@ function UnlockForm({
           Cancel <Kbd>Esc</Kbd>
         </Button>
         <Button
-          className="rounded-full"
           aria-keyshortcuts="Enter"
           disabled={!manager.ready || manager.pending}
           size="touch"

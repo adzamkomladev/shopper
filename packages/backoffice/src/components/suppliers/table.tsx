@@ -2,8 +2,8 @@ import { DataTable, type DataTableColumn } from "@shopper/ui/components/data-tab
 import { RowActions } from "../admin/row/actions";
 import type { SupplierView } from "../../queries/suppliers";
 
-const FROM_MD = "hidden md:table-cell";
-const FROM_LG = "hidden lg:table-cell";
+export const FROM_MD = "hidden md:table-cell";
+export const FROM_LG = "hidden lg:table-cell";
 
 type Props = { suppliers: SupplierView[]; onEdit?: (supplier: SupplierView) => void };
 

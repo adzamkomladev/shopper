@@ -14,6 +14,7 @@ export const BUILT_APPS = [
   "apps/box",
   "apps/portal",
   "apps/admin",
+  "apps/shop",
   "apps/till/host",
   "apps/till/electron",
 ];
@@ -31,9 +32,10 @@ export const e2eRun = {
   database: id ? `shopper_${id}_e2e` : "shopper_e2e",
   bucket: id ? `shopper-e2e-${id}` : "shopper-imports-dev",
   path,
-  /** Bundles of the e2e portal, admin and public API hosts (tests/support). */
+  /** Bundles of the e2e portal, admin, shop and public API hosts (tests/support). */
   portalHost: path(".shopper/portal/e2e", "portal/build"),
   adminHost: path(".shopper/admin/e2e", "admin/build"),
+  shopHost: path(".shopper/shop/e2e", "shop/build"),
   publicHost: path(".shopper/public-e2e", "public/build"),
   ownerState: path("tests/e2e/.auth/owner.json", "auth/owner.json"),
   /**

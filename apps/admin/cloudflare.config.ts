@@ -75,6 +75,7 @@ export default defineConfig(({ mode }) => {
         RATE_PUBLIC: bindings.rateLimit({ namespace: "2602", simple: { limit: 30, period: 10 } }),
         RATE_ENROL: bindings.rateLimit({ namespace: "2603", simple: { limit: 10, period: 60 } }),
         RATE_CASHIER: bindings.rateLimit({ namespace: "2604", simple: { limit: 20, period: 60 } }),
+        RATE_OTP: bindings.rateLimit({ namespace: "2605", simple: { limit: 10, period: 60 } }),
         STORE_SEQUENCER: bindings.durableObject({ worker: edge, exportName: "StoreSequencer" }),
         STORE_HUB: bindings.durableObject({ worker: edge, exportName: "StoreHub" }),
         PRICE_CHANGE: bindings.workflow({

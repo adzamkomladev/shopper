@@ -227,3 +227,104 @@
     animation: var(--animate-draw);
   }
 }
+
+/* The shop (apps/shop): the same tokens on a friendlier surface for shoppers on phones. Rounder corners, a soft
+   tinted page and a glow of the primary behind the points card. Figma has no shop frames; this follows the
+   Componets page and the New Login states with a bolder consumer treatment. */
+[data-surface="shop"] {
+  --radius: 1rem;
+  /* Secondary text sits on the tinted page as well as on cards: slate-600 keeps it at AA on both. */
+  --muted-foreground: light-dark(oklch(0.4455 0.0374 257.28), oklch(0.7107 0.0351 256.79));
+  --shop-page: light-dark(oklch(0.975 0.012 205), oklch(0.15 0.03 245));
+  --shop-glow: light-dark(oklch(0.9 0.06 195), oklch(0.32 0.07 205));
+  --shop-ink: light-dark(oklch(0.3 0.06 210), oklch(0.2 0.04 230));
+}
+
+@theme inline {
+  --color-shop-page: var(--shop-page);
+  --color-shop-glow: var(--shop-glow);
+  --color-shop-ink: var(--shop-ink);
+}
+
+@theme {
+  --animate-shake: shake 360ms ease-in-out;
+  --animate-rise: rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-pop: pop 260ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+
+  /* A wrong code: the field shakes once, keyed on the attempt. */
+  @keyframes shake {
+    20%,
+    60% {
+      transform: translateX(-6px);
+    }
+    40%,
+    80% {
+      transform: translateX(6px);
+    }
+  }
+  /* Rows and cards settle in from below; `--rise-index` staggers a list. */
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
+  /* A filled code slot. */
+  @keyframes pop {
+    from {
+      transform: scale(0.6);
+      opacity: 0;
+    }
+  }
+  @keyframes count {
+    from {
+      --count: 0;
+      --count-thousands: 0;
+    }
+  }
+}
+
+@utility rise-stagger {
+  animation: var(--animate-rise);
+  animation-delay: calc(var(--rise-index, 0) * 45ms);
+}
+
+/* A number that counts up from zero to `--count` (an integer set on the element); screen readers get the real
+   value from a sibling, so this is `aria-hidden`. Reduced motion lands on the value at once. */
+@property --count {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 0;
+}
+@property --count-thousands {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 0;
+}
+@counter-style three-digits {
+  system: extends decimal;
+  pad: 3 "0";
+}
+@utility count-up {
+  animation: count 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  counter-reset: count var(--count);
+  &::after {
+    content: counter(count);
+  }
+}
+/* From 1,000 up: `--count-thousands` and `--count` (the last three digits) count together, comma between. */
+@utility count-up-grouped {
+  animation: count 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  counter-reset: thousands var(--count-thousands) count var(--count);
+  &::after {
+    content: counter(thousands) "," counter(count, three-digits);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

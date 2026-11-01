@@ -253,6 +253,13 @@
       "when": 1793462400000,
       "tag": "0035_updates",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793539133703,
+      "tag": "0036_shop",
+      "breakpoints": true
     }
   ]
 }

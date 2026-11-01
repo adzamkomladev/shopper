@@ -7,15 +7,16 @@ route, audit payloads or the till's local database. Every section names the test
 
 One `RateLimiter` port (`packages/ports/src/limits.ts`) with a fixed policy table:
 
-| Policy    | Limit       | Key                         | Covers                                                                   |
-| --------- | ----------- | --------------------------- | ------------------------------------------------------------------------ |
-| `auth`    | 5 per 10 s  | client IP, and email        | sign-in, sign-up, password reset, onboarding, invitation acceptance      |
-| `public`  | 30 per 10 s | client IP                   | statement links, the shop-code lookup                                    |
-| `enrol`   | 10 per 60 s | client IP, across all shops | till self-enrolment                                                      |
-| `cashier` | 20 per 60 s | shop and client IP          | cashier sign-in from a register (the per-user PIN lockout still applies) |
+| Policy    | Limit       | Key                         | Covers                                                                         |
+| --------- | ----------- | --------------------------- | ------------------------------------------------------------------------------ |
+| `auth`    | 5 per 10 s  | client IP, and email        | sign-in, sign-up, password reset, onboarding, invitation acceptance            |
+| `public`  | 30 per 10 s | client IP                   | statement links, the shop-code lookup                                          |
+| `enrol`   | 10 per 60 s | client IP, across all shops | till self-enrolment                                                            |
+| `cashier` | 20 per 60 s | shop and client IP          | cashier sign-in from a register (the per-user PIN lockout still applies)       |
+| `otp`     | 10 per 60 s | client IP                   | "text me a code" on the shop's sign-in (each phone also gets 5 logins an hour) |
 
 - Cloud: one Cloudflare Rate Limiting binding per policy (`RATE_AUTH`, `RATE_PUBLIC`, `RATE_ENROL`,
-  `RATE_CASHIER`), built from the table by `apps/edge/cloudflare.config.ts`, through `cloudflareRateLimiter`.
+  `RATE_CASHIER`, `RATE_OTP`), built from the table by `apps/edge/cloudflare.config.ts`, through `cloudflareRateLimiter`.
 - Box: `boxRateLimiter`, an in-process fixed window. The box is one Bun process, so the count is exact.
   The Rivet `RateLimiter` actor replaces it on day 36.
 - `serveRuntime` enforces it before routing (`enforceRateLimit`). A limited request gets `429` with
@@ -54,6 +55,22 @@ One `RateLimiter` port (`packages/ports/src/limits.ts`) with a fixed policy tabl
   - `Cache-Control: no-store` on authenticated requests
 - The portal and admin static assets send `frame-ancestors 'none'` from `public/_headers`.
 - Tests: `security/session.test.ts`, `tooling/cloudflare/portal.test.ts`.
+
+### Shoppers (`apps/shop`)
+
+- A shopper signs in with a six-digit code texted to their phone. The code is never stored or queued:
+  it is derived by HMAC from the login id and the send number, and the login row keeps only a keyed
+  digest. A login lasts 10 minutes, sends at most 3 codes and locks after 5 wrong ones; a locked or
+  expired login means starting again. The reply to "text me a code" is the same for a phone the shop
+  knows and one it does not.
+- Turnstile guards "text me a code" when `TURNSTILE_SECRET_KEY` is set on the API Worker; the shop
+  Worker serves the public `TURNSTILE_SITEKEY`.
+- The session is a random 32-byte token in the `HttpOnly`, `Secure`, `SameSite=Lax` shop cookie; only
+  its SHA-256 is stored. It lasts 30 days and sign-out revokes it.
+- Every `/shop/account/*` route takes the shop from the session row, never from the request. An
+  account sees only sales rung up to customer rows with its phone at that shop (and rows merged into
+  them). Profile edits change the online account, never the shop's `customer` row.
+- Tests: `tests/integration/shop/*` (sign-in, account, profile) and the tenant sweep.
 
 ## Secrets
 

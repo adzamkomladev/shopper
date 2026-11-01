@@ -10,33 +10,96 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ShopRouteRouteImport } from './routes/$shop/route'
+import { Route as ShopIndexRouteImport } from './routes/$shop/index'
+import { Route as ShopAccountRouteImport } from './routes/$shop/account'
+import { Route as ShopSigninRouteImport } from './routes/$shop/signin'
+import { Route as ShopReceiptsSaleIdRouteImport } from './routes/$shop/receipts.$saleId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ShopRouteRoute = ShopRouteRouteImport.update({
+  id: '/$shop',
+  path: '/$shop',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShopIndexRoute = ShopIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ShopRouteRoute,
+} as any)
+const ShopAccountRoute = ShopAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => ShopRouteRoute,
+} as any)
+const ShopSigninRoute = ShopSigninRouteImport.update({
+  id: '/signin',
+  path: '/signin',
+  getParentRoute: () => ShopRouteRoute,
+} as any)
+const ShopReceiptsSaleIdRoute = ShopReceiptsSaleIdRouteImport.update({
+  id: '/receipts/$saleId',
+  path: '/receipts/$saleId',
+  getParentRoute: () => ShopRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$shop': typeof ShopRouteRouteWithChildren
+  '/$shop/account': typeof ShopAccountRoute
+  '/$shop/signin': typeof ShopSigninRoute
+  '/$shop/': typeof ShopIndexRoute
+  '/$shop/receipts/$saleId': typeof ShopReceiptsSaleIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$shop/account': typeof ShopAccountRoute
+  '/$shop/signin': typeof ShopSigninRoute
+  '/$shop': typeof ShopIndexRoute
+  '/$shop/receipts/$saleId': typeof ShopReceiptsSaleIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$shop': typeof ShopRouteRouteWithChildren
+  '/$shop/account': typeof ShopAccountRoute
+  '/$shop/signin': typeof ShopSigninRoute
+  '/$shop/': typeof ShopIndexRoute
+  '/$shop/receipts/$saleId': typeof ShopReceiptsSaleIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/$shop'
+    | '/$shop/account'
+    | '/$shop/signin'
+    | '/$shop/'
+    | '/$shop/receipts/$saleId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/$shop/account'
+    | '/$shop/signin'
+    | '/$shop'
+    | '/$shop/receipts/$saleId'
+  id:
+    | '__root__'
+    | '/'
+    | '/$shop'
+    | '/$shop/account'
+    | '/$shop/signin'
+    | '/$shop/'
+    | '/$shop/receipts/$saleId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ShopRouteRoute: typeof ShopRouteRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +111,65 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$shop': {
+      id: '/$shop'
+      path: '/$shop'
+      fullPath: '/$shop'
+      preLoaderRoute: typeof ShopRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$shop/': {
+      id: '/$shop/'
+      path: '/'
+      fullPath: '/$shop/'
+      preLoaderRoute: typeof ShopIndexRouteImport
+      parentRoute: typeof ShopRouteRoute
+    }
+    '/$shop/account': {
+      id: '/$shop/account'
+      path: '/account'
+      fullPath: '/$shop/account'
+      preLoaderRoute: typeof ShopAccountRouteImport
+      parentRoute: typeof ShopRouteRoute
+    }
+    '/$shop/signin': {
+      id: '/$shop/signin'
+      path: '/signin'
+      fullPath: '/$shop/signin'
+      preLoaderRoute: typeof ShopSigninRouteImport
+      parentRoute: typeof ShopRouteRoute
+    }
+    '/$shop/receipts/$saleId': {
+      id: '/$shop/receipts/$saleId'
+      path: '/receipts/$saleId'
+      fullPath: '/$shop/receipts/$saleId'
+      preLoaderRoute: typeof ShopReceiptsSaleIdRouteImport
+      parentRoute: typeof ShopRouteRoute
+    }
   }
 }
 
+interface ShopRouteRouteChildren {
+  ShopAccountRoute: typeof ShopAccountRoute
+  ShopSigninRoute: typeof ShopSigninRoute
+  ShopIndexRoute: typeof ShopIndexRoute
+  ShopReceiptsSaleIdRoute: typeof ShopReceiptsSaleIdRoute
+}
+
+const ShopRouteRouteChildren: ShopRouteRouteChildren = {
+  ShopAccountRoute: ShopAccountRoute,
+  ShopSigninRoute: ShopSigninRoute,
+  ShopIndexRoute: ShopIndexRoute,
+  ShopReceiptsSaleIdRoute: ShopReceiptsSaleIdRoute,
+}
+
+const ShopRouteRouteWithChildren = ShopRouteRoute._addFileChildren(
+  ShopRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ShopRouteRoute: ShopRouteRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

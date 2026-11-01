@@ -29,9 +29,14 @@ async function budgetOf(request: Request, ip: string, orgId?: string) {
   if (request.method === "GET" || request.method === "HEAD") {
     if (path.startsWith("/public/statements/")) return budget("public", `${ip}:statements`);
     if (/^\/orgs\/[^/]+$/.test(path)) return budget("public", `${ip}:orgs`);
+    if (/^\/shop\/[^/]+$/.test(path)) return budget("public", `${ip}:shop`);
     return undefined;
   }
   if (request.method !== "POST") return undefined;
+  if (/^\/shop\/[^/]+\/signin$/.test(path)) return budget("otp", `${ip}:shop-otp`);
+  // Each login also locks itself after five wrong codes; this stops one address cycling through many logins.
+  if (/^\/shop\/[^/]+\/signin\/[^/]+\/(?:verify|resend)$/.test(path))
+    return budget("auth", `${ip}:shop-code`);
   if (path === "/cashiers/login" || path === "/cashiers/unlock")
     return budget("cashier", `${shop}:${ip}`);
   // Each shop also locks itself after five wrong codes; this budget stops one address spraying many shops.

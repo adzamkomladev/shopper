@@ -1,4 +1,5 @@
 import { expect, test } from "vite-plus/test";
+import { ratePolicies } from "@shopper/ports";
 
 // Every Worker that serves the API counts against the same namespaces, so a client cannot spread its guesses
 // across the edge, portal and admin hosts to get three budgets.
@@ -12,7 +13,7 @@ test.each(["portal", "admin"])(
   "the %s Worker shares the edge's rate-limit bindings",
   async (app) => {
     const edge = await env("edge");
-    expect(Object.keys(edge)).toHaveLength(4);
+    expect(Object.keys(edge)).toHaveLength(Object.keys(ratePolicies).length);
     expect(await env(app)).toEqual(edge);
   },
 );

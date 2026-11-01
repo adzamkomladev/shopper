@@ -11,4 +11,6 @@ export const ratePolicies = {
   enrol: { limit: 10, period: 60 },
   /** Cashier sign-in from a register, per shop and client IP. Lockout per user still applies. */
   cashier: { limit: 20, period: 60 },
+  /** Shop sign-in codes, per client IP. Mobile carriers share addresses, so each phone's own cap is in the database. */
+  otp: { limit: 10, period: 60 },
 } as const satisfies Record<string, { limit: number; period: 10 | 60 }>;

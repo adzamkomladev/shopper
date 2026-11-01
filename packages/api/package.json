@@ -19,6 +19,10 @@
     "./portal": {
       "types": "./src/portal.ts",
       "default": "./src/portal.ts"
+    },
+    "./shop": {
+      "types": "./src/shop.ts",
+      "default": "./src/shop.ts"
     }
   },
   "scripts": {

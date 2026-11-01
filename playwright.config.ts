@@ -8,6 +8,7 @@ const reuseExistingServer = !process.env.CI;
 const portal = e2eRun.url(5183);
 const tillUi = e2eRun.url(5184);
 const admin = e2eRun.url(5187);
+const shop = e2eRun.url(5189);
 const boxEnvironment = {
   PORT: String(e2eRun.port(3101)),
   DATABASE_URL: E2E_DATABASE_URL,
@@ -54,6 +55,8 @@ export default defineConfig({
     { name: "till-ui", testDir: "tests/e2e/till/ui", use: { baseURL: tillUi } },
     // The KYB spec submits as E2E Mart's owner, on the session the setup project saves.
     { name: "admin", testDir: "tests/e2e/admin", dependencies: ["setup"], use: { baseURL: admin } },
+    // Shoppers sign in with a texted code read from the shop host's Arkesel fake (3106).
+    { name: "shop", testDir: "tests/e2e/shop", use: { baseURL: shop } },
   ],
   webServer: [
     {
@@ -83,6 +86,14 @@ export default defineConfig({
         E2E_ARKESEL_PORT: String(e2eRun.port(3105)),
       },
       timeout: 180_000,
+      reuseExistingServer,
+    },
+    {
+      command: `node tooling/build/shop/e2e.mjs && bun ${e2eRun.shopHost}/server.js`,
+      url: `${shop}/api/shop/e2e-mart`,
+      env: { E2E_DATABASE_URL, SHOPPER_SHOP_URL: shop },
+      // The shop is built for the Bun host first (about two minutes on a busy runner).
+      timeout: 300_000,
       reuseExistingServer,
     },
     {

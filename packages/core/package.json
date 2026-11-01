@@ -119,6 +119,10 @@
     "./billing": {
       "types": "./src/billing/index.ts",
       "default": "./src/billing/index.ts"
+    },
+    "./shop": {
+      "types": "./src/shop/index.ts",
+      "default": "./src/shop/index.ts"
     }
   },
   "scripts": {

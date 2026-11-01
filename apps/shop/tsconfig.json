@@ -2,12 +2,16 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "dist"
+    "outDir": "dist",
+    "types": ["node", "vite-plus/client"]
   },
   "include": ["src"],
   "references": [
-    {
-      "path": "../../packages/ui"
-    }
+    { "path": "../../packages/adapters/cf" },
+    { "path": "../../packages/api" },
+    { "path": "../../packages/core" },
+    { "path": "../../packages/hardware" },
+    { "path": "../../packages/money" },
+    { "path": "../../packages/ui" }
   ]
 }

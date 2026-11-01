@@ -7,6 +7,7 @@ import { buildInfo } from "@shopper/config";
 import { AuthLinkError, createAuth, createOnboarding, createInvitations } from "@shopper/auth";
 import { createDeviceService } from "@shopper/auth/devices";
 import { managementId } from "@shopper/core/management";
+import { createShopAccess } from "@shopper/core/shop";
 
 import { createSyncRoutes } from "./sync/routes";
 import { readiness } from "./routes/system";
@@ -19,7 +20,7 @@ export const publicApi = createApi();
 export function isPublicRequest(request: Request) {
   const path = new URL(request.url).pathname;
   // Readiness probes the database and cache, so it needs the runtime, unlike /health.
-  return !/^\/(?:health\/ready$|payments(?:\/|$)|webhooks\/(?:paystack|hubtel)$|api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|tax(?:\/|$)|devices(?:\/|$)|shifts(?:\/|$)|audit(?:\/|$)|stock(?:\/|$)|reports(?:\/|$)|customers(?:\/|$)|kyc(?:\/|$)|loyalty(?:\/|$)|settings(?:\/|$)|transactions(?:\/|$)|reconciliation(?:\/|$)|approvals(?:\/|$)|billing(?:\/|$)|kyb(?:\/|$)|platform(?:\/|$)|setup(?:\/|$)|public\/statements(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
+  return !/^\/(?:health\/ready$|payments(?:\/|$)|webhooks\/(?:paystack|hubtel)$|api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|tax(?:\/|$)|devices(?:\/|$)|shifts(?:\/|$)|audit(?:\/|$)|stock(?:\/|$)|reports(?:\/|$)|customers(?:\/|$)|kyc(?:\/|$)|loyalty(?:\/|$)|settings(?:\/|$)|transactions(?:\/|$)|reconciliation(?:\/|$)|approvals(?:\/|$)|billing(?:\/|$)|kyb(?:\/|$)|platform(?:\/|$)|setup(?:\/|$)|public\/statements(?:\/|$)|shop(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
     path,
   );
 }
@@ -52,6 +53,7 @@ async function route(request: Request, options: RuntimeOptions): Promise<Respons
       renderer: options.renderer,
     }).fetch(request);
   }
+  if (/^\/shop(?:\/|$)/.test(url.pathname)) return shop(request, options);
   if (/^\/orgs(?:\/|$)/.test(url.pathname)) return orgRoutes(options).fetch(request);
   // The admin sign-in names the platform org before there is a session or a shop to select.
   if (url.pathname === "/platform/org")
@@ -187,6 +189,32 @@ async function route(request: Request, options: RuntimeOptions): Promise<Respons
     storeDays: options.storeDays,
     kyb: options.kyb,
     platform: options.platform,
+  }).fetch(request);
+}
+
+/**
+ * Shopper routes reach the API through the shop Worker, at the shop's own origin: a write must come from that
+ * origin, and the session cookie, not a tenant header, decides the shop.
+ */
+function shop(request: Request, options: RuntimeOptions) {
+  if (!options.linkSecret) return runtimeUnavailable();
+  const crossSite = refuseCrossSite(request, new URL(request.url).origin);
+  if (crossSite) return crossSite;
+  return createApi({
+    database: options.database,
+    shop: {
+      access: createShopAccess({
+        database: options.database,
+        linkSecret: options.linkSecret,
+        appVersion: buildInfo.version,
+        queue: options.notifications,
+      }),
+      appVersion: buildInfo.version,
+      blobs: options.blobs,
+      turnstile: options.turnstile,
+      clientIP: options.clientIP,
+      orgId: options.orgId,
+    },
   }).fetch(request);
 }
 

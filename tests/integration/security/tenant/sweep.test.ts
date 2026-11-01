@@ -142,6 +142,7 @@ function routes() {
     invitations: stub,
     kyb: stub,
     platform: stub,
+    shop: stub,
     linkSecret: "route-listing-only",
   });
   const seen = new Set<string>();

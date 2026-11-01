@@ -91,7 +91,11 @@ test("a new shop signs up, sets up, enrols a till and makes its first sale", asy
   await expect(search).toBeFocused();
   await search.fill(String(product.SKU));
   await register.getByRole("option", { name: String(product.Name) }).click({ timeout: 60_000 });
-  await register.getByRole("button", { name: /^Checkout/ }).click();
+  // The sidebar's Checkout section is a button too; the cart's carries Ctrl+Enter.
+  await register
+    .getByRole("button", { name: /^Checkout/ })
+    .and(register.locator("[aria-keyshortcuts='Control+Enter']"))
+    .click();
   await register.getByRole("textbox", { name: "Amount tendered" }).fill("1000.00");
   await register.keyboard.press("F5");
   await expect(register.getByRole("region", { name: "Sale receipt" })).toBeVisible();

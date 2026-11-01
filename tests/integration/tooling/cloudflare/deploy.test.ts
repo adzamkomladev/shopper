@@ -33,11 +33,16 @@ function built(name: string, mode: string, d1 = "d1-id", hyperdrive = "hd-id") {
 }
 
 function deploy(app: string, ...args: string[]) {
-  const result = spawnSync(process.execPath, ["--import", "tsx", script, ...args], {
-    cwd: app,
-    encoding: "utf8",
-    env: { ...process.env, DATABASE_URL: "postgresql://direct/db", SHOPPER_AUTH_SECRET: "x" },
-  });
+  // Resolved here: the throwaway app folder has no node_modules to find tsx in.
+  const result = spawnSync(
+    process.execPath,
+    ["--import", import.meta.resolve("tsx"), script, ...args],
+    {
+      cwd: app,
+      encoding: "utf8",
+      env: { ...process.env, DATABASE_URL: "postgresql://direct/db", SHOPPER_AUTH_SECRET: "x" },
+    },
+  );
   return { status: result.status, out: result.stdout, err: result.stderr };
 }
 

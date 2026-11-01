@@ -27,7 +27,12 @@ export function ShellHeader({ onShortcuts }: { onShortcuts: () => void }) {
   return (
     <header ref={shortcuts} className="flex h-12 shrink-0 items-center gap-2 border-b px-3 md:px-4">
       <SidebarTrigger className="-ml-1" />
-      <p aria-label="You are here" className="flex min-w-0 items-center gap-1.5 text-sm">
+      {/* A paragraph cannot carry a label (axe aria-prohibited-attr), so the trail is a labelled group. */}
+      <div
+        role="group"
+        aria-label="You are here"
+        className="flex min-w-0 items-center gap-1.5 text-sm"
+      >
         {trail.map((part, index) => (
           <span
             key={part}
@@ -40,7 +45,7 @@ export function ShellHeader({ onShortcuts }: { onShortcuts: () => void }) {
             {part}
           </span>
         ))}
-      </p>
+      </div>
       <Button
         ref={searchRef}
         variant="outline"

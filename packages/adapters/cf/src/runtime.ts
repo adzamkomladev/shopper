@@ -13,6 +13,7 @@ import { cloudflareSequencer } from "./sequencer";
 import { cloudflareLane } from "./lane";
 import { cloudflareHubtel } from "./hubtel";
 import { cloudflareRateLimiter } from "./ratelimit";
+import { cloudflareTurnstile } from "./turnstile";
 import type { CloudflareRuntimeEnvironment } from "./runtime/types";
 
 const s3 = (env: CloudflareRuntimeEnvironment, bucket?: string) =>
@@ -91,6 +92,7 @@ export async function cloudflareRuntime(
     linkSecret: env.SHOPPER_LINK_SECRET,
     minTillVersion: env.SHOPPER_MIN_TILL_VERSION,
     publicOnboarding: true,
+    turnstile: env.TURNSTILE_SECRET_KEY ? cloudflareTurnstile(env.TURNSTILE_SECRET_KEY) : undefined,
   }).catch(async (error: unknown) => {
     await connection.close();
     throw error;

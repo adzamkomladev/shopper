@@ -68,8 +68,9 @@ export function createShopAccess(options: {
         sessionExpiresAt: expiresAt,
       });
       if (result.outcome === "wrong")
-        return { outcome: result.outcome, attemptsLeft: result.attemptsLeft };
-      if (result.outcome !== "ok") return { outcome: result.outcome };
+        return { outcome: "wrong" as const, attemptsLeft: result.attemptsLeft };
+      if (result.outcome === "locked") return { outcome: "locked" as const };
+      if (result.outcome === "expired") return { outcome: "expired" as const };
       return { outcome: "ok" as const, token, accountId: result.accountId, expiresAt };
     },
     /** The live session a cookie token names, with its shop and account; anything else is null. */

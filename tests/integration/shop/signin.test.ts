@@ -160,3 +160,16 @@ test("an invalid phone is refused before anything is stored, and every step is a
     );
   expect(JSON.stringify(audit!.payload)).not.toContain("0241234567");
 });
+
+test("one phone gets at most five codes an hour at a shop", async () => {
+  for (let i = 0; i < 5; i++) await access.start(world.b.orgId, "0246660000");
+  await expect(access.start(world.b.orgId, "0246660000")).rejects.toMatchObject({ status: 429 });
+  // Another shop counts its own.
+  await expect(access.start(world.a.orgId, "0246660000")).resolves.toMatchObject({
+    phone: "0246660000",
+  });
+  world.clock.add(60 * 60_000 + 1);
+  await expect(access.start(world.b.orgId, "0246660000")).resolves.toMatchObject({
+    phone: "0246660000",
+  });
+});

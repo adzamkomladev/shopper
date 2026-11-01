@@ -2,7 +2,7 @@
 export class ShopError extends Error {
   constructor(
     message: string,
-    readonly status: 400 | 401 | 404 | 409,
+    readonly status: 400 | 401 | 403 | 404 | 409 | 429,
   ) {
     super(message);
     this.name = "ShopError";

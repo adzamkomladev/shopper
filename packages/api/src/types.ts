@@ -6,6 +6,7 @@ import type {
   createInvitations,
 } from "@shopper/auth";
 import type { ShopperDatabase } from "@shopper/db-pg";
+import type { ShopAccess, ShopSession } from "@shopper/core/shop";
 import type {
   Blobs,
   Lane,
@@ -25,6 +26,19 @@ export interface ApiAuthentication {
   handler?: (request: Request) => Promise<Response>;
 }
 export type ApiEnvironment = { Variables: { principal: ApiPrincipal } };
+export type ShopEnvironment = { Variables: { shopper: ShopSession } };
+/** Answers whether a Turnstile token from the shop's sign-in form is a person's, for this client address. */
+export type Turnstile = (token: string, clientIP?: string) => Promise<boolean>;
+/** The shopper-facing routes: phone sign-in at one shop and the signed-in account. */
+export interface ShopOptions {
+  database: ShopperDatabase;
+  access: ShopAccess;
+  blobs?: Blobs;
+  turnstile?: Turnstile;
+  clientIP?: string;
+  /** The box serves one shop; any other shop code is unknown there. */
+  orgId?: string;
+}
 /** What signs a customer's statement link and where the portal opens it. */
 export interface StatementLinks {
   secret: string;
@@ -33,6 +47,7 @@ export interface StatementLinks {
 
 export interface ApiOptions {
   authentication?: ApiAuthentication;
+  shop?: Omit<ShopOptions, "database">;
   database?: ShopperDatabase;
   sequencer?: Sequencer;
   blobs?: Blobs;
@@ -108,6 +123,8 @@ export interface RuntimeOptions {
   minTillVersion?: string;
   linkSecret?: string;
   publicOnboarding?: boolean;
+  /** Verifies the shop sign-in form's Turnstile token; without it (the box, development) no check runs. */
+  turnstile?: Turnstile;
 }
 
 export interface PortalHost {

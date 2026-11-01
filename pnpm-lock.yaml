@@ -1040,6 +1040,9 @@ importers:
       '@shopper/adapters-box':
         specifier: workspace:*
         version: link:../packages/adapters/box
+      '@shopper/adapters-cf':
+        specifier: workspace:*
+        version: link:../packages/adapters/cf
       '@shopper/api':
         specifier: workspace:*
         version: link:../packages/api

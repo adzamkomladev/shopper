@@ -2,6 +2,7 @@
 //   shopWorld()           -> { db, a, b, sent, queue, clock, close }; `a`/`b` are { orgId, slug, context }
 //   world.sent            -> every envelope the commands queued, oldest first
 //   world.clock.at(iso)   -> moves the injected clock
+import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "@shopper/db-pg";
 import type { Envelope, Queue } from "@shopper/ports";
@@ -13,7 +14,8 @@ export const linkSecret = "shop account link secret that is at least thirty two 
 
 export async function shopWorld() {
   const fixture = await postgresFixture();
-  const db = drizzle(fixture.client, { schema });
+  const pool = new Pool({ connectionString: fixture.connectionString });
+  const db = drizzle(pool, { schema });
   await migrateDatabase(db);
   const shop = async (slug: string) => {
     const context = provisioningContext();
@@ -34,6 +36,9 @@ export async function shopWorld() {
       at: (iso: string) => void (now = new Date(iso)),
       add: (ms: number) => void (now = new Date(now.getTime() + ms)),
     },
-    close: () => fixture.close(),
+    close: async () => {
+      await pool.end();
+      await fixture.close();
+    },
   };
 }

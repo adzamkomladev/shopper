@@ -1,9 +1,9 @@
-import { and, eq } from "drizzle-orm";
+import { and, count, eq, gt } from "drizzle-orm";
 import { v7 } from "uuid";
 import { defineCommand, enqueueAfterCommit } from "@shopper/audit";
 import { shopAccount, shopLogin, shopSession, type ShopperTransaction } from "@shopper/db-pg";
 import { ShopError } from "./error";
-import { LOGIN_MAX_ATTEMPTS, LOGIN_MAX_SENDS, LOGIN_TTL_MS } from "./otp";
+import { LOGIN_MAX_ATTEMPTS, LOGIN_MAX_SENDS, LOGIN_TTL_MS, LOGINS_PER_HOUR } from "./otp";
 
 const entity = (id: string) => ({ entity: "shop_login", entityId: id });
 
@@ -11,8 +11,22 @@ const entity = (id: string) => ({ entity: "shop_login", entityId: id });
 export const startLogin = defineCommand({
   name: "shop.login.start",
   async run(tx, context, input: { id: string; phone: string; digest: string; now: Date }) {
+    // The command holds the org's lock, so two requests cannot both slip under the cap.
+    const [recent] = await tx
+      .select({ logins: count() })
+      .from(shopLogin)
+      .where(
+        and(
+          eq(shopLogin.orgId, context.orgId),
+          eq(shopLogin.phone, input.phone),
+          gt(shopLogin.createdAt, new Date(input.now.getTime() - 60 * 60_000)),
+        ),
+      );
+    if (recent!.logins >= LOGINS_PER_HOUR)
+      throw new ShopError("Too many codes for this number. Try again in an hour.", 429);
     await tx.insert(shopLogin).values({
       id: input.id,
+      createdAt: input.now,
       orgId: context.orgId,
       phone: input.phone,
       otpDigest: input.digest,

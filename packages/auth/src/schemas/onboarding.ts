@@ -8,6 +8,8 @@ export const shopCodeSchema = v.pipe(
   v.minLength(2),
   v.maxLength(80),
   v.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  // The shop's own paths sit beside its code: /shop/account would never reach a shop called "account".
+  v.check((code) => code !== "account", "That shop code is taken"),
 );
 export const personNameSchema = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(120));
 export const emailSchema = v.pipe(

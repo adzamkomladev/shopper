@@ -3,6 +3,8 @@ import { hmacHex } from "@shopper/utils";
 export const LOGIN_TTL_MS = 10 * 60_000;
 export const LOGIN_MAX_SENDS = 3;
 export const LOGIN_MAX_ATTEMPTS = 5;
+/** Logins a phone may open at one shop in an hour: with five guesses each, 25 guesses an hour at most. */
+export const LOGINS_PER_HOUR = 5;
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60_000;
 
 /**

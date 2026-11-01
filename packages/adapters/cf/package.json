@@ -10,6 +10,7 @@
     },
     "./coordination": "./src/coordination.ts",
     "./portal": "./src/portal.ts",
+    "./turnstile": "./src/turnstile.ts",
     "./workflows": "./src/workflows/index.ts"
   },
   "scripts": {

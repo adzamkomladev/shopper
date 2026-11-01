@@ -160,3 +160,21 @@ test("box registration is closed even when no fixed tenant is configured", async
   );
   expect(response.status).toBe(403);
 });
+
+// Day 30: the shop's account page lives at /shop/account, beside each shop's code.
+test("no shop may take the code 'account'", async () => {
+  const body = {
+    name: "Ama",
+    email: "account-owner@example.com",
+    shopName: "Account",
+    shopCode: "Account",
+  };
+  const refused = await call("/onboarding/start", body, { clientIP: "192.0.2.150" });
+  expect(refused.status).toBe(400);
+  const taken = await call(
+    "/onboarding/start",
+    { ...body, shopCode: "accounts" },
+    { clientIP: "192.0.2.151" },
+  );
+  expect(taken.status).toBe(201);
+});

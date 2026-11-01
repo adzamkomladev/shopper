@@ -33,6 +33,8 @@ export type Turnstile = (token: string, clientIP?: string) => Promise<boolean>;
 export interface ShopOptions {
   database: ShopperDatabase;
   access: ShopAccess;
+  /** Stamped on every shopper command's audit row. */
+  appVersion: string;
   blobs?: Blobs;
   turnstile?: Turnstile;
   clientIP?: string;

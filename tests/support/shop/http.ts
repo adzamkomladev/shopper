@@ -12,7 +12,7 @@ export const shopOrigin = "https://shop.test";
 let ips = 0;
 export const freshIp = () => `203.0.113.${(++ips % 250) + 1}`;
 
-type World = Awaited<ReturnType<typeof shopWorld>>;
+type World = Pick<Awaited<ReturnType<typeof shopWorld>>, "db" | "queue">;
 type Init = {
   method?: string;
   body?: unknown;

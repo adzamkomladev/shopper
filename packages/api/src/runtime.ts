@@ -209,6 +209,7 @@ function shop(request: Request, options: RuntimeOptions) {
         appVersion: buildInfo.version,
         queue: options.notifications,
       }),
+      appVersion: buildInfo.version,
       blobs: options.blobs,
       turnstile: options.turnstile,
       clientIP: options.clientIP,

@@ -1,10 +1,9 @@
-import * as v from "valibot";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { v7 } from "uuid";
 import { shopAccount, shopSession, type ShopperDatabase } from "@shopper/db-pg";
 import { uuidV7Schema, type Queue } from "@shopper/ports";
 import { assertLinkSecret, sha256 } from "@shopper/utils";
-import { ShopError } from "./error";
+import { parseShop } from "./error";
 import { loginCode, loginDigest, SESSION_TTL_MS } from "./otp";
 import { shopCode, shopPhone } from "./schemas/signin";
 import { endSession, resendLogin, startLogin, verifyLogin } from "./signin";
@@ -33,7 +32,7 @@ export function createShopAccess(options: {
 
   return {
     async start(orgId: string, rawPhone: unknown) {
-      const phone = parse(shopPhone, rawPhone);
+      const phone = parseShop(shopPhone, rawPhone);
       const id = v7();
       await startLogin(options.database, context(orgId), {
         id,
@@ -44,7 +43,7 @@ export function createShopAccess(options: {
       return { loginId: id, phone };
     },
     async resend(orgId: string, rawLoginId: unknown) {
-      const loginId = parse(uuidV7Schema, rawLoginId);
+      const loginId = parseShop(uuidV7Schema, rawLoginId);
       const send = (await readLoginSends(options.database, orgId, loginId)) + 1;
       const result = await resendLogin(options.database, context(orgId), {
         id: loginId,
@@ -55,8 +54,8 @@ export function createShopAccess(options: {
       return { sent: result.sent };
     },
     async verify(orgId: string, rawLoginId: unknown, rawCode: unknown) {
-      const loginId = parse(uuidV7Schema, rawLoginId);
-      const code = parse(shopCode, rawCode);
+      const loginId = parseShop(uuidV7Schema, rawLoginId);
+      const code = parseShop(shopCode, rawCode);
       const token = randomToken();
       const at = now();
       const expiresAt = new Date(at.getTime() + SESSION_TTL_MS);
@@ -106,12 +105,6 @@ export function createShopAccess(options: {
         });
     },
   };
-}
-
-function parse<T extends v.GenericSchema>(schema: T, value: unknown): v.InferOutput<T> {
-  const parsed = v.safeParse(schema, value);
-  if (!parsed.success) throw new ShopError(parsed.issues[0].message, 400);
-  return parsed.output;
 }
 
 function randomToken() {

@@ -23,7 +23,7 @@ names with `vp exec cf workers secrets list --script-name <worker>`.
 ## Cloud release
 
 `main` deploys to **staging only**, through Cloudflare Workers Builds (the dashboard git integration)
-on `shopper-edge-staging` and `shopper-portal-staging`. Production goes through the `release` skill.
+on `shopper-edge-staging`, `shopper-portal-staging` and `shopper-admin-staging`. Production goes through the `release` skill.
 Workers Builds does not wait for GitHub CI, so merge to `main` only when CI is green.
 
 Both Workers run from the repo root. Each app owns two scripts, invoked as `pnpm --filter <app> run
@@ -58,21 +58,21 @@ Both Workers run from the repo root. Each app owns two scripts, invoked as `pnpm
 
 ### Workers Builds settings
 
-Set under each Worker, **Settings > Build**. Connect `adzamkomladev/shopper` to both.
+Set under each Worker, **Settings > Build**. Connect `adzamkomladev/shopper` to all three.
 
-| Setting                      | `shopper-edge-staging`                                                         | `shopper-portal-staging`                                                |
-| ---------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| Git branch (production)      | `main`                                                                         | `main`                                                                  |
-| Non-production branch builds | Disabled (Branch control)                                                      | Disabled                                                                |
-| Root directory               | `/`                                                                            | `/`                                                                     |
-| Build command                | `pnpm --filter @shopper/edge run build:staging`                                | `pnpm --filter @shopper/portal run build:staging`                       |
-| Deploy command               | `pnpm --filter @shopper/edge run deploy:staging`                               | `pnpm --filter @shopper/portal run deploy:staging`                      |
-| Build watch paths            | `apps/edge/*`, `packages/*`, `tooling/database/*`, `tooling/cloudflare/*`, `pnpm-lock.yaml` | `apps/portal/*`, `packages/*`, `tooling/cloudflare/*`, `pnpm-lock.yaml` |
-| Build variables              | `NODE_VERSION=24.21.0`, `PNPM_VERSION=12.9.1`, `CF_SEND_TELEMETRY=false`           | Same                                                                    |
-| Build secrets                | `DATABASE_URL` (required); Worker secrets (optional)                           | Worker secrets (optional)                                               |
+| Setting                      | `shopper-edge-staging`                                                                      | `shopper-portal-staging`                                                | `shopper-admin-staging`                                                |
+| ---------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Git branch (production)      | `main`                                                                                      | `main`                                                                  | `main`                                                                 |
+| Non-production branch builds | Disabled (Branch control)                                                                   | Disabled                                                                | Disabled                                                               |
+| Root directory               | `/`                                                                                         | `/`                                                                     | `/`                                                                    |
+| Build command                | `pnpm --filter @shopper/edge run build:staging`                                             | `pnpm --filter @shopper/portal run build:staging`                       | `pnpm --filter @shopper/admin run build:staging`                       |
+| Deploy command               | `pnpm --filter @shopper/edge run deploy:staging`                                            | `pnpm --filter @shopper/portal run deploy:staging`                      | `pnpm --filter @shopper/admin run deploy:staging`                      |
+| Build watch paths            | `apps/edge/*`, `packages/*`, `tooling/database/*`, `tooling/cloudflare/*`, `pnpm-lock.yaml` | `apps/portal/*`, `packages/*`, `tooling/cloudflare/*`, `pnpm-lock.yaml` | `apps/admin/*`, `packages/*`, `tooling/cloudflare/*`, `pnpm-lock.yaml` |
+| Build variables              | `NODE_VERSION=24.21.0`, `PNPM_VERSION=12.9.1`, `CF_SEND_TELEMETRY=false`                    | Same                                                                    | Same                                                                   |
+| Build secrets                | `DATABASE_URL` (required); Worker secrets (optional)                                        | Worker secrets (optional)                                               | Worker secrets (optional)                                              |
 
-- Watch paths keep docs-only changes (`docs/`, `tests/`, `.github/`) from redeploying. Edge and
-  portal both include `packages/*`, so a shared change triggers both.
+- Watch paths keep docs-only changes (`docs/`, `tests/`, `.github/`) from redeploying. All three
+  include `packages/*`, so a shared change triggers every one.
 - `DATABASE_URL` is the Neon staging **direct, non-pooled** URL, because migrations take locks.
   Hyperdrive uses its own configured connection.
 - Optional Worker secrets as build secrets: the `bindings.secret()` names in `cloudflare.config.ts`
@@ -80,16 +80,16 @@ Set under each Worker, **Settings > Build**. Connect `adzamkomladev/shopper` to 
   `MAILEROO_FROM`, `SHOPPER_S3_ACCESS_KEY_ID`, `SHOPPER_S3_SECRET_ACCESS_KEY`, plus
   `SHOPPER_AUTH_URL` on the edge only; the portal has it as text). `SHOPPER_BOOTSTRAP_TOKEN` is dev only.
 - No `CLOUDFLARE_ENV` variable: the build mode comes from `--mode staging` in the scripts. Delete a
-  leftover `CLOUDFLARE_ENV` or `SHOPPER_S3_BUCKET` build variable on both triggers.
+  leftover `CLOUDFLARE_ENV` or `SHOPPER_S3_BUCKET` build variable on every trigger.
 
 ### Order and rollback
 
-- The portal binds the edge's Durable Objects and Workflows (`script_name: shopper-edge-staging`), so
+- The portal and admin bind the edge's Durable Objects and Workflows (`script_name: shopper-edge-staging`), so
   **the edge must deploy first**, above all when a class or migration changes. If both trigger
-  together and the portal fails on a missing class, retry the portal build once the edge build is
+  together and the portal fails on a missing class, retry the portal or admin build once the edge build is
   green.
 - Roll back with `cf`: find the previous version with
-  `vp exec cf workers deployments list --worker shopper-edge-staging` (or `shopper-portal-staging`), then
+  `vp exec cf workers deployments list --worker shopper-edge-staging` (or `-portal-` / `-admin-staging`), then
   send it all traffic with `vp exec cf workers deployments create --worker <worker> --strategy percentage
   --versions '[{"version_id":"<id>","percentage":100}]'`, or pick a version in the dashboard. Rollback does not revert PG or D1 migrations: they are
   forward-only, so keep them expand-compatible with the previous version.
@@ -126,13 +126,13 @@ dead-letter queue. It builds with `--mode prod`, never `production`: Vite's defa
 1. Create the staging API token for Workers Builds (**My Profile > API Tokens**). The generated token
    has Account Settings read, Workers Scripts edit, Workers KV edit, Workers R2 Storage edit, Zone
    Workers Routes edit and User Details/Memberships read. Add **D1 edit** (migrations) and, if a deploy
-   reports an authorization error, **Queues edit** and **Hyperdrive read**. Use the same token for both
+   reports an authorization error, **Queues edit** and **Hyperdrive read**. Use the same token for all three
    Workers.
-2. Connect the repo to both Workers and enter the table above. Keep non-production builds off.
+2. Connect the repo to all three Workers and enter the table above. Keep non-production builds off.
 3. Add the build secret `DATABASE_URL` to the edge.
 4. Set the Worker secrets once, for each Worker, unless pushed as build secrets (the secrets from
    `apps/edge/.dev.vars.example`): `vp exec cf workers secrets update <NAME> --worker shopper-edge-staging
-   --text "$VALUE"` (or `shopper-portal-staging`). Bucket names, the S3 endpoint and region are config, not secrets.
+   --text "$VALUE"` (or `shopper-portal-staging`, `shopper-admin-staging`). Bucket names, the S3 endpoint and region are config, not secrets.
 5. Push a commit that touches the edge and check the build log: migrations, deploy, smoke.
 
 ### Toolchain pins and age-rule waiver

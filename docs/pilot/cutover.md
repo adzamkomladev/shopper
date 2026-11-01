@@ -6,12 +6,13 @@ The steps from nothing to a live pilot, in order. All pilot data is disposable u
 
 Signed in with `vp exec cf auth login` (from `apps/edge`) and to Neon:
 
-1. **Neon**: a `production` branch on the Shopper project with point-in-time restore of 7 days or more.
-   Keep two connection strings: the direct one (migrations, `DATABASE_URL`) and the pooled one (Hyperdrive).
-2. **Hyperdrive** `shopper-production` on the pooled string. **D1** `shopper-cache-production`.
+1. **Neon**: the project's `production` branch (endpoint `ep-withered-frost-zadpse2f`). Its direct
+   connection string is `DATABASE_URL` for migrations and the Hyperdrive origin; Hyperdrive pools itself, as
+   on staging. Restore reaches back as far as the project's history retention: 6 hours on the current plan,
+   so raise it to 7 days before go-live.
+2. **Hyperdrive** `shopper-production` on the direct string, caching off. **D1** `shopper-cache-production`.
 3. **R2** `shopper-assets-production`, `shopper-imports-production`, `shopper-receipts-production`. CORS on
-   imports and receipts: PUT and GET from `https://shopper.temtem.dev` and `https://shopper-admin.temtem.dev`
-   only, `Content-Type` header allowed (as on staging).
+   imports only, as on staging: PUT from `https://shopper.temtem.dev` with the `Content-Type` header.
 4. **Queues** `shopper-notifications-production` and `shopper-notifications-dlq-production`.
 5. Put the Hyperdrive and D1 ids in `ids.production` in `apps/{edge,portal,admin}/cloudflare.config.ts`
    and commit them. `deploy.ts` refuses a production build without them.

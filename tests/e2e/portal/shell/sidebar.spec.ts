@@ -30,14 +30,18 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
 });
 
-test("the section holding the page is open and its page is current", async ({ page }) => {
-  const current = sidebar(page).getByRole("link", { name: "Stock" });
+test("every section starts open, the current page is marked, and a section collapses", async ({
+  page,
+}) => {
+  const current = sidebar(page).getByRole("link", { name: "Inventory" });
   await expect(current).toHaveAttribute("aria-current", "page");
-  await expect(sidebar(page).getByRole("link", { name: "Suppliers" })).toBeVisible();
-  // Other sections stay closed until opened.
-  await expect(sidebar(page).getByRole("link", { name: "Barcodes" })).toBeHidden();
+  // Every page the member may use is in view; a section folds away on a click and opens again.
+  const barcodes = sidebar(page).getByRole("link", { name: "Barcodes" });
+  await expect(barcodes).toBeVisible();
   await sidebar(page).getByRole("button", { name: "Catalogue" }).click();
-  await sidebar(page).getByRole("link", { name: "Barcodes" }).click();
+  await expect(barcodes).toBeHidden();
+  await sidebar(page).getByRole("button", { name: "Catalogue" }).click();
+  await barcodes.click();
   await expect(page).toHaveURL(/\/barcodes$/);
   await expect(page.getByRole("banner")).toContainText("Barcodes");
 });
@@ -72,6 +76,9 @@ test("the keyboard reaches every page link and the user menu", async ({ page }) 
   await expect(sidebar(page).getByRole("link", { name: "Reports" })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(sidebar(page).getByRole("button", { name: "Sales" })).toBeFocused();
+  // Enter folds the open section and opens it again.
+  await page.keyboard.press("Enter");
+  await expect(sidebar(page).getByRole("link", { name: "Transactions" })).toBeHidden();
   await page.keyboard.press("Enter");
   await expect(sidebar(page).getByRole("link", { name: "Transactions" })).toBeVisible();
   await page.keyboard.press("Tab");

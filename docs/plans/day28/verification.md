@@ -57,3 +57,11 @@ the org once more, and the channel audit row has no before/after.
 
 `screenshots/portal-products-<width>-<scheme>.png` and `portal-products-rail-<width>-<scheme>.png` at 1920, 1366,
 1024, 768 and 390; `till-shell-<size>-<scheme>.png` for the till shell.
+
+## CI follow-ups
+
+- Sidebar sections now start open, so every page a member may use is in view and the many portal specs that click a
+  sidebar link by name work without opening its section first. A section still collapses on a click.
+- The Inventory link is back as one entry (`/stock`, also current on `/suppliers`); the Inventory page's own tabs
+  reach records, takes, valuation and suppliers.
+- Transaction lines size their columns to the card with container queries, not the viewport.

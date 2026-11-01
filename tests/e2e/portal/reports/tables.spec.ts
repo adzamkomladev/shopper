@@ -136,5 +136,5 @@ test("a range longer than a year is pulled in to the year the reports answer", a
   expect((await answered).status()).toBe(200);
   await expect(page.getByLabel("From")).toHaveValue("2025-10-15");
   await page.getByLabel("From").fill("2023-06-01");
-  await expect(page.getByLabel("To")).toHaveValue("2024-05-31");
+  await expect(page.getByLabel("To", { exact: true })).toHaveValue("2024-05-31");
 });

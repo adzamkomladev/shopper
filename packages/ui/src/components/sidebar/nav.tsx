@@ -6,7 +6,7 @@ import { useSidebar } from "./provider";
 import type { SidebarNavGroup, SidebarNavItem } from "./types";
 export type { SidebarNavGroup, SidebarNavItem } from "./types";
 
-/** Labelled groups of pages. A parent with sub-items collapses, and starts open when it holds the current page. */
+/** Labelled groups of pages. A parent with sub-items starts open, so every page is in view, and collapses on a click. */
 export function SidebarNav({ groups }: { groups: readonly SidebarNavGroup[] }) {
   return groups
     .filter((group) => group.items.length > 0)
@@ -41,7 +41,7 @@ function ItemButton({ item }: { item: SidebarNavItem }) {
 function ParentItem({ item, items }: { item: SidebarNavItem; items: readonly SidebarNavItem[] }) {
   const sidebar = useSidebar();
   const active = items.some((child) => child.active);
-  const [open, setOpen] = useState(active);
+  const [open, setOpen] = useState(true);
   return (
     <Collapsible asChild open={open} onOpenChange={setOpen}>
       <li className="group/parent">

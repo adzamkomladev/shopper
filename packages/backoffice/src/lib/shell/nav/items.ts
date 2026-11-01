@@ -19,7 +19,6 @@ import {
   ShieldCheckIcon,
   ShoppingCartIcon,
   StoreIcon,
-  TruckIcon,
   UploadIcon,
   UserRoundIcon,
   UsersIcon,
@@ -94,19 +93,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
   { to: "/imports", label: "Import", icon: UploadIcon, section: "Catalogue" },
   { to: "/tax", label: "Tax", icon: LandmarkIcon, section: "Catalogue", permission: "tax.read" },
+  // One link: the Inventory page's own tabs reach records, takes, valuation and suppliers.
   {
     to: "/stock",
-    label: "Stock",
+    label: "Inventory",
     icon: WarehouseIcon,
     section: "Inventory",
     permission: "stock.read",
-  },
-  {
-    to: "/suppliers",
-    label: "Suppliers",
-    icon: TruckIcon,
-    section: "Inventory",
-    permission: "product.read",
+    also: ["/suppliers"],
   },
   {
     to: "/customers",

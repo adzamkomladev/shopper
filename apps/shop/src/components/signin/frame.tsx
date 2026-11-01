@@ -14,7 +14,7 @@ export function SignInFrame({
     <main className="relative mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-10">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-shop-glow to-transparent"
+        className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-72 bg-linear-to-b from-shop-glow to-transparent"
       />
       <section className="animate-rise space-y-7 rounded-panel bg-card p-6 shadow-xl shadow-shop-ink/10 sm:p-8">
         <header className="space-y-4">

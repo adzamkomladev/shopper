@@ -8,9 +8,10 @@ export function ReceiptSkeleton() {
       aria-busy="true"
       aria-label="Loading the receipt"
     >
-      <Skeleton className="h-10 w-28 rounded-full" />
-      <Skeleton className="h-36 rounded-panel" />
-      <Skeleton className="mx-auto h-96 w-full max-w-sm rounded-xl" />
+      <Skeleton className="-ml-2 h-10 w-33 rounded-full" />
+      <Skeleton className="h-53 rounded-panel" />
+      {/* The paper at its drawn width (at most three quarters of 576 dots) and a typical receipt's length. */}
+      <Skeleton className="mx-auto aspect-7/10 w-full max-w-108 rounded-xl" />
     </main>
   );
 }

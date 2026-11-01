@@ -9,18 +9,20 @@ export function AccountSkeleton() {
       aria-label="Loading your account"
     >
       <div className="flex items-start justify-between gap-4 pt-8 pb-6">
-        <div className="space-y-2">
+        <div className="space-y-1">
           <Skeleton className="h-6 w-32" />
           <Skeleton className="h-10 w-44" />
         </div>
-        <Skeleton className="h-12 w-24 rounded-full" />
+        <Skeleton className="h-12 w-18 rounded-full" />
       </div>
-      <Skeleton className="h-48 rounded-panel" />
+      <Skeleton className="h-49 rounded-panel" />
       <div className="space-y-3 pt-8">
         <Skeleton className="h-7 w-40" />
-        {[0, 1, 2].map((row) => (
-          <Skeleton key={row} className="h-20 rounded-2xl" />
-        ))}
+        <div className="space-y-2.5">
+          {[0, 1, 2].map((row) => (
+            <Skeleton key={row} className="h-19 rounded-2xl sm:h-20" />
+          ))}
+        </div>
       </div>
     </main>
   );

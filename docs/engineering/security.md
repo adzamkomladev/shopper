@@ -76,7 +76,7 @@ One `RateLimiter` port (`packages/ports/src/limits.ts`) with a fixed policy tabl
 
 - `SHOPPER_AUTH_SECRET` and `SHOPPER_LINK_SECRET` must be at least 32 bytes, or the runtime answers `503`
   rather than signing anything with a weak key.
-- Cloud secrets live in `wrangler secret`; the box keeps them in its sealed config.
+- Cloud secrets are Worker secrets (`cf workers secrets update`); the box keeps them in its sealed config.
 - `vp run guard` fails when a `.dev.vars` or `.env*` file is tracked (`.example` files hold placeholders). It
   also fails when a key named `…SECRET`, `…TOKEN`, `…PASSWORD` or `…_KEY` gets a written value in an app's
   deploy config. Test: `tooling/guard/secrets.test.ts`.

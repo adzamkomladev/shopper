@@ -15,7 +15,8 @@ Infrastructure identifiers live in each Worker's `cloudflare.config.ts` only (`a
 `apps/portal`), evaluated per `--mode` (`staging`, anything else is dev). Plain configuration (bucket
 names, the R2 S3 endpoint and region, the portal origin) is a `bindings.text()` value there. Credentials
 are `bindings.secret()` declarations: the name is in the repo, the value never is. Set values with
-`vp exec wrangler secret put <NAME> --name <worker>` or Workers Builds secrets for Workers, and the sealed
+`vp exec cf workers secrets update <NAME> --worker <worker> --text "$VALUE"` (from an environment
+variable, never typed inline) or Workers Builds secrets for Workers, and the sealed
 config for the box. A declared secret that is missing on the Worker fails the deploy (code 10057); verify
 names with `vp exec cf workers secrets list --script-name <worker>`.
 
@@ -40,7 +41,7 @@ Both Workers run from the repo root. Each app owns two scripts, invoked as `pnpm
   uses `vp build` because `cf build` hands the framework build no `--mode`; the output is the same.
 - D1 migrations run by database id, read from the build output (`cf d1 migrations apply <id> --dir
   packages/db/sqlite/migrations`); after applying, `deploy.ts` lists again and fails if anything is pending.
-- `vp`, `cf` and `wrangler` are repo devDependencies, so `pnpm run` finds them with no bootstrap step.
+- `vp` and `cf` are repo devDependencies, so `pnpm run` finds them with no bootstrap step.
   The image's default pnpm is older than ours: set `PNPM_VERSION`. Set `CF_SEND_TELEMETRY=false` in CI.
 - Worker secrets in the build environment are pushed with `cf deploy --secrets-file`: `deploy.ts` writes
   the declared secrets that are present in the environment to a private temporary file. Prefer setting them
@@ -87,8 +88,10 @@ Set under each Worker, **Settings > Build**. Connect `adzamkomladev/shopper` to 
   **the edge must deploy first**, above all when a class or migration changes. If both trigger
   together and the portal fails on a missing class, retry the portal build once the edge build is
   green.
-- Roll back with `vp exec wrangler rollback --name shopper-edge-staging` (or `shopper-portal-staging`),
-  or pick a version in the dashboard. Rollback does not revert PG or D1 migrations: they are
+- Roll back with `cf`: find the previous version with
+  `vp exec cf workers deployments list --worker shopper-edge-staging` (or `shopper-portal-staging`), then
+  send it all traffic with `vp exec cf workers deployments create --worker <worker> --strategy percentage
+  --versions '[{"version_id":"<id>","percentage":100}]'`, or pick a version in the dashboard. Rollback does not revert PG or D1 migrations: they are
   forward-only, so keep them expand-compatible with the previous version.
 
 ### Production (Day 28)
@@ -128,8 +131,8 @@ dead-letter queue. It builds with `--mode prod`, never `production`: Vite's defa
 2. Connect the repo to both Workers and enter the table above. Keep non-production builds off.
 3. Add the build secret `DATABASE_URL` to the edge.
 4. Set the Worker secrets once, for each Worker, unless pushed as build secrets (the secrets from
-   `apps/edge/.dev.vars.example`): `vp exec wrangler secret put <NAME> --name shopper-edge-staging` (or
-   `shopper-portal-staging`). Bucket names, the S3 endpoint and region are config, not secrets.
+   `apps/edge/.dev.vars.example`): `vp exec cf workers secrets update <NAME> --worker shopper-edge-staging
+   --text "$VALUE"` (or `shopper-portal-staging`). Bucket names, the S3 endpoint and region are config, not secrets.
 5. Push a commit that touches the edge and check the build log: migrations, deploy, smoke.
 
 ### Toolchain pins and age-rule waiver
@@ -137,12 +140,12 @@ dead-letter queue. It builds with `--mode prod`, never `production`: Vite's defa
 `cf` is `1.0.0-beta.17`, `@cloudflare/vite-plugin` is `2.0.0-beta.v.1` (apps/edge and apps/portal) and
 `@cloudflare/vitest-plugin` is `1.4.4` (`tooling/worker/tests`), all exact. The two-week
 package-age rule is waived for this beta toolchain; the waived packages and their transitive Cloudflare
-deps are listed in `minimumReleaseAgeExclude` in `pnpm-workspace.yaml`. `apps/shop` still uses
-`@cloudflare/vite-plugin` 1.62.5 with its own `wrangler.jsonc`; the root `wrangler` (4.147.0) serves
-`tail`, `rollback`, `secret put` and the snapshot test's `unstable_dev`. Re-checked 2026-10-31: `cf`
+deps are listed in `minimumReleaseAgeExclude` in `pnpm-workspace.yaml`. Wrangler is no longer used for
+anything operational: secrets and rollback go through `cf`, and live logs are Workers Logs in the
+dashboard. The root `wrangler` devDependency remains only for the sync snapshot test's `unstable_dev`. Re-checked 2026-10-31: `cf`
 is still only published as betas (latest `1.0.0-beta.26`) and `@cloudflare/vite-plugin` 2.x is still
-`beta`, so the waiver stands. Re-check after 2026-11-30: move to stable releases, drop the waiver
-entries, and migrate `apps/shop`.
+`beta`, so the waiver stands. Re-check after 2026-11-30: move to stable releases and drop the waiver
+entries.
 
 ## Box release
 

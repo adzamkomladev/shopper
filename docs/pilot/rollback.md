@@ -6,7 +6,10 @@ Migrations are forward-only and expand-compatible, so code rolls back on its own
 
 1. Roll the Worker back to the previous deployment, edge last if the portal or admin is the problem and
    edge first otherwise:
-   `vp exec wrangler rollback --name shopper-<app>-production` (or pick the version in the dashboard).
+   `vp exec cf workers deployments list --worker shopper-<app>-production` shows the previous version;
+   `vp exec cf workers deployments create --worker shopper-<app>-production --strategy percentage
+   --versions '[{"version_id":"<previous id>","percentage":100}]'` sends it all traffic (or pick the
+   version in the dashboard).
 2. Check `https://shopper-api.temtem.dev/health/ready` and the two shells; the uptime run goes green.
 3. A Worker rollback leaves Neon and D1 as they are. That is safe: the previous build reads the expanded
    schema. Never write a down-migration.

@@ -16,7 +16,7 @@ Signed in with `vp exec cf auth login` (from `apps/edge`) and to Neon:
 4. **Queues** `shopper-notifications-production` and `shopper-notifications-dlq-production`.
 5. Put the Hyperdrive and D1 ids in `ids.production` in `apps/{edge,portal,admin}/cloudflare.config.ts`
    and commit them. `deploy.ts` refuses a production build without them.
-6. **Secrets**, per Worker, with `vp exec wrangler secret put <NAME> --name shopper-<app>-production`: the
+6. **Secrets**, per Worker, with `vp exec cf workers secrets update <NAME> --worker shopper-<app>-production --text "$VALUE"`: the
    names under `secrets` in each `cloudflare.config.ts`. New values, never staging's. Hubtel only if used.
 7. **GitHub**: environment `cloud-production` with secrets `CLOUDFLARE_API_TOKEN` (the staging token's
    scopes on the production Workers) and `DATABASE_URL` (direct), and required reviewers.

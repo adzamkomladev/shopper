@@ -17,7 +17,8 @@ export function trackedSecretFiles(root: string): Violation[] {
     .map((file) => ({
       rule: "secret-file",
       file,
-      message: "Env files hold secrets. Untrack it and set the values with `wrangler secret put`.",
+      message:
+        "Env files hold secrets. Untrack it and set the values with `cf workers secrets update`.",
     }));
 }
 

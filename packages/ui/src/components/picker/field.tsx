@@ -81,12 +81,14 @@ export function PickerField({
               if (draft.trim() !== "" && parse(draft) === null) setDraft(format(value));
               onBlur?.(event);
             }}
-            className="tabular-nums"
+            className={cn("tabular-nums", touch && "h-11")}
           />
           <InputGroupAddon align="inline-end">
             <PopoverTrigger asChild>
               <InputGroupButton
                 size="icon-xs"
+                // The till's 44px touch target.
+                className={touch ? "size-11" : undefined}
                 disabled={disabled}
                 aria-label={openLabel}
                 aria-keyshortcuts="Alt+ArrowDown"

@@ -58,7 +58,7 @@ test("The accountant can file a VAT return from the worksheet", async ({ page, r
     "aria-selected",
     "true",
   );
-  await expect(page.getByLabel("Month")).toHaveValue(PERIOD);
+  await expect(page.getByRole("textbox", { name: "Month" })).toHaveValue(PERIOD);
   await expect(page.getByText("Net payable to GRA")).toBeVisible();
 
   // Input tax from the purchase invoices: saved with the keyboard, and the balance becomes a credit.

@@ -3,7 +3,6 @@ import type { DataTableSkeletonColumn } from "#components/table/types";
 export type { DataTableSkeletonColumn } from "#components/table/types";
 import { Skeleton } from "#components/skeleton";
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -41,7 +40,8 @@ export function DataTableSkeleton({ label, columns, rows = FILL_ROWS, fill, clas
         className,
       )}
     >
-      <Table bare>
+      {/* A plain table: the card clips it, and an empty scroll region would need a tab stop (axe). */}
+      <table className="w-full text-sm">
         <TableHeader>
           <TableRow>
             {columns.map((column, index) => (
@@ -62,7 +62,7 @@ export function DataTableSkeleton({ label, columns, rows = FILL_ROWS, fill, clas
             </TableRow>
           ))}
         </TableBody>
-      </Table>
+      </table>
     </div>
   );
 }

@@ -1,0 +1,30 @@
+name: Uptime
+# Every 5 minutes: production must answer /health/ready (database, schema, cache). A failed run is the alert:
+# GitHub emails the repository's watchers. Scheduled runs can start a few minutes late.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: uptime
+  cancel-in-progress: true
+jobs:
+  probe:
+    # Set the repository variable PRODUCTION_LIVE to true at cutover; until then there is nothing to probe.
+    if: vars.PRODUCTION_LIVE == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: API is ready
+        run: |
+          body=$(curl --silent --show-error --max-time 20 --retry 2 --retry-all-errors \
+            --write-out '\n%{http_code}' https://shopper-api.temtem.dev/health/ready)
+          echo "$body"
+          test "$(echo "$body" | tail -n1)" = "200"
+      - name: Portal and admin serve their shells
+        run: |
+          for url in https://shopper.temtem.dev/ https://shopper-admin.temtem.dev/; do
+            curl --silent --show-error --fail --max-time 20 --retry 2 --retry-all-errors "$url" > /dev/null
+          done

@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { expectNoSeriousAxe } from "../../../../support/e2e";
-import { calls, openFromMenu, openSale } from "../sale/harness";
+import { calls, openFromSidebar, openSale } from "../sale/harness";
 import { expectTouchTargets } from "../targets";
 
 async function openPurchases(page: import("@playwright/test").Page, scenario = "lines") {
   await openSale(page, scenario);
-  await openFromMenu(page, "Previous purchases");
+  await openFromSidebar(page, "Previous purchases");
   await expect(
     page.getByRole("heading", { name: "Previous purchases", exact: true }),
   ).toBeVisible();

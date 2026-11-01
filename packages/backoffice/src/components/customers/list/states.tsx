@@ -1,6 +1,5 @@
 import { ArchiveIcon, BuildingIcon, SearchXIcon, UsersIcon, WalletIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { Skeleton } from "@shopper/ui/components/skeleton";
 import type { CustomersSearch } from "../../../queries/customers/types";
 import { EmptyList } from "../../admin/states";
@@ -43,9 +42,8 @@ export function NoCustomers({ segment, onAdd }: NoCustomersProps) {
     >
       {onAdd && (
         // The page's own Add customer button is the primary one.
-        <Button variant="outline" onClick={onAdd}>
+        <Button aria-keyshortcuts="N" variant="outline" onClick={onAdd}>
           Add customer
-          <Kbd aria-hidden>N</Kbd>
         </Button>
       )}
     </EmptyList>

@@ -33,6 +33,7 @@ Both Workers run from the repo root. Each app owns two scripts, invoked as `pnpm
 | `build:staging`  | `cf build --mode staging`                                                                                                                                           | `vp build --mode staging`; the build also prerenders the SPA shell |
 | `deploy:staging` | `tooling/cloudflare/deploy.ts edge`: PG migrations (`DATABASE_URL`, fails fast), `cf d1 migrations apply <id>` then a pending check, `cf deploy --prebuilt`, smoke test | `deploy.ts portal`: `cf deploy --prebuilt`, smoke test    |
 
+- `deploy:<stage>` builds first in the same run: any other `vp run` clears every app's `.cloudflare/output`.
 - Both builds write `.cloudflare/output/v0` (gitignored): `config.json` (the build mode) and
   `workers/default/worker.config.json` with every binding, text value, secret declaration and domain.
   `deploy.ts` refuses to run unless that output is mode `staging` and a `*-staging` Worker. The portal
@@ -44,11 +45,12 @@ Both Workers run from the repo root. Each app owns two scripts, invoked as `pnpm
 - Worker secrets in the build environment are pushed with `cf deploy --secrets-file`: `deploy.ts` writes
   the declared secrets that are present in the environment to a private temporary file. Prefer setting them
   once (below); they persist across deploys.
-- `tooling/cloudflare/smoke.ts <edge|portal> <url>` checks edge `/health` (200 and `Shopper-Version`)
-  and portal `/`, `/products` (SPA shell) and `/api/health` (JSON). `deploy.ts` runs it against the
+- `tooling/cloudflare/smoke.ts <edge|portal|admin> <url>` checks edge `/health` (200 and `Shopper-Version`)
+  and `/health/ready` (200 `ready`), and portal `/`, `/products` (SPA shell) and `/api/health` (JSON). `deploy.ts` runs it against the
   custom domain from the build output, retrying while it propagates.
-- Production uses Worker **versions with gradual deployment**: ship to a small percentage, watch
-  Workers Logs/Traces for errors, then promote.
+- Production is a two-step release (see Production below): upload a version that serves nothing, then
+  promote it. No percentage split: the Durable Objects and Workflows live in the edge, and two versions
+  serving one store's sequencer or a running Workflow at once is not worth the risk for the pilot.
 - `worker-configuration.d.ts` in `packages/adapters/cf` holds the workerd runtime types; there are no
   generated binding types to commit.
 - Bump `compatibility_date` deliberately, in its own PR, with the Workers suite green.
@@ -89,6 +91,33 @@ Set under each Worker, **Settings > Build**. Connect `adzamkomladev/shopper` to 
   or pick a version in the dashboard. Rollback does not revert PG or D1 migrations: they are
   forward-only, so keep them expand-compatible with the previous version.
 
+### Production (Day 28)
+
+Production is `shopper-{edge,portal,admin}-production` on `shopper-api.temtem.dev`, `shopper.temtem.dev`
+and `shopper-admin.temtem.dev`, with its own Neon branch, Hyperdrive, D1, three R2 buckets, queue and
+dead-letter queue. It builds with `--mode prod`, never `production`: Vite's default build mode is already
+`production`, and that must stay a dev build.
+
+- `deploy:production` builds, then uploads a version (`cf workers versions create`, tagged
+  `v<version>`) that serves nothing: the bindings and secrets resolve, traffic does not move.
+- `deploy:production -- --promote` migrates (edge: Neon over `DATABASE_URL`, then D1), runs `cf deploy`
+  to all traffic and smoke tests, including `/health/ready`. Order: edge, portal, admin.
+- `.github/workflows/release-cloud.yml` runs both (input `promote`) on the `cloud-production` environment,
+  which holds `CLOUDFLARE_API_TOKEN` and the direct `DATABASE_URL`. Staging stays on Workers Builds.
+- `deploy.ts` refuses a build for another stage and a production build whose D1 or Hyperdrive id is
+  empty. The ids live in each `cloudflare.config.ts` under `ids.production`, filled at provisioning
+  (`docs/pilot/cutover.md`).
+- `GET /health/ready` (shared API, every host): 200 `{status:"ready",checks}` when the database answers,
+  holds every migration the build expects (journal count against `buildInfo.schemaVersion`) and the cache
+  answers; otherwise 503 naming the failed check, never the error. `no-store`, `Shopper-Version`.
+- Uptime: `.github/workflows/uptime.yml` probes `/health/ready` and the two shells every 5 minutes once the
+  repository variable `PRODUCTION_LIVE` is `true`. A failed run emails the watchers. No Sentry on Workers;
+  Workers Logs and Traces are on.
+- Backups: Neon point-in-time restore, history 7 days or more on the production branch. To prove a restore,
+  branch at a timestamp and run `vp exec tsx tooling/backup/verify.ts <branch-direct-url>`: it checks the
+  migrations and verifies every shop's audit streams, and exits 1 on any failure.
+- Rollback: `docs/pilot/rollback.md`.
+
 ### One-time setup
 
 1. Create the staging API token for Workers Builds (**My Profile > API Tokens**). The generated token
@@ -110,8 +139,10 @@ Set under each Worker, **Settings > Build**. Connect `adzamkomladev/shopper` to 
 package-age rule is waived for this beta toolchain; the waived packages and their transitive Cloudflare
 deps are listed in `minimumReleaseAgeExclude` in `pnpm-workspace.yaml`. `apps/shop` still uses
 `@cloudflare/vite-plugin` 1.62.5 with its own `wrangler.jsonc`; the root `wrangler` (4.147.0) serves
-`tail`, `rollback`, `secret put` and the snapshot test's `unstable_dev`. Re-check after 2026-10-30:
-move to stable releases, drop the waiver entries, and migrate `apps/shop`.
+`tail`, `rollback`, `secret put` and the snapshot test's `unstable_dev`. Re-checked 2026-10-31: `cf`
+is still only published as betas (latest `1.0.0-beta.26`) and `@cloudflare/vite-plugin` 2.x is still
+`beta`, so the waiver stands. Re-check after 2026-11-30: move to stable releases, drop the waiver
+entries, and migrate `apps/shop`.
 
 ## Box release
 

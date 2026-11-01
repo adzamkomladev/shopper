@@ -2,7 +2,6 @@ import { useRef } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useNow } from "@shopper/ui/hooks/use-now";
 import { useOnline } from "@shopper/ui/hooks/use-online";
@@ -36,6 +35,7 @@ export function TaxRulesScreen() {
         action={
           canWrite && (
             <Button
+              aria-keyshortcuts="N"
               id={NEW_ID}
               ref={fallback}
               disabled={!online}
@@ -43,7 +43,6 @@ export function TaxRulesScreen() {
             >
               <PlusIcon aria-hidden />
               Schedule new rates
-              <Kbd aria-hidden>N</Kbd>
             </Button>
           )
         }

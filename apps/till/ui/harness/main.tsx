@@ -11,6 +11,7 @@ import {
   RegisterReports,
 } from "@shopper/backoffice/register";
 import { ShellFrame } from "../src/components/shell/frame";
+import { followThemeInTitleBar } from "../src/components/shell/titlebar";
 import { RegisterSlot } from "../src/components/shell/slot";
 import type { ShellView } from "../src/components/shell/types";
 import { landingView } from "../src/components/shell/views";
@@ -179,6 +180,7 @@ function Harness() {
   );
 }
 
+followThemeInTitleBar();
 createRoot(document.getElementById("root")!).render(
   <ShortcutRoot>
     <Harness />

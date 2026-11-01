@@ -5,7 +5,6 @@ import { CircleAlertIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@shopper/ui/components/alert";
 import { Button } from "@shopper/ui/components/button";
 import { FieldGroup } from "@shopper/ui/components/field";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { SheetClose, SheetFooter } from "@shopper/ui/components/sheet";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
@@ -57,9 +56,8 @@ export function EnrolForm({ branches }: Props) {
         </div>
         <SheetFooter>
           <SheetClose asChild>
-            <Button ref={focusOnMount}>
+            <Button aria-keyshortcuts="Enter" ref={focusOnMount}>
               Done
-              <Kbd aria-hidden>↵</Kbd>
             </Button>
           </SheetClose>
         </SheetFooter>

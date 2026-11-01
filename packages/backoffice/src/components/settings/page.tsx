@@ -1,9 +1,7 @@
 import { CircleAlertIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@shopper/ui/components/alert";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useOnline } from "@shopper/ui/hooks/use-online";
-import { MOD_KEY } from "../../lib/mod/key";
 import { SettingsLinks } from "./links";
 import { focusIfIdle } from "../../lib/focus";
 
@@ -19,7 +17,7 @@ export function SettingsPage({ title, description, children }: PageProps) {
           <h1
             tabIndex={-1}
             ref={focusIfIdle}
-            className="text-3xl font-bold tracking-tight outline-none"
+            className="text-2xl font-semibold tracking-tight outline-none"
           >
             {title}
           </h1>
@@ -53,19 +51,13 @@ export function SaveBar({ label, pending, error }: SaveProps) {
         </p>
       )}
       <Button
+        aria-keyshortcuts="Control+Enter Meta+Enter"
         type="submit"
         className="self-start"
         disabled={!online || pending}
         aria-describedby={online ? undefined : OFFLINE_ID}
       >
-        {pending ? (
-          "Saving…"
-        ) : (
-          <>
-            {label}
-            <Kbd aria-hidden>{MOD_KEY} ↵</Kbd>
-          </>
-        )}
+        {pending ? "Saving…" : <>{label}</>}
       </Button>
     </div>
   );

@@ -18,6 +18,9 @@ const codes: readonly SignInFailureCode[] = [
 const listeners = new Set<() => void>();
 let snapshot: SignInSnapshot = { status: "idle", failure: null };
 let unlockedFor: string | null = null;
+/** The user the host last reported, and whether this register asked to sign them out. */
+let signedIn: string | null = null;
+let signingOut = false;
 
 export function useSignInSnapshot() {
   return useSyncExternalStore(
@@ -55,6 +58,7 @@ export async function unlockSignIn(email: string, approval: Approval): Promise<S
 }
 
 export async function signOut() {
+  signingOut = true;
   await request({ type: "session.signOut" });
 }
 
@@ -64,9 +68,19 @@ export function initializeSession() {
     const { host, status } = connectionSnapshot();
     const user = host === "connected" ? status?.user : undefined;
     if (!user) {
-      if (status?.user === null) unlockedFor = null;
+      if (status?.user !== null) return;
+      unlockedFor = null;
+      // The host dropped a session nobody signed out of here (it expired): say so on the sign-in screen.
+      if (signedIn && !signingOut)
+        publish({
+          status: "idle",
+          failure: { code: "SESSION_ENDED", message: "Your session ended. Sign in again." },
+        });
+      signedIn = null;
+      signingOut = false;
       return;
     }
+    signedIn = user.userId;
     if (unlockedFor === user.userId) return;
     unlockedFor = user.userId;
     // ponytail: one attempt per sign-in; the back office reports a locked register itself.

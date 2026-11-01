@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { KeyRoundIcon, MonitorSmartphoneIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { FormSheet } from "../../components/admin/form/sheet";
 import { PageHeader } from "../../components/admin/page/header";
@@ -60,10 +59,9 @@ export function DevicesScreen() {
         }
       >
         {canPin && (
-          <Button ref={pinRef} variant="outline" onClick={() => pin.show()}>
+          <Button aria-keyshortcuts="P" ref={pinRef} variant="outline" onClick={() => pin.show()}>
             <KeyRoundIcon aria-hidden />
             Set cashier PIN
-            <Kbd aria-hidden>P</Kbd>
           </Button>
         )}
       </PageHeader>
@@ -93,9 +91,8 @@ export function DevicesScreen() {
             </Button>
           )}
           {canEnrol && (
-            <Button ref={addRef} onClick={() => enrol.show()}>
+            <Button aria-keyshortcuts="N" ref={addRef} onClick={() => enrol.show()}>
               Enrol device
-              <Kbd aria-hidden>N</Kbd>
             </Button>
           )}
           <SetupStepLink step="till" />

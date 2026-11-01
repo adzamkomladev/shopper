@@ -78,7 +78,7 @@ export function SaleTiles({
             aria-keyshortcuts={shortcut}
             aria-label={label}
             className={cn(
-              "h-24 w-full flex-col items-stretch justify-between rounded-panel border-border bg-card p-4 text-lg sm:h-32",
+              "h-20 w-full flex-col items-stretch justify-between rounded-panel border-border bg-card p-3 text-base sm:h-24",
               // A reason has to be readable, so a tile turned off by access keeps its full colour.
               reason && "disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100",
             )}

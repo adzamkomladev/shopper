@@ -184,7 +184,15 @@ test("a dry-run deploy validates the staging build without credentials", () => {
   );
   const result = spawnSync(
     "pnpm",
-    ["exec", "tsx", "../../tooling/cloudflare/deploy.ts", "edge", "--dry-run"],
+    [
+      "exec",
+      "tsx",
+      "../../tooling/cloudflare/deploy.ts",
+      "edge",
+      "--stage",
+      "staging",
+      "--dry-run",
+    ],
     {
       cwd: edge,
       encoding: "utf8",
@@ -200,7 +208,15 @@ test("the deploy script refuses a build that is not a staging Worker", () => {
   execFileSync("vp", ["exec", "cf", "build", "--mode", "dev"], { cwd: edge, stdio: "pipe", env });
   const result = spawnSync(
     "pnpm",
-    ["exec", "tsx", "../../tooling/cloudflare/deploy.ts", "edge", "--dry-run"],
+    [
+      "exec",
+      "tsx",
+      "../../tooling/cloudflare/deploy.ts",
+      "edge",
+      "--stage",
+      "staging",
+      "--dry-run",
+    ],
     {
       cwd: edge,
       encoding: "utf8",

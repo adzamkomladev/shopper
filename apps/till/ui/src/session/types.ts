@@ -6,6 +6,7 @@ export type SignInFailureCode =
   | "DEVICE_REJECTED"
   | "SIGN_IN_UNAVAILABLE"
   | "HOST_UNREACHABLE"
+  | "SESSION_ENDED"
   | "OTHER";
 
 /** `email` is the locked account's, so a manager can lift that lock from the sign-in screen. */

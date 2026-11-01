@@ -41,6 +41,11 @@ async function check(target: SmokeTarget, baseUrl: string, version: string) {
         return `Shopper-Version ${reported ?? "missing"}, expected ${version}`;
       if (!body.includes('"status":"ok"')) return "body is not an ok health report";
     });
+    // The checks name only which part failed, so the body is safe to print.
+    await get("/health/ready", (response, body) => {
+      if (response.status !== 200) return `status ${response.status} ${body}`;
+      if (!body.includes('"status":"ready"')) return "body is not a ready report";
+    });
     return failures;
   }
   const shell = (response: Response, body: string) => {

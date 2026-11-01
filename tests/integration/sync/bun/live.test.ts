@@ -5,6 +5,7 @@ import { createInterface } from "node:readline";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { WebSocket } from "ws";
 import { expect, test } from "vite-plus/test";
 import { createDeviceService } from "@shopper/auth/devices";
@@ -28,7 +29,7 @@ test("the Bun box authenticates live upgrades and sends a committed API price ch
   const directory = await mkdtemp(join(tmpdir(), "shopper-bun-live-"));
   const entry = join(directory, "server.ts");
   const output = join(directory, "server.js");
-  const appPath = new URL("../../../../apps/box/src/server.ts", import.meta.url).pathname;
+  const appPath = fileURLToPath(new URL("../../../../apps/box/src/server.ts", import.meta.url));
   await writeFile(
     entry,
     `import config from ${JSON.stringify(appPath)};

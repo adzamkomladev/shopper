@@ -24,7 +24,7 @@ export function ApprovalsScreen() {
         <h1
           tabIndex={-1}
           ref={focusIfIdle}
-          className="text-3xl font-bold tracking-tight outline-none"
+          className="text-2xl font-semibold tracking-tight outline-none"
         >
           Approvals
         </h1>

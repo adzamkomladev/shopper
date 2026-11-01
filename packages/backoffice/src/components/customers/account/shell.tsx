@@ -11,10 +11,8 @@ import {
   DialogTitle,
 } from "@shopper/ui/components/dialog";
 import { FieldGroup } from "@shopper/ui/components/field";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
-import { MOD_KEY } from "../../../lib/mod/key";
 
 type DialogProps = {
   open: boolean;
@@ -101,18 +99,12 @@ export function AccountForm({ onSubmit, label, pending, error, children }: FormP
           </Button>
         </DialogClose>
         <Button
+          aria-keyshortcuts="Control+Enter Meta+Enter"
           type="submit"
           disabled={!online || pending}
           aria-describedby={online ? undefined : OFFLINE_NOTE_ID}
         >
-          {pending ? (
-            "Saving…"
-          ) : (
-            <>
-              {label}
-              <Kbd aria-hidden>{MOD_KEY} ↵</Kbd>
-            </>
-          )}
+          {pending ? "Saving…" : <>{label}</>}
         </Button>
       </DialogFooter>
     </form>

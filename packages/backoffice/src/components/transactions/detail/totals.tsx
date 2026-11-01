@@ -20,7 +20,7 @@ export function TransactionTotals({ sale }: { sale: TransactionDetail }) {
   return (
     <Card className="gap-0 py-0">
       <CardHeader className="border-b py-4">
-        <CardTitle className="text-lg">Order total</CardTitle>
+        <CardTitle className="text-base">Order total</CardTitle>
         <CardDescription>Amounts captured on receipt {sale.receiptNumber}</CardDescription>
       </CardHeader>
       <dl className="grid gap-3 p-4 text-sm">

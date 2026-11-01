@@ -4,7 +4,6 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { DownloadIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { Input } from "@shopper/ui/components/input";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { Label } from "@shopper/ui/components/label";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
@@ -32,10 +31,14 @@ export function VatReturnScreen() {
         active="returns"
         action={
           canRead && (
-            <Button variant="outline" disabled={exporting} onClick={() => workbook.mutate()}>
+            <Button
+              aria-keyshortcuts="E"
+              variant="outline"
+              disabled={exporting}
+              onClick={() => workbook.mutate()}
+            >
               <DownloadIcon aria-hidden />
               {workbook.isPending ? "Exporting…" : "Export to Excel"}
-              <Kbd aria-hidden>E</Kbd>
             </Button>
           )
         }

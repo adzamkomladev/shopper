@@ -124,7 +124,15 @@ test("a dry-run deploy validates the staging build without credentials", () => {
   );
   const result = spawnSync(
     "pnpm",
-    ["exec", "tsx", "../../tooling/cloudflare/deploy.ts", "portal", "--dry-run"],
+    [
+      "exec",
+      "tsx",
+      "../../tooling/cloudflare/deploy.ts",
+      "portal",
+      "--stage",
+      "staging",
+      "--dry-run",
+    ],
     {
       cwd: portal,
       encoding: "utf8",

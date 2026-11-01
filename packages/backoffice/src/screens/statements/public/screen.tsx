@@ -19,7 +19,9 @@ export function PublicStatementScreen() {
   return (
     <PublicPage>
       <header className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold tracking-tight wrap-break-word">{statement.shop.name}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight wrap-break-word">
+          {statement.shop.name}
+        </h1>
         <p className="text-lg">Statement for {statement.customer.name}</p>
         <p className="text-sm text-muted-foreground">
           <time dateTime={from}>{statementDay(from)}</time> to{" "}

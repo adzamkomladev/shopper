@@ -15,7 +15,8 @@ export function useAccountRead(
   const [refusal, setRefusal] = useState<string | null>(null);
   const current = read && read.customerId === customerId ? read : null;
 
-  async function load(quiet = false) {
+  // Consts, not hoisted functions, so the compiler keeps the returned object stable between renders.
+  const load = async (quiet = false) => {
     if (!customerId) return;
     if (!quiet) setRead({ customerId, status: "loading" });
     const result = await actions.loadAccount(customerId);
@@ -24,10 +25,10 @@ export function useAccountRead(
         ? { customerId, status: "ready", account: result.account }
         : { customerId, status: "failed", message: result.message },
     );
-  }
+  };
 
   /** True when the tender is on the basket. Otherwise `refusal` says why, next to the amount. */
-  async function add(input: AccountTender) {
+  const add = async (input: AccountTender) => {
     setRefusal(null);
     const outcome = await actions.addAccountTender(input);
     // Either way what is available has moved, so the summary reads again.
@@ -35,7 +36,7 @@ export function useAccountRead(
     if (outcome.ok) return true;
     setRefusal(outcome.message);
     return false;
-  }
+  };
 
   return {
     read: current,

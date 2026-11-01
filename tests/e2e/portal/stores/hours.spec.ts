@@ -26,7 +26,8 @@ test("set a store's hours, and closing before opening is refused on Closes", asy
   await dialog(page).getByLabel("Closes").fill("20:00");
   await page.keyboard.press("ControlOrMeta+Enter");
   await expect(page.getByText("Store saved")).toBeVisible();
-  await page.getByRole("button", { name: `Edit ${store.name}` }).click();
+  // Focus is back on Edit; the toast can sit over the last row, so reopen it from the keyboard.
+  await page.getByRole("button", { name: `Edit ${store.name}` }).press("Enter");
   await expect(dialog(page).getByLabel("Opens")).toHaveValue("08:30");
   await expect(dialog(page).getByLabel("Closes")).toHaveValue("20:00");
 });

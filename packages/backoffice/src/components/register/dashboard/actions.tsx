@@ -43,7 +43,7 @@ export function QuickActions({
       className="flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm"
     >
       <div className="flex flex-col gap-1.5 p-4">
-        <h2 className="text-lg leading-none font-semibold tracking-tight" id="quick-actions">
+        <h2 className="text-base leading-none font-semibold tracking-tight" id="quick-actions">
           Quick Actions
         </h2>
         <p className="text-sm font-medium text-muted-foreground">

@@ -61,9 +61,9 @@ export async function stopElectron(child: ChildProcess) {
   group("SIGKILL");
 }
 
-/** Electron in render-only mode, wrapped as a Renderer by the same `parentRenderer` the host uses. */
-export async function electronRenderer(receipt: Json) {
-  const child = await launchElectron({ SHOPPER_ELECTRON_RENDER_ONLY: "1" });
+/** Electron in render-only mode (`args` such as a display scale), wrapped as a Renderer by the same `parentRenderer` the host uses. */
+export async function electronRenderer(receipt: Json, args: string[] = []) {
+  const child = await launchElectron({ SHOPPER_ELECTRON_RENDER_ONLY: "1" }, args);
   const output: string[] = [];
   child.stderr?.on("data", (chunk: Buffer) => output.push(chunk.toString()));
   const parent = parentRenderer((message) => child.send(message as object));

@@ -11,8 +11,6 @@ import { useKycActions } from "../../../queries/kyc/actions";
 import { settingsQuery } from "../../../queries/settings/resource";
 import { idFormSchema, type IdValues, type KycDetail } from "../../../schemas/kyc";
 import type { KycSettingsView } from "../../../schemas/settings/kyc";
-import { MOD_KEY } from "../../../lib/mod/key";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { SelectField } from "../../fields/select";
 import { TextField } from "../../fields/text";
 import { StartError, StepForm, useStepShortcut } from "./step";
@@ -138,15 +136,12 @@ function IdForm({ kase, onDone, settings }: Props & { settings: KycSettingsView 
             Skip, no ID
           </Button>
         )}
-        <Button type="submit" disabled={!online || busy}>
-          {recordId.isPending ? (
-            "Saving…"
-          ) : (
-            <>
-              Save ID
-              <Kbd aria-hidden>{MOD_KEY} ↵</Kbd>
-            </>
-          )}
+        <Button
+          aria-keyshortcuts="Control+Enter Meta+Enter"
+          type="submit"
+          disabled={!online || busy}
+        >
+          {recordId.isPending ? "Saving…" : <>Save ID</>}
         </Button>
       </SheetFooter>
     </StepForm>

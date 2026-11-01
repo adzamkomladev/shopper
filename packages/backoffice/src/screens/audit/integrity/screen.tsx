@@ -3,7 +3,6 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { ShieldCheckIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@shopper/ui/components/alert";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { Gate, OfflineNote } from "../../../components/register/states";
@@ -52,9 +51,6 @@ function IntegrityBody() {
         >
           <ShieldCheckIcon aria-hidden />
           Verify all
-          <Kbd aria-hidden className="bg-primary-foreground/5">
-            V
-          </Kbd>
         </Button>
       }
     >

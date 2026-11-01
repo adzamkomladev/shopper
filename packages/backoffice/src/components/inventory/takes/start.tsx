@@ -15,7 +15,6 @@ import {
   DialogTitle,
 } from "@shopper/ui/components/dialog";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@shopper/ui/components/field";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { RadioGroup, RadioGroupItem } from "@shopper/ui/components/radio-group";
 import {
   Select,
@@ -172,18 +171,12 @@ function StartForm({ branchId, branchName, onStarted }: Omit<Props, "open" | "on
       )}
       <DialogFooter>
         <DialogClose asChild>
-          <Button type="button" variant="outline">
+          <Button aria-keyshortcuts="Escape" type="button" variant="outline">
             Cancel
-            <Kbd aria-hidden>Esc</Kbd>
           </Button>
         </DialogClose>
-        <Button type="submit" disabled={start.isPending}>
+        <Button aria-keyshortcuts="Enter" type="submit" disabled={start.isPending}>
           {start.isPending ? "Starting…" : "Start take"}
-          {!start.isPending && (
-            <Kbd aria-hidden className="bg-primary-foreground/5">
-              ↵
-            </Kbd>
-          )}
         </Button>
       </DialogFooter>
     </form>

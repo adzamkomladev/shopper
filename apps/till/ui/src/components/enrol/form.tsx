@@ -126,7 +126,8 @@ export function EnrolForm({
       </Field>
       <Button
         aria-busy={busy || enrolled}
-        className="h-14 w-full rounded-xl text-base"
+        size="touch"
+        className="w-full rounded-full"
         disabled={disabled || busy || enrolled}
         type="submit"
       >

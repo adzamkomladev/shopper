@@ -9,7 +9,7 @@ export function TenantsScreen() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6">
       <div className="flex items-baseline gap-3">
-        <h1 className="text-3xl font-bold tracking-tight">Shops</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Shops</h1>
         <span className="text-sm text-muted-foreground tabular-nums">{data.length}</span>
       </div>
       {data.length === 0 ? <NoTenants /> : <TenantsTable tenants={data} />}

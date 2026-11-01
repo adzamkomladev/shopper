@@ -2,7 +2,6 @@ import { useRef } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { CustomersPage } from "../../../components/customers/tabs";
@@ -36,13 +35,13 @@ export function KycQueueScreen() {
   const cases = data.items.filter((kase) => current.statuses.includes(kase.status));
   const startButton = (
     <Button
+      aria-keyshortcuts="K"
       ref={startRef}
       disabled={!online}
       aria-describedby={online ? undefined : OFFLINE_ID}
       onClick={() => start.show()}
     >
       Start check
-      <Kbd aria-hidden>K</Kbd>
     </Button>
   );
   return (

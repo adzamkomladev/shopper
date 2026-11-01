@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "#components/table/primitive";
 
-const ROW_HEIGHT = 66;
+const ROW_HEIGHT = 40;
 const OVERSCAN_ROWS = 8;
 // Up to this many rows are all rendered: a short list needs no windowing, and every row stays findable.
 const VIRTUALIZE_ABOVE_ROWS = 100;
@@ -124,7 +124,7 @@ export function DataTable<TData extends RowData>({
                 ref={virtualizer.measureElement}
                 data-index={item.index}
                 aria-rowindex={item.index + 1 + headerRows}
-                className="h-16.5"
+                className="h-10"
               >
                 {row.getAllCells().map((cell) => (
                   <TableCell

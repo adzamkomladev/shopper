@@ -16,7 +16,11 @@ const sizes = [
 
 const cart = (page: Page) => page.getByRole("region", { name: "Basket" });
 const tender = (page: Page) => page.getByRole("region", { name: "Tender" });
-const checkoutButton = (page: Page) => page.getByRole("button", { name: /^Checkout/ });
+// The sidebar's Checkout section is a button too; the cart's carries Ctrl+Enter.
+const checkoutButton = (page: Page) =>
+  page
+    .getByRole("button", { name: /^Checkout/ })
+    .and(page.locator("[aria-keyshortcuts='Control+Enter']"));
 const rows = (page: Page) => page.getByRole("list", { name: "Basket lines" }).getByRole("listitem");
 
 async function expectFits(page: Page, width: number) {

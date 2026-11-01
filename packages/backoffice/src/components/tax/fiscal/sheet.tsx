@@ -2,7 +2,6 @@ import { RotateCcwIcon } from "lucide-react";
 import { money } from "@shopper/money";
 import { Badge } from "@shopper/ui/components/badge";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { Money } from "@shopper/ui/components/money";
 import { Skeleton } from "@shopper/ui/components/skeleton";
 import { FormSheet } from "../../admin/form/sheet";
@@ -83,7 +82,6 @@ export function FiscalDocSheet({ row, doc, onRetry, retrying, error, readError, 
           <Button onClick={onRetry} disabled={retrying} aria-keyshortcuts="R">
             <RotateCcwIcon aria-hidden />
             {retrying ? "Retrying…" : "Retry"}
-            <Kbd aria-hidden>R</Kbd>
           </Button>
         )}
       </div>

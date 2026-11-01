@@ -111,6 +111,19 @@ export function ReceiptComplete({
       className="grid min-w-0 flex-1 content-center justify-items-center gap-5 rounded-panel border bg-card p-8 text-center"
       ref={shortcuts}
     >
+      <svg
+        aria-hidden="true"
+        className="size-12 text-success motion-safe:draw-stroke"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        viewBox="0 0 24 24"
+      >
+        <circle cx="12" cy="12" r="10" opacity={0.25} />
+        <path d="m7.5 12.5 3 3 6-6.5" />
+      </svg>
       <p className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
         Sale complete
       </p>

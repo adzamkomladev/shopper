@@ -12,7 +12,7 @@ export function TransactionTenders({ sale }: { sale: TransactionDetail }) {
   return (
     <Card className="gap-0 py-0">
       <CardHeader className="border-b py-4">
-        <CardTitle className="text-lg">Payment and tender</CardTitle>
+        <CardTitle className="text-base">Payment and tender</CardTitle>
         <CardDescription>
           {sale.tenders.length === 1 ? "One payment" : `${sale.tenders.length} payments`}
           {sale.change ? ` · change given ${formatGHS(money(sale.change))}` : ""}

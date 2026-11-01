@@ -27,7 +27,7 @@ export function ReviewHeader({ kase }: { kase: KybCase }) {
         <h1
           tabIndex={-1}
           ref={focusOnMount}
-          className="text-3xl font-bold tracking-tight wrap-break-word outline-none"
+          className="text-2xl font-semibold tracking-tight wrap-break-word outline-none"
         >
           {kase.businessName ?? kase.shop}
         </h1>
@@ -160,7 +160,7 @@ export function Section({ label, children }: { label: string; children: React.Re
       aria-label={label}
       className="flex flex-col gap-4 rounded-lg border bg-card p-5 shadow-sm"
     >
-      <h2 className="text-lg font-semibold tracking-tight">{label}</h2>
+      <h2 className="text-base font-semibold tracking-tight">{label}</h2>
       {children}
     </section>
   );

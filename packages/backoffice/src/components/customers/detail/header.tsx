@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { ArrowLeftIcon } from "lucide-react";
 import { Badge } from "@shopper/ui/components/badge";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { focusOnMount } from "../../../lib/focus";
 import type { CustomerView } from "../../../queries/customers/types";
 
@@ -37,7 +36,7 @@ export function CustomerHeader({ customer, archiving, ...actions }: Props) {
           <h1
             tabIndex={-1}
             ref={focusOnMount}
-            className="text-3xl font-bold tracking-tight wrap-break-word outline-none"
+            className="text-2xl font-semibold tracking-tight wrap-break-word outline-none"
           >
             {name}
           </h1>
@@ -51,32 +50,44 @@ export function CustomerHeader({ customer, archiving, ...actions }: Props) {
         </div>
         <div className="flex flex-wrap gap-2">
           {actions.onVerify && (
-            <Button ref={actions.verifyRef} variant="outline" onClick={actions.onVerify}>
+            <Button
+              aria-keyshortcuts="K"
+              ref={actions.verifyRef}
+              variant="outline"
+              onClick={actions.onVerify}
+            >
               Verify identity
-              <Kbd aria-hidden>K</Kbd>
             </Button>
           )}
           {actions.onEdit && (
-            <Button ref={actions.editRef} variant="outline" onClick={actions.onEdit}>
+            <Button
+              aria-keyshortcuts="E"
+              ref={actions.editRef}
+              variant="outline"
+              onClick={actions.onEdit}
+            >
               Edit
-              <Kbd aria-hidden>E</Kbd>
             </Button>
           )}
           {actions.onMerge && (
-            <Button ref={actions.mergeRef} variant="outline" onClick={actions.onMerge}>
+            <Button
+              aria-keyshortcuts="M"
+              ref={actions.mergeRef}
+              variant="outline"
+              onClick={actions.onMerge}
+            >
               Merge
-              <Kbd aria-hidden>M</Kbd>
             </Button>
           )}
           {actions.onArchive && (
             <Button
+              aria-keyshortcuts="Alt+A"
               ref={actions.archiveRef}
               variant="outline"
               disabled={archiving}
               onClick={actions.onArchive}
             >
               {archivedAt ? "Restore" : "Archive"}
-              <Kbd aria-hidden>Alt A</Kbd>
             </Button>
           )}
         </div>

@@ -36,7 +36,7 @@ export function SetupScreen() {
     <div ref={shortcuts} className="flex flex-col gap-6 pb-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold tracking-tight">Get your shop ready</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Get your shop ready</h1>
           <p className="text-sm text-muted-foreground">
             {progress.steps.filter((each) => each.done).length} of {progress.steps.length} steps
             done. Your progress is kept as you go.

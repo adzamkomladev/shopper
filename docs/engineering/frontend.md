@@ -96,6 +96,31 @@ If none of these fit, stop and ask. Do not work around the guard with a custom w
 - Money is always shown through the shared formatter: `GH₵ 1,234.50`, 2 dp, tabular numbers,
   right-aligned in tables. Per-kg unit prices may show 4 dp.
 
+## Shell, theme and shortcuts (Day 28)
+
+- **One sidebar everywhere:** `@shopper/ui/components/sidebar/*` (provider, parts, nav, user) serves the
+  portal, admin and till. Labelled groups, collapsible sections, an icon rail with tooltips (Ctrl+B),
+  state saved per app (`shopper.sidebar.<app>`), a sheet below `md`. The till starts as a rail and passes
+  `touch`, which makes every row and the toggle 44 px. Pages register no extra nav.
+- **Header:** sidebar toggle, where you are, Search (opens the command palette; `/` and Mod+K).
+- **Theme:** light, dark or system from the user menu (`ThemeMenu`). Tokens use `light-dark()`; a
+  `data-theme` on `<html>` forces one, set by the inline `themeScript` in each app's head before paint.
+  Electron follows through the page's `theme-color` meta.
+- **Shortcuts:** buttons in the web apps carry `aria-keyshortcuts` (and a title) instead of key chips;
+  `?` opens the Keyboard shortcuts dialog, which also lists the page's own `[aria-keyshortcuts]`. The till
+  keeps its keys in `apps/till/ui/src/shortcuts/registry.ts`, shown by Help (F1, Ctrl+/).
+- **Proportions:** buttons and inputs are `h-8` by default (`sm` 7, `lg` 9, `touch` 11), page titles
+  `text-2xl font-semibold`, section and card titles `text-base`, table rows `h-10`.
+- **Motion:** 150 ms colour and press feedback (`active:scale-97`), `animate-shimmer` skeletons,
+  `animate-tick` on a changed total (key the span by the amount), `draw-stroke` for the sale-complete
+  check. Every animation is `motion-safe` or token-driven, so reduced motion turns it off.
+- **Typing latency:** the till compiles with the React Compiler too. In a component that re-renders on
+  every keystroke, declare handlers as `const` arrows in call order (hoisted `function`s stay
+  unmemoized), call hook functions as plain values (a method call on the hook's object reads as a
+  mutation of it), and give a child that does not show the typed value props that stay stable, as
+  `TenderPad` does. `tests/e2e/till/ui/tender/latency.spec.ts` holds the budget: a digit is on screen
+  within 50 ms on a 4x slower CPU, measured on a production build.
+
 ## Tables and data
 
 - `DataTable` columns take `meta: { align?: "right", className? }`. Money columns use
@@ -127,7 +152,7 @@ who hold its permission, and the page heading names the tab. The top nav item "C
 - **Public statement page** (`/statement/$token`) never shows the nav or asks for a sign-in; it is phone-first and
   has a not-found state that says nothing about why a link failed.
 - **Till:** the customer dialog (Alt+U add customer, Alt+I create invoice, Alt+E edit, Alt+R remove), the basket
-  chip, the On account (Alt+5) and Points (Alt+6) tenders, and Take account payment (Alt+A). Account tenders are
+  chip, the On account (Alt+5) and Points (Alt+6) tenders, and Account payment in the sidebar (Alt+A). Account tenders are
   disabled offline ("Needs a connection"); drawer cash payments still work. The purchases tender filter offers
   On account and Points.
 - **Figma** has frames only for Checkout, Till dashboard, Purchases and Payment. The portal customer, statement,
@@ -156,8 +181,8 @@ each VAT invoice as Provisional or Signed.
   from the loaded UI measured in a browser, so nothing moves when data arrives; see the
   `skeleton-audit` skill; no spinner under 300 ms), error (what happened and how to recover),
   offline (what still works), and no permission.
-- **Till:** keyboard-first, and every action has a shortcut shown on its button. The scan input
-  keeps focus. The common path (scan → tender → receipt) has no dialogs and responds in under 100 ms.
+- **Till:** keyboard-first, and every action has a shortcut shown on its button (sidebar entries show it in
+  their tooltip) and listed in Help. The scan input keeps focus. The common path (scan → tender → receipt) has no dialogs and responds in under 100 ms.
   Touch targets are at least 44 px. Destructive actions (void, refund) need a manager approval, which
   uses the same keyboard flow.
 - **Feedback:** every action confirms visibly. Use toasts for background results, inline messages for

@@ -14,9 +14,6 @@ import type { UpdatePolicy } from "./types";
 import { createUpdates } from "./updates";
 import { lockDown } from "./window";
 
-// Chromium must paint at 1 CSS px = 1 device px so a receipt window is exactly `dots` wide.
-app.commandLine.appendSwitch("force-device-scale-factor", "1");
-
 const tillUi = process.env.SHOPPER_TILL_UI_URL ?? "http://127.0.0.1:5174/";
 // Packaged, tooling/build/package.ts puts the host bundle and the till UI beside this file inside app.asar.
 const here = (path: string) => fileURLToPath(new URL(path, import.meta.url));
@@ -139,7 +136,9 @@ async function startRegister() {
   async function enrol(registration: object) {
     const register = { ...stored, ...registration, session: null };
     await writeAtomic(configPath, JSON.stringify(register, null, 2));
-    host.send({ type: "start", config: await prepare(register), renderer: "parent" });
+    const prepared = await prepare(register);
+    secrets.push(prepared.deviceToken, "databaseKey" in prepared && prepared.databaseKey);
+    host.send({ type: "start", config: prepared, renderer: "parent" });
   }
 }
 
@@ -199,12 +198,15 @@ This is saved in ${log}`;
 }
 
 // The till UI draws its own 40px title bar (--card behind, --foreground on it); the OS only paints the window
-// controls over its right edge, so there is no preload and no custom window API. The UI follows the OS theme
-// (prefers-color-scheme), so the controls do too: light and dark --card / --foreground from @shopper/ui.
+// controls over its right edge, so there is no preload and no custom window API. The controls follow the UI's
+// theme through nativeTheme: light and dark --card / --foreground from @shopper/ui.
 const titleBarOverlay = () =>
   nativeTheme.shouldUseDarkColors
     ? { color: "#0b1220", symbolColor: "#f8fafc", height: 40 }
     : { color: "#ffffff", symbolColor: "#020617", height: 40 };
+// The theme a cashier picks reaches main as the page's theme-color (components/shell/titlebar.tsx):
+// the dark or light title bar colour, or none for System.
+const themeSources: Record<string, "dark" | "light"> = { "#0b1220": "dark", "#ffffff": "light" };
 
 function openTill(capability: string, url: string) {
   const window = new BrowserWindow({
@@ -217,6 +219,9 @@ function openTill(capability: string, url: string) {
   });
   const followTheme = () => window.setTitleBarOverlay(titleBarOverlay());
   nativeTheme.on("updated", followTheme);
+  window.webContents.on("did-change-theme-color", (_event, color) => {
+    nativeTheme.themeSource = themeSources[color?.toLowerCase() ?? ""] ?? "system";
+  });
   window.once("closed", () => nativeTheme.off("updated", followTheme));
   lockDown(window, new URL(url).origin);
   openDisplay(window, url, capability);

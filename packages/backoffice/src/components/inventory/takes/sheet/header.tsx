@@ -31,7 +31,7 @@ export function SheetHeader({ take, focusRef }: Props) {
             id={SHEET_HEADING_ID}
             tabIndex={-1}
             ref={focusRef}
-            className="text-3xl font-bold tracking-tight wrap-break-word outline-none"
+            className="text-2xl font-semibold tracking-tight wrap-break-word outline-none"
           >
             Stock take
           </h1>

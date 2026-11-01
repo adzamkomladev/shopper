@@ -9,10 +9,13 @@ let scenario: Awaited<ReturnType<typeof startSignInScenario>> | undefined;
 
 test.beforeEach(async ({ baseURL }) => {
   if (!baseURL) throw new Error("Playwright baseURL is required");
-  scenario = await startSignInScenario(new URL(baseURL).origin);
+  // A movable host clock (at real time) lets a test expire the session.
+  scenario = await startSignInScenario(new URL(baseURL).origin, { clockOffsetMs: 0 });
 });
 test.afterEach(async () => scenario?.stop());
 
+const sections = (page: Page, name: string) =>
+  page.getByRole("navigation", { name: "Register" }).getByRole("button", { name, exact: true });
 const email = (page: Page) => page.getByRole("textbox", { name: "Username" });
 const password = (page: Page) => page.getByLabel("Password");
 
@@ -35,9 +38,8 @@ test("a cashier signs in with the keyboard and lands on Checkout", async ({ page
   await signInWithKeyboard(page, kofi);
   await expect(page.getByRole("heading", { name: "Checkout", exact: true })).toBeVisible();
   await expect(page.getByText("Kofi Boateng ·")).toBeVisible();
-  await expect(
-    page.getByRole("tablist", { name: "Register sections" }).getByRole("tab"),
-  ).toHaveText([/Checkout/]);
+  await expect(sections(page, "Checkout")).toBeAttached();
+  await expect(sections(page, "Dashboard")).toHaveCount(0);
   await expect(page.getByRole("combobox")).toBeFocused();
   await expectNoSeriousAxe(page);
   if (shots) {
@@ -52,9 +54,9 @@ test("a signed-in user without sale.create lands on Dashboard and sees only thei
   await open(page);
   await signInWithKeyboard(page, esi);
   await expect(page.locator('[data-slot="register-dashboard"]')).toBeVisible();
-  await expect(
-    page.getByRole("tablist", { name: "Register sections" }).getByRole("tab"),
-  ).toHaveText([/Dashboard/, /Inventory/, /Sales Reports/]);
+  for (const name of ["Dashboard", "Inventory", "Sales reports"])
+    await expect(sections(page, name)).toBeAttached();
+  await expect(sections(page, "Checkout")).toHaveCount(0);
 });
 
 test("a wrong password says so, and Sign out returns to the login form", async ({ page }) => {
@@ -68,11 +70,7 @@ test("a wrong password says so, and Sign out returns to the login form", async (
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "Checkout", exact: true })).toBeVisible();
 
-  await page.keyboard.press("Control+M");
-  await page
-    .getByRole("dialog", { name: "Menu" })
-    .getByRole("button", { name: /^Sign out/ })
-    .click();
+  await page.keyboard.press("Control+Shift+L");
   await expect(email(page)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Checkout", exact: true })).toHaveCount(0);
   expect(await scenario!.user()).toBeNull();
@@ -93,15 +91,30 @@ test("an unreachable server signs a known cashier in offline and says so in the 
   await open(page);
   await signInWithKeyboard(page, ama);
   await expect(page.getByRole("heading", { name: "Checkout", exact: true })).toBeVisible();
-  await page.keyboard.press("Control+M");
-  await page
-    .getByRole("dialog", { name: "Menu" })
-    .getByRole("button", { name: /^Sign out/ })
-    .click();
+  await page.keyboard.press("Control+Shift+L");
   await expect(email(page)).toBeVisible();
 
   scenario!.staff.state.mode = "down";
   await signInWithKeyboard(page, ama);
   await expect(page.getByRole("heading", { name: "Checkout", exact: true })).toBeVisible();
   await expect.poll(async () => (await scenario!.user())?.offline).toBe(true);
+});
+
+test("a session that expires under the cashier returns the register to sign-in and says why", async ({
+  page,
+}) => {
+  await open(page);
+  await signInWithKeyboard(page, kofi);
+  await expect(page.getByRole("heading", { name: "Checkout", exact: true })).toBeVisible();
+  await scenario!.host.setClock(9 * 3_600_000);
+  // The host refuses the next sale for want of a session; the register must follow it, not keep the cashier.
+  await scenario!.host.request({
+    type: "add",
+    expectedRevision: 0,
+    productId: scenario!.productId,
+  });
+  await expect(page.getByRole("alert")).toContainText("Your session ended");
+  await expect(page.getByRole("alert")).toContainText("Sign in again.");
+  await expect(email(page)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Checkout", exact: true })).toHaveCount(0);
 });

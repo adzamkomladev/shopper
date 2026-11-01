@@ -78,6 +78,17 @@ test("a required update with no shift open installs as soon as it is ready", asy
   expect(updater.installs).toBe(1);
 });
 
+test("a ready update stays ready when the shop moves to a channel with nothing newer", async () => {
+  const { states } = start();
+  updates!.policy({ channel: "pilot", required: false, shiftOpen: false });
+  await expect.poll(() => states.at(-1)?.state).toBe("ready");
+  updates!.policy({ channel: "stable", required: false, shiftOpen: false });
+  // The download still installs on the next quit, so the till must keep saying so.
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  expect(states.at(-1)).toEqual({ state: "ready", version: "0.1.1", percent: 100 });
+  expect(updates!.install()).toBe(true);
+});
+
 test("a feed that is down leaves the register usable with the state at error", async () => {
   releases.stable = null;
   const { updater, states } = start();

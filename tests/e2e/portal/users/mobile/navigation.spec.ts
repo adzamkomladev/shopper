@@ -2,30 +2,40 @@ import { expect, test, type Locator } from "@playwright/test";
 import { captureSizes } from "../../../../support/admin";
 import { expectNoSeriousAxe } from "../../../../support/e2e";
 
+// Every page the owner may open, one link each in the sidebar.
+const PAGES = 19;
+
 test("main navigation stays on screen and keyboard reachable at phone and tablet widths", async ({
   page,
 }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/users");
   await expect(page.getByRole("heading", { name: "Users", level: 1 })).toBeVisible();
-  const navigation = page.getByRole("navigation", { name: "Main" });
-  const links = navigation.getByRole("link");
-  await expect(links).toHaveCount(17);
+  // On a phone the sidebar is a sheet behind the header's toggle.
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  const sheet = page.getByRole("dialog", { name: "Main" });
+  const sheetLinks = sheet.getByRole("link");
+  await expect(sheetLinks).toHaveCount(PAGES);
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(390);
-  for (const link of await links.all()) await expect(link).toBeInViewport();
-
-  await links.nth(0).focus();
+  await expectAllInView(sheetLinks);
+  // Reports, then the Sales section button, then its first page.
+  await sheetLinks.nth(0).focus();
   await page.keyboard.press("Tab");
-  await expect(links.nth(1)).toBeFocused();
+  await expect(sheet.getByRole("button", { name: "Sales" })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(sheetLinks.nth(1)).toBeFocused();
   await expectNoSeriousAxe(page);
+  await page.keyboard.press("Escape");
 
+  const navigation = page.getByRole("navigation", { name: "Main" });
+  const links = navigation.getByRole("link");
   await page.setViewportSize({ width: 960, height: 768 });
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(960);
-  for (const link of await links.all()) await expect(link).toBeInViewport();
+  await expectAllInView(links);
   await expectNavControlsSeparated(navigation, links);
   await expectNoSeriousAxe(page);
   const tabletPath = info.outputPath("main-navigation-960x768.png");
@@ -37,21 +47,28 @@ test("main navigation stays on screen and keyboard reachable at phone and tablet
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
       .toBeLessThanOrEqual(width);
-    for (const link of await links.all()) await expect(link).toBeInViewport();
-    await expectNavControlsSeparated(navigation, links);
+    // Below md the sidebar is the sheet checked above.
+    if (width >= 768) await expectAllInView(links);
+    if (width >= 768) await expectNavControlsSeparated(navigation, links);
     await expectNoSeriousAxe(page);
   });
 });
 
+/** Each link can be brought on screen: the sidebar scrolls on its own when the page list is taller than it. */
+async function expectAllInView(links: Locator) {
+  for (const link of await links.all()) {
+    await link.scrollIntoViewIfNeeded();
+    await expect(link).toBeInViewport();
+  }
+}
+
 async function expectNavControlsSeparated(navigation: Locator, links: Locator) {
   const shop = navigation.getByRole("combobox", { name: /^Shop:/ });
-  const searchField = navigation.getByRole("textbox", { name: "Search" });
-  const search = (await searchField.isVisible())
-    ? searchField
-    : navigation.getByRole("button", { name: "Search" });
   const user = navigation.getByRole("button", { name: "E2E Owner" });
+  // expectAllInView leaves the list scrolled to its end, under the fixed shop picker.
+  await links.first().scrollIntoViewIfNeeded();
   const boxes = await Promise.all(
-    [shop, links.first(), search, user].map((control) => control.boundingBox()),
+    [shop, links.first(), user].map((control) => control.boundingBox()),
   );
   expect(boxes.every((box) => box !== null)).toBe(true);
   const rectangles = boxes.filter((box): box is NonNullable<typeof box> => box !== null);
@@ -64,7 +81,7 @@ async function expectNavControlsSeparated(navigation: Locator, links: Locator) {
         b.x + b.width <= a.x ||
         a.y + a.height <= b.y ||
         b.y + b.height <= a.y;
-      expect(separate, "shop, first link, search and user control don't overlap").toBe(true);
+      expect(separate, "shop, first link and user control don't overlap").toBe(true);
     }
   }
 }

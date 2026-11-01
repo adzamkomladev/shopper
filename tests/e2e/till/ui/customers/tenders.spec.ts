@@ -174,17 +174,20 @@ test("the till-size panel keeps Split and Charge on screen for every method", as
     if (key !== "Alt+1") await expect(account(page)).toBeVisible();
     for (const name of ["Split", /^Charge/]) {
       const box = await page.getByRole("button", { name }).boundingBox();
-      expect(box!.y + box!.height, `${scenario} ${key} ${name}`).toBeLessThanOrEqual(708);
+      expect(box!.y + box!.height, `${scenario} ${key} ${name}`).toBeLessThanOrEqual(
+        page.viewportSize()!.height,
+      );
     }
     await expect(method(page, "Points")).toBeInViewport({ ratio: 1 });
   }
 });
 
-test("the legend lists the account keys", async ({ page }) => {
+test("Help lists the account keys", async ({ page }) => {
   await openSale(page, "accounts");
-  const legend = page.getByRole("list", { name: "Keyboard shortcuts" });
-  await expect(legend).toContainText("Alt+5/6");
-  await expect(legend).toContainText("Alt+A");
+  await page.keyboard.press("F1");
+  const help = page.getByRole("dialog", { name: "Help" });
+  await expect(help).toContainText("Alt+5 / Alt+6");
+  await expect(help).toContainText("Take an account payment");
 });
 
 for (const size of sizes.filter((s) => s.name !== "1440")) {

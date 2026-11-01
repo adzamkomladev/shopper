@@ -30,7 +30,7 @@ export function QuickCash({
       ))}
       <Button
         aria-label="Backspace"
-        className="h-11 text-lg"
+        className="h-11 text-base"
         onClick={onBackspace}
         variant="outline"
       >

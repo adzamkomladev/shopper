@@ -78,7 +78,7 @@ export function CartPanel({
       <CartTotals count={count} saved={saved} totals={totals} />
       <Button
         aria-keyshortcuts="Control+Enter"
-        className="h-16 shrink-0 rounded-panel text-lg disabled:bg-secondary disabled:text-muted-foreground disabled:opacity-100"
+        className="h-14 shrink-0 rounded-panel text-base disabled:bg-secondary disabled:text-muted-foreground disabled:opacity-100"
         disabled={!canCheckout}
         onClick={onCheckout}
       >

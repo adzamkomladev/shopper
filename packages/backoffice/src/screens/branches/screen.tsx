@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { GitBranchIcon, StoreIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { FormSheet } from "../../components/admin/form/sheet";
 import { PageHeader } from "../../components/admin/page/header";
@@ -77,9 +76,8 @@ export function BranchesScreen() {
           description="Tills and stock belong to a branch. Add the place where you sell."
         >
           {canEdit && (
-            <Button ref={addRef} onClick={() => form.show()}>
+            <Button aria-keyshortcuts="N" ref={addRef} onClick={() => form.show()}>
               Add branch
-              <Kbd aria-hidden>N</Kbd>
             </Button>
           )}
         </EmptyList>

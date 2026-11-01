@@ -47,6 +47,8 @@ export function tenderEntry({
     points,
     pointsInput,
     amountInput: amountText ?? toDecimal(wanted),
+    /** What the box shows before anything is typed. */
+    defaultInput: toDecimal(wanted),
     issue,
     /** On account or Points is selected and cannot be taken yet: no summary, or a problem with the entry. */
     blocked: accountKind !== null && (!account || issue !== null),

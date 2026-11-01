@@ -214,3 +214,13 @@ test("real Worker auth session authorizes audited store routes", async () => {
     await connection.close();
   }
 });
+
+test("the Worker is ready once Hyperdrive reaches the migrated database and D1 answers", async () => {
+  const response = await SELF.fetch("https://shopper.test/health/ready");
+  expect(await response.json()).toEqual({
+    status: "ready",
+    checks: { database: "ok", schema: "ok", cache: "ok" },
+  });
+  expect(response.status).toBe(200);
+  expect(response.headers.get("cache-control")).toBe("no-store");
+});

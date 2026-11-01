@@ -209,9 +209,14 @@ export function createHostSession(host: { database: TillDatabase; config: HostCo
     unlock: createUnlock(host),
     /** Runs after every sign-out; the desktop cookie rotates here. */
     onSignOut: (hook: () => void) => void signedOut.push(hook),
-    /** The signed-in user as the status and the back office see them, or null. */
+    /**
+     * The signed-in user as the status and the back office see them, or null. A session past its expiry
+     * is no user: the register must never show a cashier the host would refuse to sell for.
+     */
     current() {
-      return user && config.session ? { ...user, permissions: config.session.permissions } : null;
+      const session = config.session;
+      if (!user || !session || Date.parse(session.expiresAt) <= Date.now()) return null;
+      return { ...user, permissions: session.permissions };
     },
   };
 }

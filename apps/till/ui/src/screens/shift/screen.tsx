@@ -94,7 +94,7 @@ export function ShiftScreen({
       tabIndex={-1}
     >
       <header className="shrink-0">
-        <h1 className="text-3xl font-bold tracking-tight">Shift</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Shift</h1>
         <p className="text-sm text-muted-foreground">
           Open the drawer's shift, read the X report and close it with a blind count.
         </p>

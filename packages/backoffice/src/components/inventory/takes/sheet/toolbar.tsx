@@ -1,7 +1,5 @@
 import { ArrowLeftIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
-import { MOD_KEY } from "../../../../lib/mod/key";
 import { CANCEL_ID, REVIEW_ID } from "../../../../lib/inventory/takes";
 
 type Progress = { counted: number; total: number };
@@ -44,26 +42,23 @@ export function CountToolbar({
     <div className="flex flex-wrap items-center gap-3">
       <CountProgress {...progress} />
       <Button
+        aria-keyshortcuts="U"
         variant={uncountedOnly ? "default" : "outline"}
         aria-pressed={uncountedOnly}
         onClick={onToggle}
       >
         Uncounted only
-        <Kbd
-          aria-hidden
-          className="[[data-slot=button][data-variant=default]_&]:bg-primary-foreground/5"
-        >
-          U
-        </Kbd>
       </Button>
       <Button id={CANCEL_ID} variant="outline" onClick={onCancel} disabled={!online}>
         Cancel take
       </Button>
-      <Button id={REVIEW_ID} onClick={onReview} disabled={!online}>
+      <Button
+        aria-keyshortcuts="Control+Enter Meta+Enter"
+        id={REVIEW_ID}
+        onClick={onReview}
+        disabled={!online}
+      >
         Review
-        <Kbd aria-hidden className="bg-primary-foreground/5 max-sm:hidden">
-          {MOD_KEY} ↵
-        </Kbd>
       </Button>
     </div>
   );
@@ -81,18 +76,16 @@ export function ReviewToolbar({ online, pending, onBack, onPost, ...progress }: 
   return (
     <div className="flex flex-wrap items-center gap-3">
       <CountProgress {...progress} />
-      <Button variant="outline" onClick={onBack}>
+      <Button aria-keyshortcuts="Escape" variant="outline" onClick={onBack}>
         <ArrowLeftIcon aria-hidden />
         Back to counting
-        <Kbd aria-hidden>Esc</Kbd>
       </Button>
-      <Button onClick={onPost} disabled={!online || pending}>
+      <Button
+        aria-keyshortcuts="Control+Enter Meta+Enter"
+        onClick={onPost}
+        disabled={!online || pending}
+      >
         {pending ? "Posting…" : "Post take"}
-        {!pending && (
-          <Kbd aria-hidden className="bg-primary-foreground/5 max-sm:hidden">
-            {MOD_KEY} ↵
-          </Kbd>
-        )}
       </Button>
     </div>
   );

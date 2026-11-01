@@ -18,7 +18,7 @@ for (const size of sizes) {
   test(`at ${size.name}: totals, payment methods, hours and top products fit`, async ({ page }) => {
     await page.setViewportSize(size);
     await mockRegister(page);
-    await openShell(page, "Sales Reports");
+    await openShell(page, "Sales reports");
     const sales = panel(page);
     await expect(sales.getByRole("heading", { name: "Total sales" })).toBeVisible();
     await expect(sales.getByText("GH₵ 124.50", { exact: true })).toBeVisible();
@@ -47,7 +47,7 @@ for (const size of sizes) {
 
 test("the date range reloads the report and Download keeps the range", async ({ page }) => {
   const register = await mockRegister(page);
-  await openShell(page, "Sales Reports");
+  await openShell(page, "Sales reports");
   await expect(panel(page).getByText("GH₵ 124.50", { exact: true })).toBeVisible();
   register.report = { ...report, totals: { ...report.totals, sales: 3_000_000 } };
   await panel(page).getByLabel("From").fill("2026-09-01");
@@ -60,7 +60,7 @@ test("the date range reloads the report and Download keeps the range", async ({ 
 
 test("a day with no sales says so in each section", async ({ page }) => {
   await mockRegister(page, { report: emptyReport });
-  await openShell(page, "Sales Reports");
+  await openShell(page, "Sales reports");
   await expect(panel(page).getByText("No payments on these days.")).toBeVisible();
   await expect(panel(page).getByText("No sales on these days yet.")).toBeVisible();
   await expect(panel(page).getByText("No products sold on these days.")).toBeVisible();
@@ -70,7 +70,7 @@ test("a day with no sales says so in each section", async ({ page }) => {
 
 test("loading shows a skeleton, then the report", async ({ page }) => {
   await mockRegister(page, { reportDelayMs: 1500 });
-  await openShell(page, "Sales Reports");
+  await openShell(page, "Sales reports");
   await expect(panel(page).getByRole("status", { name: "Loading the report" })).toBeVisible();
   await shoot(page, "reports-loading");
   await expect(panel(page).getByText("GH₵ 124.50", { exact: true })).toBeVisible();
@@ -78,7 +78,7 @@ test("loading shows a skeleton, then the report", async ({ page }) => {
 
 test("an error explains itself and Try again recovers", async ({ page }) => {
   const register = await mockRegister(page, { reportStatus: 500 });
-  await openShell(page, "Sales Reports");
+  await openShell(page, "Sales reports");
   await expect(panel(page).getByText("Couldn't load the report")).toBeVisible();
   await expectNoSeriousAxe(page);
   await shoot(page, "reports-error");
@@ -89,7 +89,7 @@ test("an error explains itself and Try again recovers", async ({ page }) => {
 
 test("offline says these are this register's own sales", async ({ page }) => {
   await mockRegister(page);
-  await openShell(page, "Sales Reports", "&offline");
+  await openShell(page, "Sales reports", "&offline");
   await expect(panel(page).getByRole("status").filter({ hasText: "Offline" })).toBeVisible();
   await expect(panel(page).getByText("GH₵ 124.50", { exact: true })).toBeVisible();
   await shoot(page, "reports-offline");
@@ -97,14 +97,14 @@ test("offline says these are this register's own sales", async ({ page }) => {
 
 test("a 403 from the host is the no-permission state", async ({ page }) => {
   await mockRegister(page, { reportStatus: 403 });
-  await openShell(page, "Sales Reports");
+  await openShell(page, "Sales reports");
   await expect(panel(page).getByText("You don't have permission to view the report")).toBeVisible();
   await expectNoSeriousAxe(page);
 });
 
 test("without report.read nothing is requested and the user is told why", async ({ page }) => {
   const register = await mockRegister(page, { permissions: ["stock.read"] });
-  await openShell(page, "Sales Reports");
+  await openShell(page, "Sales reports");
   await expect(
     panel(page).getByText("You don't have permission to view sales reports"),
   ).toBeVisible();

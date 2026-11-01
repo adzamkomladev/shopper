@@ -9,7 +9,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@shopper/ui/components/empty";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { Skeleton } from "@shopper/ui/components/skeleton";
 import { EmptyList } from "../../admin/states";
 import { SetupStepLink } from "../../setup/back";
@@ -29,9 +28,8 @@ export function EmptyCatalogue({
       title="No products yet"
       description="Add your first product, or bring in a whole spreadsheet."
     >
-      <Button ref={addRef} onClick={onAdd}>
+      <Button aria-keyshortcuts="N" ref={addRef} onClick={onAdd}>
         Add product
-        <Kbd aria-hidden>N</Kbd>
       </Button>
       <Button asChild variant="outline">
         <Link to="/imports">Import spreadsheet</Link>

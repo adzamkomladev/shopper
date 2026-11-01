@@ -194,7 +194,7 @@ function ReviewHeading() {
       <h2
         tabIndex={-1}
         ref={focusOnMount}
-        className="text-lg font-medium tracking-tight outline-none"
+        className="text-base font-medium tracking-tight outline-none"
       >
         Review the count
       </h2>

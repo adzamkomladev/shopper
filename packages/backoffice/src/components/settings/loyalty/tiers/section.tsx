@@ -1,7 +1,6 @@
 import { useRef } from "react";
 import { LayersIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { usePanel } from "../../../../hooks/admin/panel";
 import { useArchiveTier } from "../../../../queries/settings/tiers";
@@ -33,9 +32,8 @@ export function TierSection({ tiers }: { tiers: TierView[] }) {
           </p>
         </div>
         {tiers.length > 0 && (
-          <Button ref={addRef} onClick={() => form.show()}>
+          <Button aria-keyshortcuts="N" ref={addRef} onClick={() => form.show()}>
             Add tier
-            <Kbd aria-hidden>N</Kbd>
           </Button>
         )}
       </div>
@@ -45,9 +43,8 @@ export function TierSection({ tiers }: { tiers: TierView[] }) {
           title="No tiers yet"
           description="Every customer earns at the shop's rate. Add a tier to reward the ones who spend more."
         >
-          <Button ref={addRef} onClick={() => form.show()}>
+          <Button aria-keyshortcuts="N" ref={addRef} onClick={() => form.show()}>
             Add tier
-            <Kbd aria-hidden>N</Kbd>
           </Button>
         </EmptyList>
       ) : (

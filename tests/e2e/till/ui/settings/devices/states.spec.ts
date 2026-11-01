@@ -117,6 +117,8 @@ for (const [width, height, label] of [
   }, testInfo) => {
     await openSettings(page, "settings-serial");
     await page.setViewportSize({ width, height });
+    // The click that opened Settings left focus on the sidebar, which a phone width folds away.
+    await page.getByRole("heading", { name: "Settings", exact: true }).click();
     await page.keyboard.press("Alt+E");
     await page.keyboard.press("Alt+B");
     await page.keyboard.press("Alt+M");

@@ -39,3 +39,6 @@ export type PaymentActions = {
   owed: AccountActions["loadAccount"];
   pay: (input: PaymentInput) => Promise<PaymentOutcome>;
 };
+
+/** Typed tender text for one draft revision; a new revision starts from the default again. */
+export type AmountEntry = { draftKey: string; value: string };

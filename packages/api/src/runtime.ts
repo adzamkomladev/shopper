@@ -9,6 +9,7 @@ import { createDeviceService } from "@shopper/auth/devices";
 import { managementId } from "@shopper/core/management";
 
 import { createSyncRoutes } from "./sync/routes";
+import { readiness } from "./routes/system";
 import { createApi } from "./app";
 import { orgRoutes } from "./routes/orgs";
 import { refuseCrossSite, secureHeaders } from "./middleware/hardening";
@@ -17,7 +18,8 @@ import { enforceRateLimit } from "./middleware/public/limits";
 export const publicApi = createApi();
 export function isPublicRequest(request: Request) {
   const path = new URL(request.url).pathname;
-  return !/^\/(?:payments(?:\/|$)|webhooks\/(?:paystack|hubtel)$|api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|tax(?:\/|$)|devices(?:\/|$)|shifts(?:\/|$)|audit(?:\/|$)|stock(?:\/|$)|reports(?:\/|$)|customers(?:\/|$)|kyc(?:\/|$)|loyalty(?:\/|$)|settings(?:\/|$)|transactions(?:\/|$)|reconciliation(?:\/|$)|approvals(?:\/|$)|billing(?:\/|$)|kyb(?:\/|$)|platform(?:\/|$)|setup(?:\/|$)|public\/statements(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
+  // Readiness probes the database and cache, so it needs the runtime, unlike /health.
+  return !/^\/(?:health\/ready$|payments(?:\/|$)|webhooks\/(?:paystack|hubtel)$|api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|tax(?:\/|$)|devices(?:\/|$)|shifts(?:\/|$)|audit(?:\/|$)|stock(?:\/|$)|reports(?:\/|$)|customers(?:\/|$)|kyc(?:\/|$)|loyalty(?:\/|$)|settings(?:\/|$)|transactions(?:\/|$)|reconciliation(?:\/|$)|approvals(?:\/|$)|billing(?:\/|$)|kyb(?:\/|$)|platform(?:\/|$)|setup(?:\/|$)|public\/statements(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
     path,
   );
 }
@@ -29,6 +31,7 @@ export async function serveRuntime(request: Request, options: RuntimeOptions): P
 }
 
 async function route(request: Request, options: RuntimeOptions): Promise<Response> {
+  if (new URL(request.url).pathname === "/health/ready") return readiness(options);
   if (isPublicRequest(request)) return publicApi.fetch(request);
   // A short key makes every session and emailed link forgeable; refuse to sign anything with it.
   if (weak(options.secret) || (options.linkSecret !== undefined && weak(options.linkSecret)))

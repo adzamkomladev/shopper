@@ -49,6 +49,9 @@ export default defineConfig(({ command, isPreview }) => ({
   // An e2e run builds into its own folder. Start's prerender reloads this file for `vite preview`,
   // so an inline outDir would not reach it.
   build: { outDir: process.env.SHOPPER_BUILD_OUT_DIR },
+  // The test host bundles every dependency, as the Worker build does, so a node_modules folder above
+  // the repo can never supply a different version at runtime.
+  ssr: { noExternal: process.env.SHOPPER_PORTAL_TEST_HOST ? true : undefined },
   server: { port: 5173 },
 }));
 

@@ -32,7 +32,7 @@ export function TenderTable({ tenders }: { tenders: ReconciliationView["tenders"
         </TableHeader>
         <TableBody>
           {tenders.map((row) => (
-            <TableRow key={row.tender} className="h-14 hover:bg-transparent">
+            <TableRow key={row.tender} className="h-10 hover:bg-transparent">
               <TableCell className="px-4 font-medium">{tenderLabel(row.tender)}</TableCell>
               <TableCell className="hidden sm:table-cell">
                 <Money amount={money(row.taken)} />

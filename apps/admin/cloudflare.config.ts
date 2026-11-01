@@ -11,6 +11,15 @@ const ids = {
     hyperdrive: "dfa4e3a17ca546ed8213ed257912db3f",
     d1: "44230678-333c-446c-af51-22fe0c8eb20e",
   },
+  // Filled when production is provisioned (docs/pilot/cutover.md); deploy.ts refuses a build without them.
+  production: {
+    hyperdrive: "c6f5172419c14142abace7482a17340c",
+    d1: "9451f586-2b64-4804-8eb2-ff31ac659a69",
+  },
+} as const;
+const origins = {
+  staging: "https://shopper-admin-staging.temtem.dev",
+  production: "https://shopper-admin.temtem.dev",
 } as const;
 const localPostgres = "postgresql://shopper:shopper_dev_only@127.0.0.1:5432/shopper";
 const secrets = [
@@ -22,11 +31,12 @@ const secrets = [
   "SHOPPER_S3_SECRET_ACCESS_KEY",
 ];
 // Hubtel is optional. A declared secret is required at deploy, so only dev declares these (dev
-// loads declared keys alone from .dev.vars); on staging, `cf secret put` binds them undeclared.
+// loads declared keys alone from .dev.vars); deployed, `cf secret put` binds them undeclared.
 const hubtel = ["HUBTEL_CLIENT_ID", "HUBTEL_CLIENT_SECRET", "HUBTEL_MERCHANT_ACCOUNT"];
 
 export default defineConfig(({ mode }) => {
-  const stage = mode === "staging" ? "staging" : "dev";
+  // A plain `vite build` already runs in mode "production", so the production release builds as "prod".
+  const stage = mode === "staging" ? "staging" : mode === "prod" ? "production" : "dev";
   // The Durable Objects and Workflows live in the edge Worker; apps never import each other, so the admin
   // app names it. It serves the same shared API as the portal, so its bindings are the portal's.
   const edge = `shopper-edge-${stage}`;
@@ -44,17 +54,13 @@ export default defineConfig(({ mode }) => {
         notFoundHandling: "single-page-application",
         runWorkerFirst: ["/api/*"],
       },
-      ...(stage === "staging" ? { domains: ["shopper-admin-staging.temtem.dev"] } : {}),
+      ...(stage === "dev" ? {} : { domains: [origins[stage].slice("https://".length)] }),
       env: {
         ASSETS: bindings.assets(),
         SHOPPER_ENVIRONMENT: bindings.text(stage),
         // Only members of this org get through `/api/platform/*`.
         SHOPPER_PLATFORM_ORG: bindings.text("shopper"),
-        SHOPPER_AUTH_URL: bindings.text(
-          stage === "staging"
-            ? "https://shopper-admin-staging.temtem.dev"
-            : "http://localhost:5187",
-        ),
+        SHOPPER_AUTH_URL: bindings.text(stage === "dev" ? "http://localhost:5187" : origins[stage]),
         CACHE_DB: bindings.d1({ name: `shopper-cache-${stage}`, id: ids[stage].d1 }),
         HYPERDRIVE: bindings.hyperdrive({
           id: ids[stage].hyperdrive,

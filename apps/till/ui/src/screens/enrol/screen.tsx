@@ -44,7 +44,7 @@ export function EnrolScreen({
                 <p>Start the register host, then reconnect.</p>
                 <Button
                   aria-keyshortcuts="Alt+C"
-                  className="mt-3"
+                  className="rounded-full mt-3"
                   onClick={onReconnect}
                   size="touch"
                   variant="outline"

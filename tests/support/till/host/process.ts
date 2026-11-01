@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { v7 } from "uuid";
 import { e2eRun } from "../../../../tooling/e2e/run";
 
@@ -14,7 +15,8 @@ type Ready = Message & {
   protocol: number;
 };
 
-const clockPreload = resolve(root, "tests/support/till/host/clock.mjs");
+// `--import` takes a URL; a bare Windows path reads as the scheme "c:".
+const clockPreload = pathToFileURL(resolve(root, "tests/support/till/host/clock.mjs")).href;
 
 /** `clockOffsetMs` starts the host with its wall clock shifted; `setClock` then moves it. */
 export async function startTillHost(config: unknown, options: { clockOffsetMs?: number } = {}) {

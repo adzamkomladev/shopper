@@ -3,7 +3,6 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { formatGHS, money } from "@shopper/money";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { SEGMENTS, STATUS_LABELS } from "../../../lib/kyc/status";
@@ -57,26 +56,26 @@ export function DecisionPanel({ kase, canApprove, roles }: Props) {
       aria-label="Decision"
       className="flex flex-col gap-4 rounded-lg border bg-card p-5 shadow-sm"
     >
-      <h2 className="text-lg font-semibold tracking-tight">Decision</h2>
+      <h2 className="text-base font-semibold tracking-tight">Decision</h2>
       {kase.status === "review" ? (
         canApprove ? (
           <>
             <div className="flex flex-wrap gap-3">
               <Button
+                aria-keyshortcuts="A"
                 variant={choice === "approve" ? "default" : "outline"}
                 aria-pressed={choice === "approve"}
                 onClick={() => choose("approve")}
               >
                 Approve
-                <Kbd aria-hidden>A</Kbd>
               </Button>
               <Button
+                aria-keyshortcuts="R"
                 variant={choice === "reject" ? "destructive" : "outline"}
                 aria-pressed={choice === "reject"}
                 onClick={() => choose("reject")}
               >
                 Reject
-                <Kbd aria-hidden>R</Kbd>
               </Button>
             </div>
             {!online && (

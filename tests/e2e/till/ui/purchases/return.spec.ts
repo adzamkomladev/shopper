@@ -32,7 +32,11 @@ test("a partial return is recorded with the keyboard alone", async ({ page }) =>
   await page.keyboard.press("Tab");
   await page.keyboard.type("Customer changed their mind");
   await page.keyboard.press("Alt+1");
-  await expect(page.getByRole("button", { name: /^Cash/ })).toHaveAttribute("aria-pressed", "true");
+  // The refund method, not the sidebar's Cash drop.
+  const cash = page
+    .locator('[aria-keyshortcuts="Alt+1"]')
+    .and(page.getByRole("button", { name: /^Cash/ }));
+  await expect(cash).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("region", { name: "Refund summary" })).toContainText("GH₵ 76.00");
   await expect(refundButton(page)).toContainText("Refund GH₵ 76.00");
   await expectNoSeriousAxe(page);

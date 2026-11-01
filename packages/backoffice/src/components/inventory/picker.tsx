@@ -1,4 +1,3 @@
-import { Kbd } from "@shopper/ui/components/kbd";
 import {
   Select,
   SelectContent,
@@ -21,13 +20,11 @@ export function BranchPicker({ branches, branchId, onBranchChange, open, onOpenC
     <Select value={branchId} onValueChange={onBranchChange} open={open} onOpenChange={onOpenChange}>
       <SelectTrigger
         aria-label="Branch"
+        aria-keyshortcuts="B"
         // A long branch name ends in an ellipsis, not mid-letter: the trigger's own flex value cannot.
         className="w-full sm:w-48 *:data-[slot=select-value]:block! *:data-[slot=select-value]:truncate"
       >
         <SelectValue />
-        <Kbd aria-hidden className="ml-auto">
-          B
-        </Kbd>
       </SelectTrigger>
       <SelectContent>
         {branches.map((branch) => (

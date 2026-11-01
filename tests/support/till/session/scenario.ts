@@ -17,7 +17,10 @@ export const esi: Staff = {
  * A real register host with nobody signed in, and a stub server that signs `ama`, `kofi` and `esi` in.
  * `staff.state.mode` makes the login 503 (unreachable) or 429 (locked).
  */
-export async function startSignInScenario(appOrigin: string) {
+export async function startSignInScenario(
+  appOrigin: string,
+  startOptions?: { clockOffsetMs?: number },
+) {
   const server = await createConnectionServer("connected-empty");
   const cleanups: (() => Promise<unknown> | void)[] = [() => server.close()];
   const stop = async () => {
@@ -29,10 +32,12 @@ export async function startSignInScenario(appOrigin: string) {
     const fixture = await createConnectionHost(server, staff.url, appOrigin);
     cleanups.push(() => fixture.close());
     Object.assign(fixture.config, { session: null });
-    const host = await fixture.start();
+    const host = await fixture.start(startOptions);
     const bridge = await startBridgeProxy(host.ready.port, false);
     cleanups.push(() => bridge.close());
     return {
+      host,
+      productId: server.productId,
       url: `${appOrigin}/#${encodeURIComponent(host.ready.capability)}`,
       staff,
       user: async () =>

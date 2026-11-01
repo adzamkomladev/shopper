@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ClipboardListIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { Skeleton } from "@shopper/ui/components/skeleton";
 import { EmptyList } from "../../admin/states";
 import { InventorySkeleton } from "../states";
@@ -77,11 +76,8 @@ export function NoRecords({ branchId, branchName, label, canWrite }: EmptyProps)
       ) : (
         canWrite && (
           <Button asChild>
-            <Link to="/stock/receive" search={{ branch: branchId }}>
+            <Link aria-keyshortcuts="R" to="/stock/receive" search={{ branch: branchId }}>
               Receive goods
-              <Kbd aria-hidden className="bg-primary-foreground/5">
-                R
-              </Kbd>
             </Link>
           </Button>
         )

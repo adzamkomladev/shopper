@@ -1,6 +1,5 @@
 import { ClipboardCheckIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { Skeleton } from "@shopper/ui/components/skeleton";
 import { EmptyList } from "../../../admin/states";
 import { InventorySkeleton } from "../../states";
@@ -56,11 +55,8 @@ export function NoTakes({ branchName, canWrite, online, onStart }: EmptyProps) {
       description={`A stock take counts what is on the shelves at ${branchName} and posts the difference. Your takes are listed here.`}
     >
       {canWrite && (
-        <Button onClick={onStart} disabled={!online}>
+        <Button aria-keyshortcuts="N" onClick={onStart} disabled={!online}>
           Start a stock take
-          <Kbd aria-hidden className="bg-primary-foreground/5">
-            N
-          </Kbd>
         </Button>
       )}
     </EmptyList>

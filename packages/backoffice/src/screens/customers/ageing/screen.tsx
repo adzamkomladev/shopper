@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { DownloadIcon, WalletIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { EmptyList } from "../../../components/admin/states";
@@ -19,10 +18,14 @@ export function AgeingScreen() {
   const canRead = !!usePermissions()?.includes("customer.read");
   const csv = useAgeingCsv();
   const download = canRead && (
-    <Button variant="outline" disabled={csv.isPending} onClick={() => csv.mutate()}>
+    <Button
+      aria-keyshortcuts="D"
+      variant="outline"
+      disabled={csv.isPending}
+      onClick={() => csv.mutate()}
+    >
       <DownloadIcon aria-hidden />
       {csv.isPending ? "Preparing…" : "Download CSV"}
-      {!csv.isPending && <Kbd aria-hidden>D</Kbd>}
     </Button>
   );
   return (

@@ -13,13 +13,11 @@ import {
   DialogTitle,
 } from "@shopper/ui/components/dialog";
 import { FieldGroup } from "@shopper/ui/components/field";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { SelectField } from "../../../fields/select";
 import { TextField } from "../../../fields/text";
 import { focusFirstInvalid } from "../../../../lib/focus";
-import { MOD_KEY } from "../../../../lib/mod/key";
 import {
   ALL_BRANCHES,
   failureFor,
@@ -183,18 +181,12 @@ function PriceForm({ productId, mode, onSaved }: FormProps) {
           </Button>
         </DialogClose>
         <Button
+          aria-keyshortcuts="Control+Enter Meta+Enter"
           type="submit"
           disabled={!online || save.isPending}
           aria-describedby={online ? undefined : OFFLINE_NOTE_ID}
         >
-          {save.isPending ? (
-            "Saving…"
-          ) : (
-            <>
-              {COPY[mode].title}
-              <Kbd aria-hidden>{MOD_KEY} ↵</Kbd>
-            </>
-          )}
+          {save.isPending ? "Saving…" : <>{COPY[mode].title}</>}
         </Button>
       </DialogFooter>
     </form>

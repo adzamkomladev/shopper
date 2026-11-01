@@ -1,8 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { formatGHS, type Money } from "@shopper/money";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
-import { MOD_KEY } from "../../../lib/mod/key";
 
 const OFFLINE_NOTE_ID = "entry-offline-note";
 
@@ -37,27 +35,18 @@ export function EntryFooter({ total, label, pending, online, branchId, onSubmit 
       <div className="flex flex-col items-end gap-2">
         <div className="flex gap-2">
           <Button variant="outline" asChild>
-            <Link to="/stock/records" search={{ branch: branchId }}>
+            <Link aria-keyshortcuts="Escape" to="/stock/records" search={{ branch: branchId }}>
               Cancel
-              <Kbd aria-hidden>Esc</Kbd>
             </Link>
           </Button>
           <Button
+            aria-keyshortcuts="Control+Enter Meta+Enter"
             type="button"
             onClick={onSubmit}
             disabled={!online || pending}
             aria-describedby={online ? undefined : OFFLINE_NOTE_ID}
           >
-            {pending ? (
-              "Saving…"
-            ) : (
-              <>
-                {label}
-                <Kbd aria-hidden className="bg-primary-foreground/5 max-sm:hidden">
-                  {MOD_KEY} ↵
-                </Kbd>
-              </>
-            )}
+            {pending ? "Saving…" : <>{label}</>}
           </Button>
         </div>
         {!online && (

@@ -3,6 +3,18 @@
 @import "@fontsource-variable/geist";
 @source "../";
 
+/* `dark:` follows the same choice as the tokens: the OS unless the viewer picked a theme. */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+  &:where([data-theme="dark"] *) {
+    @slot;
+  }
+}
+
 /* Single token file. Values come from the Figma file 4MtEIWv8yBUBYgkrk4ubPk (frame 55:2263). */
 @theme inline {
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
@@ -43,73 +55,51 @@
   --color-backdrop-deep: var(--backdrop-deep);
 }
 
+/* Each token holds its light and dark value. `color-scheme` picks one: the OS by default, or the
+   viewer's choice through `data-theme` (hooks/theme.ts). Figma has no dark design; dark is slate with a
+   lightened primary. */
 :root {
+  color-scheme: light dark;
   --radius: 0.5rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.1288 0.0406 264.7);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.1288 0.0406 264.7);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.1288 0.0406 264.7);
-  --primary: oklch(0.3981 0.0598 208.13);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.9683 0.0069 247.9);
-  --secondary-foreground: oklch(0.2077 0.0398 265.75);
-  --muted: oklch(0.9683 0.0069 247.9);
-  --muted-foreground: oklch(0.5544 0.0407 257.42);
+  --background: light-dark(oklch(1 0 0), oklch(0.1288 0.0406 264.7));
+  --foreground: light-dark(oklch(0.1288 0.0406 264.7), oklch(0.9842 0.0034 247.86));
+  --card: light-dark(oklch(1 0 0), oklch(0.1831 0.0309 263.38));
+  --card-foreground: light-dark(oklch(0.1288 0.0406 264.7), oklch(0.9842 0.0034 247.86));
+  --popover: light-dark(oklch(1 0 0), oklch(0.1831 0.0309 263.38));
+  --popover-foreground: light-dark(oklch(0.1288 0.0406 264.7), oklch(0.9842 0.0034 247.86));
+  --primary: light-dark(oklch(0.3981 0.0598 208.13), oklch(0.7306 0.0869 204.05));
+  --primary-foreground: light-dark(oklch(1 0 0), oklch(0.1288 0.0406 264.7));
+  --secondary: light-dark(oklch(0.9683 0.0069 247.9), oklch(0.2795 0.0368 260.03));
+  --secondary-foreground: light-dark(oklch(0.2077 0.0398 265.75), oklch(0.9842 0.0034 247.86));
+  --muted: light-dark(oklch(0.9683 0.0069 247.9), oklch(0.2795 0.0368 260.03));
+  --muted-foreground: light-dark(oklch(0.5544 0.0407 257.42), oklch(0.7107 0.0351 256.79));
   /* slate-600: muted-foreground on the muted fill is only 4.3:1, which fails AA for small text. */
-  --kbd-foreground: oklch(0.4455 0.0374 257.28);
-  --accent: oklch(0.9683 0.0069 247.9);
-  --accent-foreground: oklch(0.2077 0.0398 265.75);
-  --destructive: oklch(0.5771 0.2152 27.33);
-  --success: oklch(0.6271 0.1699 149.21);
-  --success-foreground: oklch(1 0 0);
+  --kbd-foreground: light-dark(oklch(0.4455 0.0374 257.28), var(--muted-foreground));
+  --accent: light-dark(oklch(0.9683 0.0069 247.9), oklch(0.2795 0.0368 260.03));
+  --accent-foreground: light-dark(oklch(0.2077 0.0398 265.75), oklch(0.9842 0.0034 247.86));
+  --destructive: light-dark(oklch(0.5771 0.2152 27.33), oklch(0.6368 0.2078 25.33));
+  --success: light-dark(oklch(0.6271 0.1699 149.21), oklch(0.7227 0.192 149.58));
+  --success-foreground: light-dark(oklch(1 0 0), oklch(0.1288 0.0406 264.7));
   /* Figma cart-row attention fill #fff3d8, border #f7c75b and text #6b4300 (frame 48:1465). */
-  --warning: oklch(0.9666 0.0376 86.89);
-  --warning-foreground: oklch(0.4194 0.0902 71.23);
-  --warning-border: oklch(0.852 0.1359 85.05);
-  --border: oklch(0.9288 0.0126 255.51);
-  --input: oklch(0.9288 0.0126 255.51);
+  --warning: light-dark(oklch(0.9666 0.0376 86.89), oklch(0.2877 0.0471 82));
+  --warning-foreground: light-dark(oklch(0.4194 0.0902 71.23), oklch(0.9 0.0902 86));
+  --warning-border: light-dark(oklch(0.852 0.1359 85.05), oklch(0.5 0.1 85));
+  --border: light-dark(oklch(0.9288 0.0126 255.51), oklch(0.2795 0.0368 260.03));
+  --input: light-dark(oklch(0.9288 0.0126 255.51), oklch(0.2795 0.0368 260.03));
   --ring: var(--primary);
-  --page: oklch(0.9819 0.0181 155.83);
-  --backdrop-light: oklch(0.8854 0.0542 196.22);
-  --backdrop-mid: oklch(0.6554 0.0981 197.63);
-  --backdrop-strong: oklch(0.5777 0.0981 197.47);
-  --backdrop-deep: oklch(0.3083 0.0484 201.35);
+  --page: light-dark(oklch(0.9819 0.0181 155.83), oklch(0.1744 0.0258 171.89));
+  --backdrop-light: light-dark(oklch(0.8854 0.0542 196.22), oklch(0.3817 0.059 201.62));
+  --backdrop-mid: light-dark(oklch(0.6554 0.0981 197.63), oklch(0.2816 0.0411 205.4));
+  --backdrop-strong: light-dark(oklch(0.5777 0.0981 197.47), oklch(0.2837 0.0435 202.27));
+  --backdrop-deep: light-dark(oklch(0.3083 0.0484 201.35), oklch(0.1679 0.0247 204.82));
 }
 
-/* Slate dark with a lightened primary. Figma has no dark design, so this follows the OS only. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: oklch(0.1288 0.0406 264.7);
-    --foreground: oklch(0.9842 0.0034 247.86);
-    --card: oklch(0.1831 0.0309 263.38);
-    --card-foreground: oklch(0.9842 0.0034 247.86);
-    --popover: oklch(0.1831 0.0309 263.38);
-    --popover-foreground: oklch(0.9842 0.0034 247.86);
-    --primary: oklch(0.7306 0.0869 204.05);
-    --primary-foreground: oklch(0.1288 0.0406 264.7);
-    --secondary: oklch(0.2795 0.0368 260.03);
-    --secondary-foreground: oklch(0.9842 0.0034 247.86);
-    --muted: oklch(0.2795 0.0368 260.03);
-    --muted-foreground: oklch(0.7107 0.0351 256.79);
-    --kbd-foreground: var(--muted-foreground);
-    --accent: oklch(0.2795 0.0368 260.03);
-    --accent-foreground: oklch(0.9842 0.0034 247.86);
-    --destructive: oklch(0.6368 0.2078 25.33);
-    --success: oklch(0.7227 0.192 149.58);
-    --success-foreground: oklch(0.1288 0.0406 264.7);
-    --warning: oklch(0.2877 0.0471 82);
-    --warning-foreground: oklch(0.9 0.0902 86);
-    --warning-border: oklch(0.5 0.1 85);
-    --border: oklch(0.2795 0.0368 260.03);
-    --input: oklch(0.2795 0.0368 260.03);
-    --page: oklch(0.1744 0.0258 171.89);
-    --backdrop-light: oklch(0.3817 0.059 201.62);
-    --backdrop-mid: oklch(0.2816 0.0411 205.4);
-    --backdrop-strong: oklch(0.2837 0.0435 202.27);
-    --backdrop-deep: oklch(0.1679 0.0247 204.82);
-  }
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 @layer base {
@@ -184,5 +174,56 @@
     height: 2rem;
     pointer-events: none;
     background: linear-gradient(transparent, var(--background));
+  }
+}
+
+/* Motion. Every animation here stops under reduced motion (the rule above). */
+@theme {
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+  --animate-tick: tick 300ms ease-out;
+  --animate-draw: draw 400ms ease-out 100ms both;
+
+  /* Skeletons: a soft highlight sweeps across the fill. */
+  @keyframes shimmer {
+    from {
+      background-position: 150% 0;
+    }
+    to {
+      background-position: -50% 0;
+    }
+  }
+  /* A total that changed: keyed on its value, so it plays once per change. */
+  @keyframes tick {
+    from {
+      opacity: 0.4;
+      transform: translateY(2px);
+    }
+  }
+  /* The sale-complete check draws its stroke. */
+  @keyframes draw {
+    from {
+      stroke-dashoffset: 32;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+}
+
+@utility shimmer {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in oklch, var(--background) 55%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+}
+
+@utility draw-stroke {
+  & path {
+    stroke-dasharray: 32;
+    animation: var(--animate-draw);
   }
 }

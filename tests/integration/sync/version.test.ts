@@ -88,6 +88,10 @@ test("versions order by number, and a prerelease is below its release", () => {
   expect(compareVersions("0.1.10", "0.1.9")).toBeGreaterThan(0);
   expect(compareVersions("0.1.1-rc.1", "0.1.1")).toBeLessThan(0);
   expect(compareVersions("1.0.0", "1.0.0")).toBe(0);
+  // Numeric prerelease parts order as numbers, and an operator's "v" or "+build" does not void the minimum.
+  expect(compareVersions("0.4.0-rc.9", "0.4.0-rc.10")).toBeLessThan(0);
+  expect(compareVersions("0.2.0", "v0.3.0")).toBeLessThan(0);
+  expect(compareVersions("0.2.0", "0.3.0+7")).toBeLessThan(0);
 });
 
 test("Restart now is refused while a shift is open, and when nothing has been downloaded", async () => {

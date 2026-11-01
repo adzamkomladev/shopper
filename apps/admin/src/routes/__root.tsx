@@ -8,6 +8,7 @@ import {
   Scripts,
   useRouter,
 } from "@tanstack/react-router";
+import { themeScript } from "@shopper/ui/hooks/theme";
 
 export const Route = createRootRouteWithContext<PlatformContext>()({
   head: () => ({
@@ -33,8 +34,10 @@ function Admin() {
 
 function Document({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // The theme script sets data-theme before React hydrates.
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <HeadContent />
       </head>
       <body>

@@ -17,7 +17,7 @@ import { sql } from "drizzle-orm";
 import { createMaileroo } from "@shopper/auth";
 import { sha256 } from "@shopper/utils";
 import { readFile } from "node:fs/promises";
-import { extname, resolve } from "node:path";
+import { extname, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { startArkeselFake } from "../../../tooling/arkesel/server";
 import { e2eRun } from "../../../tooling/e2e/run";
@@ -153,7 +153,7 @@ const contentTypes: Record<string, string> = {
 async function serveStatic(request: Request, path: string) {
   const file = resolve(assets, `.${path}`);
   const wantsDocument = request.headers.get("accept")?.includes("text/html");
-  const target = !file.startsWith(`${assets}/`)
+  const target = !file.startsWith(`${assets}${sep}`)
     ? undefined
     : await readFile(file).catch(() => undefined);
   if (target) return respond(target, extname(file));

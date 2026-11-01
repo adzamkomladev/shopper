@@ -29,22 +29,23 @@ export function TransactionLines({ lines }: { lines: TransactionDetail["lines"] 
     <Card className="gap-0 overflow-hidden py-0">
       <CardHeader className="flex flex-row items-start justify-between gap-3 border-b py-4">
         <div className="grid gap-1">
-          <CardTitle className="text-lg">Items purchased</CardTitle>
+          <CardTitle className="text-base">Items purchased</CardTitle>
           <CardDescription>Quantities, prices and tax captured at the time of sale</CardDescription>
         </div>
         <Badge variant="secondary">
           {count} {count === 1 ? "line" : "lines"}
         </Badge>
       </CardHeader>
-      <div className="overflow-x-auto">
+      {/* Columns follow the card's width, not the window's: beside the sidebar a wide window is a narrow card. */}
+      <div className="@container/lines overflow-x-auto">
         <Table aria-label="Items purchased">
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead className="px-4">Product</TableHead>
               <TableHead className="text-right">Qty</TableHead>
-              <TableHead className="hidden text-right md:table-cell">Unit price</TableHead>
-              <TableHead className="hidden text-right md:table-cell">Discount</TableHead>
-              <TableHead className="hidden text-right sm:table-cell">Tax</TableHead>
+              <TableHead className="hidden text-right @2xl/lines:table-cell">Unit price</TableHead>
+              <TableHead className="hidden text-right @2xl/lines:table-cell">Discount</TableHead>
+              <TableHead className="hidden text-right @xl/lines:table-cell">Tax</TableHead>
               <TableHead className="px-4 text-right">Line total</TableHead>
             </TableRow>
           </TableHeader>
@@ -56,17 +57,17 @@ export function TransactionLines({ lines }: { lines: TransactionDetail["lines"] 
                   {line.sku && <div className="text-xs text-muted-foreground">SKU {line.sku}</div>}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{quantity(line.quantity)}</TableCell>
-                <TableCell className="hidden md:table-cell">
+                <TableCell className="hidden @2xl/lines:table-cell">
                   <Money amount={money(line.unitPrice)} />
                 </TableCell>
-                <TableCell className="hidden md:table-cell">
+                <TableCell className="hidden @2xl/lines:table-cell">
                   {line.discount ? (
                     <Money amount={sub(money(0), money(line.discount))} />
                   ) : (
                     <span className="block text-right text-muted-foreground">—</span>
                   )}
                 </TableCell>
-                <TableCell className="hidden sm:table-cell">
+                <TableCell className="hidden @xl/lines:table-cell">
                   <Money amount={lineTax(line)} />
                 </TableCell>
                 <TableCell className="px-4">

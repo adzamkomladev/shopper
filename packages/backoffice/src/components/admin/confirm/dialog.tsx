@@ -10,10 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@shopper/ui/components/dialog";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
-import { MOD_KEY } from "../../../lib/mod/key";
 
 const BLOCKED_ID = "confirm-blocked";
 
@@ -79,13 +77,13 @@ export function ConfirmDialog(props: Props) {
               <Button variant="outline">Cancel</Button>
             </DialogClose>
             <Button
+              aria-keyshortcuts="Control+Enter Meta+Enter"
               variant={props.destructive === false ? "default" : "destructive"}
               disabled={!canConfirm}
               aria-describedby={blocked ? BLOCKED_ID : undefined}
               onClick={props.onConfirm}
             >
               {pending ? "Working…" : confirmLabel}
-              {!pending && <Kbd aria-hidden>{MOD_KEY} ↵</Kbd>}
             </Button>
           </DialogFooter>
         </div>

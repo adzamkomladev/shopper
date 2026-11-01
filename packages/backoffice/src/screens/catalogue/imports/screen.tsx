@@ -2,10 +2,8 @@ import { useState } from "react";
 import { CircleAlertIcon, Loader2Icon } from "lucide-react";
 import { Alert, AlertDescription } from "@shopper/ui/components/alert";
 import { Button } from "@shopper/ui/components/button";
-import { Kbd } from "@shopper/ui/components/kbd";
 import { useOnline } from "@shopper/ui/hooks/use-online";
 import { focusOnMount } from "../../../lib/focus";
-import { MOD_KEY } from "../../../lib/mod/key";
 import { FileDrop } from "../../../components/catalogue/imports/file/drop";
 import { ImportDone } from "../../../components/catalogue/imports/done";
 import { ImportReport } from "../../../components/catalogue/imports/report";
@@ -53,7 +51,7 @@ export function ImportsScreen() {
           id={TITLE_ID}
           ref={focusOnMount}
           tabIndex={-1}
-          className="text-3xl font-bold tracking-tight outline-none"
+          className="text-2xl font-semibold tracking-tight outline-none"
         >
           Import products
         </h1>
@@ -90,6 +88,7 @@ export function ImportsScreen() {
           )}
           <div>
             <Button
+              aria-keyshortcuts="Control+Enter Meta+Enter"
               type="button"
               disabled={!file || !online || check.isPending}
               aria-describedby={describedBy}
@@ -101,10 +100,7 @@ export function ImportsScreen() {
                   Checking…
                 </>
               ) : (
-                <>
-                  Check file
-                  <Kbd aria-hidden>{MOD_KEY} ↵</Kbd>
-                </>
+                <>Check file</>
               )}
             </Button>
           </div>

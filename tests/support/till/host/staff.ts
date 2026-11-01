@@ -4,10 +4,14 @@ import { ama, kofi, startStaffUpstream, type Staff } from "./staff/upstream";
 export { ama, kofi, startStaffUpstream, type Staff };
 
 /** A real till host that signs staff in against the stub upstream, plus its browser-facing HTTP surface. */
-export async function startStaffHost(staff: Staff[] = [ama, kofi], origins?: string[]) {
+export async function startStaffHost(
+  staff: Staff[] = [ama, kofi],
+  origins?: string[],
+  startOptions?: { clockOffsetMs?: number },
+) {
   const upstream = await startStaffUpstream(staff);
   const fixture = await createHostFixture({ freshSession: true, upstream: upstream.url, origins });
-  const host = await fixture.start();
+  const host = await fixture.start(undefined, startOptions);
   const base = `http://127.0.0.1:${host.ready.port}`;
   let closed = false;
   let cookie: string | undefined;

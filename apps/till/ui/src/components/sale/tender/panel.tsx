@@ -5,13 +5,13 @@ import { useAccountRead } from "../../../hooks/sale/tender/account";
 import { tenderEntry } from "../../../sale/account/entry";
 import { pointsText } from "../../../sale/account/rules";
 import { hasUnappliedConfirmation } from "../../../sale/payments";
-import type { TenderMethod } from "../../../sale/account/types";
+import type { AmountEntry, TenderMethod } from "../../../sale/account/types";
 import type { SaleActions, SaleControls, SaleSnapshot } from "../../../sale/types";
 import { TenderActions } from "./actions";
 import { AccountNotice, AccountSummary, PointsEntry } from "./account";
 import { TenderHeader } from "./header";
 import { TenderOverlays } from "./overlays";
-import { TenderKeypad } from "./keypad";
+import { AmountField, TenderPad } from "./keypad";
 import { methodReasons, TenderMethods } from "./methods";
 import { previewSettlement } from "./preview";
 import { MomoState, ReceiptComplete, UnappliedConfirmation } from "./state";
@@ -36,7 +36,7 @@ export function TenderPanel({
   onReturnFocus: () => void;
   onPurchases?: () => void;
 }) {
-  const [amountEntry, setAmountEntry] = useState<{ draftKey: string; value: string } | null>(null);
+  const [amountEntry, setAmountEntry] = useState<AmountEntry | null>(null);
   const [pointsEntry, setPointsEntry] = useState<{ draftKey: string; value: string } | null>(null);
   const [picked, setKind] = useState<TenderMethod>("cash");
   const [cardOpen, setCardOpen] = useState(false);
@@ -48,6 +48,8 @@ export function TenderPanel({
   const gross = money(baseSettlement?.gross ?? snapshot.view?.quote.totals.gross ?? 0);
   const customer = snapshot.view?.customer ?? null;
   const account = useAccountRead(customer?.id ?? null, actions);
+  // Called as plain functions: a method call on `account` reads to the compiler as a mutation of it.
+  const { clearRefusal, load: loadAccount, add: addAccountTender } = account;
   const reasons = methodReasons({
     offline: snapshot.sync.offline,
     canMomo: snapshot.permissions.includes("payment.momo"),
@@ -80,58 +82,45 @@ export function TenderPanel({
   const waitingForMomo = momoTenders.some(
     (tender) => tender.status === "pending" || tender.status === "otp",
   );
-  const register = useShortcuts(
-    active && !snapshot.receipt
-      ? {
-          "Alt+1": () => setKind("cash"),
-          "Alt+2": () => openMomo(),
-          "Alt+3": () => openCard(),
-          "Alt+4": split,
-          "Alt+5": () => openAccount("credit"),
-          "Alt+6": () => openAccount("loyalty"),
-          F5: charge,
-        }
-      : {},
-  );
-
-  function openCard() {
+  // Consts in call order: the compiler leaves hoisted functions unmemoized, repainting every child per digit.
+  const openCard = () => {
     setKind("card");
     setCardOpen(true);
-  }
-  function selectMethod(next: TenderMethod) {
+  };
+  const openMomo = () => {
+    if (snapshot.sync.offline || !snapshot.permissions.includes("payment.momo")) return;
+    setKind("momo");
+    setMomoOpen(true);
+  };
+  /** Reads what the customer may spend each time, since another register may have used it. */
+  const openAccount = (next: "credit" | "loyalty") => {
+    if (reasons.account || locked) return;
+    setKind(next);
+    clearRefusal();
+    void loadAccount(account.read?.status === "ready");
+  };
+  const selectMethod = (next: TenderMethod) => {
     if (next === "cash") setKind("cash");
     if (next === "card") openCard();
     if (next === "momo") openMomo();
     if (next === "credit" || next === "loyalty") openAccount(next);
-  }
-  /** Reads what the customer may spend each time, since another register may have used it. */
-  function openAccount(next: "credit" | "loyalty") {
-    if (reasons.account || locked) return;
-    setKind(next);
-    account.clearRefusal();
-    void account.load(account.read?.status === "ready");
-  }
-  function split() {
-    if (accountKind) void addAccount(false);
-    else addCash();
-  }
+  };
   /** Puts the account tender on the basket, then completes the sale when it covered what was due. */
-  async function addAccount(thenComplete: boolean) {
+  const addAccount = async (thenComplete: boolean) => {
     if (locked || !canTender || entry.blocked) return;
-    const added = await account.add(
+    const added = await addAccountTender(
       kind === "loyalty" ? { kind, points: points! } : { kind: "credit", amount },
     );
     if (added && thenComplete) actions.complete();
-  }
-  function openMomo() {
-    if (snapshot.sync.offline || !snapshot.permissions.includes("payment.momo")) return;
-    setKind("momo");
-    setMomoOpen(true);
-  }
-  function addCash() {
+  };
+  const addCash = () => {
     if (canTender && !locked) actions.addTender({ kind: "cash", amount });
-  }
-  function charge() {
+  };
+  const split = () => {
+    if (accountKind) void addAccount(false);
+    else addCash();
+  };
+  const charge = () => {
     if (locked || waitingForMomo) return;
     if (balance <= 0) {
       if (gross === 0 && draft && draft.lines.length > 0 && draft.tenders.length === 0)
@@ -143,13 +132,13 @@ export function TenderPanel({
     if (kind === "card") return openCard();
     if (kind === "momo") return openMomo();
     if (canTender) actions.charge({ kind: "cash", amount });
-  }
-  function addCard(approvalCode: string, last4: string) {
+  };
+  const addCard = (approvalCode: string, last4: string) => {
     if (!canTender) return;
     actions.addTender({ kind: "card", amount, approvalCode, ...(last4 ? { last4 } : {}) });
     setCardOpen(false);
-  }
-  function requestMomo(phone: string, network: "mtn" | "telecel" | "airteltigo") {
+  };
+  const requestMomo = (phone: string, network: "mtn" | "telecel" | "airteltigo") => {
     if (!canTender) return;
     try {
       actions.startMomo({ phone, network, amount: wholePesewas(amount) });
@@ -157,10 +146,23 @@ export function TenderPanel({
     } catch {
       controls.setNotice("Mobile money amount must use whole pesewas.");
     }
-  }
-  function addMomoOtp(otp: string) {
+  };
+  const addMomoOtp = (otp: string) => {
     if (momo?.reference) actions.submitMomoOtp({ reference: momo.reference, otp });
-  }
+  };
+  const register = useShortcuts(
+    active && !snapshot.receipt
+      ? {
+          "Alt+1": () => setKind("cash"),
+          "Alt+2": openMomo,
+          "Alt+3": openCard,
+          "Alt+4": split,
+          "Alt+5": () => openAccount("credit"),
+          "Alt+6": () => openAccount("loyalty"),
+          F5: charge,
+        }
+      : {},
+  );
   if (snapshot.receipt)
     return (
       <ReceiptComplete
@@ -195,19 +197,14 @@ export function TenderPanel({
         itemCount={draft?.lines.length ?? 0}
         onBack={onBack}
       />
-
       {accountKind && (
-        <AccountSummary
-          kind={accountKind}
-          onRetry={() => void account.load()}
-          read={account.read}
-        />
+        <AccountSummary kind={accountKind} onRetry={() => void loadAccount()} read={account.read} />
       )}
       {kind === "loyalty" ? (
         <PointsEntry
           account={account.account}
           onChange={(value) => {
-            account.clearRefusal();
+            clearRefusal();
             if (draftKey) setPointsEntry({ draftKey, value: pointsText(value) });
           }}
           onEnter={charge}
@@ -215,21 +212,32 @@ export function TenderPanel({
           value={entry.pointsInput}
         />
       ) : (
-        <TenderKeypad
-          balance={balance}
-          pad={kind !== "credit"}
-          onChange={(value) => {
-            account.clearRefusal();
-            if (draftKey) setAmountEntry({ draftKey, value });
-          }}
-          onEnter={charge}
-          value={entry.amountInput}
-        />
+        <>
+          <AmountField
+            balance={balance}
+            onChange={(value) => {
+              clearRefusal();
+              if (draftKey) setAmountEntry({ draftKey, value });
+            }}
+            onEnter={charge}
+            value={entry.amountInput}
+          />
+          {kind !== "credit" && (
+            <TenderPad
+              balance={balance}
+              draftKey={draftKey}
+              fallback={entry.defaultInput}
+              onEdit={clearRefusal}
+              setEntry={setAmountEntry}
+            />
+          )}
+        </>
       )}
       <AccountNotice problem={entry.issue ?? account.refusal} />
-      {balance > 0 && amount !== null && amount < balance && (
-        <p className="text-sm text-muted-foreground" role="status">
-          Add another tender to finish this sale.
+      {/* Mounted while a balance is due, so the first digit moves nothing and the live region is there first. */}
+      {balance > 0 && (
+        <p className="min-h-5 text-sm text-muted-foreground" role="status">
+          {amount !== null && amount < balance && "Add another tender to finish this sale."}
         </p>
       )}
       <TenderMethods onSelect={selectMethod} reasons={reasons} selected={kind} />
@@ -248,7 +256,6 @@ export function TenderPanel({
           {snapshot.operationError}
         </p>
       )}
-
       <TenderActions
         amount={formatGHS(canTender ? amount : balance)}
         canSplit={!locked && canTender}
@@ -256,7 +263,6 @@ export function TenderPanel({
         onSplit={addCash}
         onCharge={charge}
       />
-
       <TenderOverlays
         amount={amount ?? money(0)}
         offline={snapshot.sync.offline}

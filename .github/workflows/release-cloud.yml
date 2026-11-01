@@ -29,15 +29,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
-      - run: vp run build:production
-        working-directory: apps/edge
       - run: vp run deploy:production -- $FLAGS
         working-directory: apps/edge
-      - run: vp run build:production
-        working-directory: apps/portal
       - run: vp run deploy:production -- $FLAGS
         working-directory: apps/portal
-      - run: vp run build:production
-        working-directory: apps/admin
       - run: vp run deploy:production -- $FLAGS
         working-directory: apps/admin

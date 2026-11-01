@@ -56,7 +56,7 @@ test("production uploads a version that serves nothing, and migrates nothing", (
   );
   expect(result.status).toBe(0);
   expect(result.out).toContain("cf workers versions create --prebuilt --mode prod");
-  expect(result.out).not.toContain("db:migrate");
+  expect(result.out).not.toContain("database/cli.ts migrate");
   expect(result.out).not.toMatch(/^cf deploy/m);
 });
 
@@ -71,7 +71,8 @@ test("--promote migrates, deploys the build to all traffic and smoke tests it", 
   );
   expect(result.status).toBe(0);
   const lines = result.out.trim().split("\n");
-  expect(lines[0]).toContain("db:migrate");
+  // Not `vp run db:migrate`: any `vp run` clears every app's .cloudflare/output, the build about to ship.
+  expect(lines[0]).toBe("vp exec tsx tooling/database/cli.ts migrate");
   expect(lines[1]).toContain("cf d1 migrations apply d1-id");
   expect(lines.at(-2)).toMatch(/^cf deploy --prebuilt --mode prod --tag v\S+ --no-provision$/);
   expect(lines.at(-1)).toBe("smoke edge https://shopper-api.temtem.dev");

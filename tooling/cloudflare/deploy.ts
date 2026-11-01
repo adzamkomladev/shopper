@@ -6,8 +6,8 @@ import { fileURLToPath } from "node:url";
 import { smoke, type SmokeTarget } from "./smoke";
 
 /**
- * Deploys one Worker from the app folder, after that app's `build:<stage>`:
- * `vp run deploy:staging` or `deploy:production` in the app folder.
+ * Deploys one Worker from the app folder: `vp run deploy:staging` or `deploy:production` there,
+ * which builds first in the same run (a separate `vp run` would clear the build).
  *
  * Staging goes straight to traffic. Production is two steps: `deploy:production` uploads a version
  * that serves nothing (the bindings and secrets resolve, nothing changes), and `deploy:production
@@ -80,7 +80,8 @@ function prebuilt() {
 function migrate() {
   if (!process.env.DATABASE_URL)
     throw new Error(`DATABASE_URL (the direct, non-pooled ${stage} URL) is required to migrate`);
-  run("vp", ["run", "db:migrate"], "inherit", repoRoot);
+  // `vp run` would clear every app's .cloudflare/output, including the build about to ship.
+  run("vp", ["exec", "tsx", "tooling/database/cli.ts", "migrate"], "inherit", repoRoot);
   const database = Object.values(config.env).find((binding) => binding.type === "d1")?.id;
   if (!database) throw new Error(`No D1 binding in the ${config.name} config to migrate`);
   const directory = ["--dir", resolve(repoRoot, "packages/db/sqlite/migrations")];

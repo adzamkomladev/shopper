@@ -33,6 +33,7 @@ Both Workers run from the repo root. Each app owns two scripts, invoked as `pnpm
 | `build:staging`  | `cf build --mode staging`                                                                                                                                           | `vp build --mode staging`; the build also prerenders the SPA shell |
 | `deploy:staging` | `tooling/cloudflare/deploy.ts edge`: PG migrations (`DATABASE_URL`, fails fast), `cf d1 migrations apply <id>` then a pending check, `cf deploy --prebuilt`, smoke test | `deploy.ts portal`: `cf deploy --prebuilt`, smoke test    |
 
+- `deploy:<stage>` builds first in the same run: any other `vp run` clears every app's `.cloudflare/output`.
 - Both builds write `.cloudflare/output/v0` (gitignored): `config.json` (the build mode) and
   `workers/default/worker.config.json` with every binding, text value, secret declaration and domain.
   `deploy.ts` refuses to run unless that output is mode `staging` and a `*-staging` Worker. The portal
@@ -97,7 +98,7 @@ and `shopper-admin.temtem.dev`, with its own Neon branch, Hyperdrive, D1, three 
 dead-letter queue. It builds with `--mode prod`, never `production`: Vite's default build mode is already
 `production`, and that must stay a dev build.
 
-- `build:production` then `deploy:production` uploads a version (`cf workers versions create`, tagged
+- `deploy:production` builds, then uploads a version (`cf workers versions create`, tagged
   `v<version>`) that serves nothing: the bindings and secrets resolve, traffic does not move.
 - `deploy:production -- --promote` migrates (edge: Neon over `DATABASE_URL`, then D1), runs `cf deploy`
   to all traffic and smoke tests, including `/health/ready`. Order: edge, portal, admin.

@@ -21,3 +21,4 @@ export * from "./billing";
 export * from "./receipts";
 export * from "./onboarding";
 export * from "./kyb";
+export * from "./shop";

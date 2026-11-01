@@ -8,4 +8,8 @@ export const shopPhone = v.pipe(
 );
 
 /** Six digits, as typed or pasted. */
-export const shopCode = v.pipe(v.string(), v.trim(), v.regex(/^[0-9]{6}$/, "Enter the 6-digit code"));
+export const shopCode = v.pipe(
+  v.string(),
+  v.trim(),
+  v.regex(/^[0-9]{6}$/, "Enter the 6-digit code"),
+);

@@ -110,7 +110,9 @@ export const verifyLogin = defineCommand({
   audit: (_input, output) => ({
     loginId: output.loginId,
     outcome: output.outcome,
-    ...(output.outcome === "ok" ? { accountId: output.accountId, sessionId: output.sessionId } : {}),
+    ...(output.outcome === "ok"
+      ? { accountId: output.accountId, sessionId: output.sessionId }
+      : {}),
   }),
   details: (_input, output) => entity(output.loginId),
 });

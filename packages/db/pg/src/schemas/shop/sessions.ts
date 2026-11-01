@@ -1,5 +1,14 @@
 import { sql } from "drizzle-orm";
-import { check, foreignKey, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import {
+  check,
+  foreignKey,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from "drizzle-orm/pg-core";
 import { tenant } from "../base";
 import { shopAccount } from "./accounts";
 

@@ -23,7 +23,11 @@ export function createShopAccess(options: {
 }) {
   assertLinkSecret(options.linkSecret);
   const now = options.now ?? (() => new Date());
-  const context = (orgId: string) => ({ orgId, appVersion: options.appVersion, queue: options.queue });
+  const context = (orgId: string) => ({
+    orgId,
+    appVersion: options.appVersion,
+    queue: options.queue,
+  });
   const digest = async (loginId: string, send: number) =>
     loginDigest(options.linkSecret, loginId, await loginCode(options.linkSecret, loginId, send));
 
@@ -95,7 +99,10 @@ export function createShopAccess(options: {
     async signOut(token: string) {
       const found = await this.session(token);
       if (found)
-        await endSession(options.database, context(found.orgId), { id: found.sessionId, now: now() });
+        await endSession(options.database, context(found.orgId), {
+          id: found.sessionId,
+          now: now(),
+        });
     },
   };
 }

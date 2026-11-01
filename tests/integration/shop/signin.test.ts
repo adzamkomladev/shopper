@@ -32,10 +32,17 @@ const wrongOf = async (loginId: string, send = 1) =>
 test("a right code signs in once, makes the account and a session that names its shop", async () => {
   const { loginId } = await access.start(world.a.orgId, "+233 24 123 4567");
   const message = world.sent.at(-1)!;
-  expect(message).toMatchObject({ orgId: world.a.orgId, type: "shop.otp", payload: { loginId, send: 1 } });
+  expect(message).toMatchObject({
+    orgId: world.a.orgId,
+    type: "shop.otp",
+    payload: { loginId, send: 1 },
+  });
   const code = await codeOf(loginId);
   expect(JSON.stringify(message)).not.toContain(code);
-  const [row] = await world.db.select().from(schema.shopLogin).where(eq(schema.shopLogin.id, loginId));
+  const [row] = await world.db
+    .select()
+    .from(schema.shopLogin)
+    .where(eq(schema.shopLogin.id, loginId));
   expect(row).toMatchObject({ phone: "0241234567", sends: 1, attempts: 0 });
   expect(JSON.stringify(row)).not.toContain(code);
 
@@ -43,7 +50,11 @@ test("a right code signs in once, makes the account and a session that names its
   expect(signedIn).toMatchObject({ outcome: "ok", token: expect.any(String) });
   if (signedIn.outcome !== "ok") throw new Error("expected a session");
   const session = await access.session(signedIn.token);
-  expect(session).toMatchObject({ orgId: world.a.orgId, accountId: signedIn.accountId, phone: "0241234567" });
+  expect(session).toMatchObject({
+    orgId: world.a.orgId,
+    accountId: signedIn.accountId,
+    phone: "0241234567",
+  });
   const [stored] = await world.db.select().from(schema.shopSession);
   expect(stored!.tokenDigest).not.toBe(signedIn.token);
 
@@ -66,16 +77,28 @@ test("five wrong codes lock the attempt, even for the right code after", async (
     expect(await access.verify(world.a.orgId, loginId, await wrongOf(loginId))).toEqual(
       attempt < 5 ? { outcome: "wrong", attemptsLeft: 5 - attempt } : { outcome: "locked" },
     );
-  expect(await access.verify(world.a.orgId, loginId, await codeOf(loginId))).toEqual({ outcome: "locked" });
-  const [row] = await world.db.select().from(schema.shopLogin).where(eq(schema.shopLogin.id, loginId));
+  expect(await access.verify(world.a.orgId, loginId, await codeOf(loginId))).toEqual({
+    outcome: "locked",
+  });
+  const [row] = await world.db
+    .select()
+    .from(schema.shopLogin)
+    .where(eq(schema.shopLogin.id, loginId));
   expect(row!.attempts).toBe(5);
-  expect(await world.db.select().from(schema.shopAccount).where(eq(schema.shopAccount.phone, "0201112222"))).toEqual([]);
+  expect(
+    await world.db
+      .select()
+      .from(schema.shopAccount)
+      .where(eq(schema.shopAccount.phone, "0201112222")),
+  ).toEqual([]);
 });
 
 test("a code is refused once ten minutes have passed", async () => {
   const { loginId } = await access.start(world.a.orgId, "0203334444");
   world.clock.add(10 * 60_000 + 1);
-  expect(await access.verify(world.a.orgId, loginId, await codeOf(loginId))).toEqual({ outcome: "expired" });
+  expect(await access.verify(world.a.orgId, loginId, await codeOf(loginId))).toEqual({
+    outcome: "expired",
+  });
 });
 
 test("a resend sends a new code that replaces the old one, three sends at most", async () => {
@@ -83,14 +106,22 @@ test("a resend sends a new code that replaces the old one, three sends at most",
   expect(await access.resend(world.a.orgId, loginId)).toEqual({ sent: true });
   expect(await access.resend(world.a.orgId, loginId)).toEqual({ sent: true });
   expect(await access.resend(world.a.orgId, loginId)).toEqual({ sent: false });
-  expect(world.sent.filter((m) => (m.payload as { loginId?: string }).loginId === loginId)).toHaveLength(3);
-  expect(await access.verify(world.a.orgId, loginId, await codeOf(loginId, 1))).toMatchObject({ outcome: "wrong" });
-  expect(await access.verify(world.a.orgId, loginId, await codeOf(loginId, 3))).toMatchObject({ outcome: "ok" });
+  expect(
+    world.sent.filter((m) => (m.payload as { loginId?: string }).loginId === loginId),
+  ).toHaveLength(3);
+  expect(await access.verify(world.a.orgId, loginId, await codeOf(loginId, 1))).toMatchObject({
+    outcome: "wrong",
+  });
+  expect(await access.verify(world.a.orgId, loginId, await codeOf(loginId, 3))).toMatchObject({
+    outcome: "ok",
+  });
 });
 
 test("a login of one shop cannot be completed at another", async () => {
   const { loginId } = await access.start(world.a.orgId, "0207778888");
-  await expect(access.verify(world.b.orgId, loginId, await codeOf(loginId))).rejects.toMatchObject({ status: 404 });
+  await expect(access.verify(world.b.orgId, loginId, await codeOf(loginId))).rejects.toMatchObject({
+    status: 404,
+  });
 });
 
 test("signing out, expiry and a forged token all leave no session", async () => {
@@ -121,6 +152,11 @@ test("an invalid phone is refused before anything is stored, and every step is a
   const [audit] = await world.db
     .select()
     .from(schema.auditLog)
-    .where(and(eq(schema.auditLog.orgId, world.a.orgId), eq(schema.auditLog.command, "shop.login.start")));
+    .where(
+      and(
+        eq(schema.auditLog.orgId, world.a.orgId),
+        eq(schema.auditLog.command, "shop.login.start"),
+      ),
+    );
   expect(JSON.stringify(audit!.payload)).not.toContain("0241234567");
 });

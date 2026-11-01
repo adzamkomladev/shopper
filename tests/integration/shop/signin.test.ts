@@ -117,6 +117,17 @@ test("a resend sends a new code that replaces the old one, three sends at most",
   });
 });
 
+test("a new code does not reset the wrong guesses: five in all lock the login", async () => {
+  const { loginId } = await access.start(world.a.orgId, "0205557777");
+  for (let attempt = 1; attempt <= 4; attempt++)
+    await access.verify(world.a.orgId, loginId, await wrongOf(loginId));
+  expect(await access.resend(world.a.orgId, loginId)).toEqual({ sent: true });
+  expect(await access.verify(world.a.orgId, loginId, await wrongOf(loginId))).toEqual({
+    outcome: "locked",
+  });
+  expect(await access.resend(world.a.orgId, loginId)).toEqual({ sent: false });
+});
+
 test("a login of one shop cannot be completed at another", async () => {
   const { loginId } = await access.start(world.a.orgId, "0207778888");
   await expect(access.verify(world.b.orgId, loginId, await codeOf(loginId))).rejects.toMatchObject({

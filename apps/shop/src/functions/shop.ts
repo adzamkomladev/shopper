@@ -8,7 +8,7 @@ import { shopCodeParam, shopInfo } from "../schemas/shop";
  * The shopper's own data never renders here: it loads in the browser with the session cookie.
  */
 export const readShop = createServerFn({ method: "GET" })
-  .inputValidator((code: unknown) => v.parse(shopCodeParam, code))
+  .validator((code: unknown) => v.parse(shopCodeParam, code))
   .handler(async ({ context, data }) => {
     const incoming = getRequest();
     // The client's address travels on, so the public lookup budget stays per shopper.

@@ -61,8 +61,8 @@ function SignIn() {
           setLogin(null);
         }}
         onVerified={() => {
-          // Anything cached for a previous shopper on this browser goes.
-          queryClient.removeQueries({ queryKey: [shop.code] });
+          // Anything cached for a previous shopper on this browser goes, whatever case their link used.
+          queryClient.removeQueries();
           setWelcome(true);
           const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
           setTimeout(

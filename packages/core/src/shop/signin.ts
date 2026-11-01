@@ -39,7 +39,7 @@ export const startLogin = defineCommand({
   details: (_input, output) => entity(output.id),
 });
 
-/** The next code for an open login; past the third send, or once used or locked, nothing is sent. */
+/** The next code for an open login; wrong guesses carry over. Past the third send, or once used or locked, nothing is sent. */
 export const resendLogin = defineCommand({
   name: "shop.login.resend",
   async run(tx, context, input: { id: string; send: number; digest: string; now: Date }) {
@@ -53,7 +53,6 @@ export const resendLogin = defineCommand({
         otpDigest: input.digest,
         expiresAt: new Date(input.now.getTime() + LOGIN_TTL_MS),
         sends: input.send,
-        attempts: 0,
         updatedAt: input.now,
       })
       .where(and(eq(shopLogin.orgId, context.orgId), eq(shopLogin.id, row.id)));

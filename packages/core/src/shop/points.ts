@@ -5,7 +5,7 @@ import { tierFor } from "../customers/loyalty/tiers";
 import { customersOf } from "./queries";
 import type { ShopSession } from "./types";
 
-// ponytail: newest 50 entries; the balance is the whole ledger's fold either way.
+// ponytail: newest 50 entries; the window sum runs before LIMIT, so the balance is the whole ledger's fold.
 const RECENT = 50;
 
 /** The shopper's points at this shop, summed over their customer rows, the tier they hold and recent movements. */
@@ -24,7 +24,8 @@ export async function readShopPoints(db: ShopperDatabase, session: ShopSession, 
       (SUM(points) OVER ())::text AS total
     FROM loyalty_entry
     WHERE org_id = ${session.orgId} AND customer_id IN (${customersOf(session)})
-    ORDER BY occurred_at DESC, id DESC`);
+    ORDER BY occurred_at DESC, id DESC
+    LIMIT ${RECENT}`);
   // The oldest live row is the one tills keep earning on; rows merged into it count towards its tier.
   const { rows: live } = await db.execute<{ id: string }>(sql`
     SELECT id FROM customer
@@ -36,7 +37,7 @@ export async function readShopPoints(db: ShopperDatabase, session: ShopSession, 
     enabled: settings.enabled,
     points: Number(rows[0]?.total ?? 0),
     tier: tier && { name: tier.name },
-    entries: rows.slice(0, RECENT).map((row) => ({
+    entries: rows.map((row) => ({
       id: row.id,
       reason: row.reason,
       points: Number(row.points),

@@ -42,8 +42,8 @@ to `postgresql://shopper:shopper_dev_only@127.0.0.1:5433/shopper` (`/shopper_e2e
 Use `vp` for everything. Never call `npm` in this repo: `devEngines` rejects it. Run one-off binaries
 with `vp exec <bin>`. Cloudflare is driven with `cf` (`vp exec cf ...`); when unsure which command to
 use, run `cf cli search "<task>"` or `cf docs search "<question>"`. Keep those queries anonymous: no
-names, domains, account or resource ids, tokens. Wrangler stays only for `tail`, `rollback` and
-`secret put`.
+names, domains, account or resource ids, tokens. Do not use wrangler: secrets, versions, deployments
+and rollback are all `cf` commands, and live logs are Workers Logs in the dashboard.
 
 ## Reset and seed
 

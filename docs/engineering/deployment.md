@@ -15,14 +15,15 @@ Infrastructure identifiers live in each Worker's `cloudflare.config.ts` only (`a
 `apps/portal`), evaluated per `--mode` (`staging`, anything else is dev). Plain configuration (bucket
 names, the R2 S3 endpoint and region, the portal origin) is a `bindings.text()` value there. Credentials
 are `bindings.secret()` declarations: the name is in the repo, the value never is. Set values with
-`vp exec wrangler secret put <NAME> --name <worker>` or Workers Builds secrets for Workers, and the sealed
+`vp exec cf workers secrets update <NAME> --worker <worker> --text "$VALUE"` (from an environment
+variable, never typed inline) or Workers Builds secrets for Workers, and the sealed
 config for the box. A declared secret that is missing on the Worker fails the deploy (code 10057); verify
 names with `vp exec cf workers secrets list --script-name <worker>`.
 
 ## Cloud release
 
 `main` deploys to **staging only**, through Cloudflare Workers Builds (the dashboard git integration)
-on `shopper-edge-staging` and `shopper-portal-staging`. Production goes through the `release` skill.
+on `shopper-edge-staging`, `shopper-portal-staging` and `shopper-admin-staging`. Production goes through the `release` skill.
 Workers Builds does not wait for GitHub CI, so merge to `main` only when CI is green.
 
 Both Workers run from the repo root. Each app owns two scripts, invoked as `pnpm --filter <app> run
@@ -40,7 +41,7 @@ Both Workers run from the repo root. Each app owns two scripts, invoked as `pnpm
   uses `vp build` because `cf build` hands the framework build no `--mode`; the output is the same.
 - D1 migrations run by database id, read from the build output (`cf d1 migrations apply <id> --dir
   packages/db/sqlite/migrations`); after applying, `deploy.ts` lists again and fails if anything is pending.
-- `vp`, `cf` and `wrangler` are repo devDependencies, so `pnpm run` finds them with no bootstrap step.
+- `vp` and `cf` are repo devDependencies, so `pnpm run` finds them with no bootstrap step.
   The image's default pnpm is older than ours: set `PNPM_VERSION`. Set `CF_SEND_TELEMETRY=false` in CI.
 - Worker secrets in the build environment are pushed with `cf deploy --secrets-file`: `deploy.ts` writes
   the declared secrets that are present in the environment to a private temporary file. Prefer setting them
@@ -57,21 +58,21 @@ Both Workers run from the repo root. Each app owns two scripts, invoked as `pnpm
 
 ### Workers Builds settings
 
-Set under each Worker, **Settings > Build**. Connect `adzamkomladev/shopper` to both.
+Set under each Worker, **Settings > Build**. Connect `adzamkomladev/shopper` to all three.
 
-| Setting                      | `shopper-edge-staging`                                                         | `shopper-portal-staging`                                                |
-| ---------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| Git branch (production)      | `main`                                                                         | `main`                                                                  |
-| Non-production branch builds | Disabled (Branch control)                                                      | Disabled                                                                |
-| Root directory               | `/`                                                                            | `/`                                                                     |
-| Build command                | `pnpm --filter @shopper/edge run build:staging`                                | `pnpm --filter @shopper/portal run build:staging`                       |
-| Deploy command               | `pnpm --filter @shopper/edge run deploy:staging`                               | `pnpm --filter @shopper/portal run deploy:staging`                      |
-| Build watch paths            | `apps/edge/*`, `packages/*`, `tooling/database/*`, `tooling/cloudflare/*`, `pnpm-lock.yaml` | `apps/portal/*`, `packages/*`, `tooling/cloudflare/*`, `pnpm-lock.yaml` |
-| Build variables              | `NODE_VERSION=24.21.0`, `PNPM_VERSION=12.9.1`, `CF_SEND_TELEMETRY=false`           | Same                                                                    |
-| Build secrets                | `DATABASE_URL` (required); Worker secrets (optional)                           | Worker secrets (optional)                                               |
+| Setting                      | `shopper-edge-staging`                                                                      | `shopper-portal-staging`                                                | `shopper-admin-staging`                                                |
+| ---------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Git branch (production)      | `main`                                                                                      | `main`                                                                  | `main`                                                                 |
+| Non-production branch builds | Disabled (Branch control)                                                                   | Disabled                                                                | Disabled                                                               |
+| Root directory               | `/`                                                                                         | `/`                                                                     | `/`                                                                    |
+| Build command                | `pnpm --filter @shopper/edge run build:staging`                                             | `pnpm --filter @shopper/portal run build:staging`                       | `pnpm --filter @shopper/admin run build:staging`                       |
+| Deploy command               | `pnpm --filter @shopper/edge run deploy:staging`                                            | `pnpm --filter @shopper/portal run deploy:staging`                      | `pnpm --filter @shopper/admin run deploy:staging`                      |
+| Build watch paths            | `apps/edge/*`, `packages/*`, `tooling/database/*`, `tooling/cloudflare/*`, `pnpm-lock.yaml` | `apps/portal/*`, `packages/*`, `tooling/cloudflare/*`, `pnpm-lock.yaml` | `apps/admin/*`, `packages/*`, `tooling/cloudflare/*`, `pnpm-lock.yaml` |
+| Build variables              | `NODE_VERSION=24.21.0`, `PNPM_VERSION=12.9.1`, `CF_SEND_TELEMETRY=false`                    | Same                                                                    | Same                                                                   |
+| Build secrets                | `DATABASE_URL` (required); Worker secrets (optional)                                        | Worker secrets (optional)                                               | Worker secrets (optional)                                              |
 
-- Watch paths keep docs-only changes (`docs/`, `tests/`, `.github/`) from redeploying. Edge and
-  portal both include `packages/*`, so a shared change triggers both.
+- Watch paths keep docs-only changes (`docs/`, `tests/`, `.github/`) from redeploying. All three
+  include `packages/*`, so a shared change triggers every one.
 - `DATABASE_URL` is the Neon staging **direct, non-pooled** URL, because migrations take locks.
   Hyperdrive uses its own configured connection.
 - Optional Worker secrets as build secrets: the `bindings.secret()` names in `cloudflare.config.ts`
@@ -79,16 +80,18 @@ Set under each Worker, **Settings > Build**. Connect `adzamkomladev/shopper` to 
   `MAILEROO_FROM`, `SHOPPER_S3_ACCESS_KEY_ID`, `SHOPPER_S3_SECRET_ACCESS_KEY`, plus
   `SHOPPER_AUTH_URL` on the edge only; the portal has it as text). `SHOPPER_BOOTSTRAP_TOKEN` is dev only.
 - No `CLOUDFLARE_ENV` variable: the build mode comes from `--mode staging` in the scripts. Delete a
-  leftover `CLOUDFLARE_ENV` or `SHOPPER_S3_BUCKET` build variable on both triggers.
+  leftover `CLOUDFLARE_ENV` or `SHOPPER_S3_BUCKET` build variable on every trigger.
 
 ### Order and rollback
 
-- The portal binds the edge's Durable Objects and Workflows (`script_name: shopper-edge-staging`), so
+- The portal and admin bind the edge's Durable Objects and Workflows (`script_name: shopper-edge-staging`), so
   **the edge must deploy first**, above all when a class or migration changes. If both trigger
-  together and the portal fails on a missing class, retry the portal build once the edge build is
+  together and the portal fails on a missing class, retry the portal or admin build once the edge build is
   green.
-- Roll back with `vp exec wrangler rollback --name shopper-edge-staging` (or `shopper-portal-staging`),
-  or pick a version in the dashboard. Rollback does not revert PG or D1 migrations: they are
+- Roll back with `cf`: find the previous version with
+  `vp exec cf workers deployments list --worker shopper-edge-staging` (or `-portal-` / `-admin-staging`), then
+  send it all traffic with `vp exec cf workers deployments create --worker <worker> --strategy percentage
+  --versions '[{"version_id":"<id>","percentage":100}]'`, or pick a version in the dashboard. Rollback does not revert PG or D1 migrations: they are
   forward-only, so keep them expand-compatible with the previous version.
 
 ### Production (Day 28)
@@ -123,13 +126,13 @@ dead-letter queue. It builds with `--mode prod`, never `production`: Vite's defa
 1. Create the staging API token for Workers Builds (**My Profile > API Tokens**). The generated token
    has Account Settings read, Workers Scripts edit, Workers KV edit, Workers R2 Storage edit, Zone
    Workers Routes edit and User Details/Memberships read. Add **D1 edit** (migrations) and, if a deploy
-   reports an authorization error, **Queues edit** and **Hyperdrive read**. Use the same token for both
+   reports an authorization error, **Queues edit** and **Hyperdrive read**. Use the same token for all three
    Workers.
-2. Connect the repo to both Workers and enter the table above. Keep non-production builds off.
+2. Connect the repo to all three Workers and enter the table above. Keep non-production builds off.
 3. Add the build secret `DATABASE_URL` to the edge.
 4. Set the Worker secrets once, for each Worker, unless pushed as build secrets (the secrets from
-   `apps/edge/.dev.vars.example`): `vp exec wrangler secret put <NAME> --name shopper-edge-staging` (or
-   `shopper-portal-staging`). Bucket names, the S3 endpoint and region are config, not secrets.
+   `apps/edge/.dev.vars.example`): `vp exec cf workers secrets update <NAME> --worker shopper-edge-staging
+   --text "$VALUE"` (or `shopper-portal-staging`, `shopper-admin-staging`). Bucket names, the S3 endpoint and region are config, not secrets.
 5. Push a commit that touches the edge and check the build log: migrations, deploy, smoke.
 
 ### Toolchain pins and age-rule waiver
@@ -137,12 +140,12 @@ dead-letter queue. It builds with `--mode prod`, never `production`: Vite's defa
 `cf` is `1.0.0-beta.17`, `@cloudflare/vite-plugin` is `2.0.0-beta.v.1` (apps/edge and apps/portal) and
 `@cloudflare/vitest-plugin` is `1.4.4` (`tooling/worker/tests`), all exact. The two-week
 package-age rule is waived for this beta toolchain; the waived packages and their transitive Cloudflare
-deps are listed in `minimumReleaseAgeExclude` in `pnpm-workspace.yaml`. `apps/shop` still uses
-`@cloudflare/vite-plugin` 1.62.5 with its own `wrangler.jsonc`; the root `wrangler` (4.147.0) serves
-`tail`, `rollback`, `secret put` and the snapshot test's `unstable_dev`. Re-checked 2026-10-31: `cf`
+deps are listed in `minimumReleaseAgeExclude` in `pnpm-workspace.yaml`. Wrangler is no longer used for
+anything operational: secrets and rollback go through `cf`, and live logs are Workers Logs in the
+dashboard. The root `wrangler` devDependency remains only for the sync snapshot test's `unstable_dev`. Re-checked 2026-10-31: `cf`
 is still only published as betas (latest `1.0.0-beta.26`) and `@cloudflare/vite-plugin` 2.x is still
-`beta`, so the waiver stands. Re-check after 2026-11-30: move to stable releases, drop the waiver
-entries, and migrate `apps/shop`.
+`beta`, so the waiver stands. Re-check after 2026-11-30: move to stable releases and drop the waiver
+entries.
 
 ## Box release
 

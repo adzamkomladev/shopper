@@ -15,7 +15,8 @@
   baseline to get past it.
 - For Cloudflare work, load the `cloudflare`, `workers-best-practices` or `durable-objects` skill
   before writing code. Use the `cf` CLI, and ask it (`cf cli search`, `cf docs search`, anonymous
-  queries only) before guessing. The `wrangler` skill is for `tail`, `rollback` and `secret put` only.
+  queries only) before guessing. Never use wrangler: secrets, deployments and rollback are `cf`
+  commands too.
 
 - Never add Claude or another assistant as an author/contributor, co-author trailer, generated-by
   footer or session link in commits or PRs. Project settings disable all automatic attribution.

@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { once } from "node:events";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -97,8 +98,11 @@ describe("a till enrols itself", () => {
         stdio: ["ignore", "pipe", "pipe"],
       },
     );
+    // Windows cannot delete the register's database while the host still holds it open.
     cleanup.push(async () => {
+      const exited = once(child, "exit");
       child.kill("SIGTERM");
+      await exited;
     });
     const lines = readyLines(child.stdout);
     const first = await lines.next();

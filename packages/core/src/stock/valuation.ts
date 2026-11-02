@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import * as v from "valibot";
 import { product, stockMovement } from "@shopper/db-pg";
 import { add, money, mulQty, type Money } from "@shopper/money";
@@ -7,8 +7,13 @@ import type { Queryable } from "../types";
 import { onHandOf } from "./onhand";
 import { requireBranch } from "./queries";
 
-/** The unit cost of each product's latest costed receipt at a branch. */
-export async function lastCosts(db: Queryable, orgId: string, branchId: string) {
+/** The unit cost of each product's latest costed receipt at a branch, for every product or only `productIds`. */
+export async function lastCosts(
+  db: Queryable,
+  orgId: string,
+  branchId: string,
+  productIds?: string[],
+) {
   const rows = await db
     .selectDistinctOn([stockMovement.productId], {
       productId: stockMovement.productId,
@@ -19,6 +24,7 @@ export async function lastCosts(db: Queryable, orgId: string, branchId: string) 
       and(
         eq(stockMovement.orgId, orgId),
         eq(stockMovement.branchId, branchId),
+        productIds ? inArray(stockMovement.productId, productIds) : undefined,
         sql`${stockMovement.unitCost} IS NOT NULL`,
       ),
     )

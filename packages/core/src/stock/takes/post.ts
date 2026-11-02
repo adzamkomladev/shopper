@@ -6,6 +6,7 @@ import { countDeltas } from "../counts";
 import { StockError } from "../error";
 import { checkStockAlerts } from "../reorder";
 import { lockOpenTake } from "./lock";
+import { postStock } from "../../ledger/stock";
 
 /**
  * Posts a counted take as one count document (its id is the take's): each line moves counted minus
@@ -88,6 +89,12 @@ export const postTake = defineCommand({
       take.branchId,
       moves.map((line) => line.productId),
     );
+    await postStock(tx, ctx, {
+      id: take.id,
+      branchId: take.branchId,
+      occurredAt: input.now,
+      memo: "Stock take",
+    });
     return {
       id: take.id,
       variances: moves.map((line) => ({

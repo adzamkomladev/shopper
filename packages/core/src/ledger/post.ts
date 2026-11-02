@@ -7,7 +7,7 @@ import {
   org,
   type ShopperTransaction,
 } from "@shopper/db-pg";
-import { add, money, type Money } from "@shopper/money";
+import { add, money, mulRatio, type Money } from "@shopper/money";
 import { LedgerError } from "./error";
 import type { Entry, Posting } from "./types";
 
@@ -65,6 +65,9 @@ export async function postEntry(tx: ShopperTransaction, ctx: CommandContext, ent
   );
   return saved.id;
 }
+
+/** The amount on the other side: a debit as a credit, a credit as a debit. */
+export const negate = (amount: Money) => mulRatio(amount, -1, 1);
 
 /** The Accra day (Accra keeps UTC all year) an entry counts on: its own, or the day after the books' lock date. */
 export async function postingDay(tx: ShopperTransaction, orgId: string, at: Date) {

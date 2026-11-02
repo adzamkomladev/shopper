@@ -14,6 +14,7 @@ import { validateProducts, validateStockAuthority } from "./authority";
 import { countDeltas } from "./counts";
 import { StockError } from "./error";
 import { checkStockAlerts } from "./reorder";
+import { postStock } from "../ledger/stock";
 import type { Queue } from "@shopper/ports";
 
 type Input = {
@@ -126,6 +127,12 @@ async function post(tx: ShopperTransaction, ctx: CommandContext, input: Input) {
       })),
     );
   await checkStockAlerts(tx, ctx, input.principal.branchId, [...deltas.keys()]);
+  await postStock(tx, ctx, {
+    id: document.id,
+    branchId: input.principal.branchId,
+    occurredAt: input.occurredAt,
+    memo: document.kind === "receipt" ? "Goods received at the till" : "Stock count at the till",
+  });
   return describe(document, input.occurredAt, deltas);
 }
 

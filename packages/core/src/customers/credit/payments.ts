@@ -9,6 +9,7 @@ import { readCustomerRow } from "../queries";
 import { mergeWinner } from "../sale";
 import { authorize } from "./authority";
 import type { Authority } from "../types";
+import { postCredit } from "../../ledger/customers";
 
 type Target = { id: string; body: unknown };
 /** A payment taken at a drawer: who took it, when, into which shift, and the MoMo reference. */
@@ -51,17 +52,21 @@ export const recordPayment = defineCommand({
     const { till } = input;
     if (till) await authorize(tx, ctx, till, till.occurredAt);
     const current = await payee(tx, ctx.orgId, input.id);
-    await tx.insert(creditEntry).values({
-      id: payment.id,
-      orgId: ctx.orgId,
-      customerId: current.id,
-      kind: "payment",
-      amount: sub(money(0), payment.amount),
-      method: payment.method,
-      shiftId: till?.shiftId,
-      actorId: ctx.actorId,
-      occurredAt: till?.occurredAt ?? new Date(),
-    });
+    const [row] = await tx
+      .insert(creditEntry)
+      .values({
+        id: payment.id,
+        orgId: ctx.orgId,
+        customerId: current.id,
+        kind: "payment",
+        amount: sub(money(0), payment.amount),
+        method: payment.method,
+        shiftId: till?.shiftId,
+        actorId: ctx.actorId,
+        occurredAt: till?.occurredAt ?? new Date(),
+      })
+      .returning();
+    await postCredit(tx, ctx, row!);
     return {
       id: current.id,
       entryId: payment.id,
@@ -127,7 +132,8 @@ export const addCreditNote = defineCommand({
         actorId: ctx.actorId,
         occurredAt: new Date(),
       })
-      .returning({ id: creditEntry.id });
+      .returning();
+    await postCredit(tx, ctx, row!);
     return { id: current.id, entryId: row!.id, ...note };
   },
   audit: (_input, output) => ({ ...output }),

@@ -3,6 +3,7 @@ import { defineCommand } from "@shopper/audit";
 import { add, money } from "@shopper/money";
 import { payment, settlement, settlementLine } from "@shopper/db-pg";
 import type { PaystackSettlement } from "../paystack/types";
+import { postSettlement } from "../../ledger/settlements";
 
 /** The daily settlement workflow's business key; a refresh adds a suffix so it runs again. */
 export const settlementId = (orgId: string, day: string) => `settlement-${orgId}-${day}`;
@@ -20,7 +21,12 @@ export const recordSettlements = defineCommand({
     );
     const known = references.length
       ? await tx
-          .select({ id: payment.id, reference: payment.reference, amount: payment.amount })
+          .select({
+            id: payment.id,
+            reference: payment.reference,
+            amount: payment.amount,
+            branchId: payment.branchId,
+          })
           .from(payment)
           .where(
             and(
@@ -71,7 +77,13 @@ export const recordSettlements = defineCommand({
             })),
           )
           .onConflictDoNothing()
-          .returning({ flag: settlementLine.flag });
+          .returning();
+        for (const saved of inserted)
+          await postSettlement(tx, context, {
+            ...saved,
+            branchId: lines.find((line) => line.paid.id === saved.paymentId)!.paid.branchId,
+            settledOn: payout.settledOn,
+          });
         return {
           lines: inserted.length,
           mismatches: inserted.filter((line) => line.flag === "amount_mismatch").length,

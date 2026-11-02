@@ -1,5 +1,6 @@
 import * as v from "valibot";
 import { money } from "@shopper/money";
+import { shopCodeParam } from "./shop";
 
 const amount = v.pipe(v.number(), v.safeInteger(), v.transform(money));
 const named = v.object({ id: v.string(), name: v.string() });
@@ -17,6 +18,20 @@ export const storeSearch = v.object({
 });
 /** A product page names only the branch. */
 export const productSearch = v.object({ branch });
+
+/** What the store pages ask the server for: a page of products, or one product, at a branch. */
+export const storePageInput = v.object({
+  shop: shopCodeParam,
+  branch: v.optional(v.string()),
+  category: v.optional(v.string()),
+  q: v.optional(v.string()),
+  page: v.optional(v.number()),
+});
+export const storeItemInput = v.object({
+  shop: shopCodeParam,
+  id: v.string(),
+  branch: v.optional(v.string()),
+});
 
 export const storeInfo = v.object({
   name: v.string(),

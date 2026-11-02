@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { shopCodeParam } from "../schemas/shop";
-import { storeInfo, storeItem, storePage } from "../schemas/store";
+import { storeInfo, storeItem, storeItemInput, storePage, storePageInput } from "../schemas/store";
 
 /**
  * The public store, read on the server so search engines get whole pages. Nothing personal: these are the same
@@ -17,16 +17,8 @@ export const readStore = createServerFn({ method: "GET" })
     return found === null ? null : { ...v.parse(storeInfo, found), origin };
   });
 
-const pageInput = v.object({
-  shop: shopCodeParam,
-  branch: v.optional(v.string()),
-  category: v.optional(v.string()),
-  q: v.optional(v.string()),
-  page: v.optional(v.number()),
-});
-
 export const readStorePage = createServerFn({ method: "GET" })
-  .validator((input: unknown) => v.parse(pageInput, input))
+  .validator((input: unknown) => v.parse(storePageInput, input))
   .handler(async ({ context, data }) => {
     const query = new URLSearchParams(
       Object.entries({ branch: data.branch, category: data.category, q: data.q, page: data.page })
@@ -42,10 +34,8 @@ export const readStorePage = createServerFn({ method: "GET" })
     return found === null ? null : v.parse(storePage, found);
   });
 
-const itemInput = v.object({ shop: shopCodeParam, id: v.string(), branch: v.optional(v.string()) });
-
 export const readStoreItem = createServerFn({ method: "GET" })
-  .validator((input: unknown) => v.parse(itemInput, input))
+  .validator((input: unknown) => v.parse(storeItemInput, input))
   .handler(async ({ context, data }) => {
     const query = data.branch ? `?branch=${encodeURIComponent(data.branch)}` : "";
     const path = `/${encodeURIComponent(data.shop)}/products/${encodeURIComponent(data.id)}${query}`;

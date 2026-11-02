@@ -141,6 +141,8 @@ function requireConfig(input: unknown) {
 - Quantities: integer thousandths. Rates: integer basis points.
 - IDs: UUIDv7. Never serial/autoincrement. Every table has org_id.
 - Every mutation goes through defineCommand() and writes an audit row in the same transaction.
+- Every money event posts a balanced journal entry through `postEntry` (`@shopper/core/ledger`) in the same
+  transaction. Never write ledger rows by hand; reports read the ledger, never a second derivation.
 - Tax: read rules by date from the tax_rule table; snapshot tax onto every sale line.
 - Never import a Cloudflare binding or a Rivet handle outside packages/adapters/*.
   Business code uses @shopper/ports, Drizzle, unstorage, Hono only. One shared function, two thin shells.

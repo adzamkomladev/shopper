@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import type { PermissionNeed } from "../../roles/permissions";
 import {
   BadgeCheckIcon,
+  BookOpenIcon,
   Building2Icon,
   ChartNoAxesColumnIcon,
   ClockIcon,
@@ -59,6 +60,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     icon: ChartNoAxesColumnIcon,
     section: "Reports",
     permission: "report.read",
+  },
+  {
+    to: "/ledger",
+    label: "Books",
+    icon: BookOpenIcon,
+    section: "Reports",
+    permission: "ledger.read",
   },
   {
     to: "/transactions",

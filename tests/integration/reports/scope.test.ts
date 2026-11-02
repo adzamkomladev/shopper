@@ -116,6 +116,8 @@ test("the shared runtime (Worker and box) serves /reports behind the session, no
       cookie: w.owner.cookie!,
     });
     expect(csv.headers.get("content-type")).toContain("text/csv");
+    // The books are served by the full runtime too, not left to the public API's 404.
+    expect((await send("/ledger/accounts", { cookie: w.owner.cookie! })).status).toBe(200);
   } finally {
     cache.close();
   }

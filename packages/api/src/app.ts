@@ -23,6 +23,7 @@ import { managementRoutes } from "./routes/management";
 import { systemRoutes } from "./routes/system";
 import { taxReportRoutes } from "./routes/tax/reports";
 import { reportRoutes } from "./routes/reports";
+import { ledgerRoutes } from "./routes/ledger";
 import { reconciliationRoutes } from "./routes/reconciliation";
 import { transactionRoutes } from "./routes/transactions";
 import { approvalRoutes } from "./routes/approvals";
@@ -108,6 +109,7 @@ export function createApi(options: ApiOptions = {}) {
     );
   if (options.database) app.route("/", kycRoutes(options));
   if (options.database) app.route("/", reportRoutes(options.database, options.authentication));
+  if (options.database) app.route("/", ledgerRoutes(options.database, options.authentication));
   if (options.database) app.route("/", reconciliationRoutes(options));
   if (options.database) app.route("/", transactionRoutes(options));
   if (options.database) app.route("/", approvalRoutes(options));

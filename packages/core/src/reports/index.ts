@@ -6,7 +6,6 @@ export { productReport } from "./products";
 export { dashboard } from "./dashboard";
 export { branchComparison } from "./branches";
 export { deadStock } from "./dead";
-export { journalReport } from "./journal";
 export { reportTables } from "./export/tables";
 export { reportCsv, reportWorkbook } from "./export/files";
 export { runStoreDay } from "../workflows/day";

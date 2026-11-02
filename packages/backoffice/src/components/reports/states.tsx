@@ -77,15 +77,6 @@ const TABLES: Record<Exclude<ReportKind, "dashboard">, { label: string; columns:
       { header: "Share", figure: true },
     ],
   },
-  journal: {
-    label: "Loading the journal",
-    columns: [
-      { header: "Entry", twoLines: true },
-      { header: "Dr / Cr", phone: true, figure: true },
-      { header: "Debit", from: "sm", figure: true },
-      { header: "Credit", from: "sm", figure: true },
-    ],
-  },
 };
 
 // Rows fill a tall laptop screen; the table clips what does not fit, as the loaded one scrolls it.
@@ -213,11 +204,7 @@ function TableBodySkeleton({ kind }: { kind: Exclude<ReportKind, "dashboard"> })
   if (kind === "sales" || kind === "branches") return table;
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
-      {kind === "journal" ? (
-        <Skeleton className="h-5 w-72 max-w-full" />
-      ) : (
-        <Tiles count={kind === "products" ? 4 : 2} />
-      )}
+      <Tiles count={kind === "products" ? 4 : 2} />
       {kind === "products" && <Skeleton className="h-8 w-full sm:max-w-sm" />}
       {table}
     </div>

@@ -206,3 +206,20 @@ CREATE OR REPLACE VIEW catalogue_public AS
 SELECT org_id, id AS product_id, sku, name, category_id, base_unit, image_asset_id
 FROM product
 WHERE online_visible AND archived_at IS NULL;
+--> statement-breakpoint
+-- Day 31: the books' permissions, granted to the owner and every role that already files tax returns (permissions are
+-- data, so never by role name); replayable.
+INSERT INTO permission (org_id, code, till_allowed)
+SELECT o.id, p.code, false FROM org o CROSS JOIN (VALUES ('ledger.read'), ('ledger.write'), ('ledger.lock')) AS p(code)
+WHERE EXISTS (SELECT 1 FROM role r WHERE r.org_id = o.id)
+ON CONFLICT (org_id, code) DO NOTHING;
+--> statement-breakpoint
+INSERT INTO role_permission (org_id, role_id, permission_id)
+SELECT r.org_id, r.id, p.id FROM role r
+JOIN permission p ON p.org_id = r.org_id AND p.code IN ('ledger.read', 'ledger.write', 'ledger.lock')
+WHERE r.protected_owner OR EXISTS (
+  SELECT 1 FROM role_permission rp
+  JOIN permission t ON t.id = rp.permission_id AND t.org_id = rp.org_id
+  WHERE rp.org_id = r.org_id AND rp.role_id = r.id AND t.code = 'tax.return'
+)
+ON CONFLICT (org_id, role_id, permission_id) DO NOTHING;

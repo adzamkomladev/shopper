@@ -149,27 +149,3 @@ export const busyDeadStock = {
   })),
   total: 7_608_000,
 };
-
-const entry = (day: string, lines: [string, number, number][]) =>
-  lines.map(([account, debit, credit]) => ({
-    day,
-    branchId: busyBranches.rows[0]!.branchId,
-    branch: "Accra Central",
-    account,
-    debit,
-    credit,
-  }));
-export const busyJournal = {
-  rows: ["2026-10-14", "2026-10-15"].flatMap((day) =>
-    entry(day, [
-      ["Cash", 24_150_000, 0],
-      ["MoMo", 18_300_000, 0],
-      ["Sales returns", 700_000, 0],
-      ["Sales", 0, 36_250_000],
-      ["VAT", 0, 5_437_500],
-      ["NHIL", 0, 906_250],
-      ["GETFund levy", 0, 556_250],
-    ]),
-  ),
-  total: { debit: 86_300_000, credit: 86_300_000 },
-};

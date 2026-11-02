@@ -25,10 +25,9 @@ const PARAMS: Record<ReportKind, (search: Search) => Record<string, string | und
     days: `${search.days ?? 30}`,
     branchId: search.branchId,
   }),
-  journal: (search) => ({ ...rangeOf(search), branchId: search.branchId }),
 };
 
-/** The reports area: the dashboard, sales, products and margin, dead stock, branches and the journal (report.read). */
+/** The reports area: the dashboard, sales, products and margin, dead stock, and branches (report.read); the books are the ledger area. */
 export function reportRoutes(shopRoute: AnyRoute) {
   // Starts the report's request while the screen's code loads.
   const prefetch =
@@ -122,22 +121,5 @@ export function reportRoutes(shopRoute: AnyRoute) {
       </ReportsPage>
     ),
   });
-  const journalRoute = createRoute({
-    getParentRoute: () => shopRoute,
-    path: "/reports/journal",
-    validateSearch: reportSearch,
-    loaderDeps: ({ search }) => search,
-    loader: prefetch("journal"),
-    component: lazyRouteComponent(
-      () => import("../screens/reports/journal/screen"),
-      "JournalScreen",
-    ),
-    ...routeStates,
-    pendingComponent: () => (
-      <ReportsPage active="journal">
-        <ReportSkeleton kind="journal" />
-      </ReportsPage>
-    ),
-  });
-  return [dashboardRoute, salesRoute, productsRoute, deadStockRoute, branchesRoute, journalRoute];
+  return [dashboardRoute, salesRoute, productsRoute, deadStockRoute, branchesRoute];
 }

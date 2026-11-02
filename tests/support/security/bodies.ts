@@ -10,6 +10,7 @@ export const BODIES: Record<string, Body> = {
   "PATCH /catalogue/barcodes/mappings/:id": () => ({ decimals: 2 }),
   "PATCH /categories/:id": (id) => ({ name: "Sweep", parentId: id }),
   "PATCH /customers/:id": () => ({ name: "Sweep" }),
+  "PATCH /ledger/accounts/:id": () => ({ name: "Sweep" }),
   "PATCH /loyalty/tiers/:id": () => ({ name: "Sweep" }),
   "PATCH /products/:id": (id) => ({ name: "Sweep", categoryId: id, supplierId: id }),
   "PATCH /roles/:id": () => ({ name: "Sweep" }),
@@ -52,6 +53,18 @@ export const BODIES: Record<string, Body> = {
   "POST /devices/enroll": (id) => ({ orgId: id, code: "123456", name: "Sweep" }),
   "POST /devices/enrollment": (id) => ({ branchId: id }),
   "POST /devices/revoke": (id) => ({ deviceId: id }),
+  "POST /ledger/accounts": () => ({ code: "9999", name: "Sweep", type: "expense" }),
+  "POST /ledger/journal": (id) => ({
+    id: v7(),
+    postedOn: "2026-10-15",
+    memo: "Sweep",
+    branchId: id,
+    lines: [
+      { accountId: id, amount: 10_000 },
+      { accountId: id, amount: -10_000 },
+    ],
+  }),
+  "POST /ledger/journal/:id/reverse": () => ({ postedOn: "2026-10-15" }),
   "POST /loyalty/tiers": () => ({ name: "Sweep", minSpend: 0, earnBps: 100 }),
   "POST /loyalty/transfers": (id) => ({ fromId: id, toId: id, points: 1, reason: "Sweep" }),
   "POST /products": (id) => ({
@@ -82,6 +95,7 @@ export const BODIES: Record<string, Body> = {
   "POST /suppliers": () => ({ name: "Sweep" }),
   "POST /transactions/:id/receipt/email": () => ({ requestKey: v7(), email: "sweep@tenants.test" }),
   "PUT /customers/:id/limit": () => ({ creditLimit: 100_000 }),
+  "PUT /ledger/lock": () => ({ through: null }),
   "PUT /settings/credit": () => ({ termsDays: 30, interestBps: 0 }),
   "PUT /settings/kyc": () => ({ idRequired: false, idTypes: ["ghana_card"] }),
   "PUT /settings/loyalty": () => ({

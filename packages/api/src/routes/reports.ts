@@ -3,7 +3,6 @@ import {
   branchComparison,
   dashboard,
   deadStock,
-  journalReport,
   productReport,
   reportCsv,
   reportTables,
@@ -28,7 +27,7 @@ const xlsx = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 /**
  * The back office's sales reports (report.read): the dashboard, sales by day, hour, branch, cashier and tender,
- * product performance and margin, branch comparison, dead stock and the accountant's journal, each also as CSV
+ * product performance and margin, branch comparison and dead stock, each also as CSV
  * and Excel. A branch-scoped member reads only their branches, and naming another branch is refused.
  */
 export function reportRoutes(
@@ -55,7 +54,6 @@ export function reportRoutes(
   app.get("/reports/products", read(productReport));
   app.get("/reports/branches", read(branchComparison));
   app.get("/reports/stock/dead", read(deadStock));
-  app.get("/reports/journal", read(journalReport));
   for (const [name, tabulate] of Object.entries(reportTables)) {
     app.get(`/reports/${name}/export.csv`, async (c) => {
       const table = await run(c, tabulate);

@@ -2,7 +2,6 @@ import type { ShopperDatabase } from "@shopper/db-pg";
 import { branchComparison } from "../branches";
 import { dashboard } from "../dashboard";
 import { deadStock } from "../dead";
-import { journalReport } from "../journal";
 import { productReport } from "../products";
 import { salesReport } from "../sales";
 import type { ReportCell, ReportTable } from "../types";
@@ -196,23 +195,6 @@ export const reportTables: Record<string, Tabulate> = {
           m(row.value),
         ]),
         [t("Total"), t(""), t(""), t(""), t(""), t(""), m(report.total)],
-      ],
-    };
-  },
-  async journal(db, orgId, query, scope) {
-    const report = await journalReport(db, orgId, query, scope);
-    return {
-      name: `journal-${range(query)}`,
-      headers: ["Date", "Branch", "Account", "Debit", "Credit"],
-      rows: [
-        ...report.rows.map((row) => [
-          t(row.day),
-          t(row.branch),
-          t(row.account),
-          m(row.debit),
-          m(row.credit),
-        ]),
-        [t("Total"), t(""), t(""), m(report.total.debit), m(report.total.credit)],
       ],
     };
   },

@@ -1,12 +1,9 @@
-// Every report as CSV and Excel holds the JSON report's rows (then its total), and the accountant's journal is a
-// balanced entry per day and branch whose levies are the tax summary's. Cash-rounded sales on 16 Oct put cash
-// rounding in the books both ways.
+// Every report as CSV and Excel holds the JSON report's rows (then its total). The accountant's books are the general
+// ledger's (tests/integration/ledger).
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import * as XLSX from "xlsx";
 import { toDecimal, type Money } from "@shopper/money";
-import { taxSummary } from "@shopper/core/tax";
 import { tradingDay } from "../../fixtures/sales/golden/day";
-import { ids } from "../../fixtures/sales/golden";
 import { get } from "../../support/api/portal";
 import { runGolden } from "../../support/sales/golden/run";
 import { reportWorld } from "../../support/reports/world";
@@ -46,7 +43,6 @@ const reports = [
   ["products", range, 1],
   ["branches", range, 1],
   ["stock/dead", "days=30&on=2026-12-20", 1],
-  ["journal", range, 1],
 ] as const;
 
 test.each(reports)(
@@ -109,60 +105,10 @@ test("CSV amounts are the report's to the 1/10000 cedi, and Excel holds them as 
   expect(sheet[`D${last}`]).toMatchObject({ t: "n", v: body.total.gross / 10_000, z: "#,##0.00" });
 });
 
-test("the journal balances per day and branch, and its levies are the tax summary's", async () => {
-  const journal = await json(`/reports/journal?${range}`);
-  type Line = { day: string; branchId: string; account: string; debit: number; credit: number };
-  const entries = new Map<string, Line[]>();
-  for (const row of journal.rows as Line[])
-    entries.set(`${row.day}|${row.branchId}`, [
-      ...(entries.get(`${row.day}|${row.branchId}`) ?? []),
-      row,
-    ]);
-  expect(entries.size).toBe(4);
-  for (const [key, lines] of entries) {
-    const debit = lines.reduce((sum, line) => sum + line.debit, 0);
-    const credit = lines.reduce((sum, line) => sum + line.credit, 0);
-    expect(debit, key).toBe(credit);
-    expect(debit, key).toBeGreaterThan(0);
-  }
-  expect(journal.total.debit).toBe(journal.total.credit);
-
-  const summary = await taxSummary(w.world.db, ids.org, {
-    from: "2026-10-13",
-    to: "2026-10-16",
-    group: "day",
-  });
-  const levies = {
-    VAT: "vat",
-    NHIL: "nhil",
-    "GETFund levy": "getfund",
-    "COVID-19 levy": "covid",
-  } as const;
-  for (const [key, lines] of entries) {
-    const [day, branchId] = key.split("|");
-    const rows = summary.rows.filter((row) => row.period === day && row.branchId === branchId);
-    for (const [account, part] of Object.entries(levies)) {
-      const owed = rows.reduce((sum, row) => sum + row.sales[part] - row.creditNotes[part], 0);
-      const line = lines.find((l) => l.account === account);
-      expect((line?.credit ?? 0) - (line?.debit ?? 0), `${key} ${account}`).toBe(owed);
-    }
-  }
-  // 16 Oct: one sale rounded up by 500 and one down by 400 net to a 100 credit.
-  const rounding = journal.rows.find(
-    (row: any) => row.day === "2026-10-16" && row.account === "Cash rounding",
-  );
-  expect(rounding).toMatchObject({ debit: 0, credit: 100 });
-  // The card refund on 15 Oct is credited back to card and debited to sales returns.
-  const returns = journal.rows.find(
-    (row: any) => row.day === "2026-10-15" && row.account === "Sales returns",
-  );
-  expect(returns.debit).toBeGreaterThan(0);
-});
-
 test("exports honour branch scope like the reports", async () => {
   expect(
-    (await fetchRaw(`/reports/journal/export.csv?${range}&branchId=${w.otherBranch}`)).status,
+    (await fetchRaw(`/reports/products/export.csv?${range}&branchId=${w.otherBranch}`)).status,
   ).toBe(200);
-  const anonymous = await w.owner.api.request(`/reports/journal/export.csv?${range}`);
+  const anonymous = await w.owner.api.request(`/reports/products/export.csv?${range}`);
   expect(anonymous.status).toBe(401);
 });

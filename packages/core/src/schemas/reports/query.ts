@@ -3,8 +3,8 @@ import * as v from "valibot";
 /** The longest range one report reads: a year and a day, so any calendar year fits. */
 export const MAX_REPORT_DAYS = 366;
 const DAY_MS = 86_400_000;
-// `isoDate` takes 2026-02-30; a real day reads back as itself. The check runs even when `isoDate` failed.
-const day = v.pipe(
+/** An Accra calendar day. `isoDate` takes 2026-02-30; a real day reads back as itself (checked even when `isoDate` failed). */
+export const day = v.pipe(
   v.string(),
   v.isoDate(),
   v.check((s) => new Date(`${s}T00:00:00.000Z`).toJSON()?.startsWith(s) === true, "No such day"),

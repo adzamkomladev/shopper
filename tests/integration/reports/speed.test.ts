@@ -48,9 +48,9 @@ test.each([
   `/reports/products?${year}`,
   `/reports/branches?${year}`,
   "/reports/stock/dead?days=90&on=2026-10-15",
-  `/reports/journal?${year}`,
+  `/ledger/reports/trial?asOf=2026-12-31`,
   `/reports/sales/export.xlsx?${year}&by=day`,
-  `/reports/journal/export.csv?${year}`,
+  `/reports/sales/export.csv?${year}&by=day`,
 ])("%s answers within 1.5 s over the year", async (path) => {
   const started = performance.now();
   const response = await w.owner.api.request(path, { headers: { cookie: w.owner.cookie! } });

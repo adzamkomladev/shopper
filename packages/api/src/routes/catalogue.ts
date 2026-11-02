@@ -30,6 +30,7 @@ import {
   schedulePrice,
 } from "@shopper/core/catalogue";
 import { mappingRoutes } from "./catalogue/mappings";
+import { productImageRoutes } from "./catalogue/images";
 import { problem } from "../middleware/problem";
 import { requirePermission } from "../middleware/require/permission";
 import { priceBody } from "../schemas/catalogue";
@@ -212,6 +213,7 @@ export function catalogueRoutes(options: {
   );
 
   app.route("/catalogue/barcodes/mappings", mappingRoutes(db, context, body));
+  app.route("/products", productImageRoutes(db, context, body, options.blobs));
 
   app.onError(problem);
   return app;

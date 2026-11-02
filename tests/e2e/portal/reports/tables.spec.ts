@@ -4,7 +4,6 @@ import { shoot } from "../../../support/customers/shots";
 import {
   busyBranches,
   busyDeadStock,
-  busyJournal,
   busyProducts,
   busySales,
 } from "../../../support/reports/busy";
@@ -95,9 +94,8 @@ test("dead stock: what sits unsold and its value, in a 30, 60 or 90 day window",
   await expect(page).toHaveURL(/days=60/);
 });
 
-test("branches side by side with their share, and the journal balanced", async ({ page }, info) => {
+test("branches side by side with their share", async ({ page }, info) => {
   await replay(page, "branches", busyBranches);
-  await replay(page, "journal", busyJournal);
   await page.goto(`/reports/branches?${range}`);
   const branches = page.getByRole("region", { name: "Branch comparison" });
   await expect(branches.getByRole("row").filter({ hasText: "Accra Central" })).toContainText(
@@ -106,14 +104,6 @@ test("branches side by side with their share, and the journal balanced", async (
   await expect(branches.getByRole("row").last()).toContainText("100.00%");
   await expect(page.getByLabel("Branch", { exact: true })).toHaveCount(0);
   await shoot(page, info, "reports-branches-busy", { sizes: SIZES });
-
-  await page.getByRole("heading", { name: "Reports", level: 1 }).click();
-  await page.keyboard.press("6");
-  await expect(page.getByText("Balanced")).toBeVisible();
-  const journal = page.getByRole("region", { name: "Journal" });
-  await expect(journal.getByRole("row")).toHaveCount(1 + 14 + 1);
-  await expect(journal.getByRole("row").last()).toContainText("GH₵ 8,630.00");
-  await shoot(page, info, "reports-journal-busy", { sizes: SIZES });
 });
 
 test("a quiet range on every table report shows its empty state", async ({ page }) => {
@@ -121,7 +111,6 @@ test("a quiet range on every table report shows its empty state", async ({ page 
   for (const [path, text] of [
     ["products", "No products sold from 2020-01-01"],
     ["branches", "No branch sold anything from 2020-01-01"],
-    ["journal", "Nothing to post from 2020-01-01"],
   ] as const) {
     await page.goto(`/reports/${path}?${quiet}`);
     await expect(page.getByText(text)).toBeVisible({ timeout: 20_000 });

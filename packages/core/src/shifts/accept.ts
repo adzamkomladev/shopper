@@ -9,6 +9,7 @@ import { SaleError } from "../sales/error";
 import type { UploadPrincipal } from "../sales/types";
 import { validateShiftAuthority } from "./authority";
 import { validateShiftReport } from "./validate";
+import { postShift } from "../ledger/shifts";
 
 type Input = {
   principal: UploadPrincipal;
@@ -111,6 +112,7 @@ const accept = defineCommand({
           at: new Date(m.at),
         })),
       );
+    await postShift(tx, ctx, report);
     return output(saved!);
   },
   audit: (input, result) => ({

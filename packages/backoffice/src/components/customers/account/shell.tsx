@@ -52,6 +52,7 @@ export function AccountDialog({
 }
 
 const OFFLINE_NOTE_ID = "account-offline-note";
+const BLOCKED_NOTE_ID = "account-blocked-note";
 
 type FormProps = {
   onSubmit: () => void;
@@ -59,15 +60,17 @@ type FormProps = {
   pending: boolean;
   /** What the server refused with. */
   error?: string;
+  /** Why the form cannot be sent yet; shown beside the disabled submit button. */
+  blocked?: string;
   children: React.ReactNode;
 };
 
 /** The fields, what went wrong, and Cancel with the one submit button; Mod+Enter submits. */
-export function AccountForm({ onSubmit, label, pending, error, children }: FormProps) {
+export function AccountForm({ onSubmit, label, pending, error, blocked, children }: FormProps) {
   const online = useOnline();
   const shortcuts = useShortcuts({
     "Mod+Enter": () => {
-      if (online && !pending) onSubmit();
+      if (online && !pending && !blocked) onSubmit();
     },
   });
   return (
@@ -86,6 +89,11 @@ export function AccountForm({ onSubmit, label, pending, error, children }: FormP
           You're offline. Reconnect to save.
         </p>
       )}
+      {blocked && (
+        <p id={BLOCKED_NOTE_ID} className="text-sm text-muted-foreground">
+          {blocked}
+        </p>
+      )}
       {error && (
         <Alert variant="destructive">
           <CircleAlertIcon aria-hidden />
@@ -101,8 +109,8 @@ export function AccountForm({ onSubmit, label, pending, error, children }: FormP
         <Button
           aria-keyshortcuts="Control+Enter Meta+Enter"
           type="submit"
-          disabled={!online || pending}
-          aria-describedby={online ? undefined : OFFLINE_NOTE_ID}
+          disabled={!online || pending || !!blocked}
+          aria-describedby={!online ? OFFLINE_NOTE_ID : blocked ? BLOCKED_NOTE_ID : undefined}
         >
           {pending ? "Saving…" : <>{label}</>}
         </Button>

@@ -47,7 +47,7 @@ test("a busy day: six figures against yesterday, best sellers, tender mix and sa
   await shoot(page, info, "reports-dashboard-busy", { sizes: SIZES });
 });
 
-test("the keyboard alone: [ and ] step the day, 1–6 switch reports", async ({ page }) => {
+test("the keyboard alone: [ and ] step the day, 1–5 switch reports", async ({ page }) => {
   await page.goto("/reports?day=2026-10-15");
   await expect(page.getByLabel("Day", { exact: true })).toHaveValue("2026-10-15", {
     timeout: 20_000,
@@ -59,8 +59,11 @@ test("the keyboard alone: [ and ] step the day, 1–6 switch reports", async ({ 
   await expect(page.getByLabel("Day", { exact: true })).toHaveValue("2026-10-14");
   await page.keyboard.press("2");
   await expect(page.getByRole("tab", { name: "Sales" })).toHaveAttribute("aria-selected", "true");
-  await page.keyboard.press("6");
-  await expect(page.getByRole("tab", { name: "Journal" })).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("5");
+  await expect(page.getByRole("tab", { name: "Branches" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
   await page.keyboard.press("1");
   await expect(page.getByRole("tab", { name: "Dashboard" })).toHaveAttribute(
     "aria-selected",

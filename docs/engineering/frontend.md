@@ -194,6 +194,20 @@ sheet per document with Retry (R, `tax.write`, dead-lettered only) and the day's
 It warns when no SDC is connected. It follows the Previous purchases frame (45:852). The till's purchase detail shows
 each VAT invoice as Provisional or Signed.
 
+## Books and the store (Day 31)
+
+**Books** (`/ledger`, `ledger.read`) is one area with three tabs drawn by `components/ledger/tabs.tsx`
+(`LedgerPage`): **Accounts** (the chart with balances; N adds an account, L sets the lock date for `ledger.lock`;
+each account opens its lines with a running balance and links to the source sale, shift or stock record),
+**Journal** (a range of entries; N opens the entry editor, which keeps Post disabled and says why until the lines
+balance and the day is open; Alt+L adds a line) and **Statements** (trial balance, profit and loss, balance sheet;
+D downloads the CSV). Figma has no ledger frames: it follows Web Flow 312:8385.
+
+The store (`apps/shop`, `/<code>`) renders on the server for search engines: a sticky bar with the branch selector,
+a search (/ focuses it; a plain GET form before hydration), category chips, a grid of tiles and paging. A product
+page sets its title, description, canonical link, Open Graph and `Product` JSON-LD, and says `noindex` when the
+branch cannot sell it. Esc goes back to the store. It follows Web Flow 333:9119 on the Day 30 shop theme.
+
 ## UX rules
 
 - **Every screen has every state designed:** empty (with the next action), loading (a skeleton sized

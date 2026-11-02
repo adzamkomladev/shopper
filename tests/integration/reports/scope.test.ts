@@ -112,8 +112,12 @@ test("the shared runtime (Worker and box) serves /reports behind the session, no
     const signedIn = await send(`/reports/sales?${range}`, { cookie: w.owner.cookie! });
     expect(signedIn.status).toBe(200);
     expect((await signedIn.json()).total.transactions).toBe(7);
-    const csv = await send(`/reports/journal/export.csv?${range}`, { cookie: w.owner.cookie! });
+    const csv = await send(`/reports/sales/export.csv?${range}&by=day`, {
+      cookie: w.owner.cookie!,
+    });
     expect(csv.headers.get("content-type")).toContain("text/csv");
+    // The books are served by the full runtime too, not left to the public API's 404.
+    expect((await send("/ledger/accounts", { cookie: w.owner.cookie! })).status).toBe(200);
   } finally {
     cache.close();
   }

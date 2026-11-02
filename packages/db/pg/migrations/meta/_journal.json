@@ -260,6 +260,13 @@
       "when": 1793539133703,
       "tag": "0036_shop",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1793578293745,
+      "tag": "0037_ledger",
+      "breakpoints": true
     }
   ]
 }

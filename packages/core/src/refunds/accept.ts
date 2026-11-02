@@ -19,6 +19,7 @@ import type { Queue } from "@shopper/ports";
 import { fiscalDocOf, recordFiscalDoc } from "../fiscal/documents";
 import { touchStoreDay } from "../reports/rollup";
 import { allocateMomoRefund } from "../payments/refunds/allocate";
+import { postRefund } from "../ledger/refunds";
 
 type Input = {
   principal: UploadPrincipal;
@@ -218,6 +219,10 @@ const accept = defineCommand({
         saleId: original.id,
         total: snapshot.total,
       });
+    await postRefund(tx, ctx, snapshot, share, {
+      saleId: original.id,
+      occurredAt: input.occurredAt,
+    });
     await touchStoreDay(tx, ctx.orgId, snapshot.storeId, input.occurredAt);
     return { ...output(saved!), fiscalDocId, excess };
   },

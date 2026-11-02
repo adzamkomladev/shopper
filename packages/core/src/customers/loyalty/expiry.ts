@@ -5,6 +5,7 @@ import type { Queryable } from "../../types";
 import { readCustomerRow } from "../queries";
 import { lotExpiry, pointLots } from "./points";
 import { readLoyaltySettings } from "./settings";
+import { postExpiry } from "../../ledger/customers";
 
 type Input = { customerId: string; at: Date };
 
@@ -22,15 +23,20 @@ export const expirePoints = defineCommand({
   },
   async run(tx, ctx, input) {
     const { customerId, lots, expiryDays } = await dueLots(tx, ctx, input);
-    for (const lot of lots)
-      await tx.insert(loyaltyEntry).values({
-        orgId: ctx.orgId,
-        customerId,
-        reason: "expire",
-        points: -lot.left,
-        lotId: lot.id,
-        occurredAt: lotExpiry(lot, expiryDays),
-      });
+    for (const lot of lots) {
+      const [row] = await tx
+        .insert(loyaltyEntry)
+        .values({
+          orgId: ctx.orgId,
+          customerId,
+          reason: "expire",
+          points: -lot.left,
+          lotId: lot.id,
+          occurredAt: lotExpiry(lot, expiryDays),
+        })
+        .returning();
+      await postExpiry(tx, ctx, { ...row!, lotId: lot.id });
+    }
     return { customerId, expired: lots.map((lot) => ({ lotId: lot.id, points: lot.left })) };
   },
   audit: (_input, output) => ({ ...output }),

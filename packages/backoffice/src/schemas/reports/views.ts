@@ -110,21 +110,6 @@ export const deadStockView = v.object({
 });
 export type DeadStockView = v.InferOutput<typeof deadStockView>;
 
-export const journalView = v.object({
-  rows: v.array(
-    v.object({
-      day: v.string(),
-      branchId: v.string(),
-      branch: v.string(),
-      account: v.string(),
-      debit: int,
-      credit: int,
-    }),
-  ),
-  total: v.object({ debit: int, credit: int }),
-});
-export type JournalView = v.InferOutput<typeof journalView>;
-
 export const scopeView = v.object({
   branches: v.array(v.object({ id: v.string(), name: v.string() })),
 });
@@ -136,6 +121,5 @@ export const reportViews = {
   products: productsView,
   branches: branchesView,
   "stock/dead": deadStockView,
-  journal: journalView,
 };
 export type ReportKind = keyof typeof reportViews;

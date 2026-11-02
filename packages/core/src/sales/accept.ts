@@ -29,6 +29,7 @@ import type { Queue } from "@shopper/ports";
 import { recordFiscalDoc } from "../fiscal/documents";
 import { touchStoreDay } from "../reports/rollup";
 import { markOnboarding } from "../onboarding/records";
+import { postSale } from "../ledger/sales";
 
 export async function acceptSale(
   db: ShopperDatabase,
@@ -181,6 +182,7 @@ const accept = defineCommand({
       customerId: buyer.id,
       occurredAt: input.occurredAt,
     });
+    await postSale(tx, ctx, snapshot, input.occurredAt);
     if (buyer.created) await publishCustomer(tx, ctx.orgId, buyer.created);
     if (buyer.id) await queueSaleReceipt(tx, ctx.orgId, { id: saved.id, customerId: buyer.id });
     // Its charge or earn may bring the account's next interest, expiry or tier notice forward.

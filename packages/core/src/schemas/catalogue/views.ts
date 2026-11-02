@@ -30,6 +30,8 @@ const productFields = {
   onlineVisible: v.boolean(),
   finalSale: v.boolean(),
   archivedAt: v.nullable(iso),
+  /** The verified photo the online store shows, if any. */
+  imageAssetId: v.optional(v.nullable(id), null),
 };
 export const productSummary = v.object({ ...productFields, price: v.nullable(money) });
 export const productPage = v.object({

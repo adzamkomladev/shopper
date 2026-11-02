@@ -71,6 +71,13 @@ One `RateLimiter` port (`packages/ports/src/limits.ts`) with a fixed policy tabl
   account sees only sales rung up to customer rows with its phone at that shop (and rows merged into
   them). Profile edits change the online account, never the shop's `customer` row.
 - Tests: `tests/integration/shop/*` (sign-in, account, profile) and the tenant sweep.
+- The store (`/shop/:code/store`, `products`, `products/:id`, `images/:assetId`, `sitemap`) is public and
+  read-only. It names the shop by code and takes nothing else from the request; it only shows what
+  `catalogue_public` holds and answers 404 for anything else, including a hidden product's photo. Its replies are
+  `public, max-age=60` (photo redirects 240 s, under the 300 s download grant).
+- Product photos follow the asset rules: jpeg, png or webp up to 2 MB, a direct-upload grant for
+  `product.write`, and the stored bytes checked against the registered size and SHA-256 before the product links
+  them.
 
 ## Secrets
 

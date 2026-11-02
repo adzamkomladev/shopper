@@ -20,6 +20,7 @@ import {
 import { validateProducts } from "./authority";
 import { StockError } from "./error";
 import { checkStockAlerts } from "./reorder";
+import { postStock } from "../ledger/stock";
 
 type Recorded = { id: string; replayed: boolean };
 type Draft = {
@@ -101,6 +102,12 @@ async function recordDocument(tx: ShopperTransaction, ctx: CommandContext, draft
     draft.branchId,
     draft.movements.map((line) => line.productId),
   );
+  await postStock(tx, ctx, {
+    id: draft.id,
+    branchId: draft.branchId,
+    occurredAt: draft.occurredAt,
+    memo: draft.kind === "receipt" ? "Goods received" : `Stock adjustment: ${draft.cause}`,
+  });
   return { id: draft.id, replayed: false };
 }
 

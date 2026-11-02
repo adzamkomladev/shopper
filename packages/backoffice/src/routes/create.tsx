@@ -17,6 +17,7 @@ import { kycRoutes } from "./kyc";
 import { settingsRoutes } from "./settings";
 import { reportRoutes } from "./reports";
 import { taxRoutes } from "./tax";
+import { ledgerRoutes } from "./ledger";
 import { auditRoutes } from "./audit";
 import { transactionRoutes } from "./transactions";
 import { paymentRoutes } from "./payments";
@@ -157,6 +158,7 @@ export function createBackofficeRoutes(
       ...settingsRoutes(shopRoute),
       ...reportRoutes(shopRoute),
       ...taxRoutes(shopRoute),
+      ...ledgerRoutes(shopRoute),
       ...auditRoutes(shopRoute),
       ...transactionRoutes(shopRoute),
       ...paymentRoutes(shopRoute),

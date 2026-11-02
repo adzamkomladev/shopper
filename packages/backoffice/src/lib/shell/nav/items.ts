@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import type { PermissionNeed } from "../../roles/permissions";
 import {
   BadgeCheckIcon,
+  BookOpenIcon,
   Building2Icon,
   ChartNoAxesColumnIcon,
   ClockIcon,
@@ -31,6 +32,7 @@ import {
  */
 export const NAV_SECTIONS = [
   { name: "Reports", group: "Overview", icon: ChartNoAxesColumnIcon },
+  { name: "Books", group: "Overview", icon: BookOpenIcon },
   { name: "Sales", group: "Manage", icon: ShoppingCartIcon },
   { name: "Catalogue", group: "Manage", icon: PackageIcon },
   { name: "Inventory", group: "Manage", icon: WarehouseIcon },
@@ -59,6 +61,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     icon: ChartNoAxesColumnIcon,
     section: "Reports",
     permission: "report.read",
+  },
+  {
+    to: "/ledger",
+    label: "Books",
+    icon: BookOpenIcon,
+    section: "Books",
+    permission: "ledger.read",
   },
   {
     to: "/transactions",

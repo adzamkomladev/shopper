@@ -23,6 +23,7 @@ import { managementRoutes } from "./routes/management";
 import { systemRoutes } from "./routes/system";
 import { taxReportRoutes } from "./routes/tax/reports";
 import { reportRoutes } from "./routes/reports";
+import { ledgerRoutes } from "./routes/ledger";
 import { reconciliationRoutes } from "./routes/reconciliation";
 import { transactionRoutes } from "./routes/transactions";
 import { approvalRoutes } from "./routes/approvals";
@@ -33,6 +34,7 @@ import { readOnlyGuard } from "./middleware/readonly";
 import { billingRoutes } from "./routes/billing";
 import { shopAccountRoutes } from "./routes/shop/account";
 import { shopSignInRoutes } from "./routes/shop/signin";
+import { shopStoreRoutes } from "./routes/shop/store";
 
 export function createApi(options: ApiOptions = {}) {
   const app = new Hono<ApiEnvironment>();
@@ -108,6 +110,7 @@ export function createApi(options: ApiOptions = {}) {
     );
   if (options.database) app.route("/", kycRoutes(options));
   if (options.database) app.route("/", reportRoutes(options.database, options.authentication));
+  if (options.database) app.route("/", ledgerRoutes(options.database, options.authentication));
   if (options.database) app.route("/", reconciliationRoutes(options));
   if (options.database) app.route("/", transactionRoutes(options));
   if (options.database) app.route("/", approvalRoutes(options));
@@ -135,6 +138,7 @@ export function createApi(options: ApiOptions = {}) {
     // Before `/shop/:code`, which would otherwise take "account" for a shop code.
     app.route("/", shopAccountRoutes({ ...options.shop, database: options.database }));
     app.route("/", shopSignInRoutes({ ...options.shop, database: options.database }));
+    app.route("/", shopStoreRoutes({ ...options.shop, database: options.database }));
   }
   return app;
 }

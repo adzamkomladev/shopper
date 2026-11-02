@@ -14,6 +14,8 @@ import { Route as ShopRouteRouteImport } from './routes/$shop/route'
 import { Route as ShopIndexRouteImport } from './routes/$shop/index'
 import { Route as ShopAccountRouteImport } from './routes/$shop/account'
 import { Route as ShopSigninRouteImport } from './routes/$shop/signin'
+import { Route as ShopCategoriesIdRouteImport } from './routes/$shop/categories.$id'
+import { Route as ShopProductsIdRouteImport } from './routes/$shop/products.$id'
 import { Route as ShopReceiptsSaleIdRouteImport } from './routes/$shop/receipts.$saleId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +43,16 @@ const ShopSigninRoute = ShopSigninRouteImport.update({
   path: '/signin',
   getParentRoute: () => ShopRouteRoute,
 } as any)
+const ShopCategoriesIdRoute = ShopCategoriesIdRouteImport.update({
+  id: '/categories/$id',
+  path: '/categories/$id',
+  getParentRoute: () => ShopRouteRoute,
+} as any)
+const ShopProductsIdRoute = ShopProductsIdRouteImport.update({
+  id: '/products/$id',
+  path: '/products/$id',
+  getParentRoute: () => ShopRouteRoute,
+} as any)
 const ShopReceiptsSaleIdRoute = ShopReceiptsSaleIdRouteImport.update({
   id: '/receipts/$saleId',
   path: '/receipts/$saleId',
@@ -53,6 +65,8 @@ export interface FileRoutesByFullPath {
   '/$shop/account': typeof ShopAccountRoute
   '/$shop/signin': typeof ShopSigninRoute
   '/$shop/': typeof ShopIndexRoute
+  '/$shop/categories/$id': typeof ShopCategoriesIdRoute
+  '/$shop/products/$id': typeof ShopProductsIdRoute
   '/$shop/receipts/$saleId': typeof ShopReceiptsSaleIdRoute
 }
 export interface FileRoutesByTo {
@@ -60,6 +74,8 @@ export interface FileRoutesByTo {
   '/$shop/account': typeof ShopAccountRoute
   '/$shop/signin': typeof ShopSigninRoute
   '/$shop': typeof ShopIndexRoute
+  '/$shop/categories/$id': typeof ShopCategoriesIdRoute
+  '/$shop/products/$id': typeof ShopProductsIdRoute
   '/$shop/receipts/$saleId': typeof ShopReceiptsSaleIdRoute
 }
 export interface FileRoutesById {
@@ -69,6 +85,8 @@ export interface FileRoutesById {
   '/$shop/account': typeof ShopAccountRoute
   '/$shop/signin': typeof ShopSigninRoute
   '/$shop/': typeof ShopIndexRoute
+  '/$shop/categories/$id': typeof ShopCategoriesIdRoute
+  '/$shop/products/$id': typeof ShopProductsIdRoute
   '/$shop/receipts/$saleId': typeof ShopReceiptsSaleIdRoute
 }
 export interface FileRouteTypes {
@@ -79,6 +97,8 @@ export interface FileRouteTypes {
     | '/$shop/account'
     | '/$shop/signin'
     | '/$shop/'
+    | '/$shop/categories/$id'
+    | '/$shop/products/$id'
     | '/$shop/receipts/$saleId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -86,6 +106,8 @@ export interface FileRouteTypes {
     | '/$shop/account'
     | '/$shop/signin'
     | '/$shop'
+    | '/$shop/categories/$id'
+    | '/$shop/products/$id'
     | '/$shop/receipts/$saleId'
   id:
     | '__root__'
@@ -94,6 +116,8 @@ export interface FileRouteTypes {
     | '/$shop/account'
     | '/$shop/signin'
     | '/$shop/'
+    | '/$shop/categories/$id'
+    | '/$shop/products/$id'
     | '/$shop/receipts/$saleId'
   fileRoutesById: FileRoutesById
 }
@@ -139,6 +163,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShopSigninRouteImport
       parentRoute: typeof ShopRouteRoute
     }
+    '/$shop/categories/$id': {
+      id: '/$shop/categories/$id'
+      path: '/categories/$id'
+      fullPath: '/$shop/categories/$id'
+      preLoaderRoute: typeof ShopCategoriesIdRouteImport
+      parentRoute: typeof ShopRouteRoute
+    }
+    '/$shop/products/$id': {
+      id: '/$shop/products/$id'
+      path: '/products/$id'
+      fullPath: '/$shop/products/$id'
+      preLoaderRoute: typeof ShopProductsIdRouteImport
+      parentRoute: typeof ShopRouteRoute
+    }
     '/$shop/receipts/$saleId': {
       id: '/$shop/receipts/$saleId'
       path: '/receipts/$saleId'
@@ -153,6 +191,8 @@ interface ShopRouteRouteChildren {
   ShopAccountRoute: typeof ShopAccountRoute
   ShopSigninRoute: typeof ShopSigninRoute
   ShopIndexRoute: typeof ShopIndexRoute
+  ShopCategoriesIdRoute: typeof ShopCategoriesIdRoute
+  ShopProductsIdRoute: typeof ShopProductsIdRoute
   ShopReceiptsSaleIdRoute: typeof ShopReceiptsSaleIdRoute
 }
 
@@ -160,6 +200,8 @@ const ShopRouteRouteChildren: ShopRouteRouteChildren = {
   ShopAccountRoute: ShopAccountRoute,
   ShopSigninRoute: ShopSigninRoute,
   ShopIndexRoute: ShopIndexRoute,
+  ShopCategoriesIdRoute: ShopCategoriesIdRoute,
+  ShopProductsIdRoute: ShopProductsIdRoute,
   ShopReceiptsSaleIdRoute: ShopReceiptsSaleIdRoute,
 }
 

@@ -428,3 +428,33 @@ The owner approved this architecture on 14 October 2026. This cleanup documents 
   workflow state: stores, branches, tax settings, products or a catalogue mark, invitations and enrolled tills.
 - A till enrols itself: an unenrolled host answers only `device.enrol` (shop code and one-time code), then boots
   enrolled on the same bridge. Under Electron the parent stores and seals the registration.
+
+## General ledger (Day 31)
+
+- The books are double-entry and append-only: `ledger_account` (the chart, seeded for every org by a trigger on
+  `org`), `journal_entry` and `journal_line` (signed money, debit +, credit −). A deferred trigger refuses an entry
+  whose lines do not sum to zero or that has fewer than two lines; entries and lines refuse UPDATE and DELETE.
+- Every money event posts through `postEntry` (`@shopper/core/ledger`) inside the command's own transaction: sales
+  (tenders, sales ex-tax, each levy as the till snapshotted it, rounding, COGS at last received cost, points earned),
+  refunds, credit payments, interest and notes, loyalty expiry, shift drops and variances, stock receipts and
+  adjustments, and MoMo settlements. A source posts once: `(org, source, source_id)` is unique, so replays are
+  no-ops.
+- The lock date (`org.ledger_locked_through`) never refuses a synced event: an entry dated on or before it counts on
+  the first open day and keeps its `occurred_at`. Manual journals and reversals inside the lock answer 409.
+- Reports read the ledger tables only (trial balance, P&L, balance sheet with current earnings, account lines). The
+  old derived daily journal report is gone.
+- The shared runtime only dispatches route families named in `isPublicRequest` (`packages/api/src/runtime.ts`); a
+  new family must be added there, and `tests/integration/reports/scope.test.ts` proves `/ledger` reaches it.
+
+## Online store (Day 31)
+
+- The shop root `/<code>` is the store; the account stays at `/<code>/account`. Store pages render on the server
+  (TanStack Start) from the public API: `GET /shop/:code/{store,products,products/:id,images/:assetId,sitemap}`.
+- The store reads products only through the `catalogue_public` view (online-visible, not archived), prices them with
+  the till's rule (branch price over the shop price, valid now) and lists them only where the selected branch has
+  stock. `@shopper/core/storefront` is that reader's only home, so on-prem relay data can stand behind it later.
+- Product photos are `product_image` assets in the durable private store, uploaded straight from the back office
+  with a grant and linked only after the bytes are checked. The store serves them through a five-minute download
+  redirect, only for a photo linked to a product it shows.
+- `serveShop` keeps a reply's `Cache-Control` only when the API marked it `public` (the store); everything else
+  from a shop origin is `no-store`.

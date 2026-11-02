@@ -23,6 +23,9 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   "tax.write": "Change tax settings and rules",
   "tax.return": "File VAT returns",
   "report.read": "View reports",
+  "ledger.read": "View the books",
+  "ledger.write": "Post journal entries and edit the chart of accounts",
+  "ledger.lock": "Lock the books through a date",
   "audit.read": "View audit log",
   "user.read": "View users",
   "user.write": "Invite and manage users",
@@ -73,7 +76,16 @@ export const PERMISSION_GROUPS: readonly { name: string; codes: readonly Permiss
   },
   {
     name: "Tax, reports and audit",
-    codes: ["tax.read", "tax.write", "tax.return", "report.read", "audit.read"],
+    codes: [
+      "tax.read",
+      "tax.write",
+      "tax.return",
+      "report.read",
+      "ledger.read",
+      "ledger.write",
+      "ledger.lock",
+      "audit.read",
+    ],
   },
   {
     name: "People",

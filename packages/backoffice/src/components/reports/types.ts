@@ -10,4 +10,4 @@ export type ReportColumn<T> = {
 };
 
 /** The reports, which each have a toolbar and a body of their own. */
-export type ReportKind = "dashboard" | "sales" | "products" | "stock" | "branches" | "journal";
+export type ReportKind = "dashboard" | "sales" | "products" | "stock" | "branches";

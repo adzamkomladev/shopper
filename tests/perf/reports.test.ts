@@ -44,9 +44,9 @@ describe.runIf(enabled)("report performance over a year", () => {
     `/reports/products?${year}`,
     `/reports/branches?${year}`,
     "/reports/stock/dead?days=90&on=2026-10-15",
-    `/reports/journal?${year}`,
+    `/ledger/reports/trial?asOf=2026-12-31`,
     `/reports/sales/export.xlsx?${year}&by=day`,
-    `/reports/journal/export.csv?${year}`,
+    `/reports/sales/export.csv?${year}&by=day`,
   ])("%s", async (path) => {
     const timings: number[] = [];
     for (let run = 0; run < RUNS; run++) {

@@ -6,6 +6,7 @@ import type { Queryable } from "../../types";
 import { readCustomerRow } from "../queries";
 import { ageEntries } from "./ageing";
 import { readCreditSettings } from "./settings";
+import { postCredit } from "../../ledger/customers";
 
 const DAY = 86_400_000;
 type Entry = { kind: string; amount: Money; occurredAt: Date };
@@ -25,14 +26,18 @@ export const postInterest = defineCommand({
   async run(tx, ctx, input) {
     const assessed = await assess(tx, ctx, input);
     if (assessed.amount === 0 || assessed.saved) return assessed.output;
-    await tx.insert(creditEntry).values({
-      orgId: ctx.orgId,
-      customerId: assessed.customerId,
-      kind: "interest",
-      amount: assessed.amount,
-      period: assessed.period,
-      occurredAt: input.at,
-    });
+    const [row] = await tx
+      .insert(creditEntry)
+      .values({
+        orgId: ctx.orgId,
+        customerId: assessed.customerId,
+        kind: "interest",
+        amount: assessed.amount,
+        period: assessed.period,
+        occurredAt: input.at,
+      })
+      .returning();
+    await postCredit(tx, ctx, row!);
     return { ...assessed.output, posted: true };
   },
   audit: (_input, output) => ({ ...output }),

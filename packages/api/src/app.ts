@@ -34,6 +34,7 @@ import { readOnlyGuard } from "./middleware/readonly";
 import { billingRoutes } from "./routes/billing";
 import { shopAccountRoutes } from "./routes/shop/account";
 import { shopSignInRoutes } from "./routes/shop/signin";
+import { shopStoreRoutes } from "./routes/shop/store";
 
 export function createApi(options: ApiOptions = {}) {
   const app = new Hono<ApiEnvironment>();
@@ -137,6 +138,7 @@ export function createApi(options: ApiOptions = {}) {
     // Before `/shop/:code`, which would otherwise take "account" for a shop code.
     app.route("/", shopAccountRoutes({ ...options.shop, database: options.database }));
     app.route("/", shopSignInRoutes({ ...options.shop, database: options.database }));
+    app.route("/", shopStoreRoutes({ ...options.shop, database: options.database }));
   }
   return app;
 }

@@ -19,6 +19,7 @@ const columns = {
   onlineVisible: product.onlineVisible,
   finalSale: product.finalSale,
   archivedAt: product.archivedAt,
+  imageAssetId: product.imageAssetId,
 };
 const selectProducts = <T extends SelectedFields = typeof columns>(db: Queryable, shape?: T) =>
   db

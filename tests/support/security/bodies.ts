@@ -146,6 +146,13 @@ export const BODIES: Record<string, Body> = {
     sizeBytes: 1,
     sha256: "0".repeat(64),
   }),
+  "POST /products/:id/image/uploads": () => ({
+    fileName: "sweep.png",
+    contentType: "image/png",
+    sizeBytes: 1,
+    sha256: "0".repeat(64),
+  }),
+  "PUT /products/:id/image": (id) => ({ assetId: id }),
   "POST /kyb/documents": () => ({
     fileName: "sweep.pdf",
     contentType: "application/pdf",

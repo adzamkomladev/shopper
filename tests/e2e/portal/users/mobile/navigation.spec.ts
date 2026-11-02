@@ -20,12 +20,14 @@ test("main navigation stays on screen and keyboard reachable at phone and tablet
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(390);
   await expectAllInView(sheetLinks);
-  // Reports, then the Sales section button, then its first page.
+  // Reports, Books, then the Sales section button, then its first page.
   await sheetLinks.nth(0).focus();
+  await page.keyboard.press("Tab");
+  await expect(sheetLinks.nth(1)).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(sheet.getByRole("button", { name: "Sales" })).toBeFocused();
   await page.keyboard.press("Tab");
-  await expect(sheetLinks.nth(1)).toBeFocused();
+  await expect(sheetLinks.nth(2)).toBeFocused();
   await expectNoSeriousAxe(page);
   await page.keyboard.press("Escape");
 

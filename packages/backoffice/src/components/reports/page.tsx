@@ -15,7 +15,7 @@ const TABS = [
   { value: "branches", to: "/reports/branches", label: "Branches" },
 ] as const;
 
-/** The reports area: heading and the six report tabs, which keys 1–6 open. Every report needs report.read. */
+/** The reports area: heading and the five report tabs, which keys 1–5 open. Every report needs report.read. */
 export function ReportsPage({
   active,
   children,

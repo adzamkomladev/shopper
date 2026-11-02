@@ -51,6 +51,7 @@ export const accountLinesView = v.object({
 export type AccountLine = v.InferOutput<typeof accountLinesView>["lines"][number];
 
 export const journalView = v.object({
+  truncated: v.boolean(),
   entries: v.array(
     v.object({
       id: v.string(),

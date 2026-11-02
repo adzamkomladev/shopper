@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { and, asc, eq, gte, inArray, lt, lte, sql } from "drizzle-orm";
 import { journalEntry, journalLine, ledgerAccount, org } from "@shopper/db-pg";
 import { add, money } from "@shopper/money";
-import { journalQuery, rangeQuery } from "../schemas/ledger/inputs";
+import { journalQuery, ledgerId, rangeQuery } from "../schemas/ledger/inputs";
 import type { Queryable } from "../types";
 import { describe } from "./chart";
 import { LedgerError } from "./error";
@@ -32,10 +32,15 @@ export async function listAccounts(db: Queryable, orgId: string) {
   };
 }
 
-/** Journal entries posted in a range, newest first, with their lines and which entry reversed each. */
+const JOURNAL_PAGE = 500;
+
+/**
+ * Journal entries posted in a range, newest first, with their lines and which entry reversed each. Only the newest
+ * JOURNAL_PAGE entries come back; `truncated` says a narrower range would show the rest.
+ */
 export async function listJournal(db: Queryable, orgId: string, raw: unknown) {
   const query = v.parse(journalQuery, raw);
-  const entries = await db
+  const found = await db
     .select()
     .from(journalEntry)
     .where(
@@ -47,7 +52,9 @@ export async function listJournal(db: Queryable, orgId: string, raw: unknown) {
       ),
     )
     .orderBy(sql`${journalEntry.postedOn} DESC`, sql`${journalEntry.id} DESC`)
-    .limit(500);
+    .limit(JOURNAL_PAGE + 1);
+  const truncated = found.length > JOURNAL_PAGE;
+  const entries = found.slice(0, JOURNAL_PAGE);
   const ids = entries.map((entry) => entry.id);
   const lines = ids.length
     ? await db
@@ -70,6 +77,7 @@ export async function listJournal(db: Queryable, orgId: string, raw: unknown) {
         .where(and(eq(journalEntry.orgId, orgId), inArray(journalEntry.reversesId, ids)))
     : [];
   return {
+    truncated,
     entries: entries.map((entry) => ({
       id: entry.id,
       postedOn: entry.postedOn,
@@ -94,6 +102,7 @@ export async function listJournal(db: Queryable, orgId: string, raw: unknown) {
 
 /** One account's lines in a range with the running balance, from the balance before the range to the one after. */
 export async function accountLines(db: Queryable, orgId: string, accountId: string, raw: unknown) {
+  if (!v.is(ledgerId, accountId)) throw new LedgerError("Unknown account", 404);
   const query = v.parse(rangeQuery, raw);
   const [account] = await db
     .select()

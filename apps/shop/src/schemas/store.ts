@@ -16,6 +16,8 @@ export const storeSearch = v.object({
     undefined,
   ),
 });
+/** A category address; anything else names no category, so the page is not found. */
+export const categoryParam = v.pipe(v.string(), v.uuid());
 /** A product page names only the branch. */
 export const productSearch = v.object({ branch });
 

@@ -110,5 +110,14 @@ function Entries({
 }) {
   const { data } = useSuspenseQuery(journalQuery(from, to));
   if (data.entries.length === 0) return <NothingPosted what={`from ${from} to ${to}`} />;
-  return <JournalList entries={data.entries} onReverse={onReverse} />;
+  return (
+    <div className="flex flex-col gap-3">
+      {data.truncated && (
+        <p className="text-sm text-muted-foreground" role="status">
+          Showing the newest {data.entries.length} entries. Narrow the dates to see the rest.
+        </p>
+      )}
+      <JournalList entries={data.entries} onReverse={onReverse} />
+    </div>
+  );
 }

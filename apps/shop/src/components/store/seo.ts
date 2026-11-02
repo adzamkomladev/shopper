@@ -8,6 +8,8 @@ type Page = {
   description: string;
   /** The path search engines should index this page under. */
   path: string;
+  /** A listing's page: each page past the first is indexed under its own address. */
+  page?: number;
   image?: string;
   /** A page that should not be indexed, such as a product the branch cannot sell. */
   noindex?: boolean;
@@ -16,7 +18,7 @@ type Page = {
 
 /** Title, description, canonical link, Open Graph and structured data for a store page. */
 export function storeHead(page: Page) {
-  const url = `${page.info.origin}${page.path}`;
+  const url = `${page.info.origin}${page.path}${page.page && page.page > 1 ? `?page=${page.page}` : ""}`;
   return {
     meta: [
       { title: page.title },

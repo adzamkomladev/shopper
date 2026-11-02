@@ -1,6 +1,7 @@
 // Manual journals and the books' controls, through the API:
 //   - a manual entry needs two or more lines that balance, on accounts of this org; it posts once per id;
 //   - a reversal mirrors an entry once, dated on its own day; a reversal itself cannot be reversed;
+//   - only a manual entry is reversed (a synced posting stands with its source), never before its own day;
 //   - nothing manual may be dated on or before the lock date, while a late synced sale still posts on the first open day;
 //   - custom accounts can be added and archived, system accounts renamed but never archived;
 //   - reading needs ledger.read, posting ledger.write, locking ledger.lock: a cashier gets 403.
@@ -11,6 +12,9 @@ import { ids } from "../../fixtures/sales/golden";
 import { get, portalMember, portalOwner, type Portal } from "../../support/api/portal";
 import { send } from "../../support/stock/http";
 import { entriesOf } from "../../support/ledger/books";
+import { postEntry } from "@shopper/core/ledger";
+import { money } from "@shopper/money";
+import { databases } from "../../support/till/server";
 
 let world: Awaited<ReturnType<typeof goldenWorld>>;
 let owner: Portal;
@@ -98,6 +102,43 @@ test("an entry is reversed once, and a reversal is never reversed", async () => 
   expect((await post(`/ledger/journal/${v7()}/reverse`, { postedOn: "2026-10-22" })).status).toBe(
     404,
   );
+});
+
+test("only a manual entry is reversed, never before its own day, and a malformed id is unknown", async () => {
+  const { db, context } = databases();
+  const sale = await db.transaction((tx) =>
+    postEntry(tx, context, {
+      source: "sale",
+      sourceId: v7(),
+      occurredAt: new Date("2026-10-20T10:00:00Z"),
+      memo: "Sale 0042",
+      lines: [
+        { account: "cash_drawer", amount: money(10_000) },
+        { account: "sales", amount: money(-10_000) },
+      ],
+    }),
+  );
+  // Correcting a synced posting is a new manual entry; reversing it would orphan the sale it came from.
+  expect((await post(`/ledger/journal/${sale}/reverse`, { postedOn: "2026-10-21" })).status).toBe(
+    422,
+  );
+  const { body: posted } = await post(
+    "/ledger/journal",
+    journal(
+      [
+        ["fees", 5_000],
+        ["bank", -5_000],
+      ],
+      "2026-10-20",
+    ),
+  );
+  expect(
+    (await post(`/ledger/journal/${posted.id}/reverse`, { postedOn: "2026-10-19" })).status,
+  ).toBe(422);
+  expect((await post("/ledger/journal/not-an-id/reverse", { postedOn: "2026-10-22" })).status).toBe(
+    404,
+  );
+  expect((await get(owner.api, owner.cookie, "/ledger/accounts/not-an-id/lines")).status).toBe(404);
 });
 
 test("the lock date refuses manual entries on or before it", async () => {

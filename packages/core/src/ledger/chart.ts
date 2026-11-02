@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { and, eq } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
 import { ledgerAccount, org } from "@shopper/db-pg";
-import { accountInput, accountPatch, lockInput } from "../schemas/ledger/inputs";
+import { accountInput, accountPatch, ledgerId, lockInput } from "../schemas/ledger/inputs";
 import { LedgerError } from "./error";
 
 /** Adds a custom account to the org's chart; its code is unique in the org. */
@@ -26,6 +26,7 @@ export const createAccount = defineCommand({
 export const updateAccount = defineCommand({
   name: "ledger.account.update",
   async run(tx, ctx, input: { id: string; patch: unknown }) {
+    if (!v.is(ledgerId, input.id)) throw new LedgerError("Unknown account", 404);
     const patch = v.parse(accountPatch, input.patch);
     const [found] = await tx
       .select()

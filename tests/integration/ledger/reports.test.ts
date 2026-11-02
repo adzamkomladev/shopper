@@ -93,7 +93,7 @@ test("each levy payable is the tax summary's charged less credited back", async 
       (sum, row) => sum + row.sales[levy] - row.creditNotes[levy],
       0,
     );
-    expect(-(books.get(levy) ?? 0), levy).toBe(owed);
+    expect(0 - (books.get(levy) ?? 0), levy).toBe(owed);
   }
   expect(-books.get("vat")!).toBeGreaterThan(0);
 });

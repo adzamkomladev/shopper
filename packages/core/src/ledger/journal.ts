@@ -10,7 +10,7 @@ import {
   type ShopperTransaction,
 } from "@shopper/db-pg";
 import { money } from "@shopper/money";
-import { manualJournalInput, reversalInput } from "../schemas/ledger/inputs";
+import { ledgerId, manualJournalInput, reversalInput } from "../schemas/ledger/inputs";
 import { LedgerError } from "./error";
 import { negate, postEntry } from "./post";
 
@@ -61,10 +61,11 @@ export const postManualJournal = defineCommand({
   details: (_input, output) => ({ entity: "journal_entry", entityId: output.id }),
 });
 
-/** Posts the mirror of an entry once, on an open day; a reversal is final and is not reversed again. */
+/** Posts the mirror of a manual entry once, on an open day no earlier than its own; a reversal is final. */
 export const reverseJournal = defineCommand({
   name: "ledger.journal.reverse",
   async run(tx, ctx, input: { entryId: string; body: unknown }) {
+    if (!v.is(ledgerId, input.entryId)) throw new LedgerError("Unknown journal entry", 404);
     const body = v.parse(reversalInput, input.body);
     const [original] = await tx
       .select()
@@ -72,6 +73,11 @@ export const reverseJournal = defineCommand({
       .where(and(eq(journalEntry.orgId, ctx.orgId), eq(journalEntry.id, input.entryId)));
     if (!original) throw new LedgerError("Unknown journal entry", 404);
     if (original.source === "reversal") throw new LedgerError("A reversal cannot be reversed", 422);
+    // A synced posting is corrected by a new manual entry; reversing it would leave its sale or shift unbooked.
+    if (original.source !== "manual")
+      throw new LedgerError("Only a hand-written entry can be reversed", 422);
+    if (body.postedOn < original.postedOn)
+      throw new LedgerError("A reversal cannot be dated before the entry it reverses", 422);
     await requireOpen(tx, ctx.orgId, body.postedOn);
     const lines = await tx
       .select()

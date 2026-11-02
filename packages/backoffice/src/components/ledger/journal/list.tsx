@@ -36,7 +36,7 @@ export function JournalList({ entries, onReverse }: Props) {
                 <SourceLink source={entry.source} id={entry.sourceId} />
               </span>
               {entry.reversedBy && <Badge variant="secondary">Reversed</Badge>}
-              {onReverse && !entry.reversedBy && entry.source !== "reversal" && (
+              {onReverse && !entry.reversedBy && entry.source === "manual" && (
                 <Button
                   id={`reverse-${entry.id}`}
                   size="sm"

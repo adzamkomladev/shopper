@@ -1,6 +1,7 @@
 // The public store of E2E Mart on the real shop host: browsing, search by keyboard, categories, the branch selector
-// hiding what a branch has run out of, a product page's metadata and structured data, the sitemap, and the designed
-// dead ends. Each run seeds its own branches and products, tagged so earlier runs never match.
+// hiding what a branch has run out of, a product page's metadata and structured data, the sitemap, each page of a
+// listing indexed under its own address, and the designed dead ends (an unknown product, category or shop). Each run
+// seeds its own branches and products, tagged so earlier runs never match.
 import { expect, test } from "@playwright/test";
 import { expectNoSeriousAxe } from "../../support/e2e";
 import { SHOP } from "../../support/shop/browser";
@@ -114,11 +115,19 @@ test("an empty search, an unknown product and an unknown shop each say what to d
   await page.getByRole("button", { name: "Clear the search" }).click();
   await expect(page).not.toHaveURL(/q=/);
   await shoot(page, info, "store-home");
+  // Every page of a listing past the first is indexed under its own address.
+  await page.goto(`/${SHOP}?page=2`);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    "href",
+    new RegExp(`/${SHOP}\\?page=2$`),
+  );
 
   await page.goto(`/${SHOP}/products/${store.products.hidden}`);
   await expect(
     page.getByRole("heading", { name: "That product is not in the store" }),
   ).toBeVisible();
+  await page.goto(`/${SHOP}/categories/not-a-category`);
+  await expect(page.getByRole("heading", { name: "That category is not here" })).toBeVisible();
   await page.goto(`/no-such-shop-${tag}`);
   await expect(page.getByRole("heading", { name: "We could not find that shop" })).toBeVisible();
 });

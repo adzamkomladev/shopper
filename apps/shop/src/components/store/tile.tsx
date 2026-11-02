@@ -12,12 +12,15 @@ export function ProductPhoto({
   assetId,
   name,
   eager = false,
+  decorative = false,
   className = "",
 }: {
   shop: string;
   assetId: string | null;
   name: string;
   eager?: boolean;
+  /** In a tile the link already names the product, so the photo says nothing more. */
+  decorative?: boolean;
   className?: string;
 }) {
   return (
@@ -25,7 +28,7 @@ export function ProductPhoto({
       {assetId ? (
         <img
           src={`/api/shop/${shop}/images/${assetId}`}
-          alt={name}
+          alt={decorative ? "" : name}
           loading={eager ? "eager" : "lazy"}
           decoding="async"
           className="size-full object-cover"
@@ -66,6 +69,7 @@ export function ProductTile({
           assetId={product.imageAssetId}
           name={product.name}
           eager={index < 4}
+          decorative
         />
         <div className="flex flex-1 flex-col gap-1 p-3 sm:p-4">
           <h3 className="line-clamp-2 font-semibold text-pretty">{product.name}</h3>

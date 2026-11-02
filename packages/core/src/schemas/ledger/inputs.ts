@@ -4,6 +4,8 @@ import { text } from "../fields";
 import { day, reportQuery } from "../reports/query";
 
 const id = v.pipe(v.string(), v.uuid(), v.toLowerCase());
+/** A ledger id from a path: anything that is not a uuid names nothing, so callers answer 404. */
+export const ledgerId = v.pipe(v.string(), v.uuid());
 const amount = v.pipe(
   v.number(),
   v.safeInteger(),

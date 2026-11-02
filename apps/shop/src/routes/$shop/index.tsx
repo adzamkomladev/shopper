@@ -30,6 +30,7 @@ export const Route = createFileRoute("/$shop/")({
             : `${loaderData.info.name} · Shop online`,
           description: `Shop ${loaderData.info.name} online: prices and stock at ${loaderData.result.branch.name}, the same as at the till.`,
           path: `/${params.shop}`,
+          page: match.search.page,
           // A search result page is for the shopper, not for the index.
           noindex: Boolean(match.search.q),
         })

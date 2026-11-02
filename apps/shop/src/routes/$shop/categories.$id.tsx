@@ -1,6 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { readStore, readStorePage } from "../../functions/store";
-import { storeSearch } from "../../schemas/store";
+import * as v from "valibot";
+import { categoryParam, storeSearch } from "../../schemas/store";
 import { StoreBrowse } from "../../components/store/browse";
 import { storeHead } from "../../components/store/seo";
 import { StoreSkeleton } from "../../components/store/skeleton";
@@ -11,6 +12,7 @@ export const Route = createFileRoute("/$shop/categories/$id")({
   validateSearch: storeSearch,
   loaderDeps: ({ search }) => search,
   loader: async ({ params, deps }) => {
+    if (!v.is(categoryParam, params.id)) throw notFound();
     const [info, result] = await Promise.all([
       readStore({ data: params.shop }),
       readStorePage({
@@ -35,6 +37,7 @@ export const Route = createFileRoute("/$shop/categories/$id")({
           title: `${loaderData.category.name} · ${loaderData.info.name}`,
           description: `${loaderData.category.name} at ${loaderData.info.name}: prices and stock at ${loaderData.result.branch.name}.`,
           path: `/${params.shop}/categories/${loaderData.category.id}`,
+          page: match.search.page,
           noindex: Boolean(match.search.q),
         })
       : {},

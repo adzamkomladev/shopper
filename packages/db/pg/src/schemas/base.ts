@@ -93,6 +93,8 @@ export const org = pgTable(
     momoProvider: text("momo_provider", { enum: momoProviders }).notNull().default("paystack"),
     /** Which till release feed the org's registers follow; a platform admin moves pilot shops. */
     updateChannel: text("update_channel", { enum: updateChannels }).notNull().default("stable"),
+    /** The last Accra day the books are closed through; manual entries cannot land on or before it. */
+    ledgerLockedThrough: date("ledger_locked_through"),
     ...times(),
   },
   (t) => [

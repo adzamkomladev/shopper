@@ -98,6 +98,8 @@ export const product = pgTable(
     taxClassId: uuid("tax_class_id").notNull(),
     baseUnit: text("base_unit").$type<BaseUnit>().notNull(),
     onlineVisible: boolean("online_visible").notNull().default(false),
+    /** The verified product photo the online store shows. */
+    imageAssetId: uuid("image_asset_id"),
     /** A final-sale product cannot be returned or refunded. */
     finalSale: boolean("final_sale").notNull().default(false),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
@@ -108,6 +110,7 @@ export const product = pgTable(
     foreignKey({ columns: [t.orgId, t.categoryId], foreignColumns: [category.orgId, category.id] }),
     foreignKey({ columns: [t.orgId, t.supplierId], foreignColumns: [supplier.orgId, supplier.id] }),
     foreignKey({ columns: [t.orgId, t.taxClassId], foreignColumns: [taxClass.orgId, taxClass.id] }),
+    foreignKey({ columns: [t.orgId, t.imageAssetId], foreignColumns: [asset.orgId, asset.id] }),
     check("product_base_unit", sql`${t.baseUnit} IN ('each', 'kg', 'g', 'l', 'ml')`),
   ],
 );

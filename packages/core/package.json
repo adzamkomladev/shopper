@@ -64,6 +64,14 @@
       "types": "./src/reports/index.ts",
       "default": "./src/reports/index.ts"
     },
+    "./ledger": {
+      "types": "./src/ledger/index.ts",
+      "default": "./src/ledger/index.ts"
+    },
+    "./storefront": {
+      "types": "./src/storefront/index.ts",
+      "default": "./src/storefront/index.ts"
+    },
     "./stock": {
       "types": "./src/stock/index.ts",
       "default": "./src/stock/index.ts"

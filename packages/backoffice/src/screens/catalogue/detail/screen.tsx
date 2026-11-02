@@ -8,6 +8,7 @@ import { usePermissions } from "../../../queries/session/permissions";
 import { focusOnMount } from "../../../lib/focus";
 import { BarcodesCard } from "../../../components/catalogue/detail/barcodes/card";
 import { DetailsForm } from "../../../components/catalogue/detail/details/form";
+import { PhotoCard } from "../../../components/catalogue/detail/photo/card";
 import type { PriceMode } from "../../../schemas/product";
 import { PriceDialog } from "../../../components/catalogue/detail/prices/dialog";
 import { PricesCard } from "../../../components/catalogue/detail/prices/card";
@@ -36,7 +37,8 @@ export function ProductScreen() {
     (usable ? opener : setPriceRef.current)?.focus();
   };
   const navigate = useNavigate();
-  const canAudit = !!usePermissions()?.includes("audit.read");
+  const held = usePermissions();
+  const canAudit = !!held?.includes("audit.read");
   // Who changed this product, its prices included, and who approved: the audit log filtered to it.
   const history = { entity: "product", entityId: product.id };
   const historyKey = useShortcuts(
@@ -84,6 +86,7 @@ export function ProductScreen() {
         <div className="flex flex-col gap-6">
           <DetailsForm key={product.id} product={product} formRef={formRef} />
           <BarcodesCard product={product} />
+          <PhotoCard product={product} canWrite={!!held?.includes("product.write")} />
         </div>
         <PricesCard
           product={product}

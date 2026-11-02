@@ -1,7 +1,8 @@
 export type { ShopContext } from "./types";
 
 /**
- * The shop Worker's `/api/*`: only the shopper routes pass, without the `/api` prefix, and no answer is cached.
+ * The shop Worker's `/api/*`: only the shopper routes pass, without the `/api` prefix. Nothing is cached but the
+ * public store's replies, which say so themselves.
  * Back-office and till routes are never reachable from a shop origin.
  */
 export async function serveShop(
@@ -17,6 +18,8 @@ export async function serveShop(
   url.pathname = url.pathname.slice("/api".length);
   const response = await run(new Request(url, request));
   const headers = new Headers(response.headers);
-  headers.set("cache-control", "no-store");
+  // Only the public store marks a reply public; everything else is the shopper's own and is never cached.
+  if (!response.headers.get("cache-control")?.startsWith("public"))
+    headers.set("cache-control", "no-store");
   return new Response(response.body, { status: response.status, headers });
 }

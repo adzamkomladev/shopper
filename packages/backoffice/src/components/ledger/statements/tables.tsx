@@ -14,7 +14,7 @@ import type { AmountRow, BalanceView, ProfitView, TrialView } from "../../../sch
 /** Every account with a balance at the day, debit or credit, and the two totals that must agree. */
 export function TrialTable({ data }: { data: TrialView }) {
   return (
-    <Table aria-label="Trial balance">
+    <Table scrollable aria-label="Trial balance">
       <TableHeader>
         <TableRow>
           <TableHead>Account</TableHead>
@@ -50,7 +50,7 @@ export function TrialTable({ data }: { data: TrialView }) {
 
 export function ProfitTable({ data }: { data: ProfitView }) {
   return (
-    <Table aria-label="Profit and loss">
+    <Table scrollable aria-label="Profit and loss">
       <Header />
       <TableBody>
         <Section title="Income" rows={data.income} total={data.totals.income} />
@@ -63,7 +63,7 @@ export function ProfitTable({ data }: { data: ProfitView }) {
 
 export function BalanceTable({ data }: { data: BalanceView }) {
   return (
-    <Table aria-label="Balance sheet">
+    <Table scrollable aria-label="Balance sheet">
       <Header />
       <TableBody>
         <Section title="Assets" rows={data.assets} total={data.totals.assets} />
@@ -111,8 +111,8 @@ const Footer = ({ label, amount }: { label: string; amount: number }) => (
 function Section({ title, rows, total }: { title: string; rows: AmountRow[]; total?: number }) {
   return (
     <>
-      <TableRow className="bg-muted/50 hover:bg-muted/50">
-        <TableHead scope="rowgroup" colSpan={2}>
+      <TableRow className="hover:bg-transparent">
+        <TableHead scope="rowgroup" colSpan={2} className="text-foreground">
           {title}
         </TableHead>
       </TableRow>

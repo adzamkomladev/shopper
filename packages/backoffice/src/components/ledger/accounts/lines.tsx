@@ -17,7 +17,7 @@ type Props = { opening: number; closing: number; lines: AccountLine[] };
 /** One account's lines with the running balance (debits +), from the balance brought forward to the one carried. */
 export function AccountLines({ opening, closing, lines }: Props) {
   return (
-    <Table aria-label="Account lines">
+    <Table scrollable aria-label="Account lines">
       <TableHeader>
         <TableRow>
           <TableHead>Date</TableHead>

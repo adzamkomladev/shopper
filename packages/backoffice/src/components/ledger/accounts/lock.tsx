@@ -28,9 +28,9 @@ export function LockDialog({ lockedThrough, ...dialog }: Props) {
         error={lock.error?.message}
       >
         <Field>
-          <FieldLabel htmlFor="ledger-lock">Locked through</FieldLabel>
+          <FieldLabel htmlFor="ledger-lock-through">Locked through</FieldLabel>
           <DatePicker
-            id="ledger-lock"
+            id="ledger-lock-through"
             value={through}
             onValueChange={(value) => setThrough(value ?? "")}
           />

@@ -9,3 +9,7 @@ export const branchList = v.array(
 export const deletedBarcode = v.null();
 
 export const scheduledPrice = v.object({ price: priceView });
+
+/** A short link to the product's photo, or null when it has none. */
+export const productImageLink = v.object({ url: v.nullable(v.string()) });
+export const productImageSet = v.object({ assetId: v.nullable(v.string()) });

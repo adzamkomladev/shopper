@@ -5,14 +5,22 @@ import { cn } from "cn";
 
 /**
  * Every table looks the same: a bordered card with a muted header and 40px rows, as DataTable draws
- * them. `bare` drops the frame for a table that already sits flush inside a Card.
+ * them. `bare` drops the frame for a table that already sits flush inside a Card. `scrollable` lets a
+ * keyboard reach a table wide enough to scroll sideways on a phone; it is named by the table's label.
  */
-function Table({ className, bare, ...props }: React.ComponentProps<"table"> & { bare?: boolean }) {
+function Table({
+  className,
+  bare,
+  scrollable,
+  ...props
+}: React.ComponentProps<"table"> & { bare?: boolean; scrollable?: boolean }) {
   return (
     <div
       data-slot="table-container"
+      {...(scrollable && { tabIndex: 0, role: "region", "aria-label": props["aria-label"] })}
       className={cn(
         "relative w-full overflow-x-auto",
+        scrollable && "outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
         !bare && "rounded-lg border bg-card shadow-sm",
       )}
     >

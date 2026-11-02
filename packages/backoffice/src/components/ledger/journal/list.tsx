@@ -48,7 +48,7 @@ export function JournalList({ entries, onReverse }: Props) {
                 </Button>
               )}
             </header>
-            <Table bare>
+            <Table bare scrollable aria-label={`Lines of ${entry.memo}`}>
               <TableHeader>
                 <TableRow>
                   <TableHead>Account</TableHead>

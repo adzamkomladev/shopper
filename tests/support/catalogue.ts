@@ -69,7 +69,7 @@ export async function openProduct(page: Page, request: APIRequestContext, name: 
 }
 
 /** A card on the product page: the Details, Barcodes or Prices region. */
-export const card = (page: Page, name: "Details" | "Barcodes" | "Prices") =>
+export const card = (page: Page, name: "Details" | "Barcodes" | "Prices" | "Photo") =>
   page.getByRole("region", { name });
 
 /** A `datetime-local` value for `days` from now at 08:00 local time. */

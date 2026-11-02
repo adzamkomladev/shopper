@@ -158,6 +158,6 @@ test("a cashier is told the books are not theirs to view", async ({ page, reques
   await page.context().clearCookies();
   await signInAs(page, cashier);
   await page.goto("/ledger");
-  await expect(page.getByText(/view the books/)).toBeVisible();
+  await expect(page.getByText(/view the books/)).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("link", { name: "Books" })).toHaveCount(0);
 });

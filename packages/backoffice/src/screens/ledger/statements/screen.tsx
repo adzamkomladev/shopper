@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { DownloadIcon } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
-import { Tabs, TabsList, TabsTrigger } from "@shopper/ui/components/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@shopper/ui/components/tabs";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { LedgerRange } from "../../../components/ledger/range";
 import { LinesSkeleton, NothingPosted, RangeSkeleton } from "../../../components/ledger/states";
@@ -58,20 +58,20 @@ export function LedgerStatementsScreen() {
           what="the books"
           fallback={<RangeSkeleton label="Loading the statement" />}
         >
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <LedgerRange
-              from={statement === "profit" ? range.from : undefined}
-              to={range.to}
-              toLabel={statement === "profit" ? "To" : "As of"}
-              onChange={(change) =>
-                void navigate({
-                  to: "/ledger/statements",
-                  search: { ...range, statement, ...change },
-                  replace: true,
-                })
-              }
-            />
-            <Tabs value={statement} activationMode="manual">
+          <Tabs value={statement} activationMode="manual" className="gap-6">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <LedgerRange
+                from={statement === "profit" ? range.from : undefined}
+                to={range.to}
+                toLabel={statement === "profit" ? "To" : "As of"}
+                onChange={(change) =>
+                  void navigate({
+                    to: "/ledger/statements",
+                    search: { ...range, statement, ...change },
+                    replace: true,
+                  })
+                }
+              />
               <TabsList variant="line" aria-label="Statement">
                 {STATEMENTS.map(({ value, label }) => (
                   <TabsTrigger key={value} value={value} asChild>
@@ -81,13 +81,16 @@ export function LedgerStatementsScreen() {
                   </TabsTrigger>
                 ))}
               </TabsList>
-            </Tabs>
-          </div>
-          <Suspense fallback={<LinesSkeleton label="Loading the statement" />}>
-            {statement === "trial" && <Trial asOf={range.to} />}
-            {statement === "profit" && <Profit {...range} />}
-            {statement === "balance" && <Balance asOf={range.to} />}
-          </Suspense>
+            </div>
+            {/* Only the chosen statement's panel exists; the other triggers are links to theirs. */}
+            <TabsContent value={statement}>
+              <Suspense fallback={<LinesSkeleton label="Loading the statement" />}>
+                {statement === "trial" && <Trial asOf={range.to} />}
+                {statement === "profit" && <Profit {...range} />}
+                {statement === "balance" && <Balance asOf={range.to} />}
+              </Suspense>
+            </TabsContent>
+          </Tabs>
         </Gate>
       </LedgerPage>
     </div>

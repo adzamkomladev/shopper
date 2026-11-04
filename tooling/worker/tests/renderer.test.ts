@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { test } from "vitest";
+import { test } from "vite-plus/test";
 import { cloudflareRenderer } from "@shopper/adapters-cf";
 import { rendererConformance } from "@shopper/conformance";
 import type { Json } from "@shopper/ports";

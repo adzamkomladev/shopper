@@ -1,5 +1,5 @@
 import { env, introspectWorkflowInstance } from "cloudflare:test";
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
 import { eq } from "drizzle-orm";
 import { v7 } from "uuid";
 import * as schema from "@shopper/db-pg";

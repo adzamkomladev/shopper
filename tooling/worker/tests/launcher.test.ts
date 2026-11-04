@@ -1,6 +1,6 @@
 import { sha256 } from "@shopper/utils";
 import { env, introspectWorkflowInstance } from "cloudflare:test";
-import { test, expect } from "vitest";
+import { test, expect } from "vite-plus/test";
 import { v7 } from "uuid";
 import { eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";

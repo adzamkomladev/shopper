@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { test } from "vitest";
+import { test } from "vite-plus/test";
 import { cloudflareRateLimiter } from "@shopper/adapters-cf";
 import { rateLimiterConformance } from "@shopper/conformance";
 

@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { afterAll, expect, test } from "vitest";
+import { afterAll, expect, test } from "vite-plus/test";
 import { v7 } from "uuid";
 import { cloudflareBlobs } from "@shopper/adapters-cf";
 import { objectStorage } from "@shopper/ports";

@@ -18,6 +18,6 @@
     "@shopper/tests": "workspace:*",
     "@shopper/utils": "workspace:*",
     "esbuild": "0.28.1",
-    "vitest": "4.1.9"
+    "vitest": "catalog:"
   }
 }

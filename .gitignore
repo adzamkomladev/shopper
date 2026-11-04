@@ -22,3 +22,4 @@ test-results/
 # Packaged desktop register (tooling/build/package.ts)
 apps/till/electron/.app/
 apps/till/electron/release/
+.vitest/

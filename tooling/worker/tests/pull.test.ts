@@ -1,6 +1,6 @@
 import { sha256 as digest } from "@shopper/utils";
 import { SELF, env } from "cloudflare:test";
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
 import { v7 } from "uuid";
 import { defineCommand } from "@shopper/audit";
 import * as schema from "@shopper/db-pg";

@@ -1,5 +1,5 @@
 import { env, runDurableObjectAlarm, runInDurableObject } from "cloudflare:test";
-import { test } from "vitest";
+import { test } from "vite-plus/test";
 import { eq } from "drizzle-orm";
 import { v7 } from "uuid";
 import * as schema from "@shopper/db-pg";

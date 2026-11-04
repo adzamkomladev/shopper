@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { test } from "vitest";
+import { test } from "vite-plus/test";
 import { v7 } from "uuid";
 import { cloudflareRealtime } from "@shopper/adapters-cf";
 import { realtimeConformance } from "@shopper/conformance";

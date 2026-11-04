@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { beforeAll, expect, test } from "vitest";
+import { beforeAll, expect, test } from "vite-plus/test";
 import { v7 } from "uuid";
 import {
   cloudflareDatabase,

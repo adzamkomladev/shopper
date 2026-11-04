@@ -12,9 +12,9 @@
   "scripts": {
     "dev": "vp dev",
     "build:staging": "cf build --mode staging",
-    "deploy:staging": "cf build --mode staging && tsx ../../tooling/cloudflare/deploy.ts edge --stage staging",
+    "deploy:staging": "cf build --mode staging && vpx ../../tooling/cloudflare/deploy.ts edge --stage staging",
     "build:production": "cf build --mode prod",
-    "deploy:production": "cf build --mode prod && tsx ../../tooling/cloudflare/deploy.ts edge --stage production"
+    "deploy:production": "cf build --mode prod && vpx ../../tooling/cloudflare/deploy.ts edge --stage production"
   },
   "dependencies": {
     "@shopper/adapters-cf": "workspace:*",

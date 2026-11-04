@@ -1,5 +1,5 @@
 import { SELF } from "cloudflare:test";
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
 import { v7 } from "uuid";
 
 test("/sync/refunds and /sync/sales/lookup in workerd need a device credential", async () => {

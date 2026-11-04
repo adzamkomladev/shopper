@@ -21,6 +21,9 @@ const solo = [
   "tests/integration/tooling/cloudflare/*.test.ts",
 ];
 export default defineConfig({
+  staged: {
+    "*": "vp check --fix",
+  },
   define: buildDefines,
   fmt: {
     ignorePatterns: [

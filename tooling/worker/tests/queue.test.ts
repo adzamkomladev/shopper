@@ -1,5 +1,5 @@
 import { createExecutionContext, createMessageBatch, env, getQueueResult } from "cloudflare:test";
-import { test } from "vitest";
+import { test } from "vite-plus/test";
 import { cloudflareDeliver, cloudflareQueue } from "@shopper/adapters-cf";
 import { queueConformance } from "@shopper/conformance";
 import type { Envelope } from "@shopper/ports";

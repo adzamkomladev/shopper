@@ -1,5 +1,5 @@
 import { SELF, env } from "cloudflare:test";
-import { expect, test } from "vitest";
+import { expect, test } from "vite-plus/test";
 
 test("shared Hono API runs inside workerd and reports its baked version", async () => {
   const response = await SELF.fetch("https://shopper.test/health");

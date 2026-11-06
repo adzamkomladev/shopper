@@ -17,6 +17,8 @@ import { ledgerAccount } from "./accounts";
 export const journalSources = [
   "sale",
   "refund",
+  "order",
+  "order_refund",
   "credit",
   "loyalty",
   "shift",
@@ -55,7 +57,7 @@ export const journalEntry = pgTable(
     foreignKey({ columns: [t.orgId, t.reversesId], foreignColumns: [t.orgId, t.id] }),
     check(
       "journal_entry_source_kind",
-      sql`${t.source} IN ('sale', 'refund', 'credit', 'loyalty', 'shift', 'stock', 'settlement', 'manual', 'reversal')`,
+      sql`${t.source} IN ('sale', 'refund', 'order', 'order_refund', 'credit', 'loyalty', 'shift', 'stock', 'settlement', 'manual', 'reversal')`,
     ),
     check(
       "journal_entry_reversal",

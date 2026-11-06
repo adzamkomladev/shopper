@@ -15,6 +15,8 @@ import {
 import { tenant, branch, store } from "./base";
 import { sale } from "./sales";
 import { refund } from "./refunds";
+import { onlineOrder } from "./orders/base";
+import { orderRefund } from "./orders/payments";
 
 export const fiscalStatuses = ["pending", "submitted", "accepted", "rejected", "dead"] as const;
 
@@ -28,6 +30,10 @@ export const fiscalDoc = pgTable(
     kind: text("kind", { enum: ["invoice", "credit_note"] }).notNull(),
     saleId: uuid("sale_id"),
     refundId: uuid("refund_id"),
+    /** An online order's invoice: its receipt is stored on the order, with no till sale behind it. */
+    orderId: uuid("order_id"),
+    /** The credit note that gives an online order's payment back. */
+    orderRefundId: uuid("order_refund_id"),
     invoiceNumber: text("invoice_number").notNull(),
     payload: jsonb("payload").notNull(),
     status: text("status", { enum: fiscalStatuses }).notNull().default("pending"),
@@ -47,6 +53,8 @@ export const fiscalDoc = pgTable(
     unique().on(t.orgId, t.id),
     unique().on(t.orgId, t.saleId),
     unique().on(t.orgId, t.refundId),
+    unique().on(t.orgId, t.orderId),
+    unique().on(t.orgId, t.orderRefundId),
     index("fiscal_doc_store_status").on(t.orgId, t.storeId, t.status),
     index("fiscal_doc_unarchived")
       .on(t.orgId, t.storeId, t.acceptedAt)
@@ -56,6 +64,14 @@ export const fiscalDoc = pgTable(
     foreignKey({ columns: [t.orgId, t.saleId], foreignColumns: [sale.orgId, sale.id] }),
     foreignKey({ columns: [t.orgId, t.refundId], foreignColumns: [refund.orgId, refund.id] }),
     foreignKey({
+      columns: [t.orgId, t.orderId],
+      foreignColumns: [onlineOrder.orgId, onlineOrder.id],
+    }),
+    foreignKey({
+      columns: [t.orgId, t.orderRefundId],
+      foreignColumns: [orderRefund.orgId, orderRefund.id],
+    }),
+    foreignKey({
       columns: [t.orgId, t.archiveId],
       foreignColumns: [fiscalArchive.orgId, fiscalArchive.id],
     }),
@@ -64,8 +80,14 @@ export const fiscalDoc = pgTable(
       sql`${t.status} IN ('pending', 'submitted', 'accepted', 'rejected', 'dead')`,
     ),
     check("fiscal_doc_kind_value", sql`${t.kind} IN ('invoice', 'credit_note')`),
-    check("fiscal_doc_source", sql`(${t.saleId} IS NULL) <> (${t.refundId} IS NULL)`),
-    check("fiscal_doc_kind", sql`(${t.kind} = 'invoice') = (${t.saleId} IS NOT NULL)`),
+    check(
+      "fiscal_doc_source",
+      sql`num_nonnulls(${t.saleId}, ${t.refundId}, ${t.orderId}, ${t.orderRefundId}) = 1`,
+    ),
+    check(
+      "fiscal_doc_kind",
+      sql`(${t.kind} = 'invoice') = (${t.refundId} IS NULL AND ${t.orderRefundId} IS NULL)`,
+    ),
     check(
       "fiscal_doc_accepted",
       sql`${t.status} <> 'accepted' OR (${t.signature} IS NOT NULL AND ${t.acceptedAt} IS NOT NULL)`,

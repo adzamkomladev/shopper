@@ -114,3 +114,26 @@ test("the shopper who loses the race for the last tin is told, and the cart flag
   ).toBeDisabled();
   await Promise.all(shoppers.map((page) => page.close()));
 });
+
+test("a dropped connection on Place order says so, and trying again places the order once", async ({
+  page,
+}) => {
+  const { phone } = await startShopper(page);
+  const [osu] = store.branches;
+  await page.goto(`/${SHOP}/products/${store.products.oil}?branch=${osu}`);
+  await expect(async () => {
+    await page.getByRole("button", { name: "Add to cart" }).click();
+    await expect(cartButton(page)).toHaveAccessibleName("Cart, 1 item", { timeout: 1_000 });
+  }).toPass({ timeout: 30_000 });
+  await page.goto(`/${SHOP}/checkout?branch=${osu}`);
+  await expect(page.getByRole("button", { name: "Place order" })).toBeEnabled({ timeout: 30_000 });
+  await page.route("**/api/shop/*/orders", (route) => route.abort("internetdisconnected"), {
+    times: 1,
+  });
+  await placeOrder(page, phone);
+  await expect(page.getByRole("alert")).toContainText("We could not reach the shop");
+  await page.getByRole("button", { name: "Place order" }).click();
+  await expect(page.getByRole("heading", { name: "Awaiting payment" })).toBeVisible({
+    timeout: 30_000,
+  });
+});

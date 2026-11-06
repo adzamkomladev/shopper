@@ -39,12 +39,28 @@ export const expireOrder = defineCommand({
   details: (input) => ({ entity: "online_order", entityId: input.id }),
 });
 
-/** The payment settled in time; the stock stays held until the store picks it. */
+/**
+ * The payment settled in time; the stock stays held until the store picks it. The checkout deadline no longer
+ * applies, so the holds move out to a day after the slot ends.
+ */
+// shortcut: paid holds lapse a day after the slot; the store's pick/fulfil step (later days) releases them instead.
 export const markOrderPaid = defineCommand({
   name: "order.paid",
-  run: async (tx, context, input: Input) => ({
-    moved: await move(tx, context.orgId, input.id, "placed", "paid"),
-  }),
+  async run(tx, context, input: Input) {
+    const moved = await move(tx, context.orgId, input.id, "placed", "paid");
+    const order = await readOrder(tx, context.orgId, input.id);
+    await tx
+      .update(stockHold)
+      .set({ expiresAt: new Date(order.slotEnd.getTime() + 86_400_000), updatedAt: new Date() })
+      .where(
+        and(
+          eq(stockHold.orgId, context.orgId),
+          eq(stockHold.orderId, input.id),
+          isNull(stockHold.releasedAt),
+        ),
+      );
+    return { moved };
+  },
   audit: (input, output) => ({ id: input.id, ...output }),
   details: (input) => ({ entity: "online_order", entityId: input.id }),
 });

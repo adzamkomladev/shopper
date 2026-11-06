@@ -44,6 +44,8 @@ export function CheckoutForm({
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState({ line1: "", area: "", city: "", landmark: "" });
   const [token, setToken] = useState("");
+  // A Turnstile token is single use: every refused submit draws a fresh challenge.
+  const [challenge, setChallenge] = useState(0);
   const [tried, setTried] = useState(false);
   const quote = useQuery(cartQuery(shop, branchId, lines, kind));
   const place = useMutation({
@@ -70,6 +72,8 @@ export function CheckoutForm({
       });
     },
     onError: (error) => {
+      setToken("");
+      setChallenge((count) => count + 1);
       // A slot that filled meanwhile: show the fresh places so the shopper can pick again.
       if (error instanceof ShopApiError && error.code === "slot") {
         setSlot("");
@@ -212,14 +216,16 @@ export function CheckoutForm({
         </section>
       </div>
       <CartTotals quote={quote.data} pricing={quote.isFetching}>
-        {refusal ? (
+        {place.error ? (
           <Alert variant="destructive" role="alert">
             <CircleAlert aria-hidden />
             <AlertDescription>
-              {refusal.status === 429
-                ? "Too many tries. Wait a minute, then place your order."
-                : refusal.message}
-              {refusal.code === "stock" ? (
+              {!refusal
+                ? "We could not reach the shop. Check your connection, then place your order again: it is only ever placed once."
+                : refusal.status === 429
+                  ? "Too many tries. Wait a minute, then place your order."
+                  : refusal.message}
+              {refusal?.code === "stock" ? (
                 <Link
                   to="/$shop/cart"
                   params={{ shop }}
@@ -232,7 +238,7 @@ export function CheckoutForm({
             </AlertDescription>
           </Alert>
         ) : null}
-        {siteKey ? <Turnstile siteKey={siteKey} onToken={setToken} /> : null}
+        {siteKey ? <Turnstile key={challenge} siteKey={siteKey} onToken={setToken} /> : null}
         <Button
           type="submit"
           size="touch"

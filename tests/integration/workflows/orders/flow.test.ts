@@ -81,6 +81,16 @@ test("a settled payment moves the order on to wait for the store, which accepts 
   expect(await run(seeded.orderId)).toMatchObject({ currentStep: "paid", status: "waiting" });
   // Paid stock stays held: the store has yet to pick it.
   expect(await world.released(db, seeded.orderId)).toBeNull();
+  // Paid stock stays held past the hold's checkout deadline: until a day after the slot ends.
+  const [held] = await db
+    .select()
+    .from(schema.stockHold)
+    .where(eq(schema.stockHold.orderId, seeded.orderId));
+  const [placed] = await db
+    .select()
+    .from(schema.onlineOrder)
+    .where(eq(schema.onlineOrder.id, seeded.orderId));
+  expect(held!.expiresAt.getTime()).toBe(placed!.slotEnd.getTime() + 86_400_000);
   await flow.send(seeded.orderId, "store.accepted", {});
   await running;
   expect((await order(seeded.orderId)).status).toBe("accepted");

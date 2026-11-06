@@ -142,6 +142,11 @@ export interface Lane {
   // One ordered lane per store. Enqueueing a document twice submits it once.
   enqueue(orgId: string, storeId: string, docId: string): Promise<void>;
 }
+export interface StockHolds {
+  // Arms one branch's release of expired online-order holds at `expiresAt`; the earliest armed time wins. PostgreSQL
+  // keeps the holds, and availability already ignores an expired one, so a late release never oversells.
+  watch(orgId: string, branchId: string, expiresAt: Date): Promise<void>;
+}
 export type RatePolicy = keyof typeof ratePolicies;
 export interface RateLimiter {
   // True while `key` is within its policy's budget for the current window; false once it is spent.

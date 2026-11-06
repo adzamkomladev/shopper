@@ -22,3 +22,4 @@ export { boxLane } from "./lane";
 export { boxFiscalArchive } from "./workflows/fiscal";
 export { boxAuditAnchors, boxWatchdog } from "./workflows/anchor";
 export { boxStoreDays } from "./workflows/day";
+export { boxStockHolds } from "./holds";

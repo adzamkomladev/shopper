@@ -68,6 +68,10 @@
       "types": "./src/ledger/index.ts",
       "default": "./src/ledger/index.ts"
     },
+    "./orders": {
+      "types": "./src/orders/index.ts",
+      "default": "./src/orders/index.ts"
+    },
     "./storefront": {
       "types": "./src/storefront/index.ts",
       "default": "./src/storefront/index.ts"

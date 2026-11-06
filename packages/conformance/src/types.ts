@@ -8,6 +8,7 @@ import type {
   QueueHandler,
   Renderer,
   Sequencer,
+  StockHolds,
   Workflow,
   WorkflowLauncher,
 } from "@shopper/ports";
@@ -90,3 +91,17 @@ export interface LaneFixture {
 }
 
 export type RateLimiterFixture = () => Promise<{ limiter: RateLimiter }>;
+
+export interface StockHoldFixture {
+  holds: StockHolds;
+  orgId: string;
+  branchId: string;
+  otherBranchId: string;
+  /** An online order holding stock at the branch until `expiresInMs` from now. */
+  seed(branchId: string, expiresInMs: number): Promise<{ orderId: string; expiresAt: Date }>;
+  /** Runs the branch's armed release if it is due and waits for it to finish. */
+  fire(branchId: string): Promise<void>;
+  /** The order's hold release reason, or null while it is still held. */
+  released(orderId: string): Promise<string | null>;
+  close(): Promise<void>;
+}

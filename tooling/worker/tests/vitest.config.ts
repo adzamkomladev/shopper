@@ -52,6 +52,7 @@ export default defineConfig({
           STORE_SEQUENCER: { className: "StoreSequencer", useSQLite: true },
           STORE_HUB: { className: "StoreHub", useSQLite: true },
           FISCAL_LANE: { className: "FiscalLane", useSQLite: true },
+          STOCK_HOLD: { className: "StockHold", useSQLite: true },
         },
         bindings: {
           // Signing credentials never exist in tests; without an endpoint the grants stay off.
@@ -105,6 +106,7 @@ export default defineConfig({
       "billing/dunning.test.ts",
       "sequencer.test.ts",
       "ratelimit.test.ts",
+      "holds.test.ts",
     ],
   },
 });

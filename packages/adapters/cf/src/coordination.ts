@@ -12,6 +12,7 @@ import {
 import { cloudflareDatabase } from "./database";
 
 export { FiscalLane } from "./lane";
+export { StockHold } from "./holds";
 
 // PG is the durable record. The DO provides one hot coordination address per store;
 // it keeps no second cursor that could disagree with a committed PG transaction.

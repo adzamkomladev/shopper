@@ -17,7 +17,9 @@ export type {
 export type { PlaceOrderInput } from "../schemas/orders/place";
 export { startOrderPayment, saveCheckoutUrl } from "./payments/start";
 export { applyOrderPaymentEvent, expireOrderPayment } from "./payments/apply";
-export { applyOrderRefundEvent, refundOrderPayment, refundPaidOrder } from "./payments/refund";
+export { refundPaidOrder } from "./payments/refunds/compensate";
+export { refundOrderPayment } from "./payments/refunds/send";
+export { applyOrderRefundEvent } from "./payments/refunds/webhook";
 export { deliverOrderConfirmation } from "./payments/notify";
 export { runOrderPayment } from "../workflows/payments/order";
 export { payOrderInput, orderPaymentParams } from "../schemas/orders/pay";

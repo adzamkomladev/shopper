@@ -17,7 +17,7 @@ import { deliverOnboardingEvent, deliverOnboardingNudge } from "../onboarding/de
 import { deliverKybNotice } from "../kyb/deliver";
 import { deliverShopCode } from "../shop/deliver";
 import { deliverOrderConfirmation } from "../orders/payments/notify";
-import { refundOrderPayment } from "../orders/payments/refund";
+import { refundOrderPayment } from "../orders/payments/refunds/send";
 import { orderRefundMessage } from "../schemas/orders/messages";
 import type { NotificationDeps } from "./types";
 export type { NotificationDeps } from "./types";

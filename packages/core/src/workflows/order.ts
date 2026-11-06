@@ -7,7 +7,8 @@ import {
   type WorkflowCheckpoint,
 } from "@shopper/ports";
 import { acceptOrder, confirmHeld, expireOrder, markOrderPaid } from "../orders/flow";
-import { refundOrderPayment, refundPaidOrder } from "../orders/payments/refund";
+import { refundPaidOrder } from "../orders/payments/refunds/compensate";
+import { refundOrderPayment } from "../orders/payments/refunds/send";
 import type { OrderFlowDeps } from "../orders/types";
 import { orderParams } from "../schemas/orders/flow";
 

@@ -1,3 +1,4 @@
+import { Button } from "@shopper/ui/components/button";
 import { DataTable, type DataTableColumn } from "@shopper/ui/components/data-table";
 import { RowActions } from "../admin/row/actions";
 
@@ -7,9 +8,13 @@ type Props = {
   storeNames: Map<string, string>;
   onEdit?: (branch: Branch) => void;
   onDelete?: (branch: Branch) => void;
+  /** Opens the branch's online ordering: pickup, delivery, hours and slots. */
+  onOrders?: (branch: Branch) => void;
 };
 
-export function BranchTable({ branches, storeNames, onEdit, onDelete }: Props) {
+export const ordersButtonId = (id: string) => `orders-${id}`;
+
+export function BranchTable({ branches, storeNames, onEdit, onDelete, onOrders }: Props) {
   const columns: DataTableColumn<Branch>[] = [
     {
       id: "name",
@@ -24,17 +29,30 @@ export function BranchTable({ branches, storeNames, onEdit, onDelete }: Props) {
       cell: ({ row }) => storeNames.get(row.original.storeId) ?? "Unknown store",
     },
   ];
-  if (onEdit || onDelete)
+  if (onEdit || onDelete || onOrders)
     columns.push({
       id: "actions",
       header: () => <span className="sr-only">Actions</span>,
       cell: ({ row }) => (
-        <RowActions
-          id={row.original.id}
-          name={row.original.name}
-          onEdit={onEdit && (() => onEdit(row.original))}
-          onDelete={onDelete && (() => onDelete(row.original))}
-        />
+        <div className="flex justify-end gap-2">
+          {onOrders && (
+            <Button
+              id={ordersButtonId(row.original.id)}
+              variant="outline"
+              size="sm"
+              aria-label={`Online orders at ${row.original.name}`}
+              onClick={() => onOrders(row.original)}
+            >
+              Online orders
+            </Button>
+          )}
+          <RowActions
+            id={row.original.id}
+            name={row.original.name}
+            onEdit={onEdit && (() => onEdit(row.original))}
+            onDelete={onDelete && (() => onDelete(row.original))}
+          />
+        </div>
       ),
     });
   return (

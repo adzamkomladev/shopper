@@ -13,7 +13,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { branch, moneyColumn, store, tenant } from "../base";
-import { price, product, taxRule } from "../catalogue";
+import { price, product } from "../catalogue";
 import { shopAccount } from "../shop";
 
 export const orderChannels = ["online"] as const;
@@ -41,9 +41,11 @@ export const onlineOrder = pgTable(
     customerName: text("customer_name").notNull(),
     customerPhone: text("customer_phone").notNull(),
     shopAccountId: uuid("shop_account_id"),
+    /**
+     * SHA-256 of the browser's random checkout key. The key reads the order back, and a repeated submit with the same
+     * key returns the same order instead of a second one.
+     */
     viewTokenDigest: text("view_token_digest").notNull(),
-    /** The browser's key for one checkout: a repeated submit returns the same order. */
-    idempotencyKey: uuid("idempotency_key").notNull(),
     base: moneyColumn("base").notNull(),
     vat: moneyColumn("vat").notNull(),
     nhil: moneyColumn("nhil").notNull(),
@@ -56,7 +58,7 @@ export const onlineOrder = pgTable(
   (t) => [
     unique().on(t.orgId, t.id),
     unique("online_order_cursor").on(t.orgId, t.storeId, t.inboxCursor),
-    unique("online_order_idempotency").on(t.orgId, t.idempotencyKey),
+    unique("online_order_token").on(t.viewTokenDigest),
     index("online_order_slot").on(t.orgId, t.branchId, t.slotStart),
     foreignKey({ columns: [t.orgId, t.storeId], foreignColumns: [store.orgId, store.id] }),
     foreignKey({ columns: [t.orgId, t.branchId], foreignColumns: [branch.orgId, branch.id] }),
@@ -76,7 +78,7 @@ export const onlineOrder = pgTable(
 export const orderLineKinds = ["product", "delivery"] as const;
 
 /**
- * One line of an online order with the tax snapshot it was sold at. A product line names the price version the
+ * One line of an online order with the tax snapshot (rates included) it was sold at. A product line names the price version the
  * customer saw (`price_id`); the delivery fee is a line of its own with no product.
  */
 export const onlineOrderLine = pgTable(
@@ -88,7 +90,6 @@ export const onlineOrderLine = pgTable(
     kind: text("kind", { enum: orderLineKinds }).notNull(),
     productId: uuid("product_id"),
     priceId: uuid("price_id"),
-    taxRuleId: uuid("tax_rule_id").notNull(),
     quantityThousandths: integer("quantity_thousandths").notNull(),
     gross: moneyColumn("gross").notNull(),
     payload: jsonb("payload").notNull(),
@@ -102,7 +103,6 @@ export const onlineOrderLine = pgTable(
     }),
     foreignKey({ columns: [t.orgId, t.productId], foreignColumns: [product.orgId, product.id] }),
     foreignKey({ columns: [t.orgId, t.priceId], foreignColumns: [price.orgId, price.id] }),
-    foreignKey({ columns: [t.orgId, t.taxRuleId], foreignColumns: [taxRule.orgId, taxRule.id] }),
     check(
       "online_order_line_kind",
       sql`(${t.kind} = 'product') = (${t.productId} IS NOT NULL AND ${t.priceId} IS NOT NULL)`,

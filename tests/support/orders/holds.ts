@@ -46,7 +46,6 @@ export async function holdWorld(db: schema.ShopperDatabase, orgId: string) {
           customerName: "Ama Mensah",
           customerPhone: "0241234567",
           viewTokenDigest: v7(),
-          idempotencyKey: v7(),
           base: zero,
           vat: zero,
           nhil: zero,

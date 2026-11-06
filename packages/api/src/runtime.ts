@@ -214,6 +214,8 @@ function shop(request: Request, options: RuntimeOptions) {
       turnstile: options.turnstile,
       clientIP: options.clientIP,
       orgId: options.orgId,
+      orderFlows: options.orderFlows,
+      stockHolds: options.stockHolds,
     },
   }).fetch(request);
 }

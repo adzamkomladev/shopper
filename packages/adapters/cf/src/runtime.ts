@@ -11,6 +11,7 @@ import { cloudflareDatabase } from "./database";
 import { cloudflareLauncher } from "./launcher";
 import { cloudflareSequencer } from "./sequencer";
 import { cloudflareLane } from "./lane";
+import { cloudflareStockHolds } from "./holds";
 import { cloudflareHubtel } from "./hubtel";
 import { cloudflareRateLimiter } from "./ratelimit";
 import { cloudflareTurnstile } from "./turnstile";
@@ -89,6 +90,8 @@ export async function cloudflareRuntime(
         ? cloudflareLauncher(env.KYC_FLOWS)
         : undefined,
     storeDays: env.STORE_DAY ? cloudflareLauncher(env.STORE_DAY) : undefined,
+    orderFlows: env.ORDER_FLOWS ? cloudflareLauncher(env.ORDER_FLOWS) : undefined,
+    stockHolds: env.STOCK_HOLD ? cloudflareStockHolds(env.STOCK_HOLD) : undefined,
     linkSecret: env.SHOPPER_LINK_SECRET,
     minTillVersion: env.SHOPPER_MIN_TILL_VERSION,
     publicOnboarding: true,

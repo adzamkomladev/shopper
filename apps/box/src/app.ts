@@ -7,6 +7,7 @@ import { createSdc } from "@shopper/core/fiscal";
 import { createMaileroo } from "@shopper/auth";
 import type { BoxBindings } from "./types";
 import { boxPayments } from "./payments";
+import { boxOrders } from "./orders";
 import {
   boxBlobs,
   boxLive,
@@ -46,6 +47,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
   let lane: ReturnType<typeof boxLane> | undefined;
   let watchdog: ReturnType<typeof boxWatchdog> | undefined;
   let storeDays: ReturnType<typeof boxStoreDays> | undefined;
+  let orders: ReturnType<typeof boxOrders> | undefined;
   const renderer = boxRenderer();
   return new Hono<{ Bindings: BoxBindings }>().all("*", async (context) => {
     const request = context.req.raw;
@@ -81,6 +83,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
     cache ??= boxCache(environment.SHOPPER_CACHE_PATH ?? ".shopper/cache.sqlite");
     workflowPool ??= boxPool(DATABASE_URL);
     const workflowDatabase = workflowPool.db;
+    orders ??= boxOrders(workflowDatabase);
     // Created on first use, never at import: workflows outlive requests, so they get their own pool.
     priceChange ??= boxPriceChange({
       database: workflowDatabase,
@@ -234,6 +237,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
         authFlows,
         kyc: kycFlows,
         storeDays: storeDays.launcher,
+        ...orders,
         linkSecret: environment.SHOPPER_LINK_SECRET,
         minTillVersion: environment.SHOPPER_MIN_TILL_VERSION,
       });

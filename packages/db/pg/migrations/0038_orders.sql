@@ -19,7 +19,6 @@ CREATE TABLE IF NOT EXISTS "online_order" (
 	"customer_phone" text NOT NULL,
 	"shop_account_id" uuid,
 	"view_token_digest" text NOT NULL,
-	"idempotency_key" uuid NOT NULL,
 	"base" bigint NOT NULL,
 	"vat" bigint NOT NULL,
 	"nhil" bigint NOT NULL,
@@ -30,7 +29,7 @@ CREATE TABLE IF NOT EXISTS "online_order" (
 	"placed_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "online_order_org_id_id_unique" UNIQUE("org_id","id"),
 	CONSTRAINT "online_order_cursor" UNIQUE("org_id","store_id","inbox_cursor"),
-	CONSTRAINT "online_order_idempotency" UNIQUE("org_id","idempotency_key"),
+	CONSTRAINT "online_order_token" UNIQUE("view_token_digest"),
 	CONSTRAINT "online_order_phone_format" CHECK ("online_order"."customer_phone" ~ '^0[0-9]{9}$'),
 	CONSTRAINT "online_order_slot_order" CHECK ("online_order"."slot_end" > "online_order"."slot_start"),
 	CONSTRAINT "online_order_address" CHECK (("online_order"."fulfilment" = 'delivery') = ("online_order"."delivery_address" IS NOT NULL))
@@ -46,7 +45,6 @@ CREATE TABLE IF NOT EXISTS "online_order_line" (
 	"kind" text NOT NULL,
 	"product_id" uuid,
 	"price_id" uuid,
-	"tax_rule_id" uuid NOT NULL,
 	"quantity_thousandths" integer NOT NULL,
 	"gross" bigint NOT NULL,
 	"payload" jsonb NOT NULL,
@@ -127,10 +125,6 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;--> statement-breakpoint
 DO $$ BEGIN
   ALTER TABLE "online_order_line" ADD CONSTRAINT "online_order_line_org_id_price_id_price_org_id_id_fk" FOREIGN KEY ("org_id","price_id") REFERENCES "public"."price"("org_id","id") ON DELETE no action ON UPDATE no action;
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;--> statement-breakpoint
-DO $$ BEGIN
-  ALTER TABLE "online_order_line" ADD CONSTRAINT "online_order_line_org_id_tax_rule_id_tax_rule_org_id_id_fk" FOREIGN KEY ("org_id","tax_rule_id") REFERENCES "public"."tax_rule"("org_id","id") ON DELETE no action ON UPDATE no action;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;--> statement-breakpoint
 DO $$ BEGIN

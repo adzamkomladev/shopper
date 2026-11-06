@@ -4,6 +4,7 @@ export {
   listStoreProductIds,
   listStoreProducts,
   readStoreProduct,
+  storeBranch,
 } from "./catalogue";
 export { storeImageKey } from "./images";
 export { StoreError } from "./error";

@@ -83,6 +83,7 @@ export default defineConfig(({ mode }) => {
         RATE_ENROL: bindings.rateLimit({ namespace: "2603", simple: { limit: 10, period: 60 } }),
         RATE_CASHIER: bindings.rateLimit({ namespace: "2604", simple: { limit: 20, period: 60 } }),
         RATE_OTP: bindings.rateLimit({ namespace: "2605", simple: { limit: 10, period: 60 } }),
+        RATE_CHECKOUT: bindings.rateLimit({ namespace: "2606", simple: { limit: 5, period: 60 } }),
         STORE_SEQUENCER: bindings.durableObject({ worker: name, exportName: "StoreSequencer" }),
         STORE_HUB: bindings.durableObject({ worker: name, exportName: "StoreHub" }),
         FISCAL_LANE: bindings.durableObject({ worker: name, exportName: "FiscalLane" }),

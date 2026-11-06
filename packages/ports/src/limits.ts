@@ -13,4 +13,6 @@ export const ratePolicies = {
   cashier: { limit: 20, period: 60 },
   /** Shop sign-in codes, per client IP. Mobile carriers share addresses, so each phone's own cap is in the database. */
   otp: { limit: 10, period: 60 },
+  /** Guest checkouts, per client IP: each one holds stock for half an hour, so a few a minute is plenty. */
+  checkout: { limit: 5, period: 60 },
 } as const satisfies Record<string, { limit: number; period: 10 | 60 }>;

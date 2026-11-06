@@ -1,5 +1,5 @@
 {
-  "id": "3e85ff58-d127-4a2c-b296-074fe2f81746",
+  "id": "80c781a3-daad-4b13-8fac-0623f5faaeae",
   "prevId": "e843788e-2c57-46b3-9684-b894d8f1ac61",
   "version": "7",
   "dialect": "postgresql",
@@ -13027,12 +13027,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "idempotency_key": {
-          "name": "idempotency_key",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
         "base": {
           "name": "base",
           "type": "bigint",
@@ -13162,10 +13156,10 @@
           "nullsNotDistinct": false,
           "columns": ["org_id", "store_id", "inbox_cursor"]
         },
-        "online_order_idempotency": {
-          "name": "online_order_idempotency",
+        "online_order_token": {
+          "name": "online_order_token",
           "nullsNotDistinct": false,
-          "columns": ["org_id", "idempotency_key"]
+          "columns": ["view_token_digest"]
         }
       },
       "policies": {},
@@ -13246,12 +13240,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "tax_rule_id": {
-          "name": "tax_rule_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
         "quantity_thousandths": {
           "name": "quantity_thousandths",
           "type": "integer",
@@ -13305,15 +13293,6 @@
           "tableFrom": "online_order_line",
           "tableTo": "price",
           "columnsFrom": ["org_id", "price_id"],
-          "columnsTo": ["org_id", "id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "online_order_line_org_id_tax_rule_id_tax_rule_org_id_id_fk": {
-          "name": "online_order_line_org_id_tax_rule_id_tax_rule_org_id_id_fk",
-          "tableFrom": "online_order_line",
-          "tableTo": "tax_rule",
-          "columnsFrom": ["org_id", "tax_rule_id"],
           "columnsTo": ["org_id", "id"],
           "onDelete": "no action",
           "onUpdate": "no action"

@@ -1,7 +1,7 @@
 // A small online catalogue on a shop world's shop, written straight to the tables the store reads.
-//   stockShop(db, shop, categoryName?) -> { branches: [main, other], category, product(name, over?) }
+//   stockShop(db, shop, categoryName?) -> { storeId, branches: [main, other], category, product(name, over?) }
 //   product(name, over)     -> a product with an org price; `over` sets visibility, archiving, stock per branch,
-//                              a branch price and a future price
+//                              a branch price, a future price, the base unit and the tax class
 import { eq } from "drizzle-orm";
 import { v7 } from "uuid";
 import * as schema from "@shopper/db-pg";
@@ -21,6 +21,8 @@ type Over = {
   /** A price that starts tomorrow. */
   futurePrice?: number;
   categoryId?: string | null;
+  baseUnit?: schema.BaseUnit;
+  taxClass?: "standard" | "zero-rated" | "exempt";
 };
 
 export async function stockShop(db: ShopperDatabase, shop: Shop, categoryName = "Groceries") {
@@ -36,11 +38,10 @@ export async function stockShop(db: ShopperDatabase, shop: Shop, categoryName = 
       code: `B${index}${storeId.slice(-6).toUpperCase()}`,
       createdAt: new Date(Date.UTC(2026, 0, 1 + index)),
     });
-  const [taxClass] = await db
-    .select({ id: schema.taxClass.id })
+  const classes = await db
+    .select({ id: schema.taxClass.id, code: schema.taxClass.code })
     .from(schema.taxClass)
-    .where(eq(schema.taxClass.orgId, shop.orgId))
-    .limit(1);
+    .where(eq(schema.taxClass.orgId, shop.orgId));
   const category = v7();
   await db.insert(schema.category).values({ id: category, orgId: shop.orgId, name: categoryName });
   const product = async (name: string, over: Over = {}) => {
@@ -50,8 +51,8 @@ export async function stockShop(db: ShopperDatabase, shop: Shop, categoryName = 
       orgId: shop.orgId,
       sku: `SKU-${name.replace(/\W/g, "").toUpperCase()}-${id.slice(-4)}`,
       name,
-      taxClassId: taxClass!.id,
-      baseUnit: "each",
+      taxClassId: classes.find((row) => row.code === (over.taxClass ?? "standard"))!.id,
+      baseUnit: over.baseUnit ?? "each",
       onlineVisible: over.visible ?? true,
       archivedAt: over.archived ? new Date() : null,
       categoryId: over.categoryId === undefined ? category : over.categoryId,
@@ -101,5 +102,5 @@ export async function stockShop(db: ShopperDatabase, shop: Shop, categoryName = 
         });
     return id;
   };
-  return { branches, category, product };
+  return { storeId, branches, category, product };
 }

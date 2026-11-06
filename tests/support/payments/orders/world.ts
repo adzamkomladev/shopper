@@ -70,6 +70,7 @@ export async function orderPayWorld(options: Options = {}) {
     hubtel,
     orders: orderFlows,
     timeoutMs: options.paymentTimeoutMs,
+    notifications: () => world.queue,
   });
   const http = shopHttp(world, {
     orderFlows,

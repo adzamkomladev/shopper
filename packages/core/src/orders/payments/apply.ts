@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull } from "drizzle-orm";
 import { v7 } from "uuid";
 import { defineCommand, enqueueAfterCommit } from "@shopper/audit";
 import {
@@ -87,7 +87,7 @@ export const applyOrderPaymentEvent = defineCommand({
       .from(onlineOrder)
       .where(and(eq(onlineOrder.orgId, context.orgId), eq(onlineOrder.id, payment.orderId)))
       .for("update");
-    if (order!.status === "placed" && (await stillHeld(tx, context.orgId, order!.id))) {
+    if (order!.status === "placed" && (await stillHeld(tx, context.orgId, order!.id, now))) {
       await settleOrder(tx, context, order!, confirmed!, now);
       return { duplicate: false, outcome: "settled", orderId: order!.id };
     }
@@ -111,13 +111,19 @@ const refundReason = {
   accepted: "duplicate_payment",
 } as const;
 
-/** Stock is still aside for the order: its hold has not lapsed. */
-async function stillHeld(tx: ShopperTransaction, orgId: string, orderId: string) {
+/** Stock is still aside for the order: its hold has neither been released nor run out. */
+async function stillHeld(tx: ShopperTransaction, orgId: string, orderId: string, now: Date) {
   const [held] = await tx
     .select({ id: stockHold.id })
     .from(stockHold)
     .where(
-      and(eq(stockHold.orgId, orgId), eq(stockHold.orderId, orderId), isNull(stockHold.releasedAt)),
+      and(
+        eq(stockHold.orgId, orgId),
+        eq(stockHold.orderId, orderId),
+        isNull(stockHold.releasedAt),
+        // Past its deadline the stock is already for sale again, whether or not a timer has freed it yet.
+        gt(stockHold.expiresAt, now),
+      ),
     )
     .limit(1);
   return Boolean(held);

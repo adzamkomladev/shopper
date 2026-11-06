@@ -83,3 +83,23 @@ test("an order the store accepts in time is kept and nothing is refunded", async
   expect((await w.row(order)).status).toBe("accepted");
   expect(await w.refunds(order)).toHaveLength(0);
 });
+
+test("when a duplicate payment was refunded, the unaccepted order refunds the payment that kept it", async () => {
+  const order = await w.place();
+  const first = (await w.pay(order, { method: "card" })).body.payment.id as string;
+  w.fake.behave("0551234955", "pending");
+  const second = (await w.pay(order, { method: "momo", network: "mtn", phone: "0551234955" })).body
+    .payment.id as string;
+  for (const reference of [second, first]) {
+    w.fake.knownCharge(reference, w.pesewas(order.gross));
+    await w.paystackEvent(reference, w.pesewas(order.gross));
+  }
+  await expect.poll(async () => (await w.row(order)).status, { timeout: 8_000 }).toBe("refunded");
+  const refunds = await w.refunds(order);
+  expect(refunds.map((refund) => [refund.orderPaymentId, refund.reason]).sort()).toEqual(
+    [
+      [first, "duplicate_payment"],
+      [second, "not_accepted"],
+    ].sort(),
+  );
+});

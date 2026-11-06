@@ -4,6 +4,7 @@ import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
 import { deliverNotification } from "@shopper/core/notifications";
+import { refundOrderPayment } from "@shopper/core/orders";
 import { orderPayWorld } from "../../../support/payments/orders/world";
 import { deliveryOf } from "../../../support/payments/orders/reads";
 
@@ -130,4 +131,45 @@ test("payment landing after the stock timer freed the hold, before the order exp
   expect((await w.row(order)).status).toBe("placed");
   expect(await w.movements(order)).toHaveLength(0);
   expect((await w.refunds(order))[0]).toMatchObject({ reason: "late_payment" });
+});
+
+test("a payment landing after the hold's deadline is refunded even if no timer has freed the stock yet", async () => {
+  const order = await w.place();
+  const reference = (await w.pay(order, { method: "card" })).body.payment.id as string;
+  await w.world.db
+    .update(schema.stockHold)
+    .set({ expiresAt: new Date(Date.now() - 1_000) })
+    .where(eq(schema.stockHold.orderId, order.id));
+  w.fake.knownCharge(reference, w.pesewas(order.gross));
+  await w.paystackEvent(reference, w.pesewas(order.gross));
+  expect((await w.row(order)).status).toBe("placed");
+  expect(await w.fiscal(order)).toHaveLength(0);
+  expect((await w.refunds(order))[0]).toMatchObject({ reason: "late_payment" });
+});
+
+test("a provider outage on the prompt fails the attempt at once so the shopper can try again", async () => {
+  w.fake.behave("0551234984", "error");
+  const order = await w.place();
+  const first = await w.pay(order, { method: "momo", network: "mtn", phone: "0551234984" });
+  await expect.poll(async () => (await w.payments(order))[0]!.status).toBe("failed");
+  expect((await w.payments(order))[0]!.failureReason).toMatch(/could not reach/i);
+  const again = await w.pay(order, { method: "card" });
+  expect(again.status).toBe(202);
+  expect(again.body.payment.id).not.toBe(first.body.payment.id);
+});
+
+test("two consumers sending the same owed refund ask Paystack once", async () => {
+  const order = await w.placeLapsing(500);
+  const reference = (await w.pay(order, { method: "card" })).body.payment.id as string;
+  await expect.poll(expired(order), { timeout: 8_000 }).toBe("expired");
+  w.fake.knownCharge(reference, w.pesewas(order.gross));
+  await w.paystackEvent(reference, w.pesewas(order.gross));
+  const [refund] = await w.refunds(order);
+  const before = w.fake.requests.filter((request) => request.path === "/refund").length;
+  await Promise.all([
+    refundOrderPayment({ ...w.deps, paystack: w.paystack }, refund!.id, w.world.a.orgId),
+    refundOrderPayment({ ...w.deps, paystack: w.paystack }, refund!.id, w.world.a.orgId),
+  ]);
+  expect(w.fake.requests.filter((request) => request.path === "/refund").length - before).toBe(1);
+  expect((await w.refunds(order))[0]!.status).toBe("requested");
 });

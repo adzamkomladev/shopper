@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS "order_refund" (
 	CONSTRAINT "order_refund_org_id_id_unique" UNIQUE("org_id","id"),
 	CONSTRAINT "order_refund_payment" UNIQUE("org_id","order_payment_id"),
 	CONSTRAINT "order_refund_amount" CHECK ("order_refund"."amount" > 0 AND "order_refund"."amount" % 100 = 0),
-	CONSTRAINT "order_refund_status" CHECK ("order_refund"."status" IN ('pending', 'processed', 'failed', 'refund_due')),
+	CONSTRAINT "order_refund_status" CHECK ("order_refund"."status" IN ('pending', 'requested', 'processed', 'failed', 'refund_due')),
 	CONSTRAINT "order_refund_reason" CHECK ("order_refund"."reason" IN ('late_payment', 'duplicate_payment', 'not_accepted', 'cancelled'))
 );
 --> statement-breakpoint

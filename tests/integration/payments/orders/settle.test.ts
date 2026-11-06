@@ -4,6 +4,7 @@
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { and, eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
+import { applyOrderPaymentEvent } from "@shopper/core/orders";
 import { orderPayWorld } from "../../../support/payments/orders/world";
 
 let w: Awaited<ReturnType<typeof orderPayWorld>>;
@@ -148,9 +149,14 @@ test("a webhook with the wrong signature or the wrong amount pays nothing", asyn
 test("mobile money is prompted through Paystack and a approved prompt pays the order", async () => {
   w.fake.behave("0551234987", "success");
   const order = await w.place();
+  const before = w.world.sent.length;
   const paid = await w.pay(order, { method: "momo", network: "mtn", phone: "0551234987" });
   expect(paid.status).toBe(202);
   await expect.poll(async () => (await w.row(order)).status).toBe("paid");
+  // Settled inside the workflow, not by a webhook: the confirmation is still queued.
+  expect(w.world.sent.slice(before).map((envelope) => envelope.type)).toEqual([
+    "order.confirmation",
+  ]);
   expect((await w.fiscal(order))[0]?.kind).toBe("invoice");
   expect((await w.journal("order", order.id))!.lines.momo_clearing).toBe(
     (await w.row(order)).gross,
@@ -163,4 +169,33 @@ test("the same order cannot be paid once it is paid", async () => {
   w.fake.knownCharge(reference, w.pesewas(order.gross));
   await w.paystackEvent(reference, w.pesewas(order.gross));
   expect((await w.pay(order)).status).toBe(409);
+});
+
+test("a webhook redelivered after the first one committed but never woke the order still wakes it", async () => {
+  const order = await w.place();
+  const reference = (await w.pay(order)).body.payment.id as string;
+  w.fake.knownCharge(reference, w.pesewas(order.gross));
+  // The first delivery's transaction committed, then the call to the order's workflow was lost.
+  await applyOrderPaymentEvent(
+    w.world.db,
+    { orgId: w.world.a.orgId, appVersion: "test" },
+    {
+      provider: "paystack",
+      key: `charge.success:${reference}`,
+      kind: "charge.success",
+      reference,
+      status: "confirmed",
+    },
+  );
+  expect((await w.row(order)).status).toBe("paid");
+  const stepOf = async () => {
+    const [run] = await w.world.db
+      .select()
+      .from(schema.workflowRun)
+      .where(eq(schema.workflowRun.instanceId, order.id));
+    return run?.currentStep;
+  };
+  expect(await stepOf()).toBe("held");
+  expect((await w.paystackEvent(reference, w.pesewas(order.gross))).status).toBe(200);
+  await expect.poll(stepOf).toBe("paid");
 });

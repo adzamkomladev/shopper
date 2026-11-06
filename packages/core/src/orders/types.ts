@@ -1,5 +1,5 @@
 import type { ShopperDatabase } from "@shopper/db-pg";
-import type { WorkflowLauncher } from "@shopper/ports";
+import type { Queue, WorkflowLauncher } from "@shopper/ports";
 import type { createHubtel } from "../payments/hubtel/client";
 import type { createPaystack } from "../payments/paystack/client";
 
@@ -29,6 +29,8 @@ export type OrderPaymentDeps = {
   /** The online order's workflow, woken with `payment.settled` when this payment keeps the order. */
   orders: Pick<WorkflowLauncher, "send">;
   appVersion: string;
+  /** Where a confirmed payment queues its confirmation (or a refund it owes); read when needed, so a shell can build it later. */
+  notifications?: () => Queue | undefined;
   /** How long to wait for the payer before asking the provider once; the order's hold unless a test shortens it. */
   timeoutMs?: number;
 };

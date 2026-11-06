@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import * as v from "valibot";
 import { buildInfo } from "@shopper/config";
 import { applyOrderPaymentEvent, applyOrderRefundEvent } from "@shopper/core/orders";
-import { orderPayment } from "@shopper/db-pg";
+import { onlineOrder, orderPayment } from "@shopper/db-pg";
 import { uuidV7Schema } from "@shopper/ports";
 import type { Money } from "@shopper/money";
 import type { ApiOptions } from "../types";
@@ -48,9 +48,18 @@ export async function orderPaymentReport(options: ApiOptions, report: Report) {
     { orgId: row.orgId, appVersion: buildInfo.version, queue: options.notifications },
     report,
   );
-  if (applied.duplicate) return "applied";
-  if (applied.outcome === "settled")
-    await options.orderFlows?.send(applied.orderId, "payment.settled", { reference: row.id });
+  // A redelivered webhook still wakes the workflows: the first delivery may have committed and then failed to
+  // reach them. Waking a run that has moved on does nothing.
+  const [order] = await options.database
+    .select({ status: onlineOrder.status })
+    .from(onlineOrder)
+    .where(eq(onlineOrder.id, row.orderId));
+  if (
+    applied.duplicate
+      ? order?.status === "paid" || order?.status === "accepted"
+      : applied.outcome === "settled"
+  )
+    await options.orderFlows?.send(row.orderId, "payment.settled", { reference: row.id });
   await options.orderPayments?.send(row.id, "payment", { type: "settled" });
   return "applied";
 }

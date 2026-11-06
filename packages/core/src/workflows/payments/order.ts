@@ -23,7 +23,11 @@ export async function runOrderPayment(
 ) {
   const params = v.parse(orderPaymentParams, raw);
   if (params.id !== flow.instanceId) throw new Error("Order payment business key mismatch");
-  const context = { orgId: params.orgId, appVersion: deps.appVersion };
+  const context = {
+    orgId: params.orgId,
+    appVersion: deps.appVersion,
+    queue: deps.notifications?.(),
+  };
   const row = await read(deps, params);
   if (closed.includes(row.payment.status)) return;
   const apply = (
@@ -58,17 +62,25 @@ export async function runOrderPayment(
           status: "failed" as const,
           message: "Hubtel is not set up for this shop. Pay another way.",
         };
-      const result = await provider.charge({
-        reference: params.id,
-        amount: row.payment.amount,
-        phone: row.payment.phone,
-        network: row.payment.network!,
-        email: row.email ?? `${row.payment.phone}@pay.shopper.invalid`,
-        subaccount:
-          row.payment.provider === "hubtel"
-            ? undefined
-            : await deps.withDatabase((db) => payoutSubaccount(db, params.orgId)),
-      });
+      const subaccount =
+        row.payment.provider === "hubtel"
+          ? undefined
+          : await deps.withDatabase((db) => payoutSubaccount(db, params.orgId));
+      // An outage or dropped connection leaves the request's fate unknown. The attempt fails so the shopper can try
+      // again at once; a prompt that did reach the payer is still honoured when its webhook arrives.
+      const result = await provider
+        .charge({
+          reference: params.id,
+          amount: row.payment.amount,
+          phone: row.payment.phone,
+          network: row.payment.network!,
+          email: row.email ?? `${row.payment.phone}@pay.shopper.invalid`,
+          subaccount,
+        })
+        .catch(() => ({
+          status: "failed" as const,
+          message: "We could not reach the payment provider. Try again in a moment.",
+        }));
       // Paystack's OTP step is not offered online yet: a network that asks for one is a failed attempt.
       return result.status === "otp"
         ? {

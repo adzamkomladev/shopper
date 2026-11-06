@@ -66,11 +66,18 @@ export const orderRefundReasons = [
   "not_accepted",
   "cancelled",
 ] as const;
-export const orderRefundStatuses = ["pending", "processed", "failed", "refund_due"] as const;
+export const orderRefundStatuses = [
+  "pending",
+  "requested",
+  "processed",
+  "failed",
+  "refund_due",
+] as const;
 
 /**
  * Money owed back to the payer of an order: the compensation of a confirmed payment that did not become a kept
- * order. `refund_due` is a payment the provider cannot refund automatically (Hubtel): the store sends it by hand.
+ * order. `pending` is owed and unsent; `requested` was claimed for sending, so it is never requested twice; `refund_due`
+ * is a payment the provider cannot refund automatically (Hubtel): the store sends it by hand.
  */
 export const orderRefund = pgTable(
   "order_refund",
@@ -94,7 +101,7 @@ export const orderRefund = pgTable(
     check("order_refund_amount", sql`${t.amount} > 0 AND ${t.amount} % 100 = 0`),
     check(
       "order_refund_status",
-      sql`${t.status} IN ('pending', 'processed', 'failed', 'refund_due')`,
+      sql`${t.status} IN ('pending', 'requested', 'processed', 'failed', 'refund_due')`,
     ),
     check(
       "order_refund_reason",

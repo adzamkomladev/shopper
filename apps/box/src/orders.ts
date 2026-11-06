@@ -1,5 +1,6 @@
 import { buildInfo } from "@shopper/config";
 import { boxOnlineOrders, boxOrderPayments, boxStockHolds } from "@shopper/adapters-box";
+import type { Queue } from "@shopper/ports";
 import type { createHubtel } from "@shopper/core/payments/hubtel";
 import type { createPaystack } from "@shopper/core/payments/paystack";
 
@@ -16,6 +17,8 @@ export function boxOrders(
     paystack?: ReturnType<typeof createPaystack>;
     hubtel?: ReturnType<typeof createHubtel>;
   },
+  /** The notification queue, which the box builds after its orders: read when a payment settles. */
+  notifications: () => Queue | undefined,
 ) {
   const holds = boxStockHolds({ db: database, appVersion: buildInfo.version });
   holds.rearm().catch((error: unknown) => console.error({ event: "stock.rearm_failed", error }));
@@ -33,6 +36,7 @@ export function boxOrders(
           paystack: providers.paystack,
           hubtel: providers.hubtel,
           orders: orderFlows,
+          notifications,
         })
       : undefined,
     paystack: providers.paystack,

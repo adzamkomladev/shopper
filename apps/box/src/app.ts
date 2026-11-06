@@ -107,7 +107,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
       realtime,
       baseUrl: SHOPPER_AUTH_URL,
     });
-    orders ??= boxOrders(workflowDatabase, payments);
+    orders ??= boxOrders(workflowDatabase, payments, () => notifications);
     const sms = environment.ARKESEL_API_KEY
       ? createArkesel({
           apiKey: environment.ARKESEL_API_KEY,

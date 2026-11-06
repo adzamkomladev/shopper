@@ -8,6 +8,8 @@ export class ShopApiError extends Error {
     message: string,
     readonly status: number,
     readonly attemptsLeft?: number,
+    readonly code?: string,
+    readonly products: string[] = [],
   ) {
     super(message);
     this.name = "ShopApiError";
@@ -33,7 +35,14 @@ export async function shopFetch<T extends v.GenericSchema>(
 
 function refusal(status: number, body: unknown) {
   const reply = v.safeParse(refusalReply, body);
-  if (reply.success) return new ShopApiError(reply.output.error, status, reply.output.attemptsLeft);
+  if (reply.success)
+    return new ShopApiError(
+      reply.output.error,
+      status,
+      reply.output.attemptsLeft,
+      reply.output.code,
+      reply.output.products,
+    );
   return new ShopApiError("Something went wrong. Check your connection and try again.", status);
 }
 

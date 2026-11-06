@@ -11,7 +11,13 @@ export const shopCodeParam = v.pipe(v.string(), v.trim(), v.toLowerCase());
 /** A 204 reply. */
 export const noContent = v.null();
 /** What the API says when it refuses: the message, and the tries left after a wrong code. */
-export const refusalReply = v.object({ error: v.string(), attemptsLeft: v.optional(v.number()) });
+export const refusalReply = v.object({
+  error: v.string(),
+  attemptsLeft: v.optional(v.number()),
+  /** A refused checkout says why (slot, stock, closed) and which products ran short. */
+  code: v.optional(v.string()),
+  products: v.optional(v.array(v.string())),
+});
 
 export const shopAccount = v.object({
   id: v.string(),

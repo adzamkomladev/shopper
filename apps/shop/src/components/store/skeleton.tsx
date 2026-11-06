@@ -8,6 +8,7 @@ export function StoreSkeleton() {
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
           <Skeleton className="h-7 w-36" />
           <Skeleton className="ml-auto h-11 w-32 rounded-full" />
+          <Skeleton className="h-11 w-11 rounded-full sm:w-24" />
           <Skeleton className="h-11 w-11 rounded-full sm:w-28" />
         </div>
       </div>
@@ -31,6 +32,7 @@ export function StoreSkeleton() {
                 <Skeleton className="h-5 w-4/5" />
                 <Skeleton className="h-6 w-20" />
               </div>
+              <Skeleton className="m-3 mt-0 h-8 w-18 rounded-full sm:m-4 sm:mt-0" />
             </div>
           ))}
         </div>

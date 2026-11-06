@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@shopper/ui/components/select";
 import type { StoreInfo } from "../../schemas/store";
+import { CartButton } from "../cart/button";
 
 /**
  * The store's bar: the shop's name back to its first page, the branch the prices and stock are for, and the
@@ -71,6 +72,7 @@ export function StoreHeader({
               {info.branches[0]?.name}
             </span>
           )}
+          <CartButton shop={shop} branchId={branchId} />
           <Button
             asChild
             variant="outline"

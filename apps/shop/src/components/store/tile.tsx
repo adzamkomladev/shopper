@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ShoppingBasket } from "lucide-react";
 import { formatGHS } from "@shopper/money";
 import type { StoreProduct } from "../../schemas/store";
+import { QuickAdd } from "../cart/add";
 
 /** What the price is for: "each" reads as nothing, a measured product reads "per kg". */
 export const perUnit = (unit: string) => (unit === "each" ? null : `per ${unit}`);
@@ -55,14 +56,14 @@ export function ProductTile({
   const unit = perUnit(product.baseUnit);
   return (
     <li
-      className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both motion-reduce:animate-none"
+      className="flex flex-col overflow-hidden rounded-2xl border bg-card shadow-xs animate-in fade-in slide-in-from-bottom-2 fill-mode-both motion-reduce:animate-none"
       style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
     >
       <Link
         to="/$shop/products/$id"
         params={{ shop, id: product.id }}
         search={{ branch: branchId }}
-        className="group flex h-full flex-col overflow-hidden rounded-2xl border bg-card shadow-xs outline-none transition hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+        className="group flex flex-1 flex-col outline-none transition hover:bg-shop-glow/30 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset motion-reduce:transition-none"
       >
         <ProductPhoto
           shop={shop}
@@ -81,6 +82,7 @@ export function ProductTile({
           </p>
         </div>
       </Link>
+      <QuickAdd shop={shop} product={product} />
     </li>
   );
 }

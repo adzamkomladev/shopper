@@ -208,6 +208,17 @@ a search (/ focuses it; a plain GET form before hydration), category chips, a gr
 page sets its title, description, canonical link, Open Graph and `Product` JSON-LD, and says `noindex` when the
 branch cannot sell it. Esc goes back to the store. It follows Web Flow 333:9119 on the Day 30 shop theme.
 
+## Cart and checkout (Day 32)
+
+The basket lives in the browser (`apps/shop/src/stores/cart.ts`, `useSyncExternalStore` over localStorage, one per
+shop; the server renders it empty). Add to cart is on the product page (a stepper: one item, or 0.25 of a measured
+unit) and each tile; the header's cart button shows the line count and C opens the cart. `/<code>/cart` follows the
+Web Flow "Checkout" panel: numbered lines with a stepper, Remove, Clear cart (asked once), and the server-quoted
+total with its item count and tax over the Checkout button; short or unavailable lines are flagged and block
+checkout. `/<code>/checkout` offers only what the branch takes, day pills and that day's start times, name, phone
+and an address for delivery. `/<code>/orders/<id>?t=<key>` is the confirmation ("Awaiting payment", pay by the hold
+time). A branch's online orders are set from the branch list (Online orders) in the back office.
+
 ## UX rules
 
 - **Every screen has every state designed:** empty (with the next action), loading (a skeleton sized

@@ -7,16 +7,17 @@ route, audit payloads or the till's local database. Every section names the test
 
 One `RateLimiter` port (`packages/ports/src/limits.ts`) with a fixed policy table:
 
-| Policy    | Limit       | Key                         | Covers                                                                         |
-| --------- | ----------- | --------------------------- | ------------------------------------------------------------------------------ |
-| `auth`    | 5 per 10 s  | client IP, and email        | sign-in, sign-up, password reset, onboarding, invitation acceptance            |
-| `public`  | 30 per 10 s | client IP                   | statement links, the shop-code lookup                                          |
-| `enrol`   | 10 per 60 s | client IP, across all shops | till self-enrolment                                                            |
-| `cashier` | 20 per 60 s | shop and client IP          | cashier sign-in from a register (the per-user PIN lockout still applies)       |
-| `otp`     | 10 per 60 s | client IP                   | "text me a code" on the shop's sign-in (each phone also gets 5 logins an hour) |
+| Policy     | Limit       | Key                         | Covers                                                                         |
+| ---------- | ----------- | --------------------------- | ------------------------------------------------------------------------------ |
+| `auth`     | 5 per 10 s  | client IP, and email        | sign-in, sign-up, password reset, onboarding, invitation acceptance            |
+| `public`   | 30 per 10 s | client IP                   | statement links, the shop-code lookup                                          |
+| `enrol`    | 10 per 60 s | client IP, across all shops | till self-enrolment                                                            |
+| `cashier`  | 20 per 60 s | shop and client IP          | cashier sign-in from a register (the per-user PIN lockout still applies)       |
+| `otp`      | 10 per 60 s | client IP                   | "text me a code" on the shop's sign-in (each phone also gets 5 logins an hour) |
+| `checkout` | 5 per 60 s  | client IP                   | placing an online order (each holds stock for 30 minutes)                      |
 
 - Cloud: one Cloudflare Rate Limiting binding per policy (`RATE_AUTH`, `RATE_PUBLIC`, `RATE_ENROL`,
-  `RATE_CASHIER`, `RATE_OTP`), built from the table by `apps/edge/cloudflare.config.ts`, through `cloudflareRateLimiter`.
+  `RATE_CASHIER`, `RATE_OTP`, `RATE_CHECKOUT`), built from the table by `apps/edge/cloudflare.config.ts`, through `cloudflareRateLimiter`.
 - Box: `boxRateLimiter`, an in-process fixed window. The box is one Bun process, so the count is exact.
   The Rivet `RateLimiter` actor replaces it on day 36.
 - `serveRuntime` enforces it before routing (`enforceRateLimit`). A limited request gets `429` with
@@ -75,6 +76,14 @@ One `RateLimiter` port (`packages/ports/src/limits.ts`) with a fixed policy tabl
   read-only. It names the shop by code and takes nothing else from the request; it only shows what
   `catalogue_public` holds and answers 404 for anything else, including a hidden product's photo. Its replies are
   `public, max-age=60` (photo redirects 240 s, under the 300 s download grant).
+- Guest checkout (Day 32): `GET /shop/:code/fulfilment`, `POST /shop/:code/cart` (`public` budget) and
+  `POST /shop/:code/orders` (`checkout` budget, Turnstile when configured) name the shop by code only. The browser
+  makes one random checkout key per visit; the order stores only its SHA-256 (unique), so the same key returns the
+  same order instead of a second one. `GET /shop/:code/orders/:id?t=key` answers only when the key's digest matches
+  that order (404 otherwise, on the `public` budget), so an order id alone never shows a name, phone or address.
+  The `order.place` audit row masks `customerPhone` by key name. A signed-in session only links the account.
+- Branch fulfilment (`GET`/`PUT /branches/:id/fulfilment`) needs `branch.read`/`branch.write`, keeps a scoped member
+  to their own branches and answers 404 for another shop's branch.
 - Product photos follow the asset rules: jpeg, png or webp up to 2 MB, a direct-upload grant for
   `product.write`, and the stored bytes checked against the registered size and SHA-256 before the product links
   them.

@@ -91,12 +91,7 @@ export const applyOrderPaymentEvent = defineCommand({
       await settleOrder(tx, context, order!, confirmed!, now);
       return { duplicate: false, outcome: "settled", orderId: order!.id };
     }
-    await owe(
-      tx,
-      context,
-      confirmed!,
-      order!.status === "placed" ? "late_payment" : refundReason[order!.status],
-    );
+    await owe(tx, context, confirmed!, refundReason[order!.status]);
     return { duplicate: false, outcome: "refund", orderId: order!.id };
   },
   audit: (event, output) => ({

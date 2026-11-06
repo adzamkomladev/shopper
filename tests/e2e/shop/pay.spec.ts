@@ -67,10 +67,15 @@ test("a shopper pays by card on Paystack's page and returns to a paid order", as
   await page.route("https://checkout.paystack.test/**", (route) =>
     route.fulfill({ contentType: "text/html", body: "<h1>Paystack</h1>" }),
   );
-  // By keyboard: from the first way to pay, arrow to Card and press Enter.
-  await page.getByRole("radio", { name: "Mobile money" }).focus();
-  await page.keyboard.press("ArrowDown");
-  await expect(page.getByRole("radio", { name: "Card" })).toBeChecked();
+  // By keyboard: from the first way to pay, arrow to Card, Tab to Pay and press Enter.
+  // Server-rendered: the keys work once the page hydrates.
+  await expect(async () => {
+    await page.getByRole("radio", { name: "Mobile money" }).focus();
+    await page.keyboard.press("ArrowDown");
+    await expect(page.getByRole("radio", { name: "Card" })).toBeChecked({ timeout: 1_000 });
+  }).toPass({ timeout: 30_000 });
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Pay GH₵ 30.00" })).toBeFocused();
   await page.keyboard.press("Enter");
   await page.waitForURL(/checkout\.paystack\.test\/.+/);
   const reference = new URL(page.url()).pathname.slice(1);

@@ -44,12 +44,12 @@ timeout**. **Done when money arrives and the order is legally invoiced.**
 
 ## Decisions (flagged where they are yours)
 
-- **D1 · A paid order becomes a real `sale` row** (recommended; confirm). A synthetic "online" device and cashier
-  session per branch own it. Then receipts, loyalty, customer history, transactions explorer, the shop's "your
-  receipts" list, VAT reports, the fiscal lane and till refunds work unchanged. The alternative (order-native fiscal
-  docs and journal source) touches `fiscal_doc`, `journal_source`, asset linking and every `sale` reader. **S0 reads
-  `acceptSale` and decides the seam in 30 minutes; if a `sale` cannot be written without a till, fall back to
-  order-native and tell you before building it.**
+- **D1 · S0 decision (made): a paid order carries its own receipt, not a `sale` row.** A `sale` needs a register, a
+  cashier session and a receipt block, which would put a fake device in the till lists, shift checks and sync. So
+  `online_order` stores the receipt, `fiscal_doc.order_id` / `order_refund_id` hold the invoice and credit note,
+  `stock_movement.order_id` the goods, and the ledger gets source `order` (a refund is a `reversal` of it). The
+  receipt is built by the same `buildReceipt` and the invoice goes through the same fiscal lane. Not yet in
+  store-day sales reports or the transactions explorer (they read `sale`): carried to the order inbox day.
 - **D2 · New `order_payment` table** (reference = id = payment workflow instance id), not a loosened `payment`. Several
   attempts per order are allowed; a partial unique index keeps one open attempt at a time.
 - **D3 · "Hubtel USSD"** = Hubtel Receive Money through the existing client: the payer approves on their phone with

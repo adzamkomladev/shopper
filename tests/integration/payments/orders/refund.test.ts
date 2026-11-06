@@ -2,7 +2,7 @@
 // credited and its books reversed, and the payer's money sent back once.
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { refundOrderPayment } from "@shopper/core/orders";
-import { orderPayWorld } from "../../../support/payments/orders";
+import { orderPayWorld } from "../../../support/payments/orders/world";
 
 let w: Awaited<ReturnType<typeof orderPayWorld>>;
 beforeAll(async () => {

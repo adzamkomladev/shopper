@@ -2,7 +2,8 @@
 // once however often the message is delivered, and a missing channel retries instead of dropping it.
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { deliverNotification } from "@shopper/core/notifications";
-import { deliveryOf, orderPayWorld } from "../../../support/payments/orders";
+import { orderPayWorld } from "../../../support/payments/orders/world";
+import { deliveryOf } from "../../../support/payments/orders/reads";
 
 let w: Awaited<ReturnType<typeof orderPayWorld>>;
 beforeAll(async () => {

@@ -259,6 +259,29 @@ message cannot be sent, so it is retried and then dead-lettered by design: nothi
 Arkesel wherever low-stock alerts are wanted. Statement PDFs are at most 366 days of entries and break into A4-height
 pages; a statement link signs only with a link secret of at least 32 characters.
 
+## Online order payments (Day 33)
+
+One more shell per run, on the edge Worker and bound by the portal too (Paystack and Hubtel webhooks land on the portal):
+
+| Workflow                          | Instance id | Binding (`<stage>`)             | Runs                                                                                             |
+| --------------------------------- | ----------- | ------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Order payment (`runOrderPayment`) | payment id  | `shopper-order-payment-<stage>` | MoMo prompt (Paystack or the org's Hubtel), wait for the webhook until the hold ends, one verify |
+
+- The shop's `POST /shop/:code/orders/:id/pay` writes the attempt (`order.payment.start`, amount copied from the
+  order), opens Paystack's hosted checkout for a card (with the shop's payout subaccount and a return link to the
+  order) and starts the attempt's workflow. One attempt is open per order; a different way of paying replaces it.
+- A confirmation, from a webhook or from the workflow's verify, goes through one command
+  (`order.payment.event`, deduplicated by `payment_event`). In time, it **pays and invoices the order in that same
+  transaction**: receipt on the order, a pending `fiscal_doc` (`order_id`), the stock movement, the hold released as
+  `fulfilled`, a balanced `order` journal entry and an `order.confirmation` queue message. The order workflow's
+  `payment.settled` only wakes it. Late (order expired, cancelled, already paid, or its hold already freed) means
+  money owed back: one `order_refund` row and an `order.refund` message.
+- Compensation steps: a paid order the store does not accept within a day is refunded (`order.refund`: goods back,
+  books reversed by a `reversal` entry, a credit note `fiscal_doc.order_refund_id`) and its Paystack refund is
+  requested in the workflow's `refund` step. Late and duplicate payments are refunded by the notification consumer
+  (`NotificationDeps.orderRefunds`). Hubtel has no refund API in our client: its refunds wait as `refund_due`.
+- Box twin: `boxOrderPayments` (in-process, like `boxOnlineOrders`) until Rivet Workflows on Day 36.
+
 ## Payments workflows (Day 23)
 
 Four more shells on `cloudflareFlow`, each defined on the edge Worker and bound by the portal too:

@@ -4,7 +4,7 @@ import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
 import { refundOrderPayment, refundPaidOrder } from "@shopper/core/orders";
-import { orderPayWorld } from "../../../support/payments/orders";
+import { orderPayWorld } from "../../../support/payments/orders/world";
 
 let w: Awaited<ReturnType<typeof orderPayWorld>>;
 beforeAll(async () => {

@@ -8,6 +8,7 @@
     "./support/hardware/statement": "./support/hardware/statement.ts",
     "./support/till/pending/sale": "./support/till/pending/sale.ts",
     "./support/fiscal/docs": "./support/fiscal/docs.ts",
+    "./support/orders/holds": "./support/orders/holds.ts",
     "./support/assets/rustfs": "./support/assets/rustfs.ts"
   },
   "devDependencies": {

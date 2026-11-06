@@ -14,7 +14,8 @@ import { storesQuery } from "../../queries/stores";
 import { DeleteBranchDialog } from "../../components/branches/delete/dialog";
 import { BranchForm } from "../../components/branches/form";
 import { branchesQuery } from "../../queries/branches";
-import { BranchTable } from "../../components/branches/table";
+import { BranchTable, ordersButtonId } from "../../components/branches/table";
+import { FulfilmentPanel } from "../../components/branches/fulfilment/form";
 import { SetupStepLink } from "../../components/setup/back";
 
 type Branch = { id: string; name: string; storeId: string; alertPhones: string[] };
@@ -30,7 +31,8 @@ export function BranchesScreen() {
   const addRef = useRef<HTMLButtonElement>(null);
   const form = usePanel<Branch>(addRef);
   const removal = usePanel<Branch>(addRef);
-  const noPanelOpen = !form.open && !removal.open;
+  const orders = usePanel<Branch>(addRef);
+  const noPanelOpen = !form.open && !removal.open && !orders.open;
   const shortcuts = useShortcuts({ N: () => canEdit && noPanelOpen && form.show() });
   const isEmpty = branches.length === 0;
 
@@ -89,6 +91,7 @@ export function BranchesScreen() {
           onDelete={
             canWrite ? (branch) => removal.show(branch, deleteButtonId(branch.id)) : undefined
           }
+          onOrders={(branch) => orders.show(branch, ordersButtonId(branch.id))}
         />
       )}
       <FormSheet
@@ -108,6 +111,22 @@ export function BranchesScreen() {
           stores={stores ?? []}
           onSaved={() => form.setOpen(false)}
         />
+      </FormSheet>
+      <FormSheet
+        open={orders.open}
+        onOpenChange={orders.setOpen}
+        title={`Online orders at ${orders.value?.name ?? "this branch"}`}
+        description="Choose pickup or delivery, the fee and when orders can be ready."
+        restoreFocus={orders.restoreFocus}
+      >
+        {orders.value && (
+          <FulfilmentPanel
+            key={orders.value.id}
+            branchId={orders.value.id}
+            canWrite={canWrite}
+            onSaved={() => orders.setOpen(false)}
+          />
+        )}
       </FormSheet>
       <DeleteBranchDialog
         branch={removal.value}

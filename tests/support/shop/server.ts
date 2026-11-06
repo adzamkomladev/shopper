@@ -1,7 +1,15 @@
 // The shop app as a browser meets it in e2e: the built Start server under Bun, `/api/shop/*` answered by the shared
 // runtime on the e2e database, and sign-in codes texted to an Arkesel fake a spec reads, as a shopper reads a phone.
 //   GET http://127.0.0.1:3106/test/requests  -> every SMS sent (shifted by the run's port offset)
-import { boxCache, boxPool, boxQueue, boxRateLimiter } from "@shopper/adapters-box";
+// Guest checkout runs the box's order workflow and stock-hold timers in this process.
+import {
+  boxCache,
+  boxOnlineOrders,
+  boxPool,
+  boxQueue,
+  boxRateLimiter,
+  boxStockHolds,
+} from "@shopper/adapters-box";
 import { serveRuntime } from "@shopper/api/runtime";
 import { serveShop } from "@shopper/api/shop";
 import type { ShopContext } from "@shopper/api/shop";
@@ -30,6 +38,12 @@ const notifications = boxQueue(NOTIFICATION_RETRY, (delivery) =>
     delivery,
   ),
 );
+// Guest checkouts: each order's workflow and the timers that free unpaid stock, as the box runs them.
+const orderFlows = boxOnlineOrders({
+  withDatabase: (run) => run(database.db),
+  appVersion: buildInfo.version,
+});
+const stockHolds = boxStockHolds({ db: database.db, appVersion: buildInfo.version }).holds;
 // Every browser connects from 127.0.0.1; a spec names its own address so the per-address budgets stay apart.
 const clientIP = (request: Request) => request.headers.get("x-e2e-client") ?? "127.0.0.1";
 const context: ShopContext = {
@@ -43,6 +57,8 @@ const context: ShopContext = {
         baseURL,
         linkSecret,
         notifications,
+        orderFlows,
+        stockHolds,
         clientIP: clientIP(forwarded),
       }),
     ),

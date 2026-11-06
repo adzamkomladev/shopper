@@ -83,9 +83,11 @@ export default defineConfig(({ mode }) => {
         RATE_ENROL: bindings.rateLimit({ namespace: "2603", simple: { limit: 10, period: 60 } }),
         RATE_CASHIER: bindings.rateLimit({ namespace: "2604", simple: { limit: 20, period: 60 } }),
         RATE_OTP: bindings.rateLimit({ namespace: "2605", simple: { limit: 10, period: 60 } }),
+        RATE_CHECKOUT: bindings.rateLimit({ namespace: "2606", simple: { limit: 5, period: 60 } }),
         STORE_SEQUENCER: bindings.durableObject({ worker: name, exportName: "StoreSequencer" }),
         STORE_HUB: bindings.durableObject({ worker: name, exportName: "StoreHub" }),
         FISCAL_LANE: bindings.durableObject({ worker: name, exportName: "FiscalLane" }),
+        STOCK_HOLD: bindings.durableObject({ worker: name, exportName: "StockHold" }),
         PRICE_CHANGE: bindings.workflow({
           name: workflow("price-change"),
           worker: name,
@@ -156,6 +158,11 @@ export default defineConfig(({ mode }) => {
           worker: name,
           exportName: "ApprovalWorkflow",
         }),
+        ORDER_FLOWS: bindings.workflow({
+          name: workflow("online-order"),
+          worker: name,
+          exportName: "OnlineOrderWorkflow",
+        }),
         BILLING: bindings.workflow({
           name: workflow("billing"),
           worker: name,
@@ -182,6 +189,7 @@ export default defineConfig(({ mode }) => {
         StoreSequencer: exports.durableObject({ storage: "sqlite" }),
         StoreHub: exports.durableObject({ storage: "sqlite" }),
         FiscalLane: exports.durableObject({ storage: "sqlite" }),
+        StockHold: exports.durableObject({ storage: "sqlite" }),
         PriceChangeWorkflow: exports.workflow({ name: workflow("price-change") }),
         AuthWorkflow: exports.workflow({ name: workflow("auth-flow") }),
         MomoPaymentWorkflow: exports.workflow({ name: workflow("momo-payment") }),
@@ -197,6 +205,7 @@ export default defineConfig(({ mode }) => {
         BillingWorkflow: exports.workflow({ name: workflow("billing") }),
         OnboardingWorkflow: exports.workflow({ name: workflow("onboarding") }),
         KybWorkflow: exports.workflow({ name: workflow("kyb") }),
+        OnlineOrderWorkflow: exports.workflow({ name: workflow("online-order") }),
       },
     },
   };

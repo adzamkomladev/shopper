@@ -5,6 +5,7 @@ import type { cloudflareLauncher, cloudflareLoopLauncher } from "../launcher";
 import type { cloudflareLive } from "../live";
 import type { cloudflareSequencer } from "../sequencer";
 import type { cloudflareLane } from "../lane";
+import type { cloudflareStockHolds } from "../holds";
 
 export interface AuthEnvironment {
   SHOPPER_S3_ENDPOINT?: string;
@@ -67,6 +68,8 @@ export interface CloudflareRuntimeEnvironment extends AuthEnvironment, RateLimit
   BILLING?: Parameters<typeof cloudflareLauncher>[0];
   ONBOARDING_FLOWS?: Parameters<typeof cloudflareLauncher>[0];
   KYB_FLOWS?: Parameters<typeof cloudflareLoopLauncher>[0];
+  ORDER_FLOWS?: Parameters<typeof cloudflareLauncher>[0];
+  STOCK_HOLD?: Parameters<typeof cloudflareStockHolds>[0];
 }
 
 /** The shop Worker's bindings: the edge Worker that runs the API, reached through a service binding. */

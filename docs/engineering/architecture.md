@@ -458,3 +458,22 @@ The owner approved this architecture on 14 October 2026. This cleanup documents 
   redirect, only for a photo linked to a product it shows.
 - `serveShop` keeps a reply's `Cache-Control` only when the API marked it `public` (the store); everything else
   from a shop origin is `no-store`.
+
+## Cart and checkout (Day 32)
+
+- The online cart is priced by the till's own `quoteFrom` (`@shopper/core/storefront` `quoteCart`) over the same
+  PostgreSQL rows a till's snapshot carries, so one basket costs the same online and at the till. Delivery is one
+  flat, standard-rated fee line per branch.
+- Availability is `on hand − unreleased holds that have not expired` (`availableOf` in `core/stock/onhand.ts`), used
+  by the store and by checkout. An expired hold stops counting at once, even before its alarm releases it.
+- `order.place` runs in one `defineCommand` transaction: branch fulfilment and slot (aligned, open, after the lead
+  time, under capacity) → `quoteCart` → the order and its lines (each with the `price_id` the shopper saw) numbered
+  by the store's sequence (`inbox_cursor`, the order inbox's resume point) → `stock_hold` rows → the order workflow
+  launched inside the transaction. The org lock every command takes serializes it with till sales, so two checkouts
+  never both take the last unit. Nothing is paid yet, so nothing is posted; Day 33 posts at payment.
+- After the commit the API calls the `StockHolds` port's `watch`, which arms the branch's StockHold alarm (DO in the
+  cloud, an in-process timer on the box, re-armed from PostgreSQL at boot). The alarm runs `stock.holds_expired`.
+- The online order workflow (`online-order`, instance id = order id) confirms the hold, waits for
+  `payment.settled` until the hold expires (then expires the order and frees the stock), then for `store.accepted`.
+- Limit of offline-first: a till that is offline can still sell a held unit. The hold stops the online side
+  overselling; the conflict shows when the till syncs.

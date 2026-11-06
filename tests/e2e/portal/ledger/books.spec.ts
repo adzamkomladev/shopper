@@ -63,7 +63,7 @@ test("the owner posts a balanced entry by keyboard and reverses it once", async 
       timeout: 30_000,
     },
   );
-  await page.getByRole("heading", { name: "Books", level: 1 }).focus();
+  await page.getByRole("heading", { name: "General ledger", level: 1 }).focus();
   await page.keyboard.press("n");
   const dialog = page.getByRole("dialog", { name: "New journal entry" });
   await expect(page.getByLabel("What it is for")).toBeFocused();
@@ -134,7 +134,7 @@ test("an account opens on its lines and the lock date refuses an entry inside it
   await shoot(page, info, "ledger-account");
 
   await page.goto("/ledger");
-  await page.getByRole("heading", { name: "Books", level: 1 }).focus();
+  await page.getByRole("heading", { name: "General ledger", level: 1 }).focus();
   await page.keyboard.press("l");
   await page.getByLabel("Locked through").fill(today);
   await page.getByRole("button", { name: `Lock through ${today}` }).click();
@@ -159,5 +159,16 @@ test("a cashier is told the books are not theirs to view", async ({ page, reques
   await signInAs(page, cashier);
   await page.goto("/ledger");
   await expect(page.getByText(/view the books/)).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByRole("link", { name: "Books" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "General ledger" })).toHaveCount(0);
+});
+
+test("the owner finds the general ledger in the sidebar and lands on the accounts", async ({
+  page,
+}) => {
+  await page.goto("/reports");
+  const link = page.getByRole("link", { name: "General ledger" });
+  await expect(link).toBeVisible({ timeout: 30_000 });
+  await link.click();
+  await expect(page).toHaveURL(/\/ledger$/);
+  await expect(page.getByRole("heading", { name: "General ledger", level: 1 })).toBeVisible();
 });

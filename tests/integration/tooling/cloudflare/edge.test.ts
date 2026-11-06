@@ -37,6 +37,7 @@ test("Durable Objects, Workflows and every resource binding are the staging ones
   expect(exports.StoreSequencer).toMatchObject({ type: "durable-object", storage: "sqlite" });
   expect(exports.StoreHub).toMatchObject({ type: "durable-object", storage: "sqlite" });
   expect(exports.FiscalLane).toMatchObject({ type: "durable-object", storage: "sqlite" });
+  expect(exports.StockHold).toMatchObject({ type: "durable-object", storage: "sqlite" });
   for (const [exportName, name] of [
     ["PriceChangeWorkflow", "shopper-price-change-staging"],
     ["AuthWorkflow", "shopper-auth-flow-staging"],
@@ -51,6 +52,7 @@ test("Durable Objects, Workflows and every resource binding are the staging ones
     ["SettlementWorkflow", "shopper-settlement-staging"],
     ["ApprovalWorkflow", "shopper-approval-staging"],
     ["BillingWorkflow", "shopper-billing-staging"],
+    ["OnlineOrderWorkflow", "shopper-online-order-staging"],
   ]) {
     expect(exports[exportName]).toMatchObject({ type: "workflow", name });
   }
@@ -60,6 +62,12 @@ test("Durable Objects, Workflows and every resource binding are the staging ones
   });
   expect(bound.STORE_HUB).toMatchObject({ type: "durable-object", exportName: "StoreHub" });
   expect(bound.FISCAL_LANE).toMatchObject({ type: "durable-object", exportName: "FiscalLane" });
+  expect(bound.STOCK_HOLD).toMatchObject({ type: "durable-object", exportName: "StockHold" });
+  expect(bound.ORDER_FLOWS).toMatchObject({
+    type: "workflow",
+    name: "shopper-online-order-staging",
+    exportName: "OnlineOrderWorkflow",
+  });
   expect(bound.FISCAL_ARCHIVE).toMatchObject({
     type: "workflow",
     name: "shopper-fiscal-archive-staging",

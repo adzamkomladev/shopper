@@ -6,6 +6,7 @@ import { pageRef } from "../shop/focus";
 import type { StoreInfo, StoreItem } from "../../schemas/store";
 import { StoreHeader } from "./header";
 import { perUnit, ProductPhoto } from "./tile";
+import { AddToCart } from "../cart/add";
 
 /** A product: its photo, the till's price at the branch now, and whether that branch can sell it. Esc goes back. */
 export function ProductPage({
@@ -23,6 +24,7 @@ export function ProductPage({
   const unit = perUnit(product.baseUnit);
   const shortcuts = useShortcuts({
     Escape: () => void navigate({ to: "/$shop", params: { shop }, search: { branch: branchId } }),
+    C: () => void navigate({ to: "/$shop/cart", params: { shop }, search: { branch: branchId } }),
   });
   return (
     <div ref={pageRef(shortcuts)} tabIndex={-1} className="min-h-dvh outline-none">
@@ -68,6 +70,9 @@ export function ProductPage({
                 ) : null}
               </p>
             )}
+            {product.available && product.price !== null ? (
+              <AddToCart shop={shop} branchId={branchId} product={product} />
+            ) : null}
             {product.available ? (
               <p className="flex w-fit items-center gap-2 rounded-full bg-shop-glow px-4 py-2 font-semibold text-shop-ink">
                 <CircleCheck aria-hidden className="size-5 text-primary" />

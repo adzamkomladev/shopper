@@ -1,0 +1,84 @@
+import { Hono, type Context } from "hono";
+import * as v from "valibot";
+import { findOrgBySlug } from "@shopper/core/orgs";
+import { listSlots, OrderError, placeOrder, readOrderView } from "@shopper/core/orders";
+import { quoteCart, storeBranch, StoreError } from "@shopper/core/storefront";
+import { tokenOf } from "./session";
+import type { ShopOptions } from "../../types";
+
+/**
+ * Guest checkout at one shop: what a branch offers and when, the cart priced as the till would, placing an unpaid
+ * order that holds its stock, and the order read back with the key the browser kept. The code names the shop; a
+ * signed-in shopper's session only links the order to their account.
+ */
+export function shopOrderRoutes(options: ShopOptions) {
+  const app = new Hono();
+  app.onError((error, c) => {
+    if (error instanceof OrderError)
+      return c.json(
+        { error: error.message, code: error.code, products: error.products },
+        error.status,
+      );
+    if (error instanceof StoreError) return c.json({ error: error.message }, error.status);
+    if (v.isValiError(error)) return c.json({ error: "Check the details and try again" }, 400);
+    throw error;
+  });
+  const shopOf = async (c: Context) => {
+    const found = await findOrgBySlug(options.database, c.req.param("code") ?? "");
+    if (!found || (options.orgId && found.id !== options.orgId.toLowerCase()))
+      throw new StoreError("We could not find that shop");
+    return found;
+  };
+  const body = (c: Context): Promise<Record<string, unknown>> => c.req.json().catch(() => ({}));
+
+  app.get("/shop/:code/fulfilment", async (c) => {
+    const found = await shopOf(c);
+    const site = await storeBranch(options.database, found.id, c.req.query("branch"));
+    return c.json({ branch: site, ...(await listSlots(options.database, found.id, site.id)) });
+  });
+  app.post("/shop/:code/cart", async (c) => {
+    const found = await shopOf(c);
+    return c.json(await quoteCart(options.database, found.id, await body(c), new Date()));
+  });
+  app.post("/shop/:code/orders", async (c) => {
+    const found = await shopOf(c);
+    if (!options.orderFlows || !options.stockHolds)
+      return c.json({ error: "This shop is not taking online orders yet" }, 503);
+    const input = await body(c);
+    if (
+      options.turnstile &&
+      !(await options.turnstile(
+        typeof input.turnstile === "string" ? input.turnstile : "",
+        options.clientIP,
+      ))
+    )
+      return c.json({ error: "Please confirm you are not a robot and try again" }, 403);
+    const token = tokenOf(c);
+    const session = token ? await options.access.session(token) : null;
+    const flows = options.orderFlows;
+    const order = await placeOrder(
+      options.database,
+      { orgId: found.id, appVersion: options.appVersion },
+      input,
+      {
+        launch: (id, params) => flows.start(id, params),
+        accountId: session?.orgId === found.id ? session.accountId : null,
+      },
+    );
+    // After the commit: the hold rows exist, so the coordinator finds them when its alarm fires.
+    await options.stockHolds.watch(found.id, order.branch.id, new Date(order.holdExpiresAt));
+    return c.json(order, 201);
+  });
+  app.get("/shop/:code/orders/:id", async (c) => {
+    const found = await shopOf(c);
+    const order = await readOrderView(
+      options.database,
+      found.id,
+      c.req.param("id"),
+      c.req.query("t") ?? "",
+    );
+    if (!order) throw new OrderError("not_found", "We could not find that order");
+    return c.json(order);
+  });
+  return app;
+}

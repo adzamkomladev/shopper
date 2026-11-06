@@ -20,6 +20,7 @@ import { loyaltyRoutes } from "./routes/loyalty";
 import { publicStatementRoutes } from "./routes/public/statements";
 import { kycRoutes } from "./routes/kyc";
 import { managementRoutes } from "./routes/management";
+import { fulfilmentRoutes } from "./routes/fulfilment";
 import { systemRoutes } from "./routes/system";
 import { taxReportRoutes } from "./routes/tax/reports";
 import { reportRoutes } from "./routes/reports";
@@ -35,6 +36,7 @@ import { billingRoutes } from "./routes/billing";
 import { shopAccountRoutes } from "./routes/shop/account";
 import { shopSignInRoutes } from "./routes/shop/signin";
 import { shopStoreRoutes } from "./routes/shop/store";
+import { shopOrderRoutes } from "./routes/shop/orders";
 
 export function createApi(options: ApiOptions = {}) {
   const app = new Hono<ApiEnvironment>();
@@ -77,6 +79,7 @@ export function createApi(options: ApiOptions = {}) {
     );
   if (options.authentication?.handler)
     app.all("/api/auth/*", (c) => options.authentication!.handler!(c.req.raw));
+  app.route("/", fulfilmentRoutes(options));
   app.route("/", managementRoutes(options));
   app.route("/", administrationRoutes(options));
   if (options.devices) app.route("/", deviceRoutes(options.devices, options.authentication));
@@ -139,6 +142,7 @@ export function createApi(options: ApiOptions = {}) {
     app.route("/", shopAccountRoutes({ ...options.shop, database: options.database }));
     app.route("/", shopSignInRoutes({ ...options.shop, database: options.database }));
     app.route("/", shopStoreRoutes({ ...options.shop, database: options.database }));
+    app.route("/", shopOrderRoutes({ ...options.shop, database: options.database }));
   }
   return app;
 }

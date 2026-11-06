@@ -6,4 +6,11 @@ export { rendererConformance } from "./cases/renderer";
 export { queueConformance } from "./cases/queue";
 export { laneConformance } from "./cases/lane";
 export { rateLimiterConformance } from "./cases/ratelimit";
-export type { LaneFixture, QueueFixture, RateLimiterFixture, RendererFixture } from "./types";
+export { stockHoldConformance } from "./cases/holds";
+export type {
+  LaneFixture,
+  QueueFixture,
+  RateLimiterFixture,
+  RendererFixture,
+  StockHoldFixture,
+} from "./types";

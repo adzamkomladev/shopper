@@ -31,3 +31,4 @@ export * from "./tax/settings";
 export * from "./tax/rules";
 export * from "./tax/returns";
 export * from "./reports/query";
+export { fulfilmentInput } from "./orders/fulfilment";

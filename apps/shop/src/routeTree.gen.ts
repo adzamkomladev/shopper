@@ -13,8 +13,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ShopRouteRouteImport } from './routes/$shop/route'
 import { Route as ShopIndexRouteImport } from './routes/$shop/index'
 import { Route as ShopAccountRouteImport } from './routes/$shop/account'
+import { Route as ShopCartRouteImport } from './routes/$shop/cart'
+import { Route as ShopCheckoutRouteImport } from './routes/$shop/checkout'
 import { Route as ShopSigninRouteImport } from './routes/$shop/signin'
 import { Route as ShopCategoriesIdRouteImport } from './routes/$shop/categories.$id'
+import { Route as ShopOrdersIdRouteImport } from './routes/$shop/orders.$id'
 import { Route as ShopProductsIdRouteImport } from './routes/$shop/products.$id'
 import { Route as ShopReceiptsSaleIdRouteImport } from './routes/$shop/receipts.$saleId'
 
@@ -38,6 +41,16 @@ const ShopAccountRoute = ShopAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => ShopRouteRoute,
 } as any)
+const ShopCartRoute = ShopCartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
+  getParentRoute: () => ShopRouteRoute,
+} as any)
+const ShopCheckoutRoute = ShopCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => ShopRouteRoute,
+} as any)
 const ShopSigninRoute = ShopSigninRouteImport.update({
   id: '/signin',
   path: '/signin',
@@ -46,6 +59,11 @@ const ShopSigninRoute = ShopSigninRouteImport.update({
 const ShopCategoriesIdRoute = ShopCategoriesIdRouteImport.update({
   id: '/categories/$id',
   path: '/categories/$id',
+  getParentRoute: () => ShopRouteRoute,
+} as any)
+const ShopOrdersIdRoute = ShopOrdersIdRouteImport.update({
+  id: '/orders/$id',
+  path: '/orders/$id',
   getParentRoute: () => ShopRouteRoute,
 } as any)
 const ShopProductsIdRoute = ShopProductsIdRouteImport.update({
@@ -63,18 +81,24 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$shop': typeof ShopRouteRouteWithChildren
   '/$shop/account': typeof ShopAccountRoute
+  '/$shop/cart': typeof ShopCartRoute
+  '/$shop/checkout': typeof ShopCheckoutRoute
   '/$shop/signin': typeof ShopSigninRoute
   '/$shop/': typeof ShopIndexRoute
   '/$shop/categories/$id': typeof ShopCategoriesIdRoute
+  '/$shop/orders/$id': typeof ShopOrdersIdRoute
   '/$shop/products/$id': typeof ShopProductsIdRoute
   '/$shop/receipts/$saleId': typeof ShopReceiptsSaleIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$shop/account': typeof ShopAccountRoute
+  '/$shop/cart': typeof ShopCartRoute
+  '/$shop/checkout': typeof ShopCheckoutRoute
   '/$shop/signin': typeof ShopSigninRoute
   '/$shop': typeof ShopIndexRoute
   '/$shop/categories/$id': typeof ShopCategoriesIdRoute
+  '/$shop/orders/$id': typeof ShopOrdersIdRoute
   '/$shop/products/$id': typeof ShopProductsIdRoute
   '/$shop/receipts/$saleId': typeof ShopReceiptsSaleIdRoute
 }
@@ -83,9 +107,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$shop': typeof ShopRouteRouteWithChildren
   '/$shop/account': typeof ShopAccountRoute
+  '/$shop/cart': typeof ShopCartRoute
+  '/$shop/checkout': typeof ShopCheckoutRoute
   '/$shop/signin': typeof ShopSigninRoute
   '/$shop/': typeof ShopIndexRoute
   '/$shop/categories/$id': typeof ShopCategoriesIdRoute
+  '/$shop/orders/$id': typeof ShopOrdersIdRoute
   '/$shop/products/$id': typeof ShopProductsIdRoute
   '/$shop/receipts/$saleId': typeof ShopReceiptsSaleIdRoute
 }
@@ -95,18 +122,24 @@ export interface FileRouteTypes {
     | '/'
     | '/$shop'
     | '/$shop/account'
+    | '/$shop/cart'
+    | '/$shop/checkout'
     | '/$shop/signin'
     | '/$shop/'
     | '/$shop/categories/$id'
+    | '/$shop/orders/$id'
     | '/$shop/products/$id'
     | '/$shop/receipts/$saleId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/$shop/account'
+    | '/$shop/cart'
+    | '/$shop/checkout'
     | '/$shop/signin'
     | '/$shop'
     | '/$shop/categories/$id'
+    | '/$shop/orders/$id'
     | '/$shop/products/$id'
     | '/$shop/receipts/$saleId'
   id:
@@ -114,9 +147,12 @@ export interface FileRouteTypes {
     | '/'
     | '/$shop'
     | '/$shop/account'
+    | '/$shop/cart'
+    | '/$shop/checkout'
     | '/$shop/signin'
     | '/$shop/'
     | '/$shop/categories/$id'
+    | '/$shop/orders/$id'
     | '/$shop/products/$id'
     | '/$shop/receipts/$saleId'
   fileRoutesById: FileRoutesById
@@ -156,6 +192,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShopAccountRouteImport
       parentRoute: typeof ShopRouteRoute
     }
+    '/$shop/cart': {
+      id: '/$shop/cart'
+      path: '/cart'
+      fullPath: '/$shop/cart'
+      preLoaderRoute: typeof ShopCartRouteImport
+      parentRoute: typeof ShopRouteRoute
+    }
+    '/$shop/checkout': {
+      id: '/$shop/checkout'
+      path: '/checkout'
+      fullPath: '/$shop/checkout'
+      preLoaderRoute: typeof ShopCheckoutRouteImport
+      parentRoute: typeof ShopRouteRoute
+    }
     '/$shop/signin': {
       id: '/$shop/signin'
       path: '/signin'
@@ -168,6 +218,13 @@ declare module '@tanstack/react-router' {
       path: '/categories/$id'
       fullPath: '/$shop/categories/$id'
       preLoaderRoute: typeof ShopCategoriesIdRouteImport
+      parentRoute: typeof ShopRouteRoute
+    }
+    '/$shop/orders/$id': {
+      id: '/$shop/orders/$id'
+      path: '/orders/$id'
+      fullPath: '/$shop/orders/$id'
+      preLoaderRoute: typeof ShopOrdersIdRouteImport
       parentRoute: typeof ShopRouteRoute
     }
     '/$shop/products/$id': {
@@ -189,18 +246,24 @@ declare module '@tanstack/react-router' {
 
 interface ShopRouteRouteChildren {
   ShopAccountRoute: typeof ShopAccountRoute
+  ShopCartRoute: typeof ShopCartRoute
+  ShopCheckoutRoute: typeof ShopCheckoutRoute
   ShopSigninRoute: typeof ShopSigninRoute
   ShopIndexRoute: typeof ShopIndexRoute
   ShopCategoriesIdRoute: typeof ShopCategoriesIdRoute
+  ShopOrdersIdRoute: typeof ShopOrdersIdRoute
   ShopProductsIdRoute: typeof ShopProductsIdRoute
   ShopReceiptsSaleIdRoute: typeof ShopReceiptsSaleIdRoute
 }
 
 const ShopRouteRouteChildren: ShopRouteRouteChildren = {
   ShopAccountRoute: ShopAccountRoute,
+  ShopCartRoute: ShopCartRoute,
+  ShopCheckoutRoute: ShopCheckoutRoute,
   ShopSigninRoute: ShopSigninRoute,
   ShopIndexRoute: ShopIndexRoute,
   ShopCategoriesIdRoute: ShopCategoriesIdRoute,
+  ShopOrdersIdRoute: ShopOrdersIdRoute,
   ShopProductsIdRoute: ShopProductsIdRoute,
   ShopReceiptsSaleIdRoute: ShopReceiptsSaleIdRoute,
 }

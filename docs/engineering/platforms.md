@@ -130,7 +130,9 @@ the 3.0 engine starts on its own `rivet3-data` volume rather than a 2.x data dir
   business key (for example `store-day_<orgId>_<storeId>_<date>`; Cloudflare instance ids allow only letters, digits, `-` and `_`), so both engines address the same
   thing.
 - **Exactly five coordination classes**: StoreSequencer, StoreHub, FiscalLane, StockHold, RateLimiter.
-  Ask before adding a sixth. Each exists as a DO and as a Rivet actor. FiscalLane is built (Day 19): the DO keeps
+  Ask before adding a sixth. Each exists as a DO and as a Rivet actor. StockHold is built (Day 32): one DO per
+  org and branch (`STOCK_HOLD`) keeps only its next expiry and arms an alarm for it; PostgreSQL holds the holds.
+  The box twin is an in-process timer until Day 36. FiscalLane is built (Day 19): the DO keeps
   each store's queue in its SQLite and drains it with alarms; the box twin is the in-process `boxLane` until the
   Rivet actor lands on Day 36. Both pass `laneConformance`.
 - **Never poll and never put business logic on a cron tick.** A wait on people, partners or time is a

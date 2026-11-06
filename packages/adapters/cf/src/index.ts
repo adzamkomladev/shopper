@@ -13,3 +13,4 @@ export { cloudflareDeliver, cloudflareNotifications, cloudflareQueue } from "./q
 export { cloudflareLane } from "./lane";
 export { cloudflareRateLimiter } from "./ratelimit";
 export { cloudflareWatchdog } from "./watchdog";
+export { cloudflareStockHolds } from "./holds";

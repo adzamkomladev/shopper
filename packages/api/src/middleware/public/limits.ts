@@ -30,10 +30,14 @@ async function budgetOf(request: Request, ip: string, orgId?: string) {
     if (path.startsWith("/public/statements/")) return budget("public", `${ip}:statements`);
     if (/^\/orgs\/[^/]+$/.test(path)) return budget("public", `${ip}:orgs`);
     if (/^\/shop\/[^/]+$/.test(path)) return budget("public", `${ip}:shop`);
+    // An order id with the wrong key is a guess at someone's order.
+    if (/^\/shop\/[^/]+\/orders\/[^/]+$/.test(path)) return budget("public", `${ip}:shop-order`);
     return undefined;
   }
   if (request.method !== "POST") return undefined;
   if (/^\/shop\/[^/]+\/signin$/.test(path)) return budget("otp", `${ip}:shop-otp`);
+  if (/^\/shop\/[^/]+\/orders$/.test(path)) return budget("checkout", `${ip}:checkout`);
+  if (/^\/shop\/[^/]+\/cart$/.test(path)) return budget("public", `${ip}:cart`);
   // Each login also locks itself after five wrong codes; this stops one address cycling through many logins.
   if (/^\/shop\/[^/]+\/signin\/[^/]+\/(?:verify|resend)$/.test(path))
     return budget("auth", `${ip}:shop-code`);

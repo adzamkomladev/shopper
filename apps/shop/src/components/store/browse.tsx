@@ -24,8 +24,11 @@ export function StoreBrowse({
 }) {
   const navigate = useNavigate();
   const search = useRef<HTMLInputElement>(null);
-  const shortcuts = useShortcuts({ "/": () => search.current?.focus() });
   const branchId = result.branch.id;
+  const shortcuts = useShortcuts({
+    "/": () => search.current?.focus(),
+    C: () => void navigate({ to: "/$shop/cart", params: { shop }, search: { branch: branchId } }),
+  });
   return (
     <div ref={pageRef(shortcuts)} tabIndex={-1} className="min-h-dvh outline-none">
       <StoreHeader shop={shop} info={info} branchId={branchId} />

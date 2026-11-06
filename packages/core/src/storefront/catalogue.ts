@@ -7,14 +7,14 @@ import {
   storeId,
   storeProductsQuery,
 } from "../schemas/storefront/query";
-import { onHandOf } from "../stock/onhand";
+import { availableOf } from "../stock/onhand";
 import type { Queryable } from "../types";
 import { StoreError } from "./error";
 
 /**
  * The online store's only view of the catalogue: products the shop marked visible online (`catalogue_public`),
  * priced as the till prices them at the same moment (a branch's own price beats the shop's, the latest start wins)
- * and in stock at the branch. A product without a price or stock there is not listed, and its page says so.
+ * and available at the branch (on hand less what online orders hold). A product without a price or stock there is not listed, and its page says so.
  */
 export async function listStoreProducts(
   db: Queryable,
@@ -28,7 +28,7 @@ export async function listStoreProducts(
   const where = and(
     eq(cataloguePublic.orgId, orgId),
     sql`${amount} IS NOT NULL`,
-    sql`${onHandOf(orgId, site.id, listed)} > 0`,
+    sql`${availableOf(orgId, site.id, listed, now)} > 0`,
     query.category ? eq(cataloguePublic.categoryId, query.category) : undefined,
     query.q
       ? or(
@@ -73,7 +73,7 @@ export async function readStoreProduct(
     .select({
       ...productFields,
       price: priceIn(orgId, site.id, now),
-      onHand: onHandOf(orgId, site.id, listed),
+      onHand: availableOf(orgId, site.id, listed, now),
       categoryName: category.name,
     })
     .from(cataloguePublic)
@@ -162,7 +162,7 @@ const priceIn = (orgId: string, branchId: string, at: Date) => sql<string | null
   ORDER BY (${price.branchId} IS NOT NULL) DESC, ${price.validFrom} DESC, ${price.id} DESC
   LIMIT 1)`;
 
-async function storeBranch(db: Queryable, orgId: string, wanted?: string) {
+export async function storeBranch(db: Queryable, orgId: string, wanted?: string) {
   const branches = await listStoreBranches(db, orgId);
   const site = wanted ? branches.find((row) => row.id === wanted) : branches[0];
   if (!site)

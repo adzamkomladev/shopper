@@ -16,6 +16,16 @@ export const BODIES: Record<string, Body> = {
   "PATCH /roles/:id": () => ({ name: "Sweep" }),
   "PATCH /suppliers/:id": () => ({ name: "Sweep" }),
   "PATCH /users/:id/role": (id) => ({ roleId: id }),
+  "PUT /branches/:id/fulfilment": () => ({
+    pickup: true,
+    delivery: false,
+    deliveryFee: 0,
+    opens: "08:00",
+    closes: "20:00",
+    slotMinutes: 60,
+    slotCapacity: 10,
+    leadMinutes: 60,
+  }),
   "POST /branches": (id) => ({ name: "Sweep", storeId: id }),
   "POST /cashiers/login": (id) => ({
     deviceId: id,

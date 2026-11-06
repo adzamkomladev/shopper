@@ -14,6 +14,7 @@ import type {
   Realtime,
   Renderer,
   Sequencer,
+  StockHolds,
   WorkflowLauncher,
 } from "@shopper/ports";
 import type { Cache, RateLimiter } from "@shopper/ports";
@@ -40,6 +41,10 @@ export interface ShopOptions {
   clientIP?: string;
   /** The box serves one shop; any other shop code is unknown there. */
   orgId?: string;
+  /** Starts each placed order's workflow; without it the shop takes no orders. */
+  orderFlows?: WorkflowLauncher;
+  /** Arms the expiry of the stock a checkout holds. */
+  stockHolds?: StockHolds;
 }
 /** What signs a customer's statement link and where the portal opens it. */
 export interface StatementLinks {
@@ -127,6 +132,8 @@ export interface RuntimeOptions {
   publicOnboarding?: boolean;
   /** Verifies the shop sign-in form's Turnstile token; without it (the box, development) no check runs. */
   turnstile?: Turnstile;
+  orderFlows?: WorkflowLauncher;
+  stockHolds?: StockHolds;
 }
 
 export interface PortalHost {

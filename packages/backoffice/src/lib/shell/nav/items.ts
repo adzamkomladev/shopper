@@ -32,7 +32,7 @@ import {
  */
 export const NAV_SECTIONS = [
   { name: "Reports", group: "Overview", icon: ChartNoAxesColumnIcon },
-  { name: "Books", group: "Overview", icon: BookOpenIcon },
+  { name: "General ledger", group: "Overview", icon: BookOpenIcon },
   { name: "Sales", group: "Manage", icon: ShoppingCartIcon },
   { name: "Catalogue", group: "Manage", icon: PackageIcon },
   { name: "Inventory", group: "Manage", icon: WarehouseIcon },
@@ -64,9 +64,9 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
   {
     to: "/ledger",
-    label: "Books",
+    label: "General ledger",
     icon: BookOpenIcon,
-    section: "Books",
+    section: "General ledger",
     permission: "ledger.read",
   },
   {

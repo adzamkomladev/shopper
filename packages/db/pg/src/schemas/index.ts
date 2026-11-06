@@ -24,3 +24,4 @@ export * from "./kyb";
 export * from "./shop";
 export * from "./ledger";
 export * from "./storefront";
+export * from "./orders";

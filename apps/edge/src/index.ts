@@ -16,4 +16,5 @@ export {
   BillingWorkflow,
   OnboardingWorkflow,
   KybWorkflow,
+  OnlineOrderWorkflow,
 } from "@shopper/adapters-cf/workflows";

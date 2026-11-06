@@ -157,6 +157,11 @@ export default defineConfig(({ mode }) => {
           worker: name,
           exportName: "ApprovalWorkflow",
         }),
+        ORDER_FLOWS: bindings.workflow({
+          name: workflow("online-order"),
+          worker: name,
+          exportName: "OnlineOrderWorkflow",
+        }),
         BILLING: bindings.workflow({
           name: workflow("billing"),
           worker: name,
@@ -199,6 +204,7 @@ export default defineConfig(({ mode }) => {
         BillingWorkflow: exports.workflow({ name: workflow("billing") }),
         OnboardingWorkflow: exports.workflow({ name: workflow("onboarding") }),
         KybWorkflow: exports.workflow({ name: workflow("kyb") }),
+        OnlineOrderWorkflow: exports.workflow({ name: workflow("online-order") }),
       },
     },
   };

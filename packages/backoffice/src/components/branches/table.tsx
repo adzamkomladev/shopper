@@ -35,6 +35,12 @@ export function BranchTable({ branches, storeNames, onEdit, onDelete, onOrders }
       header: () => <span className="sr-only">Actions</span>,
       cell: ({ row }) => (
         <div className="flex justify-end gap-2">
+          <RowActions
+            id={row.original.id}
+            name={row.original.name}
+            onEdit={onEdit && (() => onEdit(row.original))}
+            onDelete={onDelete && (() => onDelete(row.original))}
+          />
           {onOrders && (
             <Button
               id={ordersButtonId(row.original.id)}
@@ -46,12 +52,6 @@ export function BranchTable({ branches, storeNames, onEdit, onDelete, onOrders }
               Online orders
             </Button>
           )}
-          <RowActions
-            id={row.original.id}
-            name={row.original.name}
-            onEdit={onEdit && (() => onEdit(row.original))}
-            onDelete={onDelete && (() => onDelete(row.original))}
-          />
         </div>
       ),
     });

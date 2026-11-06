@@ -30,11 +30,11 @@ export function LedgerPage({ active, action, children }: Props) {
         ref={focusIfIdle}
         className="text-2xl font-semibold tracking-tight outline-none"
       >
-        Books
+        General ledger
       </h1>
       <Tabs value={active} activationMode="manual" className="min-h-0 flex-1 gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <TabsList aria-label="Books">
+          <TabsList aria-label="General ledger">
             {TABS.map(({ value, to, label }) => (
               <TabsTrigger key={value} value={value} asChild>
                 <Link to={to}>{label}</Link>

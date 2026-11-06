@@ -75,7 +75,7 @@ test("the keyboard reaches every page link and the user menu", async ({ page }) 
   await page.keyboard.press("Tab");
   await expect(sidebar(page).getByRole("link", { name: "Reports" })).toBeFocused();
   await page.keyboard.press("Tab");
-  await expect(sidebar(page).getByRole("link", { name: "Books" })).toBeFocused();
+  await expect(sidebar(page).getByRole("link", { name: "General ledger" })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(sidebar(page).getByRole("button", { name: "Sales" })).toBeFocused();
   // Enter folds the open section and opens it again.

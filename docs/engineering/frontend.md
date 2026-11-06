@@ -194,9 +194,9 @@ sheet per document with Retry (R, `tax.write`, dead-lettered only) and the day's
 It warns when no SDC is connected. It follows the Previous purchases frame (45:852). The till's purchase detail shows
 each VAT invoice as Provisional or Signed.
 
-## Books and the store (Day 31)
+## General ledger and the store (Day 31)
 
-**Books** (`/ledger`, `ledger.read`) is one area with three tabs drawn by `components/ledger/tabs.tsx`
+**General ledger** (was "Books" until Day 32) (`/ledger`, `ledger.read`) is one area with three tabs drawn by `components/ledger/tabs.tsx`
 (`LedgerPage`): **Accounts** (the chart with balances; N adds an account, L sets the lock date for `ledger.lock`;
 each account opens its lines with a running balance and links to the source sale, shift or stock record),
 **Journal** (a range of entries; N opens the entry editor, which keeps Post disabled and says why until the lines

@@ -1,5 +1,5 @@
 {
-  "id": "0a5421f2-e767-46fc-826a-71f2669836a7",
+  "id": "768ad9a7-440f-447a-9a8f-cb87e23bbf2b",
   "prevId": "80c781a3-daad-4b13-8fac-0623f5faaeae",
   "version": "7",
   "dialect": "postgresql",
@@ -12810,7 +12810,7 @@
       "checkConstraints": {
         "journal_entry_source_kind": {
           "name": "journal_entry_source_kind",
-          "value": "\"journal_entry\".\"source\" IN ('sale', 'refund', 'order', 'order_refund', 'credit', 'loyalty', 'shift', 'stock', 'settlement', 'manual', 'reversal')"
+          "value": "\"journal_entry\".\"source\" IN ('sale', 'refund', 'order', 'credit', 'loyalty', 'shift', 'stock', 'settlement', 'manual', 'reversal')"
         },
         "journal_entry_reversal": {
           "name": "journal_entry_reversal",

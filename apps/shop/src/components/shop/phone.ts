@@ -1,3 +1,6 @@
+/** A Ghana number as typed (+233 24…, 024 …) back to 0XXXXXXXXX. */
+export const phoneOf = (text: string) => text.replace(/[\s()-]/g, "").replace(/^\+?233/, "0");
+
 /** 0241234567 as a shopper reads it back on screen with the middle hidden: 024 *** 4567. */
 export const maskPhone = (phone: string) => `${phone.slice(0, 3)} *** ${phone.slice(-4)}`;
 

@@ -1,9 +1,43 @@
 import type { ShopperDatabase } from "@shopper/db-pg";
+import type { WorkflowLauncher } from "@shopper/ports";
+import type { createHubtel } from "../payments/hubtel/client";
+import type { createPaystack } from "../payments/paystack/client";
+
+/** What sending an owed order refund needs: the database and Paystack. */
+export type OrderRefundDeps = {
+  withDatabase<T>(run: (db: ShopperDatabase) => Promise<T>): Promise<T>;
+  paystack?: Pick<ReturnType<typeof createPaystack>, "refund">;
+  appVersion: string;
+};
 
 /** What the online order workflow needs from its runtime shell. */
 export type OrderFlowDeps = {
   withDatabase: <T>(run: (db: ShopperDatabase) => Promise<T>) => Promise<T>;
   appVersion: string;
+  /** Sends a paid order's refund back through Paystack when the store never accepts it. */
+  paystack?: OrderRefundDeps["paystack"];
   /** How long the store has to accept a paid order; a day unless a test shortens it. */
   acceptWithinMs?: number;
 };
+
+/** What one order payment attempt's workflow needs from its runtime shell. */
+export type OrderPaymentDeps = {
+  withDatabase<T>(run: (db: ShopperDatabase) => Promise<T>): Promise<T>;
+  paystack: Pick<ReturnType<typeof createPaystack>, "charge" | "verify">;
+  /** Collects for orgs whose MoMo provider is Hubtel; without it their charges fail with a reason. */
+  hubtel?: Pick<ReturnType<typeof createHubtel>, "charge" | "verify">;
+  /** The online order's workflow, woken with `payment.settled` when this payment keeps the order. */
+  orders: Pick<WorkflowLauncher, "send">;
+  appVersion: string;
+  /** How long to wait for the payer before asking the provider once; the order's hold unless a test shortens it. */
+  timeoutMs?: number;
+};
+
+export type OrderPaymentApplied =
+  | { duplicate: true }
+  | {
+      duplicate: false;
+      /** `settled` kept the order; `refund` means the money arrived for an order that could not keep it. */
+      outcome: "settled" | "failed" | "refund" | "ignored";
+      orderId: string;
+    };

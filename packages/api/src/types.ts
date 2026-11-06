@@ -1,4 +1,5 @@
 import type { createHubtel } from "@shopper/core/payments/hubtel";
+import type { createPaystack } from "@shopper/core/payments/paystack";
 import type {
   AuthPrincipal,
   createDeviceService,
@@ -45,6 +46,10 @@ export interface ShopOptions {
   orderFlows?: WorkflowLauncher;
   /** Arms the expiry of the stock a checkout holds. */
   stockHolds?: StockHolds;
+  /** Starts each payment attempt's workflow; without it placed orders cannot be paid. */
+  orderPayments?: WorkflowLauncher;
+  /** Opens Paystack's hosted checkout for card payments; without it only mobile money can be paid. */
+  paystack?: Pick<ReturnType<typeof createPaystack>, "initialize">;
 }
 /** What signs a customer's statement link and where the portal opens it. */
 export interface StatementLinks {
@@ -70,6 +75,10 @@ export interface ApiOptions {
   // Populated by the authenticated session adapter; never derive this from request parameters.
   resolveOrgId?: (request: Request) => Promise<string | null>;
   momoPayment?: WorkflowLauncher;
+  /** Wakes an online order's workflow (`payment.settled`) when a webhook confirms its payment. */
+  orderFlows?: WorkflowLauncher;
+  /** Wakes an order payment attempt's workflow when its webhook arrives. */
+  orderPayments?: WorkflowLauncher;
   /** Wakes the MoMo refund workflow when Paystack reports a refund's outcome. */
   momoRefund?: WorkflowLauncher;
   paystackSecret?: string;
@@ -134,6 +143,10 @@ export interface RuntimeOptions {
   turnstile?: Turnstile;
   orderFlows?: WorkflowLauncher;
   stockHolds?: StockHolds;
+  /** Starts each online payment attempt's workflow. */
+  orderPayments?: WorkflowLauncher;
+  /** Paystack's client: opens the hosted checkout for card payments. */
+  paystack?: ShopOptions["paystack"];
 }
 
 export interface PortalHost {

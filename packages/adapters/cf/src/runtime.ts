@@ -91,6 +91,13 @@ export async function cloudflareRuntime(
         : undefined,
     storeDays: env.STORE_DAY ? cloudflareLauncher(env.STORE_DAY) : undefined,
     orderFlows: env.ORDER_FLOWS ? cloudflareLauncher(env.ORDER_FLOWS) : undefined,
+    orderPayments:
+      env.ORDER_PAYMENTS && env.PAYSTACK_SECRET_KEY
+        ? cloudflareLauncher(env.ORDER_PAYMENTS)
+        : undefined,
+    paystack: env.PAYSTACK_SECRET_KEY
+      ? createPaystack({ secretKey: env.PAYSTACK_SECRET_KEY, baseUrl: env.PAYSTACK_BASE_URL })
+      : undefined,
     stockHolds: env.STOCK_HOLD ? cloudflareStockHolds(env.STOCK_HOLD) : undefined,
     linkSecret: env.SHOPPER_LINK_SECRET,
     minTillVersion: env.SHOPPER_MIN_TILL_VERSION,

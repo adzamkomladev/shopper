@@ -44,6 +44,22 @@ export const placeOrderInput = v.pipe(
     ),
     name: required(80, "Enter your name"),
     phone: shopPhone,
+    /** Where the receipt goes; blank means no email. */
+    email: v.optional(
+      v.union([
+        v.pipe(
+          v.string(),
+          v.trim(),
+          v.toLowerCase(),
+          v.email("Enter a valid email"),
+          v.maxLength(120),
+        ),
+        v.pipe(
+          v.literal(""),
+          v.transform(() => undefined),
+        ),
+      ]),
+    ),
     address: v.optional(deliveryAddress),
   }),
   v.forward(

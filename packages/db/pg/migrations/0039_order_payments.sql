@@ -153,7 +153,7 @@ EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL;
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
-  ALTER TABLE "journal_entry" ADD CONSTRAINT "journal_entry_source_kind" CHECK ("journal_entry"."source" IN ('sale', 'refund', 'order', 'order_refund', 'credit', 'loyalty', 'shift', 'stock', 'settlement', 'manual', 'reversal'));
+  ALTER TABLE "journal_entry" ADD CONSTRAINT "journal_entry_source_kind" CHECK ("journal_entry"."source" IN ('sale', 'refund', 'order', 'credit', 'loyalty', 'shift', 'stock', 'settlement', 'manual', 'reversal'));
 EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL;
 END $$;
 --> statement-breakpoint

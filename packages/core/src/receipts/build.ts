@@ -138,6 +138,9 @@ function common(
   };
 }
 
+/** The Accra wall-clock a receipt prints for a moment. */
+export const accraClock = (at: Date) => accra.format(at).replace(",", "");
+
 const accra = new Intl.DateTimeFormat("sv-SE", {
   timeZone: "Africa/Accra",
   year: "numeric",

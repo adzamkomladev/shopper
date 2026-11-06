@@ -137,6 +137,9 @@ async function route(request: Request, options: RuntimeOptions): Promise<Respons
       hubtel: options.hubtel,
       realtime: options.realtime,
       billing: options.billing,
+      orderFlows: options.orderFlows,
+      orderPayments: options.orderPayments,
+      notifications: options.notifications,
     }).fetch(request);
   const selected = request.headers.get("X-Shopper-Org");
   const parsed = v.safeParse(managementId, invitationOrg ?? options.orgId ?? selected);
@@ -216,6 +219,8 @@ function shop(request: Request, options: RuntimeOptions) {
       orgId: options.orgId,
       orderFlows: options.orderFlows,
       stockHolds: options.stockHolds,
+      orderPayments: options.orderPayments,
+      paystack: options.paystack,
     },
   }).fetch(request);
 }

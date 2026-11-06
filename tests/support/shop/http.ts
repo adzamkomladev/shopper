@@ -20,6 +20,9 @@ type Init = {
   cookie?: string;
   ip?: string;
   origin?: string | null;
+  headers?: Record<string, string>;
+  /** A body sent exactly as given (a signed webhook), instead of JSON-encoded from `body`. */
+  raw?: string;
 };
 
 export function shopHttp(world: World, over: Partial<RuntimeOptions> = {}) {
@@ -38,12 +41,14 @@ export function shopHttp(world: World, over: Partial<RuntimeOptions> = {}) {
     const headers = new Headers();
     if (init.origin !== null) headers.set("Origin", init.origin ?? shopOrigin);
     if (init.cookie) headers.set("cookie", init.cookie);
-    if (init.body !== undefined) headers.set("content-type", "application/json");
+    if (init.body !== undefined || init.raw !== undefined)
+      headers.set("content-type", "application/json");
+    for (const [name, value] of Object.entries(init.headers ?? {})) headers.set(name, value);
     return serveRuntime(
       new Request(`${shopOrigin}${path}`, {
-        method: init.method ?? (init.body === undefined ? "GET" : "POST"),
+        method: init.method ?? (init.body === undefined && init.raw === undefined ? "GET" : "POST"),
         headers,
-        body: init.body === undefined ? undefined : JSON.stringify(init.body),
+        body: init.raw ?? (init.body === undefined ? undefined : JSON.stringify(init.body)),
       }),
       { ...options, clientIP: init.ip ?? freshIp() },
     );

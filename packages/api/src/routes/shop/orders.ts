@@ -1,7 +1,15 @@
 import { Hono, type Context } from "hono";
 import * as v from "valibot";
 import { findOrgBySlug } from "@shopper/core/orgs";
-import { listSlots, OrderError, placeOrder, readOrderView } from "@shopper/core/orders";
+import { payoutSubaccount } from "@shopper/core/kyb";
+import {
+  listSlots,
+  OrderError,
+  placeOrder,
+  readOrderView,
+  saveCheckoutUrl,
+  startOrderPayment,
+} from "@shopper/core/orders";
 import { quoteCart, storeBranch, StoreError } from "@shopper/core/storefront";
 import { tokenOf } from "./session";
 import type { ShopOptions } from "../../types";
@@ -79,6 +87,33 @@ export function shopOrderRoutes(options: ShopOptions) {
     );
     if (!order) throw new OrderError("not_found", "We could not find that order");
     return c.json(order);
+  });
+  app.post("/shop/:code/orders/:id/pay", async (c) => {
+    const found = await shopOf(c);
+    if (!options.orderPayments)
+      return c.json({ error: "This shop is not taking payments yet" }, 503);
+    const input = await body(c);
+    const context = { orgId: found.id, appVersion: options.appVersion };
+    const id = c.req.param("id");
+    const payment = await startOrderPayment(options.database, context, id, input);
+    if (payment.method === "card" && !payment.checkoutUrl) {
+      if (!options.paystack)
+        return c.json({ error: "Card payments are not set up for this shop" }, 503);
+      const opened = await options.paystack
+        .initialize({
+          reference: payment.id,
+          amount: payment.amount,
+          email: payment.email ?? `${payment.phone}@pay.shopper.invalid`,
+          metadata: { orderId: id },
+          subaccount: await payoutSubaccount(options.database, found.id),
+          callbackUrl: `${c.req.header("origin") ?? new URL(c.req.url).origin}/${c.req.param("code")}/orders/${id}?t=${input.key}`,
+        })
+        .catch(() => undefined);
+      if (!opened) return c.json({ error: "We could not open the card page. Try again." }, 502);
+      await saveCheckoutUrl(options.database, context, { id: payment.id, url: opened.url });
+    }
+    await options.orderPayments.start(payment.id, { orgId: found.id, id: payment.id });
+    return c.json(await readOrderView(options.database, found.id, id, String(input.key)), 202);
   });
   return app;
 }

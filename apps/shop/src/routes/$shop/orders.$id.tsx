@@ -53,7 +53,7 @@ function Order() {
       back={{ to: "/$shop", label: "Back to the store" }}
     >
       {order.data ? (
-        <OrderConfirmation order={order.data} />
+        <OrderConfirmation order={order.data} shop={shop} orderKey={key} />
       ) : order.isError ? (
         <Alert variant="destructive">
           <CircleAlert aria-hidden />

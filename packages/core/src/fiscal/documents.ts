@@ -4,8 +4,10 @@ import { fiscalPayload } from "../receipts/fiscal";
 import type { ReceiptDocument } from "../schemas/receipts/document";
 
 type Source = { storeId: string; branchId: string } & (
-  | { saleId: string; refundId?: never }
-  | { refundId: string; saleId?: never }
+  | { saleId: string; refundId?: never; orderId?: never; orderRefundId?: never }
+  | { refundId: string; saleId?: never; orderId?: never; orderRefundId?: never }
+  | { orderId: string; saleId?: never; refundId?: never; orderRefundId?: never }
+  | { orderRefundId: string; saleId?: never; refundId?: never; orderId?: never }
 );
 
 /**
@@ -29,6 +31,8 @@ export async function recordFiscalDoc(
       kind: payload.type,
       saleId: source.saleId ?? null,
       refundId: source.refundId ?? null,
+      orderId: source.orderId ?? null,
+      orderRefundId: source.orderRefundId ?? null,
       invoiceNumber: receipt.header.receiptNumber,
       payload,
     })

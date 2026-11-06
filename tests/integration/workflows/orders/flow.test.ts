@@ -70,32 +70,41 @@ test("an order nobody pays for expires when its hold does, and its stock comes b
   expect(await audits(seeded.orderId)).toEqual(["order.held", "order.expired"]);
 });
 
-test("a settled payment moves the order on to wait for the store, which accepts it", async () => {
+test("a payment that kept the order moves the run on to wait for the store, which accepts it", async () => {
   const seeded = await world.seed(db, world.branchId, 60_000);
   const flow = memoryWorkflow(seeded.orderId);
   const running = runOnlineOrder(flow, deps, { orgId, id: seeded.orderId });
   await expect.poll(async () => (await run(seeded.orderId))?.currentStep).toBe("held");
   expect((await run(seeded.orderId))?.status).toBe("waiting");
-  await flow.send(seeded.orderId, "payment.settled", { reference: "test" });
-  await expect.poll(async () => (await order(seeded.orderId)).status).toBe("paid");
-  expect(await run(seeded.orderId)).toMatchObject({ currentStep: "paid", status: "waiting" });
-  // Paid stock stays held: the store has yet to pick it.
-  expect(await world.released(db, seeded.orderId)).toBeNull();
-  // Paid stock stays held past the hold's checkout deadline: until a day after the slot ends.
-  const [held] = await db
-    .select()
-    .from(schema.stockHold)
-    .where(eq(schema.stockHold.orderId, seeded.orderId));
-  const [placed] = await db
-    .select()
-    .from(schema.onlineOrder)
+  // The payment's own transaction pays the order (see tests/integration/payments/orders); the event only wakes the run.
+  await db
+    .update(schema.onlineOrder)
+    .set({ status: "paid" })
     .where(eq(schema.onlineOrder.id, seeded.orderId));
-  expect(held!.expiresAt.getTime()).toBe(placed!.slotEnd.getTime() + 86_400_000);
+  await flow.send(seeded.orderId, "payment.settled", { reference: "test" });
+  await expect.poll(async () => (await run(seeded.orderId))?.currentStep).toBe("paid");
+  expect(await run(seeded.orderId)).toMatchObject({ currentStep: "paid", status: "waiting" });
   await flow.send(seeded.orderId, "store.accepted", {});
   await running;
   expect((await order(seeded.orderId)).status).toBe("accepted");
   expect(await run(seeded.orderId)).toMatchObject({ currentStep: "accepted", status: "completed" });
   expect(await audits(seeded.orderId)).toEqual(["order.held", "order.paid", "order.accepted"]);
+});
+
+test("an order paid in the moment its hold ends is not expired: the run carries on as paid", async () => {
+  const seeded = await world.seed(db, world.branchId, 400);
+  const flow = memoryWorkflow(seeded.orderId);
+  const running = runOnlineOrder(flow, deps, { orgId, id: seeded.orderId });
+  await expect.poll(async () => (await run(seeded.orderId))?.currentStep).toBe("held");
+  await db
+    .update(schema.onlineOrder)
+    .set({ status: "paid" })
+    .where(eq(schema.onlineOrder.id, seeded.orderId));
+  await expect.poll(async () => (await run(seeded.orderId))?.currentStep).toBe("paid");
+  expect((await order(seeded.orderId)).status).toBe("paid");
+  await flow.send(seeded.orderId, "store.accepted", {});
+  await running;
+  expect((await order(seeded.orderId)).status).toBe("accepted");
 });
 
 test("the run refuses an instance id that is not its order", async () => {

@@ -114,6 +114,17 @@ export default defineConfig(({ mode }) => {
           worker: edge,
           exportName: "MomoPaymentWorkflow",
         }),
+        // Paystack and Hubtel webhooks land here: they wake the order and its payment attempt.
+        ORDER_FLOWS: bindings.workflow({
+          name: workflow("online-order"),
+          worker: edge,
+          exportName: "OnlineOrderWorkflow",
+        }),
+        ORDER_PAYMENTS: bindings.workflow({
+          name: workflow("order-payment"),
+          worker: edge,
+          exportName: "OrderPaymentWorkflow",
+        }),
         MOMO_REFUND: bindings.workflow({
           name: workflow("momo-refund"),
           worker: edge,

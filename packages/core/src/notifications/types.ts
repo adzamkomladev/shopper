@@ -1,5 +1,6 @@
 import type { Queue, WorkflowLauncher } from "@shopper/ports";
 import type { StatementDeliveryDeps } from "../customers";
+import type { OrderRefundDeps } from "../orders/types";
 
 /** What the consumer needs: the channels, the launchers the wakes start, and the queue follow-ups go back on. */
 export type NotificationDeps = StatementDeliveryDeps & {
@@ -11,5 +12,7 @@ export type NotificationDeps = StatementDeliveryDeps & {
   onboarding?: WorkflowLauncher;
   /** Started, or woken, by each `kyb.notice` that moves a business verification on. */
   kyb?: WorkflowLauncher;
+  /** Sends the refunds owed to payers whose payment could not keep their order. */
+  orderRefunds?: OrderRefundDeps;
   queue?: Queue;
 };

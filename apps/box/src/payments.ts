@@ -30,7 +30,7 @@ export function boxPayments(
     realtime: options.realtime,
     appVersion: buildInfo.version,
   });
-  if (!environment.PAYSTACK_SECRET_KEY) return { hubtel, approvals };
+  if (!environment.PAYSTACK_SECRET_KEY) return { hubtel, approvals, paystack: undefined };
   const paystack = createPaystack({
     secretKey: environment.PAYSTACK_SECRET_KEY,
     baseUrl: environment.PAYSTACK_BASE_URL,
@@ -44,6 +44,7 @@ export function boxPayments(
   return {
     hubtel,
     approvals,
+    paystack,
     momoPayment: boxMomoPayment({ ...momo, realtime: options.realtime }),
     momoRefund: boxMomoRefund(momo),
     settlements: boxSettlements({ database: options.database, paystack }),

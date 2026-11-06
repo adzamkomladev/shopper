@@ -26,6 +26,15 @@ await build({
     js: 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);',
   },
 });
+// xlsx.mjs is ~1 MB, a few KB under the 1 MiB module message cap (see the plugin below); minified, it leaves room.
+const xlsxBundle = join(import.meta.dirname, ".vite/xlsx-workers.mjs");
+await build({
+  entryPoints: [fileURLToPath(import.meta.resolve("xlsx"))],
+  outfile: xlsxBundle,
+  bundle: true,
+  minify: true,
+  format: "esm",
+});
 const paystack = await startPaystackFake();
 const browser = await startBrowserFake();
 const arkesel = await startArkeselFake();
@@ -36,9 +45,18 @@ paystack.behave("0241234567", "pending");
 paystack.behave("0551234984", "error");
 export default defineConfig({
   root: import.meta.dirname,
-  resolve: { alias: { pg: pgBundle } },
+  resolve: { alias: { pg: pgBundle, xlsx: xlsxBundle } },
   define: buildDefines,
   plugins: [
+    // The pool sends each module to workerd in one WebSocket message, capped at 1 MiB. An inlined
+    // sourcemap triples a dependency's size (valibot, the pg bundle), so dependencies ship without one.
+    {
+      name: "no-dependency-sourcemaps",
+      transform: (code, id) =>
+        id.includes("/node_modules/") || id.includes("/.vite/")
+          ? { code, map: { mappings: "" } }
+          : undefined,
+    },
     { name: "paystack-fake", closeBundle: () => paystack.stop() },
     { name: "browser-fake", closeBundle: () => browser.stop() },
     { name: "arkesel-fake", closeBundle: () => arkesel.stop() },

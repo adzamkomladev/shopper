@@ -85,7 +85,8 @@ test("an order the store cancels while it waits for its pick hour ends there, wi
   await cancelStoreOrder(f.world.db, f.ctx, f.flows, order.id);
   await expect
     .poll(async () => (await f.run(order))?.currentStep, { timeout: 10_000 })
-    .toBe("pick_due");
+    .toBe("ended");
+  expect((await f.run(order))?.status).toBe("completed");
   expect(queued(order, "order.pick_due")).toHaveLength(0);
   expect((await f.row(order)).status).toBe("refunded");
   expect(await f.refunds(order)).toHaveLength(1);

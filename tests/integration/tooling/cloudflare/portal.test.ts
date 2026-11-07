@@ -69,7 +69,7 @@ test("the portal binds the edge's Durable Objects and Workflows by Worker name",
   const bound = Object.values(worker().env) as Array<{ type: string; worker?: string }>;
   const ofType = (type: string) => bound.filter((binding) => binding.type === type);
   expect(ofType("durable-object")).toHaveLength(2);
-  expect(ofType("workflow")).toHaveLength(11);
+  expect(ofType("workflow")).toHaveLength(13);
   // Decisions, settlement refreshes, invoice payments and MoMo refunds wake the edge's workflows from the portal.
   for (const [binding, exportName] of [
     ["MOMO_REFUND", "MomoRefundWorkflow"],
@@ -79,6 +79,9 @@ test("the portal binds the edge's Durable Objects and Workflows by Worker name",
     // Sign-up, setup and the first sale move a shop's onboarding; an owner's submission starts its KYB.
     ["ONBOARDING_FLOWS", "OnboardingWorkflow"],
     ["KYB_FLOWS", "KybWorkflow"],
+    // Paystack and Hubtel webhooks land on the portal: they wake an order and its payment attempt.
+    ["ORDER_FLOWS", "OnlineOrderWorkflow"],
+    ["ORDER_PAYMENTS", "OrderPaymentWorkflow"],
   ])
     expect(worker().env[binding]).toMatchObject({ type: "workflow", exportName });
   // A store added in the portal starts its store day at once, not at the next watchdog.

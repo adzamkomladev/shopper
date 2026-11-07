@@ -13,6 +13,7 @@ import { wholePesewas } from "@shopper/money";
 import { sha256 } from "@shopper/utils";
 import { payOrderInput, type PayOrderInput } from "../../schemas/orders/pay";
 import { OrderError } from "../error";
+import type { OrderPaymentStarted as Started } from "../types";
 
 type Starting = { orderId: string; digest: string; input: PayOrderInput; now: Date };
 
@@ -34,7 +35,7 @@ export async function startOrderPayment(
 
 const startCommand = defineCommand({
   name: "order.payment.start",
-  async run(tx, context, starting: Starting) {
+  async run(tx, context, starting: Starting): Promise<Started> {
     const order = await lockOrder(tx, context.orgId, starting);
     const phone = starting.input.phone ?? order.customerPhone;
     const method = starting.input.method;

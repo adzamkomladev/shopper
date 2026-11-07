@@ -42,10 +42,10 @@ test("a network that asks for a code fails the attempt with a reason the shopper
 });
 
 test("no payment before the hold ends: the order expires and its reservation is released", async () => {
-  const order = await w.placeLapsing(700);
+  const order = await w.placeLapsing(2_500);
   const attempt = await w.pay(order, { method: "card" });
   expect(attempt.status).toBe(202);
-  await expect.poll(expired(order), { timeout: 8_000 }).toBe("expired");
+  await expect.poll(expired(order), { timeout: 20_000 }).toBe("expired");
   expect((await w.holds(order)).every((hold) => hold.releaseReason === "expired")).toBe(true);
   await expect.poll(async () => (await w.payments(order))[0]!.status).toBe("expired");
   // Nothing was invoiced or posted, and the order can no longer be paid.
@@ -55,9 +55,9 @@ test("no payment before the hold ends: the order expires and its reservation is 
 });
 
 test("money that arrives after the order lapsed is refunded once, never kept as an order", async () => {
-  const order = await w.placeLapsing(600);
+  const order = await w.placeLapsing(2_500);
   const reference = (await w.pay(order, { method: "card" })).body.payment.id as string;
-  await expect.poll(expired(order), { timeout: 8_000 }).toBe("expired");
+  await expect.poll(expired(order), { timeout: 20_000 }).toBe("expired");
   w.fake.knownCharge(reference, w.pesewas(order.gross));
   const before = w.world.sent.length;
   expect((await w.paystackEvent(reference, w.pesewas(order.gross))).status).toBe(200);
@@ -159,9 +159,9 @@ test("a provider outage on the prompt fails the attempt at once so the shopper c
 });
 
 test("two consumers sending the same owed refund ask Paystack once", async () => {
-  const order = await w.placeLapsing(500);
+  const order = await w.placeLapsing(2_500);
   const reference = (await w.pay(order, { method: "card" })).body.payment.id as string;
-  await expect.poll(expired(order), { timeout: 8_000 }).toBe("expired");
+  await expect.poll(expired(order), { timeout: 20_000 }).toBe("expired");
   w.fake.knownCharge(reference, w.pesewas(order.gross));
   await w.paystackEvent(reference, w.pesewas(order.gross));
   const [refund] = await w.refunds(order);

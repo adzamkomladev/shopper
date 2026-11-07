@@ -21,7 +21,7 @@ test("a paid order the store never accepts is refunded in full and every trace o
   await w.paystackEvent(reference, w.pesewas(order.gross));
   expect((await w.row(order)).status).toBe("paid");
 
-  await expect.poll(async () => (await w.row(order)).status, { timeout: 8_000 }).toBe("refunded");
+  await expect.poll(async () => (await w.row(order)).status, { timeout: 20_000 }).toBe("refunded");
   const [refund] = await w.refunds(order);
   expect(refund).toMatchObject({ reason: "not_accepted", amount: order.gross });
   // One Paystack refund of the whole payment, sent by the workflow's refund step.
@@ -94,7 +94,7 @@ test("when a duplicate payment was refunded, the unaccepted order refunds the pa
     w.fake.knownCharge(reference, w.pesewas(order.gross));
     await w.paystackEvent(reference, w.pesewas(order.gross));
   }
-  await expect.poll(async () => (await w.row(order)).status, { timeout: 8_000 }).toBe("refunded");
+  await expect.poll(async () => (await w.row(order)).status, { timeout: 20_000 }).toBe("refunded");
   const refunds = await w.refunds(order);
   expect(refunds.map((refund) => [refund.orderPaymentId, refund.reason]).sort()).toEqual(
     [

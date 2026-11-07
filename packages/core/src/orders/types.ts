@@ -1,4 +1,4 @@
-import type { ShopperDatabase } from "@shopper/db-pg";
+import type { orderPayment, ShopperDatabase } from "@shopper/db-pg";
 import type { Queue, WorkflowLauncher } from "@shopper/ports";
 import type { createHubtel } from "../payments/hubtel/client";
 import type { createPaystack } from "../payments/paystack/client";
@@ -43,3 +43,6 @@ export type OrderPaymentApplied =
       outcome: "settled" | "failed" | "refund" | "ignored";
       orderId: string;
     };
+
+/** An order payment attempt as opened, with where the order's receipt email goes. */
+export type OrderPaymentStarted = typeof orderPayment.$inferSelect & { email: string | null };

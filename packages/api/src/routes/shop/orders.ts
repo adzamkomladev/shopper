@@ -3,6 +3,7 @@ import * as v from "valibot";
 import { findOrgBySlug } from "@shopper/core/orgs";
 import { payoutSubaccount } from "@shopper/core/kyb";
 import {
+  cancelOwnOrder,
   listSlots,
   OrderError,
   placeOrder,
@@ -87,6 +88,16 @@ export function shopOrderRoutes(options: ShopOptions) {
     );
     if (!order) throw new OrderError("not_found", "We could not find that order");
     return c.json(order);
+  });
+  // The shopper's own way out of an order they have not paid: their key proves it is theirs.
+  app.post("/shop/:code/orders/:id/cancel", async (c) => {
+    const found = await shopOf(c);
+    const { key } = (await body(c)) as { key?: string };
+    const id = c.req.param("id");
+    if (!(await readOrderView(options.database, found.id, id, String(key ?? ""))))
+      throw new OrderError("not_found", "We could not find that order");
+    await cancelOwnOrder(options.database, { orgId: found.id, appVersion: options.appVersion }, id);
+    return c.json(await readOrderView(options.database, found.id, id, String(key)));
   });
   app.post("/shop/:code/orders/:id/pay", async (c) => {
     const found = await shopOf(c);

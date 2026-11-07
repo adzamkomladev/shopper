@@ -96,11 +96,12 @@ function start(config: { endpoint: string; token: string; namespace: string; poo
     logging: { level: "warn" },
     node: { poolName: config.pool },
   });
-  registry.start();
+  const started = registerPool(config).then(() => registry.start());
   const client = createClient<typeof registry>({ ...engine, poolName: config.pool });
   const handle = (kind: string, id: string) =>
     client.flow.getOrCreate([kind, v.parse(workflowInstanceIdSchema, id)]);
-  send = (kind, id, type, payload) => ready(() => handle(kind, id).deliver(type, payload));
+  const call = <T>(run: () => Promise<T>) => started.then(() => ready(run));
+  send = (kind, id, type, payload) => call(() => handle(kind, id).deliver(type, payload));
   const launch: Launch = (kind, schema, run, options = {}) => {
     const handler = { loop: !!options.loop, run };
     handlers.set(kind, handler);
@@ -109,7 +110,7 @@ function start(config: { endpoint: string; token: string; namespace: string; poo
     return {
       async start(id, params) {
         v.parse(schema, params);
-        await ready(() => handle(kind, id).start(params, handler.loop));
+        await call(() => handle(kind, id).start(params, handler.loop));
       },
       send: (id, type, payload) => send(kind, id, type, payload),
       // The engine owns the runs: nothing in this process to wait for or look at.
@@ -118,6 +119,28 @@ function start(config: { endpoint: string; token: string; namespace: string; poo
     };
   };
   return { pool: config.pool, launch };
+}
+
+// A cold engine refuses writes for a moment ("overloaded"); the runner's own pool registration does not retry and
+// exits the process, so the host registers its pool first, retrying for up to 30 s (the engine may still be starting).
+async function registerPool(config: {
+  endpoint: string;
+  token: string;
+  namespace: string;
+  pool: string;
+}) {
+  const url = `${config.endpoint}/pools/${encodeURIComponent(config.pool)}?namespace=${encodeURIComponent(config.namespace)}`;
+  for (let attempt = 1; ; attempt += 1) {
+    const response = await fetch(url, {
+      method: "PUT",
+      headers: { authorization: `Bearer ${config.token}`, "content-type": "application/json" },
+      body: JSON.stringify({ drain_on_version_upgrade: true }),
+    }).catch(() => undefined);
+    if (response?.ok) return;
+    if (attempt >= 300)
+      throw new Error(`The Rivet engine refused pool ${config.pool}: ${response?.status}`);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
 }
 
 // The engine answers "service unavailable" until this process's runner has connected.

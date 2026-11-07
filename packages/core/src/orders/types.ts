@@ -64,3 +64,6 @@ export type CompensationReason =
 
 /** One line of goods or fees with the tax it carries: what an invoice or credit note is made of. */
 export type Item = { name: string; unit: BaseUnit; productId: string | null; tax: TaxSnapshot };
+
+/** A column of the store's order queue. */
+export type Stage = "new" | "preparing" | "ready" | "done";

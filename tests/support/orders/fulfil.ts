@@ -1,6 +1,6 @@
 // A paid online order, and the store's side of fulfilling it, on top of orderPayWorld.
 //   const f = await fulfilWorld({ acceptWithinMs? })
-//   f.paid(over?)            -> an order paid by card (the workflow is waiting for the store)
+//   f.paid(over?)            -> an order paid by card (the workflow is waiting for the store); `{ branch }` picks the branch
 //   f.ctx                    -> a staff command context
 //   f.flows                  -> the order workflow launcher (send events)
 //   f.adjustment(order) / f.picks(order) -> what picking recorded
@@ -20,6 +20,17 @@ type Options = Parameters<typeof orderPayWorld>[0] & {
 export async function fulfilWorld(options: Options = {}) {
   const w = await orderPayWorld(options);
   const ctx = { ...w.world.a.context, queue: w.world.queue, appVersion: "test" };
+  await w.world.db.insert(schema.branchFulfilment).values({
+    orgId: w.world.a.orgId,
+    branchId: w.shop.branches[1],
+    pickup: true,
+    delivery: false,
+    opens: "00:00",
+    closes: "23:00",
+    slotMinutes: 60,
+    slotCapacity: 50,
+    leadMinutes: 0,
+  });
   // Substitutes: a cheaper oil, a dearer rice, and a tin the shop has none of.
   const palm = await w.shop.product("Palm oil 1L", { price: 250_000, stock: [100_000, 100_000] });
   const basmati = await w.shop.product("Basmati rice", {

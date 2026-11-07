@@ -61,7 +61,7 @@ test("current schema migrates twice, uses tenant UUIDv7 keys, and preserves bigi
   const columns = await fixture.client.query<{ table_name: string }>(
     "SELECT table_name FROM information_schema.columns WHERE table_schema = 'public' AND column_name = 'org_id'",
   );
-  expect(columns.rowCount).toBe(100);
+  expect(columns.rowCount).toBe(101);
   // Pre-shop registration rows reference their request; every customer table keeps an org FK.
   const orgForeignKeys = await fixture.client.query<{ table_name: string; target: string }>(
     `SELECT c.conrelid::regclass::text AS table_name, c.confrelid::regclass::text AS target

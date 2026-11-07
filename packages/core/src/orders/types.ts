@@ -16,8 +16,12 @@ export type OrderFlowDeps = {
   appVersion: string;
   /** Sends a paid order's refund back through Paystack when the store never accepts it. */
   paystack?: OrderRefundDeps["paystack"];
-  /** How long the store has to accept a paid order; a day unless a test shortens it. */
+  /** How long the store has to accept a paid order; ten minutes unless a test shortens it. */
   acceptWithinMs?: number;
+  /** How long before the slot the order goes to the pickers; an hour unless a test shortens it. */
+  pickLeadMs?: number;
+  /** How long after the slot a picked order may wait to be collected; a day unless a test shortens it. */
+  collectWithinMs?: number;
 };
 
 /** What one order payment attempt's workflow needs from its runtime shell. */
@@ -46,3 +50,11 @@ export type OrderPaymentApplied =
 
 /** An order payment attempt as opened, with where the order's receipt email goes. */
 export type OrderPaymentStarted = typeof orderPayment.$inferSelect & { email: string | null };
+
+/** Why a paid order is given back to its payer. */
+export type CompensationReason =
+  | "not_accepted"
+  | "declined"
+  | "cancelled"
+  | "not_fulfilled"
+  | "uncollected";

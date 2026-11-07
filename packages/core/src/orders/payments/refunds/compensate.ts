@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { defineCommand, type CommandContext } from "@shopper/audit";
 import {
   onlineOrder,
@@ -14,9 +14,21 @@ import { recordFiscalDoc } from "../../../fiscal/documents";
 import { reverseOrder } from "../../../ledger/orders";
 import { accraClock } from "../../../receipts/build";
 import { receiptDocument } from "../../../schemas/receipts/document";
+import { recordStatus } from "../../fulfil/events";
+import type { CompensationReason } from "../../types";
 import { owe } from "../apply";
 
 type Order = typeof onlineOrder.$inferSelect;
+type Status = Order["status"];
+
+/** Why a paid order is given back, and the statuses it can still be in when that happens. */
+const reasons = {
+  not_accepted: ["paid"],
+  declined: ["paid"],
+  cancelled: ["paid", "accepted", "picking", "ready", "out_for_delivery"],
+  not_fulfilled: ["accepted", "picking"],
+  uncollected: ["ready", "out_for_delivery"],
+} satisfies Record<CompensationReason, Status[]>;
 
 /**
  * Compensates a paid order the shop will not fill: the order is refunded, the goods go back on the shelf, the books
@@ -25,7 +37,7 @@ type Order = typeof onlineOrder.$inferSelect;
  */
 export const refundPaidOrder = defineCommand({
   name: "order.refund",
-  async run(tx, ctx, input: { id: string; reason: "not_accepted" | "cancelled"; now?: Date }) {
+  async run(tx, ctx, input: { id: string; reason: CompensationReason; now?: Date }) {
     const now = input.now ?? new Date();
     const [order] = await tx
       .update(onlineOrder)
@@ -34,11 +46,12 @@ export const refundPaidOrder = defineCommand({
         and(
           eq(onlineOrder.orgId, ctx.orgId),
           eq(onlineOrder.id, input.id),
-          eq(onlineOrder.status, "paid"),
+          inArray(onlineOrder.status, reasons[input.reason]),
         ),
       )
       .returning();
     if (!order) return { refunded: false as const, id: null };
+    await recordStatus(tx, ctx, order.id, "refunded", now);
     // The payment that kept the order: confirmed, and not already owed back (a duplicate payment is).
     const [payment] = await tx
       .select({ payment: orderPayment })
@@ -48,6 +61,7 @@ export const refundPaidOrder = defineCommand({
         and(
           eq(orderRefund.orgId, orderPayment.orgId),
           eq(orderRefund.orderPaymentId, orderPayment.id),
+          inArray(orderRefund.reason, ["late_payment", "duplicate_payment"]),
         ),
       )
       .where(

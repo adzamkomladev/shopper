@@ -37,6 +37,7 @@ async function budgetOf(request: Request, ip: string, orgId?: string) {
   if (request.method !== "POST") return undefined;
   if (/^\/shop\/[^/]+\/signin$/.test(path)) return budget("otp", `${ip}:shop-otp`);
   if (/^\/shop\/[^/]+\/orders$/.test(path)) return budget("checkout", `${ip}:checkout`);
+  if (/^\/shop\/[^/]+\/orders\/[^/]+\/pay$/.test(path)) return budget("checkout", `${ip}:pay`);
   if (/^\/shop\/[^/]+\/cart$/.test(path)) return budget("public", `${ip}:cart`);
   // Each login also locks itself after five wrong codes; this stops one address cycling through many logins.
   if (/^\/shop\/[^/]+\/signin\/[^/]+\/(?:verify|resend)$/.test(path))

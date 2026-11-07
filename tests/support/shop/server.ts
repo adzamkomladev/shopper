@@ -5,6 +5,7 @@
 import {
   boxCache,
   boxOnlineOrders,
+  boxOrderPayments,
   boxPool,
   boxQueue,
   boxRateLimiter,
@@ -15,12 +16,14 @@ import { serveShop } from "@shopper/api/shop";
 import type { ShopContext } from "@shopper/api/shop";
 import { buildInfo } from "@shopper/config";
 import { deliverNotification } from "@shopper/core/notifications";
+import { createPaystack } from "@shopper/core/payments/paystack";
 import { createArkesel } from "@shopper/core/sms/arkesel";
 import { NOTIFICATION_RETRY } from "@shopper/ports";
 import { readFile } from "node:fs/promises";
 import { extname, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 import { startArkeselFake } from "../../../tooling/arkesel/server";
+import { signWebhook, startPaystackFake } from "../../../tooling/paystack/server";
 import { e2eRun } from "../../../tooling/e2e/run";
 
 const databaseURL = process.env.E2E_DATABASE_URL;
@@ -39,30 +42,57 @@ const notifications = boxQueue(NOTIFICATION_RETRY, (delivery) =>
   ),
 );
 // Guest checkouts: each order's workflow and the timers that free unpaid stock, as the box runs them.
-const orderFlows = boxOnlineOrders({
-  withDatabase: (run) => run(database.db),
-  appVersion: buildInfo.version,
+// Paystack is a fake the specs "pay" through: a number that approves at once, and `/test/paystack/pay` for a card.
+const paystackFake = await startPaystackFake();
+paystackFake.behave("0551234987", "success");
+const paystack = createPaystack({
+  secretKey: paystackFake.secretKey,
+  baseUrl: paystackFake.baseUrl,
 });
+const flowDeps = {
+  withDatabase: <T>(run: (db: typeof database.db) => Promise<T>) => run(database.db),
+  appVersion: buildInfo.version,
+};
+const orderFlows = boxOnlineOrders({ ...flowDeps, paystack });
+const orderPayments = boxOrderPayments({ ...flowDeps, paystack, orders: orderFlows });
 const stockHolds = boxStockHolds({ db: database.db, appVersion: buildInfo.version }).holds;
 // Every browser connects from 127.0.0.1; a spec names its own address so the per-address budgets stay apart.
 const clientIP = (request: Request) => request.headers.get("x-e2e-client") ?? "127.0.0.1";
+const runtime = (request: Request, ip: string) =>
+  serveRuntime(request, {
+    database: database.db,
+    cache: cache.cache,
+    rateLimiter: boxRateLimiter(),
+    secret: "e2e-only-secret-more-than-32-characters",
+    baseURL,
+    linkSecret,
+    notifications,
+    orderFlows,
+    orderPayments,
+    paystack,
+    paystackSecret: paystackFake.secretKey,
+    stockHolds,
+    clientIP: ip,
+  });
 const context: ShopContext = {
-  shopApi: (request) =>
-    serveShop(request, (forwarded) =>
-      serveRuntime(forwarded, {
-        database: database.db,
-        cache: cache.cache,
-        rateLimiter: boxRateLimiter(),
-        secret: "e2e-only-secret-more-than-32-characters",
-        baseURL,
-        linkSecret,
-        notifications,
-        orderFlows,
-        stockHolds,
-        clientIP: clientIP(forwarded),
-      }),
-    ),
+  shopApi: (request) => serveShop(request, (forwarded) => runtime(forwarded, clientIP(forwarded))),
 };
+/** Paystack's webhook for a card a spec pays: the fake knows the charge, and the shop runtime hears it signed. */
+async function payByCard(reference: string, pesewas: number) {
+  paystackFake.knownCharge(reference, pesewas);
+  const raw = JSON.stringify({
+    event: "charge.success",
+    data: { reference, status: "success", amount: pesewas },
+  });
+  return runtime(
+    new Request(`${baseURL}/webhooks/paystack`, {
+      method: "POST",
+      body: raw,
+      headers: { "x-paystack-signature": signWebhook(paystackFake.secretKey, raw) },
+    }),
+    "127.0.0.1",
+  );
+}
 const app = resolve(`apps/shop/${e2eRun.outDir}`);
 const server = await import(pathToFileURL(`${app}/server/server.js`).href);
 const assets = `${app}/client`;
@@ -89,7 +119,10 @@ export default {
   port: Number(new URL(baseURL).port),
   idleTimeout: 30,
   async fetch(request: Request) {
-    const path = new URL(request.url).pathname;
+    const url = new URL(request.url);
+    const path = url.pathname;
+    if (path === "/test/paystack/pay")
+      return payByCard(url.searchParams.get("reference")!, Number(url.searchParams.get("pesewas")));
     const owned = path.startsWith("/api/") || path.startsWith("/_serverFn/");
     return (
       (owned ? undefined : await serveStatic(path)) ?? server.default.fetch(request, { context })

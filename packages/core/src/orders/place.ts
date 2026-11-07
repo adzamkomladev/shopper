@@ -99,6 +99,7 @@ const placeCommand = defineCommand({
       deliveryAddress: input.fulfilment === "delivery" ? (input.address ?? null) : null,
       customerName: input.name,
       customerPhone: input.phone,
+      email: input.email ?? null,
       shopAccountId: placing.accountId,
       viewTokenDigest: placing.digest,
       ...pick(quote.totals),

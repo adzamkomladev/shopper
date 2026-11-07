@@ -4,6 +4,7 @@ export type { Entry, Posting } from "./types";
 export { postSale } from "./sales";
 export { tenderAccounts } from "./accounts";
 export { postRefund } from "./refunds";
+export { postOrder, reverseOrder } from "./orders";
 export { postCredit, postExpiry } from "./customers";
 export { postShift } from "./shifts";
 export { postStock } from "./stock";

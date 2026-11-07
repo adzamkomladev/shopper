@@ -16,6 +16,9 @@ import { deliverInvoiceEmail } from "../billing/deliver";
 import { deliverOnboardingEvent, deliverOnboardingNudge } from "../onboarding/deliver";
 import { deliverKybNotice } from "../kyb/deliver";
 import { deliverShopCode } from "../shop/deliver";
+import { deliverOrderConfirmation } from "../orders/payments/notify";
+import { refundOrderPayment } from "../orders/payments/refunds/send";
+import { orderRefundMessage } from "../schemas/orders/messages";
 import type { NotificationDeps } from "./types";
 export type { NotificationDeps } from "./types";
 
@@ -63,6 +66,10 @@ export async function deliverNotification(deps: NotificationDeps, delivery: Deli
       return await deliverKybNotice(deps, delivery);
     case "shop.otp":
       return await deliverShopCode(deps, delivery);
+    case "order.confirmation":
+      return await deliverOrderConfirmation(deps, delivery);
+    case "order.refund":
+      return await sendOrderRefund(deps, delivery);
     default:
       console.error({ event: "notification.unknown_type", type: delivery.message.type });
       return await delivery.retry();
@@ -74,5 +81,13 @@ async function startRefund(deps: NotificationDeps, delivery: Delivery) {
   const { id } = v.parse(refundMessage, delivery.message.payload);
   // Starting an id that exists does nothing, so a redelivered message never refunds twice.
   await deps.refunds.start(id, { orgId: delivery.message.orgId, id });
+  await delivery.ack();
+}
+
+async function sendOrderRefund(deps: NotificationDeps, delivery: Delivery) {
+  if (!deps.orderRefunds) return await delivery.retry();
+  const { id } = v.parse(orderRefundMessage, delivery.message).payload;
+  // A refund already requested does nothing, so a redelivered message never refunds twice.
+  await refundOrderPayment(deps.orderRefunds, id, delivery.message.orgId);
   await delivery.ack();
 }

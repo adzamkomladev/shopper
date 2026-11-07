@@ -8,6 +8,7 @@ import { uuidV7Schema } from "@shopper/ports";
 import { applyMomoEvent } from "@shopper/core/payments";
 import { callbackSchema } from "@shopper/core/payments/hubtel";
 import type { ApiOptions } from "../types";
+import { isOrderPayment, orderPaymentReport } from "./orders";
 
 /**
  * Hubtel's payment callback. It carries no signature, so it is only a nudge: the status API says what happened,
@@ -17,12 +18,30 @@ export function hubtelRoutes(options: ApiOptions) {
   const app = new Hono();
   app.use("/webhooks/hubtel", bodyLimit({ maxSize: 16_384 }));
   app.post("/webhooks/hubtel", async (c) => {
-    if (!options.database || !options.hubtel || !options.momoPayment)
-      return c.json({ error: "Payments unavailable" }, 503);
+    if (!options.database || !options.hubtel) return c.json({ error: "Payments unavailable" }, 503);
     const callback = v.safeParse(callbackSchema, await c.req.json().catch(() => undefined));
     if (!callback.success) return c.json({ error: "Invalid Hubtel callback" }, 400);
     const reference = callback.output.Data.ClientReference;
     if (!v.safeParse(uuidV7Schema, reference).success) return c.json({ received: true });
+    // An online order's attempt is confirmed the same way: only Hubtel's status API is believed.
+    if (await isOrderPayment(options, reference)) {
+      const verified = await options.hubtel.verify(reference).catch(() => undefined);
+      if (verified?.status !== "confirmed" && verified?.status !== "failed")
+        return c.json({ received: true });
+      const reported = await orderPaymentReport(options, {
+        provider: "hubtel",
+        key: `${verified.status}:${reference}`,
+        kind: `hubtel.${verified.status}`,
+        reference,
+        status: verified.status,
+        amount: verified.amount,
+        providerReference: verified.providerReference,
+        message: verified.status === "failed" ? "Hubtel reports the payment failed" : undefined,
+      });
+      if (reported === "mismatch") return c.json({ error: "Payment amount mismatch" }, 400);
+      return c.json({ received: true });
+    }
+    if (!options.momoPayment) return c.json({ error: "Payments unavailable" }, 503);
     const [row] = await options.database
       .select()
       .from(payment)

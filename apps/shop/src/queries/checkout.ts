@@ -29,4 +29,9 @@ export const orderQuery = (shop: string, id: string, key: string) =>
   queryOptions({
     queryKey: [shop, "orders", id],
     queryFn: () => shopFetch(`/${shop}/orders/${id}?t=${key}`, placedOrder),
+    // While a payment is open the page follows it: the webhook, not the shopper, finishes it.
+    refetchInterval: (query) =>
+      query.state.data?.status === "placed" && query.state.data.payment?.status === "pending"
+        ? 3_000
+        : false,
   });

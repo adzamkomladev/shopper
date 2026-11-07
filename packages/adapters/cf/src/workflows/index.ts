@@ -1,6 +1,6 @@
 export { AuthWorkflow } from "./auth";
 export { PriceChangeWorkflow } from "./price";
-export { MomoPaymentWorkflow } from "./payments";
+export { MomoPaymentWorkflow, OrderPaymentWorkflow } from "./payments";
 export { KycWorkflow } from "./kyc";
 export { AccountWorkflow } from "./account";
 export { StatementWorkflow } from "./statements";

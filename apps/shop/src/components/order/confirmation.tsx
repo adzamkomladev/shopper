@@ -4,6 +4,7 @@ import type { PlacedOrder } from "../../schemas/checkout";
 import { quantityLabel } from "../cart/quantity";
 import { dayLabel, slotLabel } from "../checkout/slots";
 import { CartTotals } from "../cart/totals";
+import { PayPanel } from "./pay";
 
 const clock = new Intl.DateTimeFormat("en-GH", {
   hour: "numeric",
@@ -24,15 +25,27 @@ const statusCopy: Record<
     detail: "It was not paid in time, so the items went back on the shelf.",
   }),
   cancelled: () => ({ title: "Cancelled", detail: "This order was cancelled." }),
-  paid: () => ({
+  paid: (order) => ({
     title: "Paid",
-    detail: "The shop has your payment and will get your order ready.",
+    detail: `The shop has your payment and will get your order ready.${order.receiptNumber ? ` Receipt ${order.receiptNumber}.` : ""}`,
+  }),
+  refunded: () => ({
+    title: "Refunded",
+    detail: "The shop could not fill this order. Your payment is on its way back to you.",
   }),
   accepted: () => ({ title: "Being prepared", detail: "The shop is getting your order ready." }),
 };
 
 /** The order the shopper just placed: its number, where and when, what is in it, and what happens next. */
-export function OrderConfirmation({ order }: { order: PlacedOrder }) {
+export function OrderConfirmation({
+  order,
+  shop,
+  orderKey,
+}: {
+  order: PlacedOrder;
+  shop: string;
+  orderKey: string;
+}) {
   const status = statusCopy[order.status](order);
   const products = order.lines.filter((line) => line.kind === "product");
   const delivery = order.lines.find((line) => line.kind === "delivery");
@@ -52,6 +65,9 @@ export function OrderConfirmation({ order }: { order: PlacedOrder }) {
             <p className="mt-1 text-pretty">{status.detail}</p>
           </div>
         </section>
+        {order.status === "placed" ? (
+          <PayPanel shop={shop} order={order} orderKey={orderKey} />
+        ) : null}
         <section
           aria-labelledby="order-when"
           className="grid gap-4 rounded-panel border bg-card p-5 sm:grid-cols-2"

@@ -5,6 +5,7 @@ const accountType = v.picklist(["asset", "liability", "equity", "income", "expen
 const source = v.picklist([
   "sale",
   "refund",
+  "order",
   "credit",
   "loyalty",
   "shift",

@@ -14,10 +14,18 @@ import {
 } from "drizzle-orm/pg-core";
 import { branch, moneyColumn, store, tenant } from "../base";
 import { price, product } from "../catalogue";
+import { asset } from "../assets";
 import { shopAccount } from "../shop";
 
 export const orderChannels = ["online"] as const;
-export const orderStatuses = ["placed", "expired", "cancelled", "paid", "accepted"] as const;
+export const orderStatuses = [
+  "placed",
+  "expired",
+  "cancelled",
+  "paid",
+  "accepted",
+  "refunded",
+] as const;
 export const fulfilmentKinds = ["pickup", "delivery"] as const;
 
 /**
@@ -40,6 +48,8 @@ export const onlineOrder = pgTable(
     deliveryAddress: jsonb("delivery_address"),
     customerName: text("customer_name").notNull(),
     customerPhone: text("customer_phone").notNull(),
+    /** Where the receipt email goes; the shopper may leave it out. */
+    email: text("email"),
     shopAccountId: uuid("shop_account_id"),
     /**
      * SHA-256 of the browser's random checkout key. The key reads the order back, and a repeated submit with the same
@@ -53,12 +63,21 @@ export const onlineOrder = pgTable(
     covid: moneyColumn("covid").notNull(),
     gross: moneyColumn("gross").notNull(),
     holdExpiresAt: timestamp("hold_expires_at", { withTimezone: true }).notNull(),
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    /** The invoice number and receipt the payment issued (null until paid). */
+    receiptNumber: text("receipt_number"),
+    receipt: jsonb("receipt"),
+    receiptAssetId: uuid("receipt_asset_id"),
+    /** When the confirmation text and email went out; each is sent once. */
+    smsSentAt: timestamp("sms_sent_at", { withTimezone: true }),
+    emailSentAt: timestamp("email_sent_at", { withTimezone: true }),
     placedAt: timestamp("placed_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     unique().on(t.orgId, t.id),
     unique("online_order_cursor").on(t.orgId, t.storeId, t.inboxCursor),
     unique("online_order_token").on(t.viewTokenDigest),
+    unique("online_order_receipt").on(t.orgId, t.receiptNumber),
     index("online_order_slot").on(t.orgId, t.branchId, t.slotStart),
     foreignKey({ columns: [t.orgId, t.storeId], foreignColumns: [store.orgId, store.id] }),
     foreignKey({ columns: [t.orgId, t.branchId], foreignColumns: [branch.orgId, branch.id] }),
@@ -66,6 +85,14 @@ export const onlineOrder = pgTable(
       columns: [t.orgId, t.shopAccountId],
       foreignColumns: [shopAccount.orgId, shopAccount.id],
     }),
+    foreignKey({
+      columns: [t.orgId, t.receiptAssetId],
+      foreignColumns: [asset.orgId, asset.id],
+    }),
+    check(
+      "online_order_receipt_issued",
+      sql`(${t.receipt} IS NULL) = (${t.receiptNumber} IS NULL)`,
+    ),
     check("online_order_phone_format", sql`${t.customerPhone} ~ '^0[0-9]{9}$'`),
     check("online_order_slot_order", sql`${t.slotEnd} > ${t.slotStart}`),
     check(

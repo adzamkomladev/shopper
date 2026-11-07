@@ -270,6 +270,14 @@ spacing, everything centered, walls of cards, placeholder or lorem text, "Welcom
 icon-only buttons without labels, more than one primary button per view, spinners instead of
 skeletons, modal-on-modal, disabled buttons without a reason, and color as the only signal.
 
+## The shop's pay step (Day 33)
+
+An unpaid order's page (`/$shop/orders/$id?t=<key>`) carries `PayPanel` (`apps/shop/src/components/order`): Mobile
+money (network + number) or Card, one primary button. A card goes to Paystack's page and returns to the same
+address; a mobile money prompt is followed by the order query itself (`refetchInterval` while an attempt is open,
+no effect). States: choose, open card attempt, waiting for the phone, failed or lapsed (the reason and "you have not
+been charged"), paid (receipt number), refunded. The optional email at checkout is where the receipt goes.
+
 ## Definition of done for a screen
 
 1. It matches the Figma frame (spacing, type, color, states), checked side by side.

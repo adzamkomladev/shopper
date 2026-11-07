@@ -17,6 +17,7 @@ import { device } from "../devices";
 import { product, supplier } from "../catalogue";
 import { sale, saleLine } from "../sales";
 import { refund, refundLine } from "../refunds";
+import { onlineOrder } from "../orders/base";
 
 export const stockReasons = ["sale", "adjustment", "return", "count", "receipt"] as const;
 export const stockDocumentKinds = ["count", "receipt", "adjustment"] as const;
@@ -70,6 +71,8 @@ export const stockMovement = pgTable(
     productId: uuid("product_id").notNull(),
     saleId: uuid("sale_id"),
     saleLineId: uuid("sale_line_id"),
+    /** An online order's goods leaving (sale) or coming back (return) the shelf. */
+    orderId: uuid("order_id"),
     documentId: uuid("document_id"),
     refundId: uuid("refund_id"),
     refundLineId: uuid("refund_line_id"),
@@ -83,6 +86,11 @@ export const stockMovement = pgTable(
     unique().on(t.orgId, t.id),
     index("stock_movement_product").on(t.orgId, t.branchId, t.productId, t.occurredAt),
     index("stock_movement_sale").on(t.orgId, t.saleId),
+    index("stock_movement_order").on(t.orgId, t.orderId),
+    foreignKey({
+      columns: [t.orgId, t.orderId],
+      foreignColumns: [onlineOrder.orgId, onlineOrder.id],
+    }),
     foreignKey({ columns: [t.orgId, t.branchId], foreignColumns: [branch.orgId, branch.id] }),
     foreignKey({ columns: [t.orgId, t.productId], foreignColumns: [product.orgId, product.id] }),
     foreignKey({ columns: [t.orgId, t.saleId], foreignColumns: [sale.orgId, sale.id] }),
@@ -98,7 +106,7 @@ export const stockMovement = pgTable(
     }),
     check(
       "stock_movement_return",
-      sql`${t.reason} <> 'return' OR (${t.refundId} IS NOT NULL AND ${t.quantityThousandths} > 0)`,
+      sql`${t.reason} <> 'return' OR ((${t.refundId} IS NOT NULL OR ${t.orderId} IS NOT NULL) AND ${t.quantityThousandths} > 0)`,
     ),
     check(
       "stock_movement_reason",
@@ -116,7 +124,7 @@ export const stockMovement = pgTable(
     check("stock_movement_quantity", sql`${t.quantityThousandths} <> 0`),
     check(
       "stock_movement_sale",
-      sql`${t.reason} <> 'sale' OR (${t.saleId} IS NOT NULL AND ${t.quantityThousandths} < 0)`,
+      sql`${t.reason} <> 'sale' OR ((${t.saleId} IS NOT NULL OR ${t.orderId} IS NOT NULL) AND ${t.quantityThousandths} < 0)`,
     ),
   ],
 );

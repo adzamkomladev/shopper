@@ -14,7 +14,7 @@ One `RateLimiter` port (`packages/ports/src/limits.ts`) with a fixed policy tabl
 | `enrol`    | 10 per 60 s | client IP, across all shops | till self-enrolment                                                            |
 | `cashier`  | 20 per 60 s | shop and client IP          | cashier sign-in from a register (the per-user PIN lockout still applies)       |
 | `otp`      | 10 per 60 s | client IP                   | "text me a code" on the shop's sign-in (each phone also gets 5 logins an hour) |
-| `checkout` | 5 per 60 s  | client IP                   | placing an online order (each holds stock for 30 minutes)                      |
+| `checkout` | 5 per 60 s  | client IP                   | placing an online order (each holds stock for 30 minutes), and paying it       |
 
 - Cloud: one Cloudflare Rate Limiting binding per policy (`RATE_AUTH`, `RATE_PUBLIC`, `RATE_ENROL`,
   `RATE_CASHIER`, `RATE_OTP`, `RATE_CHECKOUT`), built from the table by `apps/edge/cloudflare.config.ts`, through `cloudflareRateLimiter`.
@@ -71,7 +71,11 @@ One `RateLimiter` port (`packages/ports/src/limits.ts`) with a fixed policy tabl
 - Every `/shop/account/*` route takes the shop from the session row, never from the request. An
   account sees only sales rung up to customer rows with its phone at that shop (and rows merged into
   them). Profile edits change the online account, never the shop's `customer` row.
-- Tests: `tests/integration/shop/*` (sign-in, account, profile) and the tenant sweep.
+- Paying an order (`POST /shop/:code/orders/:id/pay`) is public on purpose: the authority is the order's checkout
+  key (404 without it), the amount is the order's gross and never the request's, and the `checkout` budget applies.
+  Payment webhooks are believed only when Paystack's signature verifies, or, for Hubtel, when its status API agrees;
+  an amount that differs from the attempt is refused with 400 and pays nothing.
+- Tests: `tests/integration/shop/*` (sign-in, account, profile), `tests/integration/payments/orders/*` and the tenant sweep.
 - The store (`/shop/:code/store`, `products`, `products/:id`, `images/:assetId`, `sitemap`) is public and
   read-only. It names the shop by code and takes nothing else from the request; it only shows what
   `catalogue_public` holds and answers 404 for anything else, including a hidden product's photo. Its replies are

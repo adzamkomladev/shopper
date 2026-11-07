@@ -1,6 +1,7 @@
 import { createMaileroo } from "@shopper/auth";
 import { buildInfo } from "@shopper/config";
 import { deliverNotification } from "@shopper/core/notifications";
+import { createPaystack } from "@shopper/core/payments/paystack";
 import { createArkesel } from "@shopper/core/sms/arkesel";
 import { messageBody, NOTIFICATION_RETRY, retryDelay } from "@shopper/ports";
 import { cloudflareDatabase } from "./database";
@@ -80,6 +81,7 @@ export async function cloudflareNotifications(
     | "NOTIFICATIONS"
     | "MOMO_REFUND"
     | "PAYSTACK_SECRET_KEY"
+    | "PAYSTACK_BASE_URL"
     | "ONBOARDING_FLOWS"
     | "KYB_FLOWS"
   >,
@@ -120,6 +122,17 @@ export async function cloudflareNotifications(
         env.MOMO_REFUND && env.PAYSTACK_SECRET_KEY
           ? cloudflareLauncher(env.MOMO_REFUND)
           : undefined,
+      // An owed online-order refund is sent from here; without Paystack it waits and retries.
+      orderRefunds: env.PAYSTACK_SECRET_KEY
+        ? {
+            withDatabase: <T>(run: (db: typeof connection.db) => Promise<T>) => run(connection.db),
+            paystack: createPaystack({
+              secretKey: env.PAYSTACK_SECRET_KEY,
+              baseUrl: env.PAYSTACK_BASE_URL,
+            }),
+            appVersion: buildInfo.version,
+          }
+        : undefined,
       onboarding: env.ONBOARDING_FLOWS ? cloudflareLauncher(env.ONBOARDING_FLOWS) : undefined,
       // A resubmission after the run ended starts it again.
       kyb: env.KYB_FLOWS ? cloudflareLoopLauncher(env.KYB_FLOWS, "wake") : undefined,

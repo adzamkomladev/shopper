@@ -11,6 +11,7 @@ export const TYPE_LABELS: Record<AccountType, string> = {
 export const SOURCE_LABELS: Record<JournalSource, string> = {
   sale: "Sale",
   refund: "Refund",
+  order: "Online order",
   credit: "Customer account",
   loyalty: "Points",
   shift: "Shift close",

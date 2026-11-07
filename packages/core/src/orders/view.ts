@@ -1,5 +1,5 @@
-import { and, asc, eq } from "drizzle-orm";
-import { branch, onlineOrder, onlineOrderLine } from "@shopper/db-pg";
+import { and, asc, desc, eq } from "drizzle-orm";
+import { branch, onlineOrder, onlineOrderLine, orderPayment } from "@shopper/db-pg";
 import { sha256 } from "@shopper/utils";
 import type { Queryable } from "../types";
 
@@ -29,6 +29,12 @@ export async function orderByDigest(db: Queryable, orgId: string, digest: string
     .where(and(eq(onlineOrderLine.orgId, orgId), eq(onlineOrderLine.orderId, order.order.id)))
     .orderBy(asc(onlineOrderLine.position));
   const row = order.order;
+  const [attempt] = await db
+    .select()
+    .from(orderPayment)
+    .where(and(eq(orderPayment.orgId, orgId), eq(orderPayment.orderId, row.id)))
+    .orderBy(desc(orderPayment.createdAt))
+    .limit(1);
   return {
     id: row.id,
     number: Number(row.inboxCursor),
@@ -41,6 +47,19 @@ export async function orderByDigest(db: Queryable, orgId: string, digest: string
     deliveryAddress: row.deliveryAddress as Record<string, string> | null,
     customerName: row.customerName,
     holdExpiresAt: row.holdExpiresAt.toISOString(),
+    receiptNumber: row.receiptNumber,
+    paidAt: row.paidAt?.toISOString() ?? null,
+    /** The latest attempt to pay: what the shopper sees while they wait, and why one failed. */
+    payment: attempt
+      ? {
+          id: attempt.id,
+          method: attempt.method,
+          provider: attempt.provider,
+          status: attempt.status,
+          checkoutUrl: attempt.status === "pending" ? attempt.checkoutUrl : null,
+          failureReason: attempt.failureReason,
+        }
+      : null,
     placedAt: row.placedAt.toISOString(),
     totals: {
       base: row.base,

@@ -13,10 +13,10 @@ import { clearCart, type CartLine } from "../../stores/cart";
 import { CartTotals } from "../cart/totals";
 import { Turnstile } from "../signin/turnstile";
 import { DetailField } from "./details";
+import { phoneOf } from "../shop/phone";
 import { SlotPicker } from "./slots";
 
 type Kind = "pickup" | "delivery";
-const phoneOf = (text: string) => text.replace(/[\s()-]/g, "").replace(/^\+?233/, "0");
 
 /**
  * Guest checkout: pickup or delivery (only what the branch offers), a slot, who is collecting, and where to deliver.
@@ -42,6 +42,7 @@ export function CheckoutForm({
   const [slot, setSlot] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [address, setAddress] = useState({ line1: "", area: "", city: "", landmark: "" });
   const [token, setToken] = useState("");
   // A Turnstile token is single use: every refused submit draws a fresh challenge.
@@ -59,6 +60,7 @@ export function CheckoutForm({
           slot,
           name: name.trim(),
           phone: phoneOf(phone),
+          email: email.trim(),
           address: kind === "delivery" ? address : undefined,
           turnstile: token,
         },
@@ -87,6 +89,7 @@ export function CheckoutForm({
     slot: slot ? undefined : "Choose a time",
     name: name.trim() ? undefined : "Enter your name",
     phone: /^0\d{9}$/.test(phoneOf(phone)) ? undefined : "Enter a Ghana number like 024 123 4567",
+    email: !email.trim() || /^\S+@\S+\.\S+$/.test(email.trim()) ? undefined : "Enter a valid email",
     line1: kind === "pickup" || address.line1.trim() ? undefined : "Enter the street or house",
     area: kind === "pickup" || address.area.trim() ? undefined : "Enter the area",
     city: kind === "pickup" || address.city.trim() ? undefined : "Enter the town or city",
@@ -189,6 +192,17 @@ export function CheckoutForm({
               value={phone}
               onChange={setPhone}
               error={shown("phone")}
+            />
+            <DetailField
+              id="email"
+              label="Email (optional)"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              description="We email your receipt here."
+              value={email}
+              onChange={setEmail}
+              error={shown("email")}
             />
           </div>
           {kind === "delivery" ? (

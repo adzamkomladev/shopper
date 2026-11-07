@@ -83,7 +83,6 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
     cache ??= boxCache(environment.SHOPPER_CACHE_PATH ?? ".shopper/cache.sqlite");
     workflowPool ??= boxPool(DATABASE_URL);
     const workflowDatabase = workflowPool.db;
-    orders ??= boxOrders(workflowDatabase);
     // Created on first use, never at import: workflows outlive requests, so they get their own pool.
     priceChange ??= boxPriceChange({
       database: workflowDatabase,
@@ -108,6 +107,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
       realtime,
       baseUrl: SHOPPER_AUTH_URL,
     });
+    orders ??= boxOrders(workflowDatabase, payments, () => notifications);
     const sms = environment.ARKESEL_API_KEY
       ? createArkesel({
           apiKey: environment.ARKESEL_API_KEY,
@@ -137,6 +137,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
           accounts: accountFlows,
           statements: statementFlows,
           refunds: payments?.momoRefund,
+          orderRefunds: orders?.refunds,
           queue: notifications,
         },
         delivery,

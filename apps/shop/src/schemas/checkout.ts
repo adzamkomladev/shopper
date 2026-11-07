@@ -47,7 +47,7 @@ export type FulfilmentOptions = v.InferOutput<typeof fulfilmentOptions>;
 export const placedOrder = v.object({
   id: v.string(),
   number: v.number(),
-  status: v.picklist(["placed", "expired", "cancelled", "paid", "accepted"]),
+  status: v.picklist(["placed", "expired", "cancelled", "paid", "accepted", "refunded"]),
   branch: named,
   fulfilment: v.picklist(["pickup", "delivery"]),
   slotStart: v.string(),
@@ -55,6 +55,19 @@ export const placedOrder = v.object({
   deliveryAddress: v.nullable(v.record(v.string(), v.nullable(v.string()))),
   customerName: v.string(),
   holdExpiresAt: v.string(),
+  receiptNumber: v.nullable(v.string()),
+  paidAt: v.nullable(v.string()),
+  /** The latest attempt to pay: what the shopper sees while they wait, and why one failed. */
+  payment: v.nullable(
+    v.object({
+      id: v.string(),
+      method: v.picklist(["card", "momo"]),
+      provider: v.picklist(["paystack", "hubtel"]),
+      status: v.picklist(["pending", "otp", "confirmed", "failed", "expired"]),
+      checkoutUrl: v.nullable(v.string()),
+      failureReason: v.nullable(v.string()),
+    }),
+  ),
   totals,
   lines: v.array(
     v.object({

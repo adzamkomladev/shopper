@@ -5,7 +5,7 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import { buildInfo } from "@shopper/config";
 import { payment, saleTender, user } from "@shopper/db-pg";
 import { uuidV7Schema } from "@shopper/ports";
-import { money, toPesewas } from "@shopper/money";
+import { fromPesewas, money, toPesewas } from "@shopper/money";
 import {
   applyMomoEvent,
   applyRefundEvent,
@@ -19,6 +19,7 @@ import { verifyWebhook, type PaystackWebhook } from "@shopper/core/payments/pays
 import { ManagementError } from "@shopper/core/management";
 import type { ApiOptions } from "../types";
 import { invoiceWebhook } from "./invoices";
+import { orderPaymentReport, orderRefundReport } from "./orders";
 
 export function paymentRoutes(options: ApiOptions) {
   const app = new Hono<import("../types").ApiEnvironment>();
@@ -45,6 +46,30 @@ export function paymentRoutes(options: ApiOptions) {
       (await invoiceWebhook(options, event));
     if (billed === "mismatch") return c.json({ error: "Payment amount mismatch" }, 400);
     if (billed) return c.json({ received: true });
+    // Online orders first: their references are order payments, not the till's.
+    if (event.event === "charge.success" || event.event === "charge.failed") {
+      const ordered = await orderPaymentReport(options, {
+        provider: "paystack",
+        key: `${event.event}:${event.data.reference}`,
+        kind: event.event,
+        reference: event.data.reference,
+        status: event.event === "charge.success" ? "confirmed" : "failed",
+        amount: fromPesewas(event.data.amount),
+        message: event.data.gateway_response ?? undefined,
+      });
+      if (ordered === "mismatch") return c.json({ error: "Payment amount mismatch" }, 400);
+      if (ordered === "applied") return c.json({ received: true });
+    }
+    if (
+      (event.event === "refund.processed" || event.event === "refund.failed") &&
+      (await orderRefundReport(options, {
+        event: event.event,
+        reference: event.data.transaction_reference,
+        id: event.data.id,
+        refundReference: event.data.refund_reference,
+      }))
+    )
+      return c.json({ received: true });
     if (!options.momoPayment) return c.json({ error: "Payments unavailable" }, 503);
     if (event.event === "refund.processed" || event.event === "refund.failed") {
       await refundWebhook(options, options.database, event);

@@ -58,13 +58,16 @@ async function restoreAndCount(
   stamp: string,
   expected: Record<string, number>,
 ) {
-  const scratch = `shopper_restore_${stamp.toLowerCase()}`;
+  // Unique per run, so two runs never share (or drop) each other's scratch database.
+  const scratch = `shopper_restore_${stamp.toLowerCase()}_${crypto.randomUUID().slice(0, 8)}`;
+  let created = false;
   const admin = new Client({ connectionString: databaseUrl });
   await admin.connect();
   const url = new URL(databaseUrl);
   url.pathname = `/${scratch}`;
   try {
     await admin.query(`CREATE DATABASE "${scratch}"`);
+    created = true;
     await run("pg_restore", ["--exit-on-error", "--no-owner", "-d", url.toString(), dump]);
     const restored = new Client({ connectionString: url.toString() });
     await restored.connect();
@@ -77,7 +80,7 @@ async function restoreAndCount(
         `The restored backup differs: ${differs.map((t) => `${t} ${expected[t]}≠${actual[t]}`).join(", ")}`,
       );
   } finally {
-    await admin.query(`DROP DATABASE IF EXISTS "${scratch}" WITH (FORCE)`);
+    if (created) await admin.query(`DROP DATABASE "${scratch}" WITH (FORCE)`);
     await admin.end();
   }
 }

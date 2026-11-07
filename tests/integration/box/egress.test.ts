@@ -49,3 +49,26 @@ test("the providers, the configured services and the LAN pass", async () => {
   await expect(box.fetch("https://api.paystack.co.evil.example/")).rejects.toThrow();
   await expect(box.fetch("http://172.32.0.1/")).rejects.toThrow();
 });
+
+test("a redirect is followed only to a host the box may reach", async () => {
+  const reached: string[] = [];
+  const box = egressFetch({}, async (input) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    reached.push(url.host);
+    if (url.pathname === "/leak")
+      return new Response(null, {
+        status: 302,
+        headers: { location: "https://collector.example/x" },
+      });
+    if (url.pathname === "/moved")
+      return new Response(null, {
+        status: 307,
+        headers: { location: "https://api.paystack.co/y" },
+      });
+    return new Response(`at ${url.host}${url.pathname}`);
+  });
+  await expect(box("http://127.0.0.1:9000/leak")).rejects.toBeInstanceOf(EgressRefusedError);
+  expect(reached).toEqual(["127.0.0.1:9000"]);
+  const moved = await box("http://127.0.0.1:9000/moved", { method: "POST", body: "{}" });
+  expect(await moved.text()).toBe("at api.paystack.co/y");
+});

@@ -41,15 +41,33 @@ export function egressFetch(
       .map((host) => host.trim())
       .filter(Boolean),
   ]);
+  const check = (url: string) => {
+    const host = new URL(url).hostname;
+    if (allowed.has(host) || local(host)) return;
+    console.error({ event: "egress.refused", host });
+    throw new EgressRefusedError(host);
+  };
+  // Redirects are followed here, not by fetch, so every hop's host is checked before it is requested.
   return async (input: RequestInfo | URL, init?: RequestInit) => {
-    const host = new URL(input instanceof Request ? input.url : String(input)).hostname;
-    if (!allowed.has(host) && !local(host)) {
-      console.error({ event: "egress.refused", host });
-      throw new EgressRefusedError(host);
+    let request = new Request(input, init);
+    for (let hop = 0; ; hop += 1) {
+      check(request.url);
+      if (request.redirect !== "follow") return inner(request);
+      const response = await inner(new Request(request.clone(), { redirect: "manual" }));
+      const location = response.headers.get("location");
+      if (response.status < 300 || response.status > 399 || !location || hop === MAX_REDIRECTS)
+        return response;
+      // 307 and 308 repeat the request as it was; the others continue as a GET.
+      const repeat = response.status === 307 || response.status === 308;
+      request = new Request(
+        new URL(location, request.url),
+        repeat ? request : { method: "GET", headers: request.headers },
+      );
     }
-    return inner(input, init);
   };
 }
+
+const MAX_REDIRECTS = 5;
 
 function local(host: string) {
   if (host === "localhost" || host === "[::1]" || host.endsWith(".local")) return true;

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, type SQL } from "drizzle-orm";
 import {
   branch,
   onlineOrder,
@@ -11,6 +11,7 @@ import {
 } from "@shopper/db-pg";
 import { sha256 } from "@shopper/utils";
 import type { Queryable } from "../types";
+import { goodsOf, totalOf } from "./fulfil/goods";
 import { reviewable } from "./reviews/submit";
 
 /**
@@ -23,7 +24,14 @@ export async function readOrderView(db: Queryable, orgId: string, id: string, ke
 }
 
 /** The order placed with this key digest, shaped for the confirmation page. */
-export async function orderByDigest(db: Queryable, orgId: string, digest: string) {
+export const orderByDigest = (db: Queryable, orgId: string, digest: string) =>
+  orderWhere(db, orgId, eq(onlineOrder.viewTokenDigest, digest));
+
+/** The order by its id, for a caller that already proved the shopper's right to it (a signed review link). */
+export const orderById = (db: Queryable, orgId: string, id: string) =>
+  orderWhere(db, orgId, eq(onlineOrder.id, id));
+
+async function orderWhere(db: Queryable, orgId: string, match: SQL) {
   const [order] = await db
     .select({ order: onlineOrder, branchName: branch.name })
     .from(onlineOrder)
@@ -31,7 +39,7 @@ export async function orderByDigest(db: Queryable, orgId: string, digest: string
       branch,
       and(eq(branch.orgId, onlineOrder.orgId), eq(branch.id, onlineOrder.branchId)),
     )
-    .where(and(eq(onlineOrder.orgId, orgId), eq(onlineOrder.viewTokenDigest, digest)));
+    .where(and(eq(onlineOrder.orgId, orgId), match));
   if (!order) return undefined;
   const lines = await db
     .select()
@@ -104,14 +112,17 @@ export async function orderByDigest(db: Queryable, orgId: string, digest: string
           refundAmount: adjustment.refundAmount,
         }
       : null,
-    totals: {
-      base: row.base,
-      vat: row.vat,
-      nhil: row.nhil,
-      getfund: row.getfund,
-      covid: row.covid,
-      gross: row.gross,
-    },
+    /** What the shopper pays: as ordered, or once picking changed the order, the goods they finally get. */
+    totals: adjustment
+      ? pickedTotals(lines, picks)
+      : {
+          base: row.base,
+          vat: row.vat,
+          nhil: row.nhil,
+          getfund: row.getfund,
+          covid: row.covid,
+          gross: row.gross,
+        },
     lines: lines.map((line) => ({
       id: line.id,
       pick: adjustment ? pickOf(picks.find((pick) => pick.lineId === line.id)) : null,
@@ -123,6 +134,19 @@ export async function orderByDigest(db: Queryable, orgId: string, digest: string
       name: (line.payload as { name: string }).name,
       baseUnit: (line.payload as { baseUnit?: string }).baseUnit ?? "each",
     })),
+  };
+}
+
+function pickedTotals(...goods: Parameters<typeof goodsOf>) {
+  const held = goodsOf(...goods);
+  const total = totalOf([...held.kept, ...held.substitutes]);
+  return {
+    base: total.base,
+    vat: total.vat,
+    nhil: total.nhil,
+    getfund: total.getfund,
+    covid: total.covid,
+    gross: total.gross,
   };
 }
 

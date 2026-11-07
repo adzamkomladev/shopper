@@ -17,11 +17,11 @@ export type TransactionSearch = v.InferOutput<typeof transactionSearch>;
 
 export const transactionRow = v.object({
   id: v.string(),
-  kind: v.picklist(["sale", "payment"]),
+  kind: v.picklist(["sale", "payment", "order"]),
   occurredAt: v.string(),
   receiptNumber: v.nullable(v.string()),
   branchId: v.string(),
-  cashierId: v.string(),
+  cashierId: v.nullable(v.string()),
   cashierName: v.nullable(v.string()),
   customerId: v.nullable(v.string()),
   customerName: v.nullable(v.string()),

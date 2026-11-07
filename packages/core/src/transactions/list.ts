@@ -7,8 +7,8 @@ import { transactionQuery } from "./schemas/base";
 import type { TransactionRow } from "./types";
 
 /**
- * One page of the explorer, newest first: the org's sales (completed, or refunded once any refund exists) and its
- * MoMo payments no sale used (pending), with counts per status for the same range, search and filters.
+ * One page of the explorer, newest first: the org's sales (completed, or refunded once any refund exists), its paid
+ * online orders (likewise, a late or duplicate payment's refund aside) and its MoMo payments no sale used (pending), with counts per status for the same range, search and filters.
  */
 export async function listTransactions(
   db: ShopperDatabase,
@@ -86,8 +86,26 @@ export function matching(
       ${inBranches(sql`p`, branchIds)}
       ${query.cashierId ? sql`AND p.cashier_id = ${query.cashierId}` : sql``}
       ${query.tender && query.tender !== "momo" ? sql`AND false` : sql``}
-      ${search(sql`p.reference = ${query.q} OR p.phone ILIKE ${like}`)}`;
+      ${search(sql`p.reference = ${query.q} OR p.phone ILIKE ${like}`)}
+    UNION ALL
+    SELECT o.id, 'order', date_trunc('milliseconds', o.paid_at), o.receipt_number, o.branch_id, NULL, ${ONLINE},
+      NULL, o.customer_name, coalesce(o.fulfilled_gross, o.gross)::bigint,
+      CASE WHEN EXISTS (SELECT 1 FROM order_payment p JOIN order_refund r ON r.org_id = p.org_id AND r.order_payment_id = p.id
+          WHERE p.org_id = o.org_id AND p.order_id = o.id AND r.reason NOT IN ('late_payment', 'duplicate_payment'))
+        THEN 'refunded' ELSE 'completed' END,
+      (SELECT array_agg(DISTINCT p.method ORDER BY p.method) FROM order_payment p
+        WHERE p.org_id = o.org_id AND p.order_id = o.id AND p.status = 'confirmed'),
+      (SELECT count(*)::int FROM online_order_line l WHERE l.org_id = o.org_id AND l.order_id = o.id AND l.kind = 'product')
+    FROM online_order o
+    WHERE o.org_id = ${orgId} AND o.paid_at >= ${from} AND o.paid_at < ${to}
+      ${inBranches(sql`o`, branchIds)}
+      ${query.cashierId ? sql`AND false` : sql``}
+      ${query.tender ? sql`AND EXISTS (SELECT 1 FROM order_payment p WHERE p.org_id = o.org_id AND p.order_id = o.id AND p.status = 'confirmed' AND p.method = ${query.tender})` : sql``}
+      ${search(sql`o.receipt_number ILIKE ${like} OR o.customer_name ILIKE ${like} OR o.customer_phone ILIKE ${like}`)}`;
 }
+
+/** The cashier an online order shows: it has none. */
+const ONLINE = "Online shop";
 
 const toRow = (row: TransactionRow) => ({
   ...row,

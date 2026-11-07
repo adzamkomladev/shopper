@@ -13,7 +13,7 @@ export const FROM_LG = "hidden lg:table-cell";
 
 type Props = { rows: TransactionRow[]; oneDay: boolean; onEndReached: () => void };
 
-/** Newest first; a sale's receipt opens its drill-down, a MoMo payment no sale used has none. */
+/** Newest first; a sale's receipt opens its drill-down, an online order's its order page, a MoMo payment no sale used has none. */
 export function TransactionTable({ rows, oneDay, onEndReached }: Props) {
   const columns: DataTableColumn<TransactionRow>[] = [
     {
@@ -26,6 +26,14 @@ export function TransactionTable({ rows, oneDay, onEndReached }: Props) {
             <Link
               to="/transactions/$saleId"
               params={{ saleId: row.original.id }}
+              className="w-fit text-xs text-muted-foreground hover:underline focus-visible:underline"
+            >
+              {row.original.receiptNumber}
+            </Link>
+          ) : row.original.kind === "order" ? (
+            <Link
+              to="/orders/$orderId"
+              params={{ orderId: row.original.id }}
               className="w-fit text-xs text-muted-foreground hover:underline focus-visible:underline"
             >
               {row.original.receiptNumber}
@@ -47,7 +55,7 @@ export function TransactionTable({ rows, oneDay, onEndReached }: Props) {
       header: "Items",
       meta: { className: FROM_LG },
       cell: ({ row }) =>
-        row.original.kind === "sale"
+        row.original.kind !== "payment"
           ? `${row.original.items} ${row.original.items === 1 ? "item" : "items"}`
           : "—",
     },

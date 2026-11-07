@@ -84,10 +84,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
     workflowPool ??= boxPool(DATABASE_URL);
     const workflowDatabase = workflowPool.db;
     // Created on first use, never at import: workflows outlive requests, so they get their own pool.
-    priceChange ??= boxPriceChange({
-      database: workflowDatabase,
-      realtime,
-    });
+    priceChange ??= boxPriceChange({ database: workflowDatabase, realtime });
     if (environment.SHOPPER_LINK_SECRET)
       authFlows ??= boxAuthFlows({
         withDatabase: (run) => run(workflowDatabase),
@@ -134,6 +131,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
           renderer,
           linkSecret: environment.SHOPPER_LINK_SECRET,
           baseUrl: SHOPPER_AUTH_URL,
+          shopUrl: environment.SHOPPER_SHOP_URL || undefined,
           accounts: accountFlows,
           statements: statementFlows,
           refunds: payments?.momoRefund,

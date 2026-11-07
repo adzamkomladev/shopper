@@ -135,6 +135,10 @@
     "./shop": {
       "types": "./src/shop/index.ts",
       "default": "./src/shop/index.ts"
+    },
+    "./licence": {
+      "types": "./src/licence/index.ts",
+      "default": "./src/licence/index.ts"
     }
   },
   "scripts": {

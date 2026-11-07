@@ -31,3 +31,16 @@ Set `SHOPPER_PORTAL_DIR` (the portal build's static assets, `apps/portal/.cloudf
 (`src/portal.ts`): `/api/*` is the API, a built file is served as is, and a browser navigation gets the SPA
 shell with the portal's `_headers`. API routes at the root keep answering tills and other JSON clients.
 `SHOPPER_S3_*` puts imports and receipts in RustFS buckets (`src/storage.ts`).
+
+Licence (`src/licence.ts`, `lic/1`): a build with `SHOPPER_LICENCE_ISSUER` (the issuer's public key, a build define,
+never box configuration) enforces it. `SHOPPER_LICENCE_DIR` (default `.shopper/licence`) holds `licence.json`,
+`confirmation.json` from the last check-in and `box.key`, the box's Ed25519 key made on first use. The machine is the
+SHA-256 of `SHOPPER_MACHINE_ID_FILE` (default `/etc/machine-id`). Each night the watchdog checks in with
+`SHOPPER_LICENCE_URL` (the cloud API); 30 days without a confirmation warns, 60 turns the back office read-only.
+Tills never lock. Settings → Licence shows the request code a licence is issued from (`tooling/licence/issue.ts`).
+
+Egress (`src/egress.ts`): on Bun the box's `fetch` reaches only Paystack, Hubtel, Arkesel, Maileroo and the hosts of
+`SHOPPER_SDC_URL`, `SHOPPER_LICENCE_URL`, provider URL overrides, `SHOPPER_S3_ENDPOINT` and `RIVET_ENDPOINT`, plus
+`SHOPPER_EGRESS_ALLOW` (comma separated). Loopback, private LAN and `.local` always pass. `SHOPPER_EGRESS=off` turns it
+off. Backups: `src/backup.ts` (entry `src/cli/backup.ts`) with `deploy/systemd/backup.{service,timer}`; LAN TLS and mDNS: `deploy/Caddyfile`,
+`deploy/avahi/shopper.service`.

@@ -27,6 +27,8 @@ export interface AuthEnvironment {
   PAYSTACK_SECRET_KEY?: string;
   PAYSTACK_BASE_URL?: string;
   HUBTEL_CLIENT_ID?: string;
+  /** The licence issuer's Ed25519 private JWK: confirms on-prem box check-ins. */
+  SHOPPER_LICENCE_SIGNING_KEY?: string;
   HUBTEL_CLIENT_SECRET?: string;
   HUBTEL_MERCHANT_ACCOUNT?: string;
   ARKESEL_API_KEY?: string;

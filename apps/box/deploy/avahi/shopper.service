@@ -1,0 +1,12 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<!-- Installed in /etc/avahi/services/. With the host name "shopper", Avahi answers shopper.local over mDNS, which
+     Windows tills resolve natively; this record also advertises the box's HTTPS API for discovery. -->
+<service-group>
+  <name>Shopper box</name>
+  <service>
+    <type>_https._tcp</type>
+    <port>443</port>
+    <txt-record>path=/health</txt-record>
+  </service>
+</service-group>

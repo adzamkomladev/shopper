@@ -1,0 +1,21 @@
+# LAN TLS for the box: Caddy's internal CA signs shopper.local. A new till fetches /ca.crt once (trust on first use on
+# the shop LAN), pins it and trusts the box from then on.
+{
+	# The box serves its own LAN: no ACME, no public CA.
+	local_certs
+	skip_install_trust
+}
+
+shopper.local {
+	tls internal
+	handle /ca.crt {
+		# The Debian package keeps Caddy's data in /var/lib/caddy; Caddy's Docker image needs
+		# SHOPPER_CADDY_PKI=/data/caddy/pki/authorities/local.
+		root * {$SHOPPER_CADDY_PKI:/var/lib/caddy/.local/share/caddy/pki/authorities/local}
+		rewrite * /root.crt
+		file_server
+	}
+	handle {
+		reverse_proxy 127.0.0.1:3001
+	}
+}

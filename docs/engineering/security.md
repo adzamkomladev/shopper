@@ -107,6 +107,21 @@ One `RateLimiter` port (`packages/ports/src/limits.ts`) with a fixed policy tabl
   `product.write`, and the stored bytes checked against the registered size and SHA-256 before the product links
   them.
 
+## The box: licence, egress and LAN TLS (Day 37)
+
+- The licence's issuer key is a **build define**, never box configuration: an operator who controls the
+  box's environment cannot swap it. Licence and confirmation files are signed, so editing them only locks
+  the back office. Tills are never locked by licence state. Known limit: a box whose clock is wound back
+  delays its ladder; the cloud confirms with its own clock.
+- `POST /licence/confirmations` is public on purpose (tenant sweep `PUBLIC`): the Ed25519 signature by the
+  licensed key is the credential, it covers the body and expires after 5 minutes, and the route is behind
+  the public rate limit.
+- On Bun the box's `fetch` refuses any internet host it does not use (`EgressRefusedError`, logged as
+  `egress.refused`). Add one with `SHOPPER_EGRESS_ALLOW`, never by turning the guard off.
+- The till pins the box's LAN CA on first use (one unverified download of `/ca.crt`, accepted only if it is
+  a CA certificate); the enrolment code still proves the server. Cloud tills pin nothing.
+- Backups leave the box only `age`-encrypted; the identity is Shopper's, not the box's.
+
 ## Secrets
 
 - `SHOPPER_AUTH_SECRET` and `SHOPPER_LINK_SECRET` must be at least 32 bytes, or the runtime answers `503`

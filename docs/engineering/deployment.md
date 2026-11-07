@@ -152,6 +152,16 @@ entries.
 - The box is `bun build --compile --bytecode`: one sealed binary with the portal embedded.
 - On start, the binary runs pending migrations, records the version in `shopper_meta`, then serves.
 - Rollback = restore the pre-upgrade backup + previous binary. Migrations never run backwards.
+- Backups (Day 37): `shopper-backup.timer` runs nightly at 02:30 (and at boot if missed). Each run is
+  verified before upload (restore into a scratch database, identical row counts per table) and lands in R2
+  as `shopper-<UTC stamp>.dump.age`. To restore: `age -d -i <identity> -o shopper.dump <file>`, then
+  `pg_restore --no-owner -d <url> shopper.dump` and `tooling/backup/verify.ts <url>`. Shopper keeps the age
+  identity; the box only has the recipient. Bucket lifecycle (retention) is R2 policy.
+- Licence (Day 37): build the box with `SHOPPER_LICENCE_ISSUER` (the issuer's public key). The owner reads
+  the request code on the box's Billing page; `SHOPPER_LICENCE_SIGNING_KEY=… vpx tooling/licence/issue.ts
+  --request <code> --org <id> --site <name> --maintenance <yyyy-mm-dd> [--terminals 5]` prints
+  `licence.json` for `SHOPPER_LICENCE_DIR`. An air-gapped site gets a `confirmation.json` the same way a
+  check-in returns one. The edge holds the same key as the secret `SHOPPER_LICENCE_SIGNING_KEY`.
 
 ## Till release (Day 27)
 

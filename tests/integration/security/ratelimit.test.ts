@@ -150,3 +150,12 @@ test("HEAD reads and every onboarding POST spend the same budgets as their GET a
     expect((await resend()).status).not.toBe(429);
   expect((await resend()).status).toBe(429);
 });
+
+test("licence check-ins reach the runtime without a shop and spend the public budget per IP", async () => {
+  const send = runtime();
+  // No signing key on this host and no signature: refused, but each attempt still spends the budget.
+  for (let call = 0; call < ratePolicies.public.limit; call += 1)
+    expect((await send("/licence/confirmations", "203.0.113.40", post({}))).status).toBe(404);
+  expect((await send("/licence/confirmations", "203.0.113.40", post({}))).status).toBe(429);
+  expect((await send("/licence/confirmations", "203.0.113.41", post({}))).status).toBe(404);
+});

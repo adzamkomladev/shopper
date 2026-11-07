@@ -129,7 +129,8 @@ test("A's session naming B as the shop is refused everywhere, and B's own lists 
   expect(await own.text()).toContain(SENTINEL);
 });
 
-const PUBLIC = /^\/($|about|health|version|tax-rules|orgs\/|public\/)/;
+// A box checks in by its licence-signed request, with no session: the signature is the credential.
+const PUBLIC = /^\/($|about|health|version|tax-rules|orgs\/|public\/|licence\/confirmations$)/;
 
 /** Every route the API can mount, with each optional family switched on. */
 function routes() {
@@ -143,6 +144,8 @@ function routes() {
     kyb: stub,
     platform: stub,
     shop: stub,
+    licence: stub,
+    licenceSigningKey: "route-listing-only",
     linkSecret: "route-listing-only",
   });
   const seen = new Set<string>();

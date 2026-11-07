@@ -20,7 +20,7 @@ export const publicApi = createApi();
 export function isPublicRequest(request: Request) {
   const path = new URL(request.url).pathname;
   // Readiness probes the database and cache, so it needs the runtime, unlike /health.
-  return !/^\/(?:health\/ready$|payments(?:\/|$)|webhooks\/(?:paystack|hubtel)$|api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|tax(?:\/|$)|devices(?:\/|$)|shifts(?:\/|$)|audit(?:\/|$)|stock(?:\/|$)|reports(?:\/|$)|ledger(?:\/|$)|customers(?:\/|$)|kyc(?:\/|$)|loyalty(?:\/|$)|settings(?:\/|$)|transactions(?:\/|$)|orders(?:\/|$)|reviews(?:\/|$)|reconciliation(?:\/|$)|approvals(?:\/|$)|billing(?:\/|$)|kyb(?:\/|$)|platform(?:\/|$)|setup(?:\/|$)|public\/statements(?:\/|$)|shop(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
+  return !/^\/(?:health\/ready$|payments(?:\/|$)|webhooks\/(?:paystack|hubtel)$|api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|tax(?:\/|$)|devices(?:\/|$)|shifts(?:\/|$)|audit(?:\/|$)|stock(?:\/|$)|reports(?:\/|$)|ledger(?:\/|$)|customers(?:\/|$)|kyc(?:\/|$)|loyalty(?:\/|$)|settings(?:\/|$)|transactions(?:\/|$)|orders(?:\/|$)|reviews(?:\/|$)|reconciliation(?:\/|$)|approvals(?:\/|$)|billing(?:\/|$)|licence(?:\/|$)|kyb(?:\/|$)|platform(?:\/|$)|setup(?:\/|$)|public\/statements(?:\/|$)|shop(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
     path,
   );
 }
@@ -54,6 +54,9 @@ async function route(request: Request, options: RuntimeOptions): Promise<Respons
     }).fetch(request);
   }
   if (/^\/shop(?:\/|$)/.test(url.pathname)) return shop(request, options);
+  // A box checks in with its licence-signed request: no session, no shop selector.
+  if (url.pathname === "/licence/confirmations")
+    return createApi({ licenceSigningKey: options.licenceSigningKey }).fetch(request);
   if (/^\/orgs(?:\/|$)/.test(url.pathname)) return orgRoutes(options).fetch(request);
   // The admin sign-in names the platform org before there is a session or a shop to select.
   if (url.pathname === "/platform/org")
@@ -193,6 +196,7 @@ async function route(request: Request, options: RuntimeOptions): Promise<Respons
     storeDays: options.storeDays,
     kyb: options.kyb,
     platform: options.platform,
+    licence: options.licence,
   }).fetch(request);
 }
 

@@ -51,6 +51,8 @@ async function budgetOf(request: Request, ip: string, orgId?: string) {
     return budget("cashier", `${shop}:${ip}`);
   // Each shop also locks itself after five wrong codes; this budget stops one address spraying many shops.
   if (path === "/devices/enroll") return budget("enrol", ip);
+  // Each check-in verifies two signatures before it can be refused.
+  if (path === "/licence/confirmations") return budget("public", `${ip}:licence`);
   const operation =
     path.match(
       /^\/api\/auth\/(sign-in|sign-up|forget-password|request-password-reset|reset-password)/,

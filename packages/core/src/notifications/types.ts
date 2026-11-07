@@ -1,4 +1,4 @@
-import type { Queue, WorkflowLauncher } from "@shopper/ports";
+import type { Queue, Realtime, WorkflowLauncher } from "@shopper/ports";
 import type { StatementDeliveryDeps } from "../customers";
 import type { OrderRefundDeps } from "../orders/types";
 
@@ -15,4 +15,6 @@ export type NotificationDeps = StatementDeliveryDeps & {
   /** Sends the refunds owed to payers whose payment could not keep their order. */
   orderRefunds?: OrderRefundDeps;
   queue?: Queue;
+  /** The store hubs: an accepted order due for picking is announced on its store's channel. */
+  realtime?: Realtime;
 };

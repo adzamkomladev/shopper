@@ -36,7 +36,11 @@ export async function runOnlineOrder(
 ) {
   const params = v.parse(orderParams, raw);
   if (params.id !== flow.instanceId) throw new Error("Online order business key mismatch");
-  const context = { orgId: params.orgId, appVersion: deps.appVersion };
+  const context = {
+    orgId: params.orgId,
+    appVersion: deps.appVersion,
+    queue: deps.notifications?.(),
+  };
   const record = <T extends Json>(
     step: string,
     status: WorkflowCheckpoint["status"],
@@ -76,8 +80,6 @@ export async function runOnlineOrder(
   };
 
   const held = await record("held", "waiting", confirmHeld);
-  const slotStart = new Date(held.slotStart).getTime();
-  const slotEnd = new Date(held.slotEnd).getTime();
   const paid = await waited(
     flow.waitFor(
       "payment",
@@ -97,7 +99,9 @@ export async function runOnlineOrder(
   );
   if (!decision) return await giveBack("unaccepted", "not_accepted", "refund");
   if ((decision as Decision).declined || (decision as Decision).cancelled) return;
-  await record("accepted", "waiting", acceptOrder);
+  const accepted = await record("accepted", "waiting", acceptOrder);
+  const slotStart = new Date(accepted.slotStart).getTime();
+  const slotEnd = new Date(accepted.slotEnd).getTime();
 
   await flow.sleepUntil("pick-due", new Date(slotStart - (deps.pickLeadMs ?? hour)));
   if (!(await record("pick_due", "waiting", pickDue)).due) return;

@@ -26,7 +26,7 @@ export function boxOrders(
     withDatabase: <T>(run: (db: Database) => Promise<T>) => run(database),
     appVersion: buildInfo.version,
   };
-  const orderFlows = boxOnlineOrders({ ...deps, paystack: providers.paystack });
+  const orderFlows = boxOnlineOrders({ ...deps, paystack: providers.paystack, notifications });
   return {
     orderFlows,
     stockHolds: holds.holds,

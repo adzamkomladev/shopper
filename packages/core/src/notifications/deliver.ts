@@ -17,6 +17,7 @@ import { deliverOnboardingEvent, deliverOnboardingNudge } from "../onboarding/de
 import { deliverKybNotice } from "../kyb/deliver";
 import { deliverShopCode } from "../shop/deliver";
 import { deliverOrderConfirmation } from "../orders/payments/notify";
+import { deliverPickDue } from "../orders/fulfil/pickers";
 import { refundOrderPayment } from "../orders/payments/refunds/send";
 import { orderRefundMessage } from "../schemas/orders/messages";
 import type { NotificationDeps } from "./types";
@@ -68,6 +69,8 @@ export async function deliverNotification(deps: NotificationDeps, delivery: Deli
       return await deliverShopCode(deps, delivery);
     case "order.confirmation":
       return await deliverOrderConfirmation(deps, delivery);
+    case "order.pick_due":
+      return await deliverPickDue(deps, delivery);
     case "order.refund":
       return await sendOrderRefund(deps, delivery);
     default:

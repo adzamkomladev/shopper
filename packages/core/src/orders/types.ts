@@ -16,6 +16,8 @@ export type OrderFlowDeps = {
   appVersion: string;
   /** Sends a paid order's refund back through Paystack when the store never accepts it. */
   paystack?: OrderRefundDeps["paystack"];
+  /** Where the run queues what it must tell people (the pickers, the shopper); read when needed. */
+  notifications?: () => Queue | undefined;
   /** How long the store has to accept a paid order; ten minutes unless a test shortens it. */
   acceptWithinMs?: number;
   /** How long before the slot the order goes to the pickers; an hour unless a test shortens it. */

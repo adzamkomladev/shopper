@@ -21,7 +21,12 @@ import { stockShop } from "../../shop/store";
 import { shopWorld } from "../../shop/world";
 import { orderReads } from "./reads";
 
-type Options = { acceptWithinMs?: number; paymentTimeoutMs?: number };
+type Options = {
+  acceptWithinMs?: number;
+  paymentTimeoutMs?: number;
+  pickLeadMs?: number;
+  collectWithinMs?: number;
+};
 
 export async function orderPayWorld(options: Options = {}) {
   const world = await shopWorld();
@@ -63,7 +68,14 @@ export async function orderPayWorld(options: Options = {}) {
     withDatabase: <T>(run: (db: schema.ShopperDatabase) => Promise<T>) => run(world.db),
     appVersion: "test",
   };
-  const orderFlows = boxOnlineOrders({ ...deps, paystack, acceptWithinMs: options.acceptWithinMs });
+  const orderFlows = boxOnlineOrders({
+    ...deps,
+    paystack,
+    notifications: () => world.queue,
+    acceptWithinMs: options.acceptWithinMs,
+    pickLeadMs: options.pickLeadMs,
+    collectWithinMs: options.collectWithinMs,
+  });
   const orderPayments = boxOrderPayments({
     ...deps,
     paystack,

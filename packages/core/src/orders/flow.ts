@@ -22,12 +22,7 @@ export const confirmHeld = defineCommand({
           isNull(stockHold.releasedAt),
         ),
       );
-    return {
-      holdExpiresAt: order.holdExpiresAt.toISOString(),
-      slotStart: order.slotStart.toISOString(),
-      slotEnd: order.slotEnd.toISOString(),
-      lines: held?.lines ?? 0,
-    };
+    return { holdExpiresAt: order.holdExpiresAt.toISOString(), lines: held?.lines ?? 0 };
   },
   audit: (input, output) => ({ id: input.id, ...output }),
   details: (input) => ({ entity: "online_order", entityId: input.id }),
@@ -72,7 +67,13 @@ export const acceptOrder = defineCommand({
         .where(and(eq(onlineOrder.orgId, context.orgId), eq(onlineOrder.id, input.id)));
       await recordStatus(tx, context, input.id, "accepted", now);
     }
-    return { moved };
+    // The slot as it stands now, for the timers that follow acceptance.
+    const order = await readOrder(tx, context.orgId, input.id);
+    return {
+      moved,
+      slotStart: order.slotStart.toISOString(),
+      slotEnd: order.slotEnd.toISOString(),
+    };
   },
   audit: (input, output) => ({ id: input.id, ...output }),
   details: (input) => ({ entity: "online_order", entityId: input.id }),

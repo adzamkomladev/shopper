@@ -85,7 +85,7 @@ test("a licence that is not genuine for this machine locks at once, naming why",
 
 test("a licence-signed request proves the box holds the licensed key, the body and the time", async () => {
   const f = await fixture();
-  const url = "https://api.shopper.test/licence/check-in";
+  const url = "https://api.shopper.test/licence/confirmations";
   const sign = (body: string, now = at(1), key = f.box.privateKey) =>
     signedRequest({ key, licence: f.licence }, url, { method: "POST", body }, now);
   const verify = (request: Request, now = at(1)) =>

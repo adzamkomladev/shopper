@@ -40,7 +40,7 @@ licence is genuine; it never depends on maintenance".
 4. **Licence-signed request helper**: `signedRequest(box key, licence, request)` adds `Shopper-Licence`,
    `Shopper-Signed-At` and `Shopper-Signature` (Ed25519 over method, path, time and the body's SHA-256);
    `verifySignedRequest` rejects a forged licence, a wrong key, a changed body and a signature older than 5 minutes.
-   The cloud route `POST /licence/check-in` is public on purpose (sweep `PUBLIC` list) and answers 503 unless the
+   The cloud route `POST /licence/confirmations` is public on purpose (sweep `PUBLIC` list) and answers 503 unless the
    edge holds `SHOPPER_LICENCE_SIGNING_KEY` (an Ed25519 private JWK).
 5. **First boot without a licence** generates the box key and shows a _licence request code_
    (`{ machine, key }`) in Settings → Licence; `tooling/licence/issue.ts` turns a request code into `licence.json`.

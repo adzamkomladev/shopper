@@ -20,6 +20,7 @@
     "@shopper/config": "workspace:*",
     "@shopper/core": "workspace:*",
     "@shopper/ports": "workspace:*",
+    "@shopper/utils": "workspace:*",
     "hono": "4.13.13",
     "satori": "0.33.5"
   }

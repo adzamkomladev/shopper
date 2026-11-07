@@ -102,6 +102,7 @@ export async function cloudflareRuntime(
     stockHolds: env.STOCK_HOLD ? cloudflareStockHolds(env.STOCK_HOLD) : undefined,
     linkSecret: env.SHOPPER_LINK_SECRET,
     minTillVersion: env.SHOPPER_MIN_TILL_VERSION,
+    licenceSigningKey: env.SHOPPER_LICENCE_SIGNING_KEY,
     publicOnboarding: true,
     turnstile: env.TURNSTILE_SECRET_KEY ? cloudflareTurnstile(env.TURNSTILE_SECRET_KEY) : undefined,
   }).catch(async (error: unknown) => {

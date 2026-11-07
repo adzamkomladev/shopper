@@ -1,4 +1,4 @@
-export { generateKey, publicKeyOf } from "./keys";
+export { generateKey, publicKeyOf, toBase64Url } from "./keys";
 export {
   confirmLicence,
   GRACE_AFTER_DAYS,

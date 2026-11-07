@@ -6,6 +6,8 @@ import { acceptOrder } from "../flow";
 import { OrderError } from "../error";
 import { refundPaidOrder } from "../payments/refunds/compensate";
 import { cancelPlacedOrder } from "./cancel";
+import { dispatchOrder, handOverOrder } from "./handover";
+import { finishPicking } from "./pick";
 
 type Flows = Pick<WorkflowLauncher, "send">;
 
@@ -61,4 +63,32 @@ export async function cancelStoreOrder(
 export async function cancelOwnOrder(db: ShopperDatabase, ctx: CommandContext, id: string) {
   if (!(await cancelPlacedOrder(db, ctx, { id })).moved)
     throw new OrderError("conflict", "This order can no longer be cancelled.");
+}
+
+/** The pick is done: the order is ready for the shopper and its workflow moves on. */
+export async function finishStoreOrder(
+  db: ShopperDatabase,
+  ctx: CommandContext,
+  flows: Flows,
+  id: string,
+) {
+  const finished = await finishPicking(db, ctx, { id });
+  await flows.send(id, "picked", {});
+  return finished;
+}
+
+/** A delivery leaves the shop. */
+export async function dispatchStoreOrder(db: ShopperDatabase, ctx: CommandContext, id: string) {
+  await dispatchOrder(db, ctx, { id });
+}
+
+/** The shopper has their order; the workflow ends. */
+export async function handOverStoreOrder(
+  db: ShopperDatabase,
+  ctx: CommandContext,
+  flows: Flows,
+  id: string,
+) {
+  await handOverOrder(db, ctx, { id });
+  await flows.send(id, "handed_over", {});
 }

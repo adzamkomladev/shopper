@@ -1,4 +1,5 @@
-import type { orderPayment, ShopperDatabase } from "@shopper/db-pg";
+import type { BaseUnit, orderPayment, ShopperDatabase } from "@shopper/db-pg";
+import type { TaxSnapshot } from "@shopper/tax";
 import type { Queue, WorkflowLauncher } from "@shopper/ports";
 import type { createHubtel } from "../payments/hubtel/client";
 import type { createPaystack } from "../payments/paystack/client";
@@ -60,3 +61,6 @@ export type CompensationReason =
   | "cancelled"
   | "not_fulfilled"
   | "uncollected";
+
+/** One line of goods or fees with the tax it carries: what an invoice or credit note is made of. */
+export type Item = { name: string; unit: BaseUnit; productId: string | null; tax: TaxSnapshot };

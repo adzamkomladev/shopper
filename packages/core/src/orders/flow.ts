@@ -79,7 +79,7 @@ export const acceptOrder = defineCommand({
   details: (input) => ({ entity: "online_order", entityId: input.id }),
 });
 
-async function readOrder(tx: ShopperTransaction, orgId: string, id: string) {
+export async function readOrder(tx: ShopperTransaction, orgId: string, id: string) {
   const [order] = await tx
     .select()
     .from(onlineOrder)

@@ -3,6 +3,9 @@
 //   f.paid(over?)            -> an order paid by card (the workflow is waiting for the store)
 //   f.ctx                    -> a staff command context
 //   f.flows                  -> the order workflow launcher (send events)
+//   f.adjustment(order) / f.picks(order) -> what picking recorded
+//   f.lines(order)           -> the order's lines, in order
+//   f.substitutes            -> { palm (cheaper oil), basmati (dearer rice), scarce (no stock) } product ids
 //   f.slotIn(order, startMs, lengthMs) -> moves the order's slot, to drive the workflow's timers
 import { eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
@@ -17,6 +20,20 @@ type Options = Parameters<typeof orderPayWorld>[0] & {
 export async function fulfilWorld(options: Options = {}) {
   const w = await orderPayWorld(options);
   const ctx = { ...w.world.a.context, queue: w.world.queue, appVersion: "test" };
+  // Substitutes: a cheaper oil, a dearer rice, and a tin the shop has none of.
+  const palm = await w.shop.product("Palm oil 1L", { price: 250_000, stock: [100_000, 100_000] });
+  const basmati = await w.shop.product("Basmati rice", {
+    price: 400_000,
+    baseUnit: "kg",
+    stock: [100_000, 100_000],
+  });
+  const scarce = await w.shop.product("Scarce tin", { price: 100_000, stock: [0, 0] });
+  const lines = (order: { id: string }) =>
+    w.world.db
+      .select()
+      .from(schema.onlineOrderLine)
+      .where(eq(schema.onlineOrderLine.orderId, order.id))
+      .orderBy(schema.onlineOrderLine.position);
   const paid = async (over: Record<string, unknown> = {}) => {
     const order = await w.place(over);
     const reference = (await w.pay(order, { method: "card" })).body.payment.id as string;
@@ -46,6 +63,18 @@ export async function fulfilWorld(options: Options = {}) {
         .from(schema.onlineOrderEvent)
         .where(eq(schema.onlineOrderEvent.orderId, order.id))
     ).map((row) => row.status);
+  const adjustment = async (order: { id: string }) =>
+    (
+      await w.world.db
+        .select()
+        .from(schema.onlineOrderAdjustment)
+        .where(eq(schema.onlineOrderAdjustment.orderId, order.id))
+    )[0];
+  const picks = (order: { id: string }) =>
+    w.world.db
+      .select()
+      .from(schema.onlineOrderPick)
+      .where(eq(schema.onlineOrderPick.orderId, order.id));
   const refundCalls = () => w.fake.requests.filter((request) => request.path === "/refund");
   /** What the notification consumer does with each queued `order.refund`: asks the provider, once per refund. */
   const sendRefunds = async () => {
@@ -56,5 +85,19 @@ export async function fulfilWorld(options: Options = {}) {
         w.world.a.orgId,
       );
   };
-  return { ...w, ctx, sendRefunds, flows: w.orderFlows, paid, slotIn, run, events, refundCalls };
+  return {
+    ...w,
+    ctx,
+    sendRefunds,
+    substitutes: { palm, basmati, scarce },
+    lines,
+    adjustment,
+    picks,
+    flows: w.orderFlows,
+    paid,
+    slotIn,
+    run,
+    events,
+    refundCalls,
+  };
 }

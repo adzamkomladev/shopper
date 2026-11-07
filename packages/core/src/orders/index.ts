@@ -28,5 +28,9 @@ export {
   cancelOwnOrder,
   cancelStoreOrder,
   declineStoreOrder,
+  dispatchStoreOrder,
+  finishStoreOrder,
+  handOverStoreOrder,
 } from "./fulfil/actions";
+export { recordPick, startPicking } from "./fulfil/pick";
 export { ACCEPT_WITHIN_MS } from "../workflows/order";

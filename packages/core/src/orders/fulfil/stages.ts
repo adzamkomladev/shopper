@@ -5,13 +5,16 @@ import { onlineOrder, type ShopperTransaction } from "@shopper/db-pg";
 
 type Status = (typeof onlineOrder.$inferSelect)["status"];
 
-/** The workflow wakes an hour before the slot: the order goes to the pickers if the store still has it. */
+/** The workflow wakes an hour before the slot: the order goes to the pickers if the store has not started on it yet. */
 export const pickDue = defineCommand({
   name: "order.pick_due",
   async run(tx, ctx, input: { id: string }) {
     const order = await read(tx, ctx.orgId, input.id);
-    const due = order.status === "accepted" || order.status === "picking";
-    if (due && order.status === "accepted")
+    // An order picked or handed over ahead of its pick hour is still live: the run goes on to its later waits.
+    const due = ["accepted", "picking", "ready", "out_for_delivery", "completed"].includes(
+      order.status,
+    );
+    if (order.status === "accepted")
       enqueueAfterCommit(tx, {
         id: v7(),
         orgId: ctx.orgId,

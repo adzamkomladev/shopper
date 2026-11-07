@@ -65,6 +65,10 @@ export const orderRefundReasons = [
   "duplicate_payment",
   "not_accepted",
   "cancelled",
+  "declined",
+  "short_pick",
+  "not_fulfilled",
+  "uncollected",
 ] as const;
 export const orderRefundStatuses = [
   "pending",
@@ -92,8 +96,8 @@ export const orderRefund = pgTable(
   },
   (t) => [
     unique().on(t.orgId, t.id),
-    // One refund per payment: a redelivered message or a second sweep can never pay the money back twice.
-    unique("order_refund_payment").on(t.orgId, t.orderPaymentId),
+    // One refund per payment and reason: a redelivered message or a second sweep can never pay the money back twice.
+    unique("order_refund_payment").on(t.orgId, t.orderPaymentId, t.reason),
     foreignKey({
       columns: [t.orgId, t.orderPaymentId],
       foreignColumns: [orderPayment.orgId, orderPayment.id],
@@ -105,7 +109,7 @@ export const orderRefund = pgTable(
     ),
     check(
       "order_refund_reason",
-      sql`${t.reason} IN ('late_payment', 'duplicate_payment', 'not_accepted', 'cancelled')`,
+      sql`${t.reason} IN ('late_payment', 'duplicate_payment', 'not_accepted', 'cancelled', 'declined', 'short_pick', 'not_fulfilled', 'uncollected')`,
     ),
   ],
 );

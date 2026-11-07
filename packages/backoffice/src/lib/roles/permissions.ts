@@ -48,6 +48,9 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   "payment.reconcile": "Reconcile payments",
   "billing.manage": "Manage the Shopper subscription",
   "org.kyb.submit": "Verify the business for payouts",
+  "order.read": "View online orders",
+  "order.fulfil": "Accept, pick and hand over online orders",
+  "review.moderate": "Moderate flagged shop reviews",
 };
 
 /** The matrix reads top to bottom in these groups. */
@@ -62,11 +65,13 @@ export const PERMISSION_GROUPS: readonly { name: string; codes: readonly Permiss
       "payment.momo",
       "refund.request",
       "refund.approve",
+      "order.read",
+      "order.fulfil",
     ],
   },
   {
     name: "Customers",
-    codes: ["customer.read", "customer.write", "customer.manage", "kyc.approve"],
+    codes: ["customer.read", "customer.write", "customer.manage", "kyc.approve", "review.moderate"],
   },
   { name: "Payments", codes: ["payment.reconcile", "billing.manage", "org.kyb.submit"] },
   { name: "Shifts", codes: ["shift.read", "shift.write", "shift.approve"] },

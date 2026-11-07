@@ -109,6 +109,10 @@ const refundReason = {
   refunded: "late_payment",
   paid: "duplicate_payment",
   accepted: "duplicate_payment",
+  picking: "duplicate_payment",
+  ready: "duplicate_payment",
+  out_for_delivery: "duplicate_payment",
+  completed: "duplicate_payment",
 } as const;
 
 /** Stock is still aside for the order: its hold has neither been released nor run out. */

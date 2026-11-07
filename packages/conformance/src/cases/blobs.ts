@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
-import type { ConformanceTest, Fixture } from "../types";
+import type { BlobsFixture, ConformanceTest } from "../types";
 
-export function blobsCases(name: string, test: ConformanceTest, fixture: Fixture) {
+export function blobsConformance(
+  name: string,
+  test: ConformanceTest,
+  fixture: () => Promise<BlobsFixture>,
+) {
   test(`${name}: Blobs binary round-trip, signed access, expiry, and tenant isolation`, async () => {
     const f = await fixture();
     const binary = new Uint8Array([0, 255, 128, 10, 13]);

@@ -2,59 +2,56 @@ import * as v from "valibot";
 import { buildInfo } from "@shopper/config";
 import { auditAnchorParams, runAuditAnchor } from "@shopper/core/audit";
 import type { ShopperDatabase } from "@shopper/db-pg";
-import {
-  memoryWorkflow,
-  workflowInstanceIdSchema,
-  type Queue,
-  type WorkflowLauncher,
-} from "@shopper/ports";
+import type { Queue } from "@shopper/ports";
+import { watchParams } from "../schemas/workflows";
+import type { Launch } from "../types";
+import { memoryLaunch } from "./launch";
 
-// ponytail: in-process, so an anchor interrupted by a restart waits for the next day's; Rivet Workflows take over on
-// Day 36.
-/** The box shell for the daily audit anchor; `idle` settles once every started anchor has finished. */
-export function boxAuditAnchors(options: { database: ShopperDatabase; queue?: Queue }) {
-  const running = new Map<string, Promise<void>>();
+/** The box shell for the daily audit anchor; `idle` settles once every started anchor has finished (memory engine). */
+export function boxAuditAnchors(
+  options: { database: ShopperDatabase; queue?: Queue },
+  launch: Launch = memoryLaunch,
+) {
   const deps = {
     withDatabase: <T>(run: (db: ShopperDatabase) => Promise<T>) => run(options.database),
     appVersion: buildInfo.version,
     queue: options.queue,
   };
-  const launcher: WorkflowLauncher = {
-    send: async (id) => void v.parse(workflowInstanceIdSchema, id),
-    async start(instanceId, params) {
-      v.parse(workflowInstanceIdSchema, instanceId);
-      v.parse(auditAnchorParams, params);
-      if (running.has(instanceId)) return;
-      running.set(
-        instanceId,
-        runAuditAnchor(memoryWorkflow(instanceId), deps, params).catch((error: unknown) => {
-          running.delete(instanceId);
-          console.error({ event: "audit.anchor_failed", instanceId, error });
-        }),
-      );
-    },
-  };
-  return { launcher, idle: async () => void (await Promise.all(running.values())) };
+  const launcher = launch("audit-anchor", auditAnchorParams, (flow, params) =>
+    runAuditAnchor(flow, deps, params),
+  );
+  return { launcher, idle: launcher.idle };
 }
 
 const DAY_MS = 86_400_000;
 /** The watchdog's minute of the day: 23:59 UTC, the cron Cloudflare runs. */
 const WATCH_AT_MS = DAY_MS - 60_000;
 
-/** The box's one daily watchdog: a timer to the next 23:59 UTC that re-arms itself after each firing. */
-export function boxWatchdog(fire: (at: Date) => Promise<void>) {
-  let timer: ReturnType<typeof setTimeout>;
-  const arm = () => {
-    const now = Date.now();
-    const today = now - (now % DAY_MS) + WATCH_AT_MS;
-    const next = today > now ? today : today + DAY_MS;
-    timer = setTimeout(() => {
-      fire(new Date(next))
-        .catch((error: unknown) => console.error({ event: "watchdog.failed", error }))
-        .finally(arm);
-    }, next - now);
-    timer.unref?.();
-  };
-  arm();
-  return { stop: () => clearTimeout(timer) };
+const firstTry = { maxAttempts: 1, delayMs: 0, backoff: "constant" } as const;
+
+/**
+ * The box's one daily watchdog at 23:59 UTC. Each day is a one-shot workflow that sleeps until then, fires and
+ * starts the next day's, so on Rivet a missed firing runs on the next boot. Starting it on every boot is safe.
+ */
+export function boxWatchdog(fire: (at: Date) => Promise<void>, launch: Launch = memoryLaunch) {
+  const launcher = launch("watchdog", watchParams, async (flow, params) => {
+    const at = new Date(v.parse(watchParams, params).at);
+    await flow.sleepUntil("due", at);
+    // A failed firing is logged; the next day is still watched.
+    await flow
+      .step("fire", firstTry, async () => {
+        await fire(at);
+        return null;
+      })
+      .catch((error: unknown) => console.error({ event: "watchdog.failed", error }));
+    await flow.step("next", firstTry, async () => {
+      await watch(new Date(at.getTime() + DAY_MS));
+      return null;
+    });
+  });
+  const watch = (at: Date) =>
+    launcher.start(`watchdog_${at.toISOString().slice(0, 10)}`, { at: at.toISOString() });
+  const now = Date.now();
+  const today = now - (now % DAY_MS) + WATCH_AT_MS;
+  return watch(new Date(today > now ? today : today + DAY_MS));
 }

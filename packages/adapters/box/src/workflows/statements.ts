@@ -4,13 +4,16 @@ import {
   statementFlowParams,
   type StatementFlowDeps,
 } from "@shopper/core/customers";
-import { boxLoopFlows } from "./loop";
+import type { Launch } from "../types";
+import { memoryLaunch } from "./launch";
 
-// ponytail: timers live in this process; `relaunch` on boot starts every monthly schedule again, and each start
-// counts from the last period delivered. Rivet Workflows take over on Day 36.
-export function boxStatementFlows(deps: StatementFlowDeps) {
-  const flows = boxLoopFlows("statement.schedule", statementFlowParams, (flow, params) =>
-    runStatementSchedule(flow, deps, params),
+/** One monthly statement loop per org. `relaunch` on boot starts each; a start counts from the last period sent. */
+export function boxStatementFlows(deps: StatementFlowDeps, launch: Launch = memoryLaunch) {
+  const flows = launch(
+    "statement-schedule",
+    statementFlowParams,
+    (flow, params) => runStatementSchedule(flow, deps, params),
+    { loop: true },
   );
   return {
     ...flows,

@@ -139,3 +139,19 @@ test("a box serving one shop knows no other shop code", async () => {
   expect((await box.request(`/shop/${world.a.slug}`)).status).toBe(200);
   box.close();
 });
+
+test("a payment code spends the payment budget: one address gets five a minute", async () => {
+  const ip = "198.51.100.201";
+  const answers = [];
+  for (let i = 0; i < 6; i++)
+    answers.push(
+      (
+        await http.request(`/shop/${world.b.slug}/orders/${crypto.randomUUID()}/pay/code`, {
+          body: { key: "guess", otp: "123456" },
+          ip,
+        })
+      ).status,
+    );
+  expect(answers.slice(0, 5)).not.toContain(429);
+  expect(answers[5]).toBe(429);
+});

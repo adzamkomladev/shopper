@@ -30,7 +30,7 @@ The `Workflow` port (`packages/ports/src/workflow.ts`) defines `step`, `sleep`, 
 Rivet workflow. The live example of this pattern is `nextStoreSequence()`, which is shared by the
 `StoreSequencer` Durable Object and `boxSequencer()`. The first real workflow is `runPriceChange()`
 (`packages/core/src/workflows/price.ts`): `PriceChangeWorkflow` runs it on Cloudflare and
-`boxPriceChange()` on the box (memory engine until Rivet, day 36).
+`boxPriceChange()` on the box (Rivet Workflows when `RIVET_ENDPOINT` is set, the memory engine otherwise).
 
 - Start workflows through a `WorkflowLauncher` (one per kind). `start` only acknowledges the launch;
   starting an existing instance id is a no-op on both engines. Ids must pass
@@ -65,7 +65,7 @@ Rivet workflow. The live example of this pattern is `nextStoreSequence()`, which
 | The one watchdog               | One **Cron Trigger**                                                                        | One Rivet **cron job / schedule**                                | Scheduler port                                  |
 | Till storage and secrets       | Electron `safeStorage` (DPAPI) seals the SQLCipher key and device token                     | same (the till is identical)                                     | SQLite3 Multiple Ciphers, `register.secret`     |
 | Receipt PNG/PDF                | **Browser Run** `quickAction` (cloud) · Electron `printToPDF` (till)                        | Satori → resvg-wasm → pdf-lib in the binary                      | Renderer port + receipt JSON                    |
-| Abuse protection               | **Turnstile** on public shop forms; one **Rate Limiting** binding per policy                | `boxRateLimiter` in process; the RateLimiter actor on day 36     | RateLimiter port, policies in `ports/limits.ts` |
+| Abuse protection               | **Turnstile** on public shop forms; one **Rate Limiting** binding per policy                | `boxRateLimiter` in process (one box process; see Day 36 below)  | RateLimiter port, policies in `ports/limits.ts` |
 | Secrets                        | `cf workers secrets` / **Secrets Store**                                                    | Sealed box config, never in the repo                             | `@shopper/config` reads both                    |
 | Logs and traces                | **Workers Logs + Traces** (enabled in `cloudflare.config.ts`) , structured JSON             | Rivet **inspector** + **OpenTelemetry** for actors and workflows | One log shape: `{ event, orgId, storeId, ... }` |
 | Usage metrics                  | **Workers Analytics Engine** (requests, sales count per tenant)                             | Local counters in PG                                             | Never used for reports                          |
@@ -122,6 +122,34 @@ store, and `storage.auto_provision_partitions` so a single node creates its own 
 Without that flag the API answers `routing_unavailable`. 2.x's `file_system` key is rejected, and
 the 3.0 engine starts on its own `rivet3-data` volume rather than a 2.x data directory.
 
+### The box on Rivet (Day 36)
+
+`RIVET_ENDPOINT` (with `RIVET_TOKEN`, `RIVET_NAMESPACE`, default `default`, and `RIVET_POOL`, default
+`shopper-box`) puts the box's workflows and notification queue on the engine; without it they run on
+`memoryLaunch` in process, which tests and development use. `rivetHost` (`adapters/box/src/rivet/host.ts`)
+is one runner per process with one generic `flow` actor keyed `[kind, instanceId]`; each launcher kind
+registers its shared `run*` function, and `runRivetFlow` binds the Workflow port to the actor's workflow
+context:
+
+- Rivet suspends a run by throwing (`SleepError`, `MessageWaitError`, …). The adapter never lets one
+  reach shared code: the shared promise stays pending and the run is rejected instead, so a catch-all in
+  `runPriceChange` or `runMomoPayment` never mistakes a suspension for a failure.
+- Rivet never retries a step (`maxRetries: 0`): the port's `RetryPolicy` runs inside the step and a final
+  failure is stored as data, then rethrown with its name, so it replays identically.
+- Events are queue messages; `deliver` enqueues them from inside the actor, so an event sent before the
+  wait (or before the start) is kept. A loop kind (`kyb`, `account`, `statement-schedule`) answers a start
+  while it runs with one more pass.
+- The notification queue (`launchQueue`) is a one-shot workflow per envelope id: each delivery a step,
+  each retry wait an engine sleep. The watchdog (`boxWatchdog`) is one workflow per day that sleeps to
+  23:59 UTC, fires and starts the next day's, so a firing missed while the box was off runs on boot.
+- A runner that dies is replaced after about 45 s (the engine's lost-runner timeout); its actors resume
+  from their last finished step in the next runner. `tests/integration/ports/rivet.test.ts` proves it
+  with a SIGKILL.
+- **Lane, StockHold, RateLimiter and StoreHub stay in process on the box.** Lane and StockHold rebuild
+  from PostgreSQL at boot, so an actor adds no durability; RateLimiter and StoreHub sit on every request
+  and socket of the single box process, where an engine round trip is pure latency. Revisit if the box
+  ever runs more than one process.
+
 ## Rules that keep both sides honest
 
 - **PostgreSQL is the record.** Every workflow step and every DO/actor write also writes its table
@@ -132,14 +160,14 @@ the 3.0 engine starts on its own `rivet3-data` volume rather than a 2.x data dir
 - **Exactly five coordination classes**: StoreSequencer, StoreHub, FiscalLane, StockHold, RateLimiter.
   Ask before adding a sixth. Each exists as a DO and as a Rivet actor. StockHold is built (Day 32): one DO per
   org and branch (`STOCK_HOLD`) keeps only its next expiry and arms an alarm for it; PostgreSQL holds the holds.
-  The box twin is an in-process timer until Day 36. FiscalLane is built (Day 19): the DO keeps
-  each store's queue in its SQLite and drains it with alarms; the box twin is the in-process `boxLane` until the
-  Rivet actor lands on Day 36. Both pass `laneConformance`.
+  The box twin is an in-process timer. FiscalLane is built (Day 19): the DO keeps each store's queue in its
+  SQLite and drains it with alarms; the box twin is the in-process `boxLane`, rebuilt from PostgreSQL at boot
+  (see "The box on Rivet"). Both pass `laneConformance`.
 - **Never poll and never put business logic on a cron tick.** A wait on people, partners or time is a
   workflow `sleepUntil` or `waitFor`.
 - **The one watchdog** fires at 23:59 UTC (Accra keeps UTC all year): the edge `scheduled` handler
-  (`59 23 * * *`, the only cron trigger) on Cloudflare, a self-re-arming Bun timer on the box until the Rivet
-  schedule lands on Day 36. It only starts workflows: `audit-anchor` per org per day, and `store-day` per store
+  (`59 23 * * *`, the only cron trigger) on Cloudflare, a chain of one workflow per day on the box
+  (`boxWatchdog`, durable on Rivet). It only starts workflows: `audit-anchor` per org per day, and `store-day` per store
   for today and tomorrow (`runWatchdog`, `packages/core/src/workflows/watchdog.ts`), so a chain that died is
   restarted within a day. Starting an instance id that exists is a no-op, so a second firing is harmless. The
   work happens in the workflow.
@@ -149,7 +177,7 @@ the 3.0 engine starts on its own `rivet3-data` volume rather than a 2.x data dir
   reminder (only when a register sold after its last Z) and the owner summary go out by email, `sleepUntil`
   00:05 the next day, the nightly rollup, `close`, and the next day's instance. Every step is a
   `defineCommand` checkpoint, so a rerun replays its output and sends nothing twice. A new store starts its
-  day when it is created; the box relaunches unfinished days on boot, since its memory engine forgets sleeps.
+  day when it is created; the box relaunches unfinished days on boot (a no-op on Rivet, which keeps its sleeps).
 - **Rollups are a cache with a dirty bit.** `rollStoreDays` folds each store day into `report_sales`,
   `report_tender` and `report_product` and sets `store_day.rolled_at`; accepting a sale or refund for a day
   clears it. Reports read the rollup rows of rolled days `UNION ALL` the same fold over raw rows for the rest,
@@ -161,12 +189,12 @@ the 3.0 engine starts on its own `rivet3-data` volume rather than a 2.x data dir
 - **Workers runtime rules:** stream unbounded bodies, tie async work to `ctx.waitUntil`, no module-level
   request state, generated `Env` types (`cf workers types`), `this.env` inside DO classes, compatibility
   date kept current with tests run on change.
-- **Queues are push on Cloudflare and in-process on the box.** The port is `send` only; consumers are
+- **Queues are push on Cloudflare and workflows on the box.** The port is `send` only; consumers are
   a `QueueHandler`. `cloudflareDeliver` settles every message exactly once and retries any the
   handler neither acked nor retried, so nothing is acked silently; the edge Worker's `queue()` export
-  is the only consumer (DLQ `shopper-notifications-dlq-<stage>`). `boxQueue` retries on unref'd
-  timers and logs `queue.dead_letter` after `maxAttempts`; its messages are lost on a box restart
-  until the Rivet queue (Day 36). Both follow `NOTIFICATION_RETRY` (`@shopper/ports`); the edge
+  is the only consumer (DLQ `shopper-notifications-dlq-<stage>`). On Rivet the box runs `launchQueue`
+  (a durable workflow per message); without it `boxQueue` retries on unref'd timers and loses its
+  messages on a restart. Both log `queue.dead_letter` after `maxAttempts`. Both follow `NOTIFICATION_RETRY` (`@shopper/ports`); the edge
   trigger's `maxRetries` is `maxAttempts − 1`, pinned by `edge.test.ts`.
 - **Serialization differs per transport** (Queues, Workflow step outputs, DO storage, WebSockets).
   Step outputs must be `Json` (the port enforces this). Check limits per API before sending large data.
@@ -186,17 +214,16 @@ Registration's separate resend capability cannot verify email. Maileroo delivery
 fetch client on both platforms; PostgreSQL checkpoints retain success/failure for management.
 An explicit requester retry or invitation reissue recovers a delivery failure without polling.
 
-The box currently uses memory workflow timers. Deadlines and consumed/replaced/cancelled state
-remain in PostgreSQL and are checked on every request after restart; recovering waiting engine
-instances automatically remains scheduled for day 36. LAN invitation setup works without WAN
+On Rivet the box's waiting instances survive a restart; on the memory engine they do not. Either way
+deadlines and consumed/replaced/cancelled state remain in PostgreSQL and are checked on every request. LAN invitation setup works without WAN
 and does not mark the new account's email verified.
 
 ### Till realtime transport (Day 9)
 
 `/sync/live` authenticates the Bearer token and device header before upgrading. The cloud forwards
 the trusted device scope to the hibernating StoreHub; the box shares one in-process realtime hub
-with its Bun WebSocket and price workflow. The Rivet StoreHub actor replaces this hub on day 36.
-This avoids adding RivetKit and its engine/compiled-binary verification on sync gate day.
+with its Bun WebSocket and price workflow. It stays in process on Rivet too: one box process holds
+every socket, so an actor would add an engine round trip and no durability.
 
 Store feed commands send `store.changed` nudges after commit. Nudges contain only sequences;
 PostgreSQL pull remains authoritative. Transport fallback is the exception to the no-poll rule:
@@ -226,7 +253,7 @@ sends, 5 attempts, a 7-day decision window). The OTP is derived from the link se
 retried SMS repeats the same code; only an HMAC digest is stored. An ID number is reduced to a mask and an HMAC
 fingerprint before any command runs. Neither the number nor a code reaches an event, step output, audit row or log.
 The edge needs `KYC_FLOWS`, `ARKESEL_API_KEY`, `ARKESEL_SENDER` and `SHOPPER_LINK_SECRET`; without them the KYC
-case routes answer 503. Box timers are lost on restart (Rivet, day 36); PostgreSQL deadlines decide until then.
+case routes answer 503. On the memory engine box timers are lost on restart and PostgreSQL deadlines decide; Rivet keeps them.
 
 ## Account and statement workflows (Day 17)
 
@@ -245,9 +272,9 @@ The account flow sleeps to `nextDue`, the statements flow to the org's run day u
 `waitFor("wake", timeout)`, which a settings change wakes. Statement delivery and tier notices run on the existing
 notifications queue consumer (`apps/edge`); no new Durable Object, queue or port.
 
-On the box the three run on `memoryWorkflow`. Its timers die with the process, so the box **relaunches on boot**
+On the box the three run on Rivet, or on `memoryLaunch` without it, whose timers die with the process; so the box **relaunches on boot**
 every account with anything due, every org with a monthly schedule (starting from the last period sent, so a missed
-run day runs once) and every open KYC case. `ponytail:` Rivet takes over the timers on Day 36.
+run day runs once) and every open KYC case. On Rivet a relaunch only wakes what is already waiting.
 
 The edge needs `KYC_FLOWS`, `ACCOUNT_FLOWS` and `STATEMENT_FLOWS`; without them the routes that start a flow answer 503. The portal Worker serves the public `/statement/*` page from the prerendered shell.
 
@@ -280,7 +307,7 @@ One more shell per run, on the edge Worker and bound by the portal too (Paystack
   books reversed by a `reversal` entry, a credit note `fiscal_doc.order_refund_id`) and its Paystack refund is
   requested in the workflow's `refund` step. Late and duplicate payments are refunded by the notification consumer
   (`NotificationDeps.orderRefunds`). Hubtel has no refund API in our client: its refunds wait as `refund_due`.
-- Box twin: `boxOrderPayments` (in-process, like `boxOnlineOrders`) until Rivet Workflows on Day 36.
+- Box twin: `boxOrderPayments` (on the box's engine, like `boxOnlineOrders`).
 
 ## Order fulfilment and reviews (Day 34)
 
@@ -310,7 +337,7 @@ held → wait payment.settled → paid → wait store.accepted (10 min; payload 
 - Review workflow (`runOrderReview`, instance id `review-<order id>`, binding `shopper-order-review-<stage>`, started
   by the hand-over route): sleep 48 h → ask (`review.ask`) → wait `review_submitted` (7 days) → screen → wait
   `moderator_decision` (30 days) when flagged → publish. A review given before the ask is screened without waiting.
-- Box twins: `boxOnlineOrders` and `boxOrderReviews` (in-process waits and sleeps) until Rivet Workflows on Day 36.
+- Box twins: `boxOnlineOrders` and `boxOrderReviews` (waits and sleeps on the box's engine: Rivet, or in process without it).
   Cloud: `OnlineOrderWorkflow` now also needs the `NOTIFICATIONS` queue, and the edge exports `OrderReviewWorkflow`
   (`ORDER_REVIEWS` on the edge, the portal and the runtime).
 

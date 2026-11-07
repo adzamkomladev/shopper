@@ -1,5 +1,5 @@
 import { cacheCases } from "./cases/cache";
-import { blobsCases } from "./cases/blobs";
+import { blobsConformance } from "./cases/blobs";
 import { sequencerCases } from "./cases/sequencer";
 import { saleSequencerCases } from "./cases/sale/sequencer";
 import { workflowCases } from "./cases/workflow";
@@ -10,7 +10,7 @@ export type { AcceptedSaleFixture, AdapterFixture } from "./types";
 // Vitest 4 (workerd) and Vite+ register the same cases against real adapters.
 export function portConformance(name: string, test: ConformanceTest, fixture: Fixture) {
   cacheCases(name, test, fixture);
-  blobsCases(name, test, fixture);
+  blobsConformance(name, test, fixture);
   sequencerCases(name, test, fixture);
   saleSequencerCases(name, test, fixture);
   workflowCases(name, test, fixture);

@@ -1,7 +1,11 @@
 import { test } from "vite-plus/test";
 import { v7 } from "uuid";
 import { boxBlobs } from "@shopper/adapters-box";
-import { receiptUploadConformance, uploadConformance } from "@shopper/conformance";
+import {
+  blobsConformance,
+  receiptUploadConformance,
+  uploadConformance,
+} from "@shopper/conformance";
 import { rustfs } from "../../../tooling/storage/buckets";
 import { fileBucket } from "../../support/assets/buckets";
 
@@ -25,6 +29,26 @@ receiptUploadConformance("RustFS box adapter", test, async () => {
     receiptsObjectStorage: { ...rustfs, bucket: await receiptsBucket },
   });
   return { blobs, orgId: v7(), otherOrgId: v7(), bucket: await receiptsBucket };
+});
+
+// The port's own cases on RustFS: receipts keys live in the receipts bucket, signed URLs on the box's clock.
+blobsConformance("RustFS box adapter", test, async () => {
+  let time = Date.now();
+  const now = () => time;
+  const storage = await boxBlobs(".shopper/test-blobs", {
+    baseUrl: "https://shopper.test/blobs",
+    secret: new Uint8Array(32),
+    now,
+    objectStorage: { ...rustfs, bucket: await importsBucket, now },
+    receiptsObjectStorage: { ...rustfs, bucket: await receiptsBucket, now },
+  });
+  return {
+    blobs: storage.blobs,
+    readSigned: storage.readSigned,
+    orgId: v7(),
+    otherOrgId: v7(),
+    advanceClock: (ms) => void (time += ms),
+  };
 });
 
 test("filesystem snapshots do not offer proxy uploads", async () => {

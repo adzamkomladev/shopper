@@ -34,7 +34,8 @@ export async function runAccount(
       if (await woken(flow, `last-${tick}`, LAST_WAKE_MS)) continue;
       break;
     }
-    const wait = due - Date.now();
+    // A step, so a replay takes the branch the first run took (Rivet and Cloudflare replay this code).
+    const wait = due - (await flow.step(`now-${tick}`, policy, async () => Date.now()));
     // Woken early, or a long sleep cut short: look again. Slept to the due moment: post it.
     if (
       wait > 0 &&

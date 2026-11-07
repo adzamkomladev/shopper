@@ -8,8 +8,10 @@ import { createMaileroo } from "@shopper/auth";
 import type { BoxBindings } from "./types";
 import { boxPayments } from "./payments";
 import { boxOrders } from "./orders";
+import { boxEngine } from "./engine";
+import { boxStorage } from "./storage";
+import { withPortal } from "./portal";
 import {
-  boxBlobs,
   boxLive,
   boxCache,
   boxSequencer,
@@ -21,7 +23,6 @@ import {
   boxKycFlows,
   boxAccountFlows,
   boxStatementFlows,
-  boxQueue,
   boxRateLimiter,
   boxLane,
   boxFiscalArchive,
@@ -30,7 +31,7 @@ import {
   boxWatchdog,
 } from "@shopper/adapters-box";
 import { boxRenderer } from "@shopper/adapters-box/renderer";
-import { NOTIFICATION_RETRY } from "@shopper/ports";
+import { NOTIFICATION_RETRY, type Queue } from "@shopper/ports";
 import { isPublicRequest, publicApi, runtimeUnavailable, serveRuntime } from "@shopper/api/runtime";
 export function createBoxApp(environment: Record<string, string | undefined> = process.env) {
   const realtime = boxRealtime();
@@ -41,15 +42,16 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
   let kycFlows: ReturnType<typeof boxKycFlows> | undefined;
   let payments: ReturnType<typeof boxPayments> | undefined;
   let priceChange: ReturnType<typeof boxPriceChange> | undefined;
-  let notifications: ReturnType<typeof boxQueue> | undefined;
+  let notifications: Queue | undefined;
   let accountFlows: ReturnType<typeof boxAccountFlows> | undefined;
   let statementFlows: ReturnType<typeof boxStatementFlows> | undefined;
   let lane: ReturnType<typeof boxLane> | undefined;
   let watchdog: ReturnType<typeof boxWatchdog> | undefined;
   let storeDays: ReturnType<typeof boxStoreDays> | undefined;
   let orders: ReturnType<typeof boxOrders> | undefined;
+  let engine: ReturnType<typeof boxEngine> | undefined;
   const renderer = boxRenderer();
-  return new Hono<{ Bindings: BoxBindings }>().all("*", async (context) => {
+  const api = new Hono<{ Bindings: BoxBindings }>().all("*", async (context) => {
     const request = context.req.raw;
     if (isPublicRequest(request)) return publicApi.fetch(request);
     const {
@@ -60,58 +62,15 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
       SHOPPER_BOOTSTRAP_TOKEN,
     } = environment;
     if (!DATABASE_URL || !SHOPPER_AUTH_SECRET || !SHOPPER_AUTH_URL) return runtimeUnavailable();
-    const s3 = (bucket?: string) =>
-      environment.SHOPPER_S3_ENDPOINT && bucket
-        ? {
-            endpoint: environment.SHOPPER_S3_ENDPOINT,
-            bucket,
-            accessKeyId: environment.SHOPPER_S3_ACCESS_KEY_ID ?? "",
-            secretAccessKey: environment.SHOPPER_S3_SECRET_ACCESS_KEY ?? "",
-            region: environment.SHOPPER_S3_REGION ?? "",
-          }
-        : undefined;
-    const blobs = async () =>
-      (
-        await boxBlobs(environment.SHOPPER_BLOBS_PATH ?? ".shopper/blobs", {
-          baseUrl: SHOPPER_AUTH_URL,
-          secret: new TextEncoder().encode(SHOPPER_AUTH_SECRET),
-          objectStorage: s3(environment.SHOPPER_S3_BUCKET),
-          receiptsObjectStorage: s3(environment.SHOPPER_S3_RECEIPTS_BUCKET),
-        })
-      ).blobs;
+    const blobs = () =>
+      boxStorage(environment, { baseUrl: SHOPPER_AUTH_URL, secret: SHOPPER_AUTH_SECRET });
+    engine ??= boxEngine(environment);
+    const launch = engine.launch;
     const connection = await boxDatabase(DATABASE_URL);
     cache ??= boxCache(environment.SHOPPER_CACHE_PATH ?? ".shopper/cache.sqlite");
+    // Created on first use, never at import: workflows outlive requests, so they get their own pool.
     workflowPool ??= boxPool(DATABASE_URL);
     const workflowDatabase = workflowPool.db;
-    // Created on first use, never at import: workflows outlive requests, so they get their own pool.
-    priceChange ??= boxPriceChange({ database: workflowDatabase, realtime });
-    if (environment.SHOPPER_LINK_SECRET)
-      authFlows ??= boxAuthFlows({
-        withDatabase: (run) => run(workflowDatabase),
-        linkSecret: environment.SHOPPER_LINK_SECRET,
-        baseURL: SHOPPER_AUTH_URL,
-        mail:
-          environment.MAILEROO_API_KEY && environment.MAILEROO_FROM
-            ? createMaileroo({
-                apiKey: environment.MAILEROO_API_KEY,
-                from: environment.MAILEROO_FROM,
-                endpoint: environment.MAILEROO_ENDPOINT,
-              })
-            : undefined,
-      });
-    payments ??= boxPayments(environment, {
-      database: workflowDatabase,
-      realtime,
-      baseUrl: SHOPPER_AUTH_URL,
-    });
-    orders ??= boxOrders(workflowDatabase, payments, () => notifications);
-    const sms = environment.ARKESEL_API_KEY
-      ? createArkesel({
-          apiKey: environment.ARKESEL_API_KEY,
-          sender: environment.ARKESEL_SENDER ?? "Shopper",
-          baseUrl: environment.ARKESEL_BASE_URL || undefined,
-        })
-      : undefined;
     const mail =
       environment.MAILEROO_API_KEY && environment.MAILEROO_FROM
         ? createMaileroo({
@@ -120,8 +79,33 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
             endpoint: environment.MAILEROO_ENDPOINT,
           })
         : undefined;
+    priceChange ??= boxPriceChange({ database: workflowDatabase, realtime }, launch);
+    if (environment.SHOPPER_LINK_SECRET)
+      authFlows ??= boxAuthFlows(
+        {
+          withDatabase: (run) => run(workflowDatabase),
+          linkSecret: environment.SHOPPER_LINK_SECRET,
+          baseURL: SHOPPER_AUTH_URL,
+          mail,
+        },
+        launch,
+      );
+    payments ??= boxPayments(environment, {
+      database: workflowDatabase,
+      realtime,
+      baseUrl: SHOPPER_AUTH_URL,
+      launch,
+    });
+    orders ??= boxOrders(workflowDatabase, payments, () => notifications, launch);
+    const sms = environment.ARKESEL_API_KEY
+      ? createArkesel({
+          apiKey: environment.ARKESEL_API_KEY,
+          sender: environment.ARKESEL_SENDER ?? "Shopper",
+          baseUrl: environment.ARKESEL_BASE_URL || undefined,
+        })
+      : undefined;
     // Alerts, statements, tier notices and account wakes share one queue; a channel it lacks retries.
-    notifications ??= boxQueue(NOTIFICATION_RETRY, (delivery) =>
+    notifications ??= engine.queue(NOTIFICATION_RETRY, (delivery) =>
       deliverNotification(
         {
           db: workflowDatabase,
@@ -143,53 +127,64 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
       ),
     );
     if (!statementFlows) {
-      statementFlows = boxStatementFlows({
-        withDatabase: (run) => run(workflowDatabase),
-        appVersion: buildInfo.version,
-        queue: notifications,
-      });
+      statementFlows = boxStatementFlows(
+        {
+          withDatabase: (run) => run(workflowDatabase),
+          appVersion: buildInfo.version,
+          queue: notifications,
+        },
+        launch,
+      );
       // On boot every monthly statement schedule starts again and runs a run day it missed.
       statementFlows
         .relaunch()
         .catch((error: unknown) => console.error({ event: "statement.relaunch_failed", error }));
     }
     if (!accountFlows) {
-      accountFlows = boxAccountFlows({
-        withDatabase: (run) => run(workflowDatabase),
-        appVersion: buildInfo.version,
-        queue: notifications,
-      });
+      accountFlows = boxAccountFlows(
+        {
+          withDatabase: (run) => run(workflowDatabase),
+          appVersion: buildInfo.version,
+          queue: notifications,
+        },
+        launch,
+      );
       // On boot every account with a ledger looks for its next due moment again.
       accountFlows
         .relaunch()
         .catch((error: unknown) => console.error({ event: "account.relaunch_failed", error }));
     }
     if (!storeDays) {
-      storeDays = boxStoreDays({ database: workflowDatabase, queue: notifications });
+      storeDays = boxStoreDays({ database: workflowDatabase, queue: notifications }, launch);
       // The in-process engine forgets sleeping days on restart: every store's today starts again on boot.
       storeDays
         .relaunch()
         .catch((error: unknown) => console.error({ event: "store_day.relaunch_failed", error }));
     }
     if (!watchdog) {
-      const anchors = boxAuditAnchors({ database: workflowDatabase, queue: notifications });
+      const anchors = boxAuditAnchors({ database: workflowDatabase, queue: notifications }, launch);
       const days = storeDays.launcher;
       const settled = payments.settlements?.launcher;
       // The box bills nobody: Shopper subscriptions are cloud only, so it starts no billing periods.
-      watchdog = boxWatchdog((at) =>
-        runWatchdog(
-          {
-            withDatabase: (run) => run(workflowDatabase),
-            anchors: anchors.launcher,
-            storeDays: days,
-            settlements: settled,
-          },
-          at,
-        ),
-      );
+      watchdog = boxWatchdog(
+        (at) =>
+          runWatchdog(
+            {
+              withDatabase: (run) => run(workflowDatabase),
+              anchors: anchors.launcher,
+              storeDays: days,
+              settlements: settled,
+            },
+            at,
+          ),
+        launch,
+      ).catch((error: unknown) => console.error({ event: "watchdog.start_failed", error }));
     }
     if (!lane && environment.SHOPPER_SDC_URL && environment.SHOPPER_SDC_KEY) {
-      const archive = boxFiscalArchive({ database: workflowDatabase, blobs: await blobs() });
+      const archive = boxFiscalArchive(
+        { database: workflowDatabase, blobs: await blobs() },
+        launch,
+      );
       lane = boxLane({
         db: workflowDatabase,
         sdc: createSdc({ url: environment.SHOPPER_SDC_URL, apiKey: environment.SHOPPER_SDC_KEY }),
@@ -202,11 +197,14 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
       );
     }
     if (sms && environment.SHOPPER_LINK_SECRET)
-      kycFlows ??= boxKycFlows({
-        withDatabase: (run) => run(workflowDatabase),
-        sms,
-        linkSecret: environment.SHOPPER_LINK_SECRET,
-      });
+      kycFlows ??= boxKycFlows(
+        {
+          withDatabase: (run) => run(workflowDatabase),
+          sms,
+          linkSecret: environment.SHOPPER_LINK_SECRET,
+        },
+        launch,
+      );
     try {
       return await serveRuntime(request, {
         database: connection.db,
@@ -245,4 +243,5 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
       await connection.close();
     }
   });
+  return withPortal(api, environment.SHOPPER_PORTAL_DIR);
 }

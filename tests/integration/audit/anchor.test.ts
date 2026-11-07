@@ -154,12 +154,12 @@ test("the owner's email names each stream's head and links to the integrity page
 test("the box watchdog fires at 23:59 UTC each day, the cron Cloudflare runs", async () => {
   vi.useFakeTimers({ now: new Date("2026-10-25T12:00:00.000Z") });
   const fired: string[] = [];
-  const watchdog = boxWatchdog(async (when) => void fired.push(when.toISOString()));
+  // Each day is a one-shot workflow that fires, then starts the next day's.
+  await boxWatchdog(async (when) => void fired.push(when.toISOString()));
   await vi.advanceTimersByTimeAsync(11 * 3_600_000 + 58 * 60_000);
   expect(fired).toEqual([]);
   await vi.advanceTimersByTimeAsync(24 * 3_600_000 + 60_000);
   expect(fired).toEqual(["2026-10-25T23:59:00.000Z", "2026-10-26T23:59:00.000Z"]);
-  watchdog.stop();
   vi.useRealTimers();
 });
 

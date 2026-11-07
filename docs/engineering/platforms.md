@@ -150,6 +150,33 @@ context:
   and socket of the single box process, where an engine round trip is pure latency. Revisit if the box
   ever runs more than one process.
 
+### Box services (Day 37)
+
+- **Conformance.** Every port the production box uses passes the shared cases: SQLite cache and the
+  PostgreSQL sequencer in `portConformance` (`ports/conformance.test.ts`), RustFS blobs in
+  `blobsConformance` (`ports/uploads.test.ts`), the queue in `queueConformance` on memory and Rivet
+  (`ports/queue.test.ts`), and the Workflow contract on Rivet in `ports/rivet.test.ts` (the generic
+  `workflowCases` drive a handle from outside a run, which only the in-process twin has).
+- **Licence** (`lic/1`, `@shopper/core/licence`, `apps/box/src/licence.ts`): Ed25519 through WebCrypto,
+  no dependency. The box checks in each night from the watchdog with a licence-signed request to the
+  cloud's public `POST /licence/confirmations` (edge secret `SHOPPER_LICENCE_SIGNING_KEY`, the issuer's
+  private JWK); an owner can `POST /licence/checks` (billing.manage). Ladder from the last confirmation:
+  30 days warns, 60 makes the back office read-only through `readOnlyGuard`; device principals pass, so
+  tills never lock. `maintenanceUntil` is shown, never consulted. The box's Billing page is its licence.
+- **Licence-signed requests** (`signedRequest`/`verifySignedRequest`): the licence, the time and an
+  Ed25519 signature by the key the licence names over method, path, time and the body's SHA-256; 5
+  minutes of skew. The v1.5 relay uses the same identity.
+- **Backup** (`apps/box/src/backup.ts`, timer in `apps/box/deploy/systemd/`): counts and `pg_dump` in one
+  exported snapshot, `pg_restore` into a scratch database, the same counts or nothing is uploaded, then
+  `age` to Shopper's recipient and `rclone copyto` the R2 remote. The box never holds the age identity.
+- **Egress** (`apps/box/src/egress.ts`): on Bun the box's `fetch` reaches seven hosts — Paystack, Hubtel
+  (two), Arkesel, Maileroo, the GRA SDC and the licence server — plus configured storage/engine hosts and
+  `SHOPPER_EGRESS_ALLOW`; loopback, private LAN and `.local` always pass.
+- **mDNS and LAN TLS**: Avahi answers `shopper.local` (`deploy/avahi/shopper.service`); Caddy's internal
+  CA serves it (`deploy/Caddyfile`), with the root at `/ca.crt`. A till whose upstream is `.local` or an
+  address pins that root at first run and starts its host with `NODE_EXTRA_CA_CERTS`
+  (`apps/till/electron/src/trust.ts`).
+
 ## Rules that keep both sides honest
 
 - **PostgreSQL is the record.** Every workflow step and every DO/actor write also writes its table

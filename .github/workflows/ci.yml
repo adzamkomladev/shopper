@@ -88,6 +88,12 @@ jobs:
         with:
           storage: "true"
           browsers: "true"
+      # The box backup test runs the real pg_dump/pg_restore (18, to match the server), age and rclone.
+      - name: Backup tools
+        run: |
+          sudo apt-get install -y -qq postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq --no-install-recommends postgresql-client-18 age rclone
       - run: vp test --run --shard=${{ matrix.shard }}/4
   e2e:
     name: e2e (${{ matrix.shard }}/3)

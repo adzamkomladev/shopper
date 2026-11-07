@@ -7,6 +7,7 @@ import type {
   createInvitations,
 } from "@shopper/auth";
 import type { ShopperDatabase } from "@shopper/db-pg";
+import type { LicenceStatus } from "@shopper/core/licence";
 import type { ShopAccess, ShopSession } from "@shopper/core/shop";
 import type {
   Blobs,
@@ -108,6 +109,17 @@ export interface ApiOptions {
   platform?: { orgSlug: string };
   /** SHOPPER_MIN_TILL_VERSION: the handshake tells tills below it to update before their next shift. */
   minTillVersion?: string;
+  /** The box's licence, box only: a locked one turns the back office read-only (tills never lock). */
+  licence?: BoxLicence;
+  /** The issuer's Ed25519 private JWK, cloud only: it confirms box check-ins. */
+  licenceSigningKey?: string;
+}
+
+export interface BoxLicence {
+  /** Where the licence stands, with the request code Shopper issues a licence from. */
+  status(): Promise<LicenceStatus & { request: string }>;
+  /** A licence-signed check-in to the cloud; the confirmation it returns resets the 60-day ladder. */
+  checkIn(): Promise<LicenceStatus & { request: string; error?: string }>;
 }
 
 export interface RuntimeOptions {
@@ -155,6 +167,8 @@ export interface RuntimeOptions {
   orderReviews?: WorkflowLauncher;
   /** Paystack's client: opens the hosted checkout for card payments. */
   paystack?: ShopOptions["paystack"];
+  licence?: BoxLicence;
+  licenceSigningKey?: string;
 }
 
 export interface PortalHost {

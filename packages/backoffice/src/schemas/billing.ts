@@ -15,6 +15,29 @@ export const invoiceRow = v.object({
 });
 export type InvoiceRow = v.InferOutput<typeof invoiceRow>;
 
+const licenceState = {
+  state: v.picklist(["valid", "grace", "locked"]),
+  reason: v.optional(v.picklist(["missing", "unreadable", "forged", "machine", "expired"])),
+  locksAt: v.optional(v.string()),
+};
+
+/** The box's licence: where it stands, its terms when readable, and the code Shopper issues one from. */
+export const licenceView = v.object({
+  ...licenceState,
+  checkedInAt: v.optional(v.string()),
+  licence: v.optional(
+    v.object({
+      id: v.string(),
+      site: v.string(),
+      terminals: v.number(),
+      maintenanceUntil: v.string(),
+    }),
+  ),
+  request: v.string(),
+  error: v.optional(v.string()),
+});
+export type LicenceView = v.InferOutput<typeof licenceView>;
+
 export const billingView = v.object({
   subscription: v.nullable(
     v.object({
@@ -24,7 +47,11 @@ export const billingView = v.object({
     }),
   ),
   invoices: v.array(invoiceRow),
+  licence: v.nullish(licenceView),
 });
 export type BillingView = v.InferOutput<typeof billingView>;
 
-export const billingStatus = v.object({ readOnly: v.boolean() });
+export const billingStatus = v.object({
+  readOnly: v.boolean(),
+  licence: v.nullish(v.object(licenceState)),
+});

@@ -2,15 +2,15 @@ import { Hono } from "hono";
 import { buildInfo } from "@shopper/config";
 import { deliverNotification } from "@shopper/core/notifications";
 import { runWatchdog } from "@shopper/core/reports";
-import { createArkesel } from "@shopper/core/sms/arkesel";
 import { createSdc } from "@shopper/core/fiscal";
-import { createMaileroo } from "@shopper/auth";
 import type { BoxBindings } from "./types";
 import { boxPayments } from "./payments";
 import { boxOrders } from "./orders";
 import { boxEngine } from "./engine";
 import { boxStorage } from "./storage";
 import { withPortal } from "./portal";
+import { boxLicence } from "./licence";
+import { boxChannels } from "./channels";
 import {
   boxLive,
   boxCache,
@@ -33,7 +33,15 @@ import {
 import { boxRenderer } from "@shopper/adapters-box/renderer";
 import { NOTIFICATION_RETRY, type Queue } from "@shopper/ports";
 import { isPublicRequest, publicApi, runtimeUnavailable, serveRuntime } from "@shopper/api/runtime";
-export function createBoxApp(environment: Record<string, string | undefined> = process.env) {
+export function createBoxApp(
+  environment: Record<string, string | undefined> = process.env,
+  // Test seam: the issuer is a build define, never box configuration, so an operator cannot swap it.
+  options: { licenceIssuer?: string; fetch?: (request: Request) => Promise<Response> } = {},
+) {
+  const licence = boxLicence(environment, {
+    issuer: options.licenceIssuer ?? buildInfo.licenceIssuer,
+    fetch: options.fetch,
+  });
   const realtime = boxRealtime();
   const rateLimiter = boxRateLimiter();
   let workflowPool: ReturnType<typeof boxPool> | undefined;
@@ -71,14 +79,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
     // Created on first use, never at import: workflows outlive requests, so they get their own pool.
     workflowPool ??= boxPool(DATABASE_URL);
     const workflowDatabase = workflowPool.db;
-    const mail =
-      environment.MAILEROO_API_KEY && environment.MAILEROO_FROM
-        ? createMaileroo({
-            apiKey: environment.MAILEROO_API_KEY,
-            from: environment.MAILEROO_FROM,
-            endpoint: environment.MAILEROO_ENDPOINT,
-          })
-        : undefined;
+    const { mail, sms } = boxChannels(environment);
     priceChange ??= boxPriceChange({ database: workflowDatabase, realtime }, launch);
     if (environment.SHOPPER_LINK_SECRET)
       authFlows ??= boxAuthFlows(
@@ -97,13 +98,6 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
       launch,
     });
     orders ??= boxOrders(workflowDatabase, payments, () => notifications, launch);
-    const sms = environment.ARKESEL_API_KEY
-      ? createArkesel({
-          apiKey: environment.ARKESEL_API_KEY,
-          sender: environment.ARKESEL_SENDER ?? "Shopper",
-          baseUrl: environment.ARKESEL_BASE_URL || undefined,
-        })
-      : undefined;
     // Alerts, statements, tier notices and account wakes share one queue; a channel it lacks retries.
     notifications ??= engine.queue(NOTIFICATION_RETRY, (delivery) =>
       deliverNotification(
@@ -166,19 +160,23 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
       const days = storeDays.launcher;
       const settled = payments.settlements?.launcher;
       // The box bills nobody: Shopper subscriptions are cloud only, so it starts no billing periods.
-      watchdog = boxWatchdog(
-        (at) =>
-          runWatchdog(
-            {
-              withDatabase: (run) => run(workflowDatabase),
-              anchors: anchors.launcher,
-              storeDays: days,
-              settlements: settled,
-            },
-            at,
-          ),
-        launch,
-      ).catch((error: unknown) => console.error({ event: "watchdog.start_failed", error }));
+      watchdog = boxWatchdog(async (at) => {
+        // Each night the box checks its licence in, when it can reach Shopper; offline it just waits.
+        await licence
+          ?.checkIn()
+          .catch((error: unknown) => console.error({ event: "licence.check_in_failed", error }));
+        return runWatchdog(
+          {
+            withDatabase: (run) => run(workflowDatabase),
+            anchors: anchors.launcher,
+            storeDays: days,
+            settlements: settled,
+          },
+          at,
+        );
+      }, launch).catch((error: unknown) =>
+        console.error({ event: "watchdog.start_failed", error }),
+      );
     }
     if (!lane && environment.SHOPPER_SDC_URL && environment.SHOPPER_SDC_KEY) {
       const archive = boxFiscalArchive(
@@ -238,6 +236,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
         ...orders,
         linkSecret: environment.SHOPPER_LINK_SECRET,
         minTillVersion: environment.SHOPPER_MIN_TILL_VERSION,
+        licence,
       });
     } finally {
       await connection.close();

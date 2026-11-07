@@ -52,3 +52,13 @@ export const publishReview = defineCommand({
   audit: (input, output) => ({ id: input.id, ...output }),
   details: (input) => ({ entity: "online_order", entityId: input.id }),
 });
+
+/** The review run ends without a review to show: nobody answered, or no moderator decided in time. */
+export const reviewEnded = defineCommand({
+  name: "review.ended",
+  async run(_tx, _ctx, input: { id: string; reason: string }) {
+    return { reason: input.reason };
+  },
+  audit: (input) => ({ id: input.id, reason: input.reason }),
+  details: (input) => ({ entity: "online_order", entityId: input.id }),
+});

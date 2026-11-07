@@ -151,7 +151,8 @@ test("a shopper who never answers leaves no review and the run ends quietly", as
   await expect.poll(() => asks(order).length, { timeout: 8_000 }).toBe(1);
   await new Promise((resolve) => setTimeout(resolve, 5_000));
   expect(await reviewRow(order)).toBeUndefined();
-  expect((await runOf(order))?.currentStep).toBe("ask");
+  // The run is recorded as finished, not left waiting.
+  expect(await runOf(order)).toMatchObject({ currentStep: "ended", status: "completed" });
 });
 
 test("the request to review is texted once however often the message is delivered", async () => {

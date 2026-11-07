@@ -68,7 +68,7 @@ test("a collected order asks for a review by keyboard and thanks the shopper", a
   const sent: unknown[] = [];
   await serve(
     page,
-    () => shopperOrder("completed", { review }),
+    () => shopperOrder("completed", { review, canReview: !review }),
     (_url, body) => {
       sent.push(body);
       review = { rating: 4, comment: "Quick", status: "published" };

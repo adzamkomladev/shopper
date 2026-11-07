@@ -10,7 +10,7 @@ import { OrderError } from "../error";
 import { move, readOrder } from "../flow";
 import { readGoods, settleAdjustment } from "./adjust";
 import { recordStatus } from "./events";
-import { goodsOf, quoteMissing } from "./goods";
+import { goodsOf, quoteMissing, wholePesewa } from "./goods";
 
 const conflict = (message: string) => new OrderError("conflict", message);
 
@@ -104,10 +104,9 @@ async function substituteFor(
       wanted.productId,
     ]);
   const worth = quoteMissing((line.payload as { tax: typeof found.tax }).tax, missing);
+  const quoted = wholePesewa(found.tax);
   const tax =
-    found.tax.gross <= worth.gross
-      ? found.tax
-      : capped(found.tax, worth.gross, wanted.quantityThousandths);
+    quoted.gross <= worth.gross ? quoted : capped(quoted, worth.gross, wanted.quantityThousandths);
   return {
     productId: wanted.productId,
     quantityThousandths: wanted.quantityThousandths,

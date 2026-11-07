@@ -1,5 +1,5 @@
 import { add, money, sub, type Money } from "@shopper/money";
-import { snapshotLine, type TaxSnapshot } from "@shopper/tax";
+import { snapshotAmount, snapshotLine, type TaxSnapshot } from "@shopper/tax";
 import type { BaseUnit, onlineOrderLine, onlineOrderPick } from "@shopper/db-pg";
 import { accraClock } from "../../receipts/build";
 import type { ReceiptDocument } from "../../schemas/receipts/document";
@@ -11,17 +11,37 @@ type Payload = { name: string; baseUnit?: BaseUnit; tax: TaxSnapshot };
 
 const amounts = ["base", "vat", "nhil", "getfund", "covid", "gross", "roundingAdjustment"] as const;
 
-/** What `missing` of a line was worth: its own price version and tax rule, quoted again at that quantity. */
-export const quoteMissing = (tax: TaxSnapshot, missing: number) =>
-  snapshotLine({
+/**
+ * An amount the payer can be paid back: a tax-inclusive gross rounded to a whole pesewa (a weighed 0.501 kg of rice
+ * is not a whole number of pesewas), with the tax taken out of the rounded amount so the parts still add up.
+ */
+export function wholePesewa(tax: TaxSnapshot): TaxSnapshot {
+  if (tax.gross % 100 === 0 || tax.priceMode !== "inclusive") return tax;
+  return snapshotAmount({
     rule: tax.rule,
     on: tax.on,
     taxClass: tax.taxClass,
     priceMode: tax.priceMode,
     registered: tax.registered,
     unitPrice: tax.unitPrice,
-    quantityThousandths: missing,
+    quantityThousandths: tax.quantityThousandths,
+    gross: money(Math.round(tax.gross / 100) * 100),
   });
+}
+
+/** What `missing` of a line was worth: its own price version and tax rule, quoted again at that quantity. */
+export const quoteMissing = (tax: TaxSnapshot, missing: number) =>
+  wholePesewa(
+    snapshotLine({
+      rule: tax.rule,
+      on: tax.on,
+      taxClass: tax.taxClass,
+      priceMode: tax.priceMode,
+      registered: tax.registered,
+      unitPrice: tax.unitPrice,
+      quantityThousandths: missing,
+    }),
+  );
 
 /** What stays of a line once `credit` is taken off it, amount by amount, so the two always add up to the line. */
 const remainder = (tax: TaxSnapshot, credit: TaxSnapshot, kept: number): TaxSnapshot => ({

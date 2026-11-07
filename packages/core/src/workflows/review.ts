@@ -7,7 +7,7 @@ import {
   type WorkflowCheckpoint,
 } from "@shopper/ports";
 import { askForReview } from "../orders/reviews/submit";
-import { publishReview, screenReview } from "../orders/reviews/screen";
+import { publishReview, reviewEnded, screenReview } from "../orders/reviews/screen";
 import type { ReviewFlowDeps } from "../orders/types";
 import { orderParams } from "../schemas/orders/flow";
 
@@ -48,6 +48,20 @@ export async function runOrderReview(
       deps.withDatabase((db) => command(db, context, { id: params.id }, checkpoint(flow, step))),
     );
 
+  const end = (reason: string) =>
+    flow
+      .step("ended", policy, () =>
+        deps.withDatabase((db) =>
+          reviewEnded(
+            db,
+            context,
+            { id: params.id, reason },
+            { ...checkpoint(flow, "ended"), status: "completed" },
+          ),
+        ),
+      )
+      .then(() => undefined);
+
   await flow.sleep("ask-after", deps.askAfterMs ?? 48 * hour);
   const asked = await record("ask", askForReview);
   // A review given before the ask (from the order page) is already in the table: screen it without waiting.
@@ -55,7 +69,7 @@ export async function runOrderReview(
     !asked.reviewed &&
     !(await waited(flow.waitFor("review", "review_submitted", deps.waitMs ?? 7 * 24 * hour)))
   )
-    return;
+    return await end("no review in time");
   const screened = await record("screen", screenReview);
   if (screened.status === "flagged") {
     // Without a decision in time the review stays hidden; the moderator can still decide later.
@@ -64,7 +78,7 @@ export async function runOrderReview(
         flow.waitFor("moderate", "moderator_decision", deps.moderateWithinMs ?? 30 * 24 * hour),
       ))
     )
-      return;
+      return await end("no moderator decision in time");
   }
   await record("publish", publishReview);
 }

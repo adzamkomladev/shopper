@@ -7,7 +7,7 @@ import {
   type WorkflowCheckpoint,
 } from "@shopper/ports";
 import { acceptOrder, confirmHeld, expireOrder, markOrderPaid } from "../orders/flow";
-import { orderCompleted, orderPicked, pickDue } from "../orders/fulfil/stages";
+import { orderCompleted, orderEnded, orderPicked, pickDue } from "../orders/fulfil/stages";
 import { refundPaidOrder } from "../orders/payments/refunds/compensate";
 import { refundOrderPayment } from "../orders/payments/refunds/send";
 import type { CompensationReason, OrderFlowDeps } from "../orders/types";
@@ -79,6 +79,20 @@ export async function runOnlineOrder(
       });
   };
 
+  const end = (reason: string) =>
+    flow
+      .step("ended", policy, () =>
+        deps.withDatabase((db) =>
+          orderEnded(
+            db,
+            context,
+            { id: params.id, reason },
+            checkpoint(params.id, "ended", "completed"),
+          ),
+        ),
+      )
+      .then(() => undefined);
+
   const held = await record("held", "waiting", confirmHeld);
   const paid = await waited(
     flow.waitFor(
@@ -92,35 +106,36 @@ export async function runOnlineOrder(
     // A payment can land in the moment the hold ends; its own transaction decided, so a paid order carries on.
     if (lapsed.moved) return;
   }
-  if (!(await record("paid", "waiting", markOrderPaid)).paid) return;
+  if (!(await record("paid", "waiting", markOrderPaid)).paid) return await end("not paid");
 
   const decision = await waited(
     flow.waitFor("accept", "store.accepted", deps.acceptWithinMs ?? ACCEPT_WITHIN_MS),
   );
   if (!decision) return await giveBack("unaccepted", "not_accepted", "refund");
-  if ((decision as Decision).declined || (decision as Decision).cancelled) return;
+  if ((decision as Decision).declined || (decision as Decision).cancelled)
+    return await end((decision as Decision).declined ? "declined" : "cancelled");
   const accepted = await record("accepted", "waiting", acceptOrder);
   const slotStart = new Date(accepted.slotStart).getTime();
   const slotEnd = new Date(accepted.slotEnd).getTime();
 
   await flow.sleepUntil("pick-due", new Date(slotStart - (deps.pickLeadMs ?? hour)));
   const due = await record("pick_due", "waiting", pickDue);
-  if (!due.due) return;
+  if (!due.due) return await end("cancelled before the pick hour");
   // What already happened (picked ahead of the pick hour) is read from the order, not waited for as an event.
   if (!due.picked) {
     const picked = await waited(flow.waitFor("pick", "picked", Math.max(0, slotEnd - Date.now())));
     if (!picked) return await giveBack("unfilled", "not_fulfilled");
-    if ((picked as Decision).cancelled) return;
+    if ((picked as Decision).cancelled) return await end("cancelled while picking");
   }
   const done = await record("picked", "waiting", orderPicked);
-  if (!done.ok) return;
+  if (!done.ok) return await end("not picked");
   if (!done.handedOver) {
     const collectBy = slotEnd + (deps.collectWithinMs ?? 24 * hour);
     const handed = await waited(
       flow.waitFor("hand-over", "handed_over", Math.max(0, collectBy - Date.now())),
     );
     if (!handed) return await giveBack("uncollected", "uncollected");
-    if ((handed as Decision).cancelled) return;
+    if ((handed as Decision).cancelled) return await end("cancelled before hand-over");
   }
   await record("completed", "completed", orderCompleted);
 }

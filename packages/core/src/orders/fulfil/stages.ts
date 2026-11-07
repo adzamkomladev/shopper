@@ -63,3 +63,14 @@ async function read(tx: ShopperTransaction, orgId: string, id: string) {
   if (!order) throw new Error("Online order not found");
   return order;
 }
+
+/** The run is over without the order going all the way: the checkpoint says so, so the tables show a finished process. */
+export const orderEnded = defineCommand({
+  name: "order.ended",
+  async run(tx, ctx, input: { id: string; reason: string }) {
+    await read(tx, ctx.orgId, input.id);
+    return { reason: input.reason };
+  },
+  audit: (input) => ({ id: input.id, reason: input.reason }),
+  details: (input) => ({ entity: "online_order", entityId: input.id }),
+});

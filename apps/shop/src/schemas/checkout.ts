@@ -84,6 +84,8 @@ export const placedOrder = v.object({
   adjustment: v.nullable(
     v.object({ beforeGross: amount, afterGross: amount, refundAmount: amount }),
   ),
+  /** Whether the review form is still offered: completed, not yet reviewed, and inside the window. */
+  canReview: v.boolean(),
   review: v.nullable(
     v.object({
       rating: v.number(),

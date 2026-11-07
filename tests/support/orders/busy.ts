@@ -108,6 +108,7 @@ export const shopperOrder = (status: string, over = {}) => ({
     ...(status === "completed" ? [{ status, at: soon(-1) }] : []),
   ],
   adjustment: { beforeGross: 87_5000, afterGross: 77_5000, refundAmount: 10 * GHS },
+  canReview: status === "completed",
   review: null,
   totals: {
     base: 75_0000,

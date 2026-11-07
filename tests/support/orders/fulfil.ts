@@ -5,11 +5,13 @@
 //   f.flows                  -> the order workflow launcher (send events)
 //   f.adjustment(order) / f.picks(order) -> what picking recorded
 //   f.lines(order)           -> the order's lines, in order
-//   f.substitutes            -> { palm (cheaper oil), basmati (dearer rice), scarce (no stock) } product ids
+//   f.substitutes            -> { palm (cheaper oil), basmati (dearer rice), scarce (no stock), single (one unit) } product ids
+//   f.receive(productId, unitCost, at) -> a costed receipt at the first branch, as the books value stock
 //   f.slotIn(order, startMs, lengthMs) -> moves the order's slot, to drive the workflow's timers
 import { eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
 import { refundOrderPayment } from "@shopper/core/orders";
+import { money } from "@shopper/money";
 import { orderPayWorld } from "../payments/orders/world";
 
 type Options = Parameters<typeof orderPayWorld>[0] & {
@@ -39,6 +41,8 @@ export async function fulfilWorld(options: Options = {}) {
     stock: [100_000, 100_000],
   });
   const scarce = await w.shop.product("Scarce tin", { price: 100_000, stock: [0, 0] });
+  // One unit at each branch: two lines cannot both be replaced by it.
+  const single = await w.shop.product("Single tin", { price: 100_000, stock: [1_000, 1_000] });
   const lines = (order: { id: string }) =>
     w.world.db
       .select()
@@ -74,6 +78,41 @@ export async function fulfilWorld(options: Options = {}) {
         .from(schema.onlineOrderEvent)
         .where(eq(schema.onlineOrderEvent.orderId, order.id))
     ).map((row) => row.status);
+  const receive = async (productId: string, unitCost: number, at: Date) => {
+    // A receipt is made by a person: the shop's first signed-up user.
+    const [actor] = await w.world.db
+      .select({ id: schema.user.id })
+      .from(schema.user)
+      .where(eq(schema.user.orgId, w.world.a.orgId))
+      .limit(1);
+    const [supplier] = await w.world.db
+      .insert(schema.supplier)
+      .values({ orgId: w.world.a.orgId, name: `Supplier ${crypto.randomUUID()}` })
+      .returning();
+    const [document] = await w.world.db
+      .insert(schema.stockDocument)
+      .values({
+        orgId: w.world.a.orgId,
+        branchId: w.shop.branches[0],
+        supplierId: supplier!.id,
+        actorId: actor!.id,
+        kind: "receipt",
+        occurredAt: at,
+        contentHash: crypto.randomUUID(),
+        payload: {},
+      })
+      .returning();
+    await w.world.db.insert(schema.stockMovement).values({
+      orgId: w.world.a.orgId,
+      branchId: w.shop.branches[0],
+      productId,
+      reason: "receipt",
+      quantityThousandths: 10_000,
+      unitCost: money(unitCost),
+      documentId: document!.id,
+      occurredAt: at,
+    });
+  };
   const adjustment = async (order: { id: string }) =>
     (
       await w.world.db
@@ -100,8 +139,9 @@ export async function fulfilWorld(options: Options = {}) {
     ...w,
     ctx,
     sendRefunds,
-    substitutes: { palm, basmati, scarce },
+    substitutes: { palm, basmati, scarce, single },
     lines,
+    receive,
     adjustment,
     picks,
     flows: w.orderFlows,

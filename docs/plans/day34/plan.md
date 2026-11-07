@@ -1,6 +1,6 @@
 # Day 34 · Fulfilment
 
-> Status: plan, not started. Branch `day34-fulfilment` off `main` (86674eb). Data is disposable: migrations may add NOT NULL
+> Status: built (see `verification.md`). Branch `day34-fulfilment` off `main` (86674eb). Data is disposable: migrations may add NOT NULL
 > columns without a backfill, and local Postgres, D1, KV and Durable Object state may be wiped at any point.
 
 ## Context
@@ -166,6 +166,19 @@ form (stars + comment, `1`–`5` keys) when completed, and the store page shows 
 
 Verify with `playwright-cli` at 1920, 1440, 768, 390 and the till size; screenshots in `docs/plans/day34/screenshots/`; axe
 and overflow checks; Figma drift recorded.
+
+## What changed from this plan while building
+
+- S4 (staff API) came after S5 (picking), since the routes wrap the pick commands. Commits follow the order built.
+- No new rate-limit policy: a review and a cancel spend the existing `public` budget (a new policy is a port change that
+  needs conformance and edge bindings for no gain).
+- The review request text carries no link: the shop has no configured public URL yet and the order key is only a digest,
+  so the text asks the shopper to open their order page (where the review form is). A signed link needs a shop URL
+  setting; carried to a later day.
+- The picked/handed-over waits are read from the order when the store acted ahead of the pick hour, so the workflow
+  never depends on a runtime buffering an event sent before the wait starts.
+- The shared runtime's route allowlist (`isPublicRequest`) needed `orders` and `reviews`; the browser run found it.
+- Figma again: the MCP was over its plan limit; screens follow the existing portal and shop patterns.
 
 ## How I will work (your instructions)
 

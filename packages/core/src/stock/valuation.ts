@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, lte, sql } from "drizzle-orm";
 import * as v from "valibot";
 import { product, stockMovement } from "@shopper/db-pg";
 import { add, money, mulQty, type Money } from "@shopper/money";
@@ -13,6 +13,8 @@ export async function lastCosts(
   orgId: string,
   branchId: string,
   productIds?: string[],
+  /** The cost as it stood at this moment, not now: a return reverses what the sale booked. */
+  asOf?: Date,
 ) {
   const rows = await db
     .selectDistinctOn([stockMovement.productId], {
@@ -26,6 +28,7 @@ export async function lastCosts(
         eq(stockMovement.branchId, branchId),
         productIds ? inArray(stockMovement.productId, productIds) : undefined,
         sql`${stockMovement.unitCost} IS NOT NULL`,
+        asOf ? lte(stockMovement.occurredAt, asOf) : undefined,
       ),
     )
     .orderBy(

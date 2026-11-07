@@ -11,6 +11,7 @@ import {
 } from "@shopper/db-pg";
 import { sha256 } from "@shopper/utils";
 import type { Queryable } from "../types";
+import { reviewable } from "./reviews/submit";
 
 /**
  * The order as its shopper sees it, found by the checkout key the browser kept. Anyone without the key gets nothing,
@@ -94,6 +95,7 @@ export async function orderByDigest(db: Queryable, orgId: string, digest: string
     timeline: timeline.map((event) => ({ status: event.status, at: event.at.toISOString() })),
     /** The shopper's own review of the order, whatever its state; null until they give one. */
     review: review ?? null,
+    canReview: row.status === "completed" && !review && reviewable(row.completedAt),
     /** What picking changed, once it did: shown to the shopper only after the pick is finished. */
     adjustment: adjustment && {
       beforeGross: adjustment.beforeGross,

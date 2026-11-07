@@ -91,18 +91,24 @@ export async function postOrderAdjustment(
 ) {
   const less = (key: keyof Total) => sub(input.credited[key], input.charged[key]);
   const levies = [less("vat"), less("nhil"), less("getfund"), less("covid")].reduce(add);
-  const costs = await lastCosts(
-    tx,
-    order.orgId,
-    order.branchId,
-    [...input.returned, ...input.replaced].map((item) => item.productId),
-  );
-  const cost = (item: Stock) => {
-    const unit = costs.get(item.productId);
-    return unit === undefined ? money(0) : lineTotal(unit, item.quantityThousandths);
+  // What comes back reverses the cost the sale booked (as of payment); a substitute goes out at today's cost.
+  const worth = async (items: Stock[], asOf?: Date) => {
+    const costs = await lastCosts(
+      tx,
+      order.orgId,
+      order.branchId,
+      items.map((item) => item.productId),
+      asOf,
+    );
+    return items
+      .map((item) => {
+        const unit = costs.get(item.productId);
+        return unit === undefined ? money(0) : lineTotal(unit, item.quantityThousandths);
+      })
+      .reduce(add, money(0));
   };
-  const back = input.returned.map(cost).reduce(add, money(0));
-  const out = input.replaced.map(cost).reduce(add, money(0));
+  const back = await worth(input.returned, order.paidAt ?? occurredAt);
+  const out = await worth(input.replaced);
   return postEntry(tx, ctx, {
     source: "order",
     sourceId: adjustmentId,

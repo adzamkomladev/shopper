@@ -92,7 +92,7 @@ export function OrderConfirmation({
           <OrderTimeline order={order} />
         ) : null}
         <OrderChanges order={order} />
-        {order.status === "completed" ? (
+        {order.review || order.canReview ? (
           <ReviewPanel shop={shop} order={order} orderKey={orderKey} />
         ) : null}
         <section

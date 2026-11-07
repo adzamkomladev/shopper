@@ -1,10 +1,11 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import type { CommandContext } from "@shopper/audit";
 import {
   onlineOrder,
   onlineOrderAdjustment,
   onlineOrderLine,
   onlineOrderPick,
+  product,
   stockMovement,
   type ShopperTransaction,
 } from "@shopper/db-pg";
@@ -14,6 +15,8 @@ import { postOrderAdjustment } from "../../ledger/orders";
 import { receiptDocument } from "../../schemas/receipts/document";
 import * as v from "valibot";
 import { checkStockAlerts } from "../../stock/reorder";
+import { availableOf } from "../../stock/onhand";
+import { OrderError } from "../error";
 import { owe } from "../payments/apply";
 import { keeperPayment } from "../payments/keeper";
 import { documentOf, goodsOf, totalOf } from "./goods";
@@ -61,6 +64,7 @@ export async function settleAdjustment(
   const { lines, picks } = await readGoods(tx, ctx.orgId, order.id);
   const goods = goodsOf(lines, picks);
   if (!goods.credits.length) return null;
+  await assertSubstitutesInStock(tx, ctx.orgId, order.branchId, goods.replaced, now);
   const credited = totalOf(goods.credits);
   const charged = totalOf(goods.substitutes);
   const payment = await keeperPayment(tx, ctx.orgId, order.id);
@@ -144,3 +148,31 @@ export async function settleAdjustment(
 /** Whether anything is left to hand over once picking is done: goods or substitutes, not just the delivery fee. */
 export const hasGoods = (goods: ReturnType<typeof goodsOf>) =>
   [...goods.kept, ...goods.substitutes].some((item) => item.productId);
+
+/** Every substitute together must be on the shelf: two lines may not each take the branch's one remaining unit. */
+async function assertSubstitutesInStock(
+  tx: ShopperTransaction,
+  orgId: string,
+  branchId: string,
+  replaced: { productId: string; quantityThousandths: number }[],
+  now: Date,
+) {
+  const wanted = new Map<string, number>();
+  for (const item of replaced)
+    wanted.set(item.productId, (wanted.get(item.productId) ?? 0) + item.quantityThousandths);
+  if (!wanted.size) return;
+  const rows = await tx
+    .select({ id: product.id, available: availableOf(orgId, branchId, product.id, now) })
+    .from(product)
+    .where(and(eq(product.orgId, orgId), inArray(product.id, [...wanted.keys()])));
+  const short = rows
+    .filter((row) => row.available < (wanted.get(row.id) ?? 0))
+    .map((row) => row.id);
+  if (short.length)
+    throw new OrderError(
+      "stock",
+      "There is not enough of a substitute for every item it replaces.",
+      409,
+      short,
+    );
+}

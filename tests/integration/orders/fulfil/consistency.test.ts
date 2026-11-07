@@ -4,53 +4,26 @@ import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
 import {
-  handOverStoreOrder,
+  cancelStoreOrder,
   finishStoreOrder,
-  startPicking,
+  handOverStoreOrder,
   recordPick,
 } from "@shopper/core/orders";
-import { acceptStoreOrder, cancelStoreOrder } from "@shopper/core/orders";
 import { fulfilWorld } from "../../../support/orders/fulfil";
+import { pickHelpers } from "../../../support/orders/pick";
 
 let f: Awaited<ReturnType<typeof fulfilWorld>>;
+let accepted: ReturnType<typeof pickHelpers>["accepted"];
+let net: ReturnType<typeof pickHelpers>["net"];
+let books: ReturnType<typeof pickHelpers>["books"];
+let payloadOf: ReturnType<typeof pickHelpers>["payloadOf"];
 beforeAll(async () => {
   f = await fulfilWorld({ acceptWithinMs: 30_000, pickLeadMs: 0 });
+  ({ accepted, net, books, payloadOf } = pickHelpers(f));
 }, 120_000);
 afterAll(async () => {
   await f?.close();
 });
-
-/** A paid, accepted order with its slot a moment away, ready for the picker. */
-const accepted = async () => {
-  const order = await f.paid();
-  await f.slotIn(order, 300, 120_000);
-  await acceptStoreOrder(f.world.db, f.ctx, f.flows, order.id);
-  const [oil, rice] = await f.lines(order);
-  await startPicking(f.world.db, f.ctx, { id: order.id });
-  return { order, oil: oil!, rice: rice! };
-};
-const net = async (order: { id: string }) => {
-  const totals = new Map<string, number>();
-  for (const row of await f.movements(order))
-    totals.set(row.productId, (totals.get(row.productId) ?? 0) + row.quantityThousandths);
-  return totals;
-};
-/** Every journal entry that belongs to the order, summed account by account. */
-const books = async (order: { id: string }) => {
-  const adjustment = await f.adjustment(order);
-  const original = (await f.journal("order", order.id))!;
-  const extra = adjustment ? await f.journal("order", adjustment.id) : undefined;
-  const sum = (entry?: typeof original) => entry?.lines ?? {};
-  const total: Record<string, number> = {};
-  for (const [account, amount] of [...Object.entries(sum(original)), ...Object.entries(sum(extra))])
-    total[account] = (total[account] ?? 0) + amount;
-  return { original, extra, total };
-};
-const payloadOf = async (id: string | null | undefined) =>
-  (await f.world.db.query.fiscalDoc.findFirst({
-    where: (doc, { eq: same }) =>
-      same(doc.adjustmentCreditId, id ?? "") || same(doc.adjustmentInvoiceId, id ?? ""),
-  }))!.payload as { totals: { net: number; total: number }; originalInvoiceNumber: string | null };
 
 test("short on oil with a cheaper substitute, short on rice: stock, books, invoices and the refund agree", async () => {
   const { order, oil, rice } = await accepted();
@@ -211,7 +184,11 @@ test("an order cancelled after it was adjusted refunds only what is left, and ev
   await cancelStoreOrder(f.world.db, f.ctx, f.flows, order.id);
 
   const refunds = await f.refunds(order);
-  expect(refunds.map((refund) => [refund.reason, refund.amount]).sort()).toEqual([
+  expect(
+    refunds
+      .map((refund) => [refund.reason, refund.amount])
+      .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+  ).toEqual([
     ["cancelled", 877_500 - 50_000],
     ["short_pick", 50_000],
   ]);

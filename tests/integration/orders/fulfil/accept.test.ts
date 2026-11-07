@@ -52,7 +52,8 @@ test("declining refunds the whole payment at once, puts the goods back and ends 
     code: "conflict",
   });
   expect(await f.refunds(order)).toHaveLength(1);
-  await expect.poll(async () => (await f.run(order))?.currentStep).toBe("paid");
+  await expect.poll(async () => (await f.run(order))?.currentStep).toBe("ended");
+  expect((await f.run(order))?.status).toBe("completed");
   expect((await f.row(order)).status).toBe("refunded");
 });
 

@@ -7,7 +7,14 @@ import { reviewDecision, reviewInput } from "../../schemas/orders/review";
 import { OrderError } from "../error";
 import { readOrder } from "../flow";
 
-/** The shopper reviews an order they have received: once, with stars and a few words. */
+/** How long after hand-over a review is taken: the 48 hours before the ask and the seven days the workflow waits. */
+export const REVIEW_WINDOW_MS = 9 * 24 * 3_600_000;
+
+/** Whether an order handed over at `completedAt` can still be reviewed at `now`. */
+export const reviewable = (completedAt: Date | null, now = new Date()) =>
+  completedAt !== null && now.getTime() - completedAt.getTime() <= REVIEW_WINDOW_MS;
+
+/** The shopper reviews an order they have received: once, within the window, with stars and a few words. */
 export const submitReview = defineCommand({
   name: "review.submitted",
   async run(tx, ctx, raw: v.InferInput<typeof reviewInput>) {
@@ -15,6 +22,9 @@ export const submitReview = defineCommand({
     const order = await readOrder(tx, ctx.orgId, input.id);
     if (order.status !== "completed")
       throw new OrderError("conflict", "You can review an order once you have it.");
+    // After the window the review's workflow has ended, so nothing would ever screen or publish a late one.
+    if (!reviewable(order.completedAt))
+      throw new OrderError("conflict", "The time to review this order has passed.");
     const [saved] = await tx
       .insert(orderReview)
       .values({

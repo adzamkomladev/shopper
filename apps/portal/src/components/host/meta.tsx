@@ -7,6 +7,8 @@ export function HostMeta() {
     queryKey: ["portal", "host"],
     queryFn: () => readPortalHost(),
     staleTime: Infinity,
+    // The box serves the SPA without server functions: its 404 is the answer, not a fault to retry.
+    retry: false,
   });
   if (!data) return null;
   return (

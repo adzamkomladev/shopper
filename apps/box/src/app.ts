@@ -10,6 +10,7 @@ import { boxPayments } from "./payments";
 import { boxOrders } from "./orders";
 import { boxEngine } from "./engine";
 import { boxStorage } from "./storage";
+import { withPortal } from "./portal";
 import {
   boxLive,
   boxCache,
@@ -50,7 +51,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
   let orders: ReturnType<typeof boxOrders> | undefined;
   let engine: ReturnType<typeof boxEngine> | undefined;
   const renderer = boxRenderer();
-  return new Hono<{ Bindings: BoxBindings }>().all("*", async (context) => {
+  const api = new Hono<{ Bindings: BoxBindings }>().all("*", async (context) => {
     const request = context.req.raw;
     if (isPublicRequest(request)) return publicApi.fetch(request);
     const {
@@ -242,4 +243,5 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
       await connection.close();
     }
   });
+  return withPortal(api, environment.SHOPPER_PORTAL_DIR);
 }

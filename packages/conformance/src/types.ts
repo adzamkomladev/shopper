@@ -41,6 +41,12 @@ export interface AdapterFixture {
   provisionPendingSale(): Promise<AcceptedSaleFixture>;
 }
 
+/** Blobs alone: an adapter's object storage behind the port, with the clock its signed URLs read. */
+export type BlobsFixture = Pick<
+  AdapterFixture,
+  "orgId" | "otherOrgId" | "blobs" | "readSigned" | "advanceClock"
+>;
+
 export type ConformanceTest = (name: string, run: () => Promise<void>) => unknown;
 export type Fixture = () => Promise<AdapterFixture>;
 export type SaleSequencerFixture = Fixture;

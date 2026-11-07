@@ -33,14 +33,6 @@ test("a declined mobile money attempt fails but keeps the stock, and the shopper
   expect(retry.body.payment.id).not.toBe(declined.body.payment.id);
 });
 
-test("a network that asks for a code fails the attempt with a reason the shopper can act on", async () => {
-  w.fake.behave("0551234986", "send_otp");
-  const order = await w.place();
-  await w.pay(order, { method: "momo", network: "telecel", phone: "0551234986" });
-  await expect.poll(async () => (await w.payments(order))[0]!.status).toBe("failed");
-  expect((await w.payments(order))[0]!.failureReason).toMatch(/card|another way/i);
-});
-
 test("no payment before the hold ends: the order expires and its reservation is released", async () => {
   const order = await w.placeLapsing(2_500);
   const attempt = await w.pay(order, { method: "card" });

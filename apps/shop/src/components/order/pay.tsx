@@ -9,6 +9,7 @@ import { shopFetch, ShopApiError } from "../../queries/api";
 import { placedOrder, type PlacedOrder } from "../../schemas/checkout";
 import { DetailField } from "../checkout/details";
 import { phoneOf } from "../shop/phone";
+import { PayCode } from "./code";
 
 type Method = "card" | "momo";
 const networks = [
@@ -20,7 +21,7 @@ const networks = [
 /**
  * How the shopper pays an order that is still open: a card (Paystack's page), or a mobile money prompt on their
  * phone. A failed attempt says why and offers another go while the items are held; an open attempt is followed until
- * the webhook settles it.
+ * the webhook settles it, and one whose network asked for a code takes that code first.
  */
 export function PayPanel({
   shop,
@@ -64,6 +65,7 @@ export function PayPanel({
       <h2 id="pay-heading" className="text-lg font-bold">
         Pay {formatGHS(order.totals.gross)}
       </h2>
+      {attempt?.status === "otp" ? <PayCode shop={shop} order={order} orderKey={orderKey} /> : null}
       {open && attempt.method === "card" && attempt.checkoutUrl ? (
         <div className="space-y-3">
           <p>Finish paying on Paystack's secure page. We keep your items while you do.</p>
@@ -97,6 +99,7 @@ export function PayPanel({
         </Alert>
       ) : null}
       <form
+        hidden={attempt?.status === "otp"}
         noValidate
         className="space-y-4"
         onSubmit={(event) => {

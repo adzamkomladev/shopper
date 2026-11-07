@@ -38,7 +38,10 @@ export const orderQuery = (shop: string, id: string, proof: { t?: string; r?: st
     // page follows the store filling the order until it ends.
     refetchInterval: (query) => {
       const order = query.state.data;
-      if (order?.status === "placed") return order.payment?.status === "pending" ? 3_000 : false;
+      if (order?.status === "placed")
+        return order.payment?.status === "pending" || order.payment?.status === "otp"
+          ? 3_000
+          : false;
       return order &&
         ["paid", "accepted", "picking", "ready", "out_for_delivery"].includes(order.status)
         ? 15_000

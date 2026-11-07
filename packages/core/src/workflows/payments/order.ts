@@ -4,6 +4,8 @@ import { onlineOrder, orderPayment, type ShopperDatabase } from "@shopper/db-pg"
 import { WorkflowTimeoutError, type Workflow } from "@shopper/ports";
 import { payoutSubaccount } from "../../kyb/records";
 import { applyOrderPaymentEvent, expireOrderPayment } from "../../orders/payments/apply";
+import { awaitOrderPaymentCode } from "../../orders/payments/code";
+import { momoEvent } from "../../payments/schemas/momo";
 import type { OrderPaymentApplied, OrderPaymentDeps } from "../../orders/types";
 import { orderPaymentParams } from "../../schemas/orders/pay";
 
@@ -13,7 +15,8 @@ const closed = ["confirmed", "failed", "expired"];
 /**
  * One attempt to pay an online order (instance id = the payment id): a MoMo prompt is sent, then the workflow waits
  * for the provider's webhook until the order's hold runs out and asks the provider once if none came. Card attempts
- * skip the prompt: the shopper pays on Paystack's page and the webhook arrives the same way. Every outcome is applied
+ * skip the prompt: the shopper pays on Paystack's page and the webhook arrives the same way. A network that asks for a
+ * one-time code leaves the attempt waiting for it (the order page sends it as a `payment` event). Every outcome is applied
  * through the same command the webhooks use, so whichever comes first wins and the other changes nothing.
  */
 export async function runOrderPayment(
@@ -53,55 +56,85 @@ export async function runOrderPayment(
         await deps.orders.send(applied.orderId, "payment.settled", { reference: params.id });
       return { woke: !applied.duplicate && applied.outcome === "settled" };
     });
+  const awaitCode = (name: string, reason: string | undefined) =>
+    flow.step(name, policy, () =>
+      deps.withDatabase((db) => awaitOrderPaymentCode(db, context, { id: params.id, reason })),
+    );
 
-  if (row.payment.method === "momo") {
-    const charged = await flow.step("charge", { ...policy, maxAttempts: 1 }, async () => {
-      const provider = row.payment.provider === "hubtel" ? deps.hubtel : deps.paystack;
-      if (!provider)
-        return {
-          status: "failed" as const,
-          message: "Hubtel is not set up for this shop. Pay another way.",
-        };
-      const subaccount =
-        row.payment.provider === "hubtel"
-          ? undefined
-          : await deps.withDatabase((db) => payoutSubaccount(db, params.orgId));
-      // An outage or dropped connection leaves the request's fate unknown. The attempt fails so the shopper can try
-      // again at once; a prompt that did reach the payer is still honoured when its webhook arrives.
-      const result = await provider
-        .charge({
-          reference: params.id,
-          amount: row.payment.amount,
-          phone: row.payment.phone,
-          network: row.payment.network!,
-          email: row.email ?? `${row.payment.phone}@pay.shopper.invalid`,
-          subaccount,
+  const charged =
+    row.payment.method === "momo"
+      ? await flow.step("charge", { ...policy, maxAttempts: 1 }, async () => {
+          const provider = row.payment.provider === "hubtel" ? deps.hubtel : deps.paystack;
+          if (!provider)
+            return {
+              status: "failed" as const,
+              message: "Hubtel is not set up for this shop. Pay another way.",
+            };
+          const subaccount =
+            row.payment.provider === "hubtel"
+              ? undefined
+              : await deps.withDatabase((db) => payoutSubaccount(db, params.orgId));
+          // An outage or dropped connection leaves the request's fate unknown. The attempt fails so the shopper can try
+          // again at once; a prompt that did reach the payer is still honoured when its webhook arrives.
+          const result = await provider
+            .charge({
+              reference: params.id,
+              amount: row.payment.amount,
+              phone: row.payment.phone,
+              network: row.payment.network!,
+              email: row.email ?? `${row.payment.phone}@pay.shopper.invalid`,
+              subaccount,
+            })
+            .catch(() => ({
+              status: "failed" as const,
+              message: "We could not reach the payment provider. Try again in a moment.",
+            }));
+          return result;
         })
-        .catch(() => ({
-          status: "failed" as const,
-          message: "We could not reach the payment provider. Try again in a moment.",
-        }));
-      // Paystack's OTP step is not offered online yet: a network that asks for one is a failed attempt.
-      return result.status === "otp"
-        ? {
-            status: "failed" as const,
-            message: "This network needs a code we cannot take here. Pay by card or another way.",
-          }
-        : result;
-    });
-    if (charged.status === "failed" || charged.status === "confirmed") {
-      await wake(
-        await apply("charged", charged.status, {
-          providerReference: charged.providerReference,
-          message: "message" in charged ? charged.message : undefined,
-        }),
-      );
-      return;
-    }
+      : undefined;
+  if (charged?.status === "failed" || charged?.status === "confirmed") {
+    await wake(
+      await apply("charged", charged.status, {
+        providerReference: charged.providerReference,
+        message: "message" in charged ? charged.message : undefined,
+      }),
+    );
+    return;
   }
+  // Some networks ask the payer for a one-time code first: the order page takes it and sends it here.
+  let awaitingCode = charged?.status === "otp";
+  if (awaitingCode) await awaitCode("code", undefined);
+  const { until } = await flow.step("deadline", policy, async () => ({
+    until: Date.now() + (deps.timeoutMs ?? remaining(row.holdExpiresAt)),
+  }));
   try {
-    await flow.waitFor("settled", "payment", deps.timeoutMs ?? remaining(row.holdExpiresAt));
-    // The webhook already applied the outcome, in its own transaction; this run only ends.
+    for (let index = 0; ; index++) {
+      const event = v.parse(
+        momoEvent,
+        await flow.waitFor(`event-${index}`, "payment", Math.max(0, until - Date.now())),
+      );
+      // A webhook already applied the outcome, in its own transaction; this run only ends.
+      if (event.type === "settled") return;
+      if (!awaitingCode) continue;
+      const result = await flow.step(`otp-${index}`, { ...policy, maxAttempts: 1 }, () =>
+        deps.paystack.submitOtp({ reference: params.id, otp: event.otp }).catch(() => ({
+          status: "otp" as const,
+          message: "We could not check the code. Try again in a moment.",
+        })),
+      );
+      if (result.status === "confirmed" || result.status === "failed") {
+        await wake(
+          await apply(`coded-${index}`, result.status, {
+            providerReference: result.providerReference,
+            message: "message" in result ? result.message : undefined,
+          }),
+        );
+        return;
+      }
+      awaitingCode = result.status === "otp";
+      if (awaitingCode)
+        await awaitCode(`code-${index}`, "message" in result ? result.message : undefined);
+    }
   } catch (error) {
     if (!(error instanceof WorkflowTimeoutError)) throw error;
     const verified = await flow.step("verify", { ...policy, maxAttempts: 1 }, async () => {

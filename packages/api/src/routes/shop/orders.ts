@@ -2,6 +2,7 @@ import { Hono, type Context } from "hono";
 import * as v from "valibot";
 import { findOrgBySlug } from "@shopper/core/orgs";
 import { payoutSubaccount } from "@shopper/core/kyb";
+import { momoOtp } from "@shopper/core/payments";
 import {
   cancelOwnOrder,
   listPublishedReviews,
@@ -131,6 +132,18 @@ export function shopOrderRoutes(options: ShopOptions) {
   app.get("/shop/:code/reviews", async (c) => {
     const found = await shopOf(c);
     return c.json(await listPublishedReviews(options.database, found.id));
+  });
+  // The one-time code a mobile money network asked the payer for, with their key: it goes to the attempt's workflow.
+  app.post("/shop/:code/orders/:id/pay/code", async (c) => {
+    const found = await shopOf(c);
+    const input = await body(c);
+    const id = c.req.param("id");
+    const order = await shopperOrder(found.id, id, { key: input.key });
+    const otp = v.parse(momoOtp, { otp: input.otp }).otp;
+    if (order.payment?.status !== "otp")
+      return c.json({ error: "This payment is not waiting for a code" }, 409);
+    await options.orderPayments?.send(order.payment.id, "payment", { type: "otp", otp });
+    return c.json(order, 202);
   });
   app.post("/shop/:code/orders/:id/pay", async (c) => {
     const found = await shopOf(c);

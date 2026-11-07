@@ -30,7 +30,7 @@ export type OrderFlowDeps = {
 /** What one order payment attempt's workflow needs from its runtime shell. */
 export type OrderPaymentDeps = {
   withDatabase<T>(run: (db: ShopperDatabase) => Promise<T>): Promise<T>;
-  paystack: Pick<ReturnType<typeof createPaystack>, "charge" | "verify">;
+  paystack: Pick<ReturnType<typeof createPaystack>, "charge" | "verify" | "submitOtp">;
   /** Collects for orgs whose MoMo provider is Hubtel; without it their charges fail with a reason. */
   hubtel?: Pick<ReturnType<typeof createHubtel>, "charge" | "verify">;
   /** The online order's workflow, woken with `payment.settled` when this payment keeps the order. */

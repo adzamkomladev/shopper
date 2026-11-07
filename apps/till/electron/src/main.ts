@@ -11,6 +11,7 @@ import { openDisplay } from "./display";
 import { answerRender } from "./render";
 import { loadSecrets, writeAtomic } from "./secrets";
 import type { UpdatePolicy } from "./types";
+import { pinBoxCa } from "./trust";
 import { createUpdates } from "./updates";
 import { lockDown } from "./window";
 
@@ -61,7 +62,13 @@ async function startRegister() {
     if (error.code !== "ENOENT") throw error;
     return firstRun(configPath, userData);
   });
-  let stored: { ui?: string; deviceToken?: unknown; sqlitePath?: unknown; identity?: unknown };
+  let stored: {
+    ui?: string;
+    deviceToken?: unknown;
+    sqlitePath?: unknown;
+    identity?: unknown;
+    ca?: string;
+  };
   try {
     stored = JSON.parse(text);
   } catch {
@@ -79,7 +86,9 @@ async function startRegister() {
   secrets.push(config.deviceToken, "databaseKey" in config && config.databaseKey);
   if (config.identity)
     crash.tag("register", (config.identity as { registerName: string }).registerName);
-  const host = fork(hostEntry, [], { env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" } });
+  // A box's LAN certificate chains to the CA pinned at first run; the cloud's to the public CAs.
+  const ca = stored.ca ? { NODE_EXTRA_CA_CERTS: stored.ca } : {};
+  const host = fork(hostEntry, [], { env: { ...process.env, ELECTRON_RUN_AS_NODE: "1", ...ca } });
   // No feed configured (dev, tests) means no updater: nothing phones home.
   const updates = buildInfo.tillUpdateUrl ? startUpdates(host) : undefined;
   app.on("window-all-closed", () => app.quit());
@@ -151,8 +160,9 @@ async function firstRun(configPath: string, userData: string) {
   if (!upstream)
     throw new Error("This build names no server to enrol with (SHOPPER_TILL_UPSTREAM)");
   const origins = app.isPackaged ? [] : [new URL(tillUi).origin];
+  const ca = await pinBoxCa(upstream, userData);
   const text = JSON.stringify(
-    { upstream, sqlitePath: join(userData, "register.sqlite"), origins, port: 0 },
+    { upstream, sqlitePath: join(userData, "register.sqlite"), origins, port: 0, ca },
     null,
     2,
   );

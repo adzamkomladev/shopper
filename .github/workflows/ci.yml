@@ -62,6 +62,14 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U shopper -d shopper"
           --health-interval 2s --health-timeout 5s --health-retries 30
+      rivet:
+        image: rivetdev/engine:3.0.0-preview.3
+        env:
+          RIVET__STORAGE__LOG_DIRECTORY: /data
+          RIVET__STORAGE__AUTO_PROVISION_PARTITIONS: "true"
+          RIVET__OBJECT_STORAGE__PRIMARY__FILE_SYSTEM__PATH: /data/objects
+          RIVET__AUTH__ADMIN_TOKEN: shopper_local_development_only
+        ports: ["6420:6420"]
       rustfs:
         image: rustfs/rustfs:1.0.1
         env:

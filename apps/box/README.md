@@ -42,5 +42,5 @@ Tills never lock. Settings → Licence shows the request code a licence is issue
 Egress (`src/egress.ts`): on Bun the box's `fetch` reaches only Paystack, Hubtel, Arkesel, Maileroo and the hosts of
 `SHOPPER_SDC_URL`, `SHOPPER_LICENCE_URL`, provider URL overrides, `SHOPPER_S3_ENDPOINT` and `RIVET_ENDPOINT`, plus
 `SHOPPER_EGRESS_ALLOW` (comma separated). Loopback, private LAN and `.local` always pass. `SHOPPER_EGRESS=off` turns it
-off. Backups: `src/backup.ts` with `deploy/systemd/backup.{service,timer}`; LAN TLS and mDNS: `deploy/Caddyfile`,
+off. Backups: `src/backup.ts` (entry `src/cli/backup.ts`) with `deploy/systemd/backup.{service,timer}`; LAN TLS and mDNS: `deploy/Caddyfile`,
 `deploy/avahi/shopper.service`.

@@ -68,20 +68,25 @@ const change = async () =>
   });
 
 test("an unlicensed box shows the request code Shopper issues a licence from", async () => {
-  const response = await as("/licence");
+  const response = await as("/billing");
   expect(response.status).toBe(200);
-  const body = await response.json();
+  const body = (await response.json()).licence;
   expect(body).toMatchObject({ state: "locked", reason: "missing", request: expect.any(String) });
   const request = JSON.parse(Buffer.from(body.request, "base64url").toString());
   expect(request.machine).toBe(await sha256("0123456789abcdef0123456789abcdef"));
   // The box keeps one key: the same request code every time.
-  expect((await (await as("/licence")).json()).request).toBe(body.request);
-  expect((await box.request("/licence")).status).toBe(401);
+  expect((await (await as("/billing")).json()).licence.request).toBe(body.request);
+  // Every member's shell reads the state for its banner.
+  expect(await (await as("/billing/status")).json()).toEqual({
+    readOnly: false,
+    licence: { state: "locked", reason: "missing" },
+  });
+  expect((await box.request("/licence/checks", { method: "POST" })).status).toBe(401);
 });
 
 test("expired: the back office is read-only, the till still sells, and a check-in unlocks it", async () => {
   const request = JSON.parse(
-    Buffer.from((await (await as("/licence")).json()).request, "base64url").toString(),
+    Buffer.from((await (await as("/billing")).json()).licence.request, "base64url").toString(),
   );
   const issued = await issueLicence(issuer.privateKey, {
     id: v7(),
@@ -94,7 +99,7 @@ test("expired: the back office is read-only, the till still sells, and a check-i
     maintenanceUntil: "2027-01-01",
   });
   await writeFile(join(dir, "licence.json"), JSON.stringify(issued));
-  expect(await (await as("/licence")).json()).toMatchObject({
+  expect((await (await as("/billing")).json()).licence).toMatchObject({
     state: "locked",
     reason: "expired",
     licence: { site: "Golden Mart", maintenanceUntil: "2027-01-01" },

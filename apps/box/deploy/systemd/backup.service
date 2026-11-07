@@ -11,5 +11,5 @@ Type=oneshot
 User=shopper
 EnvironmentFile=/etc/shopper/box.env
 Environment=SHOPPER_BACKUP_DIR=/var/lib/shopper/backups
-# apps/box/src/backup.ts; the sealed binary carries it from Day 38.
+# apps/box/src/cli/backup.ts; the sealed binary carries it from Day 38.
 ExecStart=/opt/shopper/bin/shopper-backup

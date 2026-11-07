@@ -7,7 +7,7 @@ import { Client } from "pg";
  * The box's nightly backup: `pg_dump` of one snapshot, restored into a scratch database and counted table by table
  * against that same snapshot, then `age`-encrypted to Shopper's recipient and copied with `rclone` (R2 in
  * production). A difference in any count uploads nothing. The box never holds the age identity, and the plaintext
- * dump never leaves `workDir`. Run by the systemd timer in `deploy/systemd/`.
+ * dump never leaves `workDir`. Run by the systemd timer (`cli/backup.ts`, `deploy/systemd/`).
  */
 export async function backupBox(options: {
   databaseUrl: string;
@@ -104,25 +104,4 @@ function run(command: string, args: string[]) {
       code === 0 ? resolve() : reject(new Error(`${command} exited ${code}: ${stderr.trim()}`)),
     );
   });
-}
-
-if (import.meta.main) {
-  const env = process.env;
-  if (!env.DATABASE_URL || !env.SHOPPER_BACKUP_RECIPIENT || !env.SHOPPER_BACKUP_REMOTE)
-    throw new Error(
-      "DATABASE_URL, SHOPPER_BACKUP_RECIPIENT and SHOPPER_BACKUP_REMOTE are required",
-    );
-  const report = await backupBox({
-    databaseUrl: env.DATABASE_URL,
-    recipient: env.SHOPPER_BACKUP_RECIPIENT,
-    remote: env.SHOPPER_BACKUP_REMOTE,
-    workDir: env.SHOPPER_BACKUP_DIR ?? ".shopper/backups",
-  });
-  console.log(
-    JSON.stringify({
-      event: "backup.uploaded",
-      file: report.file,
-      tables: Object.keys(report.counts).length,
-    }),
-  );
 }

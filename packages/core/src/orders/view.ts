@@ -97,11 +97,13 @@ export async function orderByDigest(db: Queryable, orgId: string, digest: string
     review: review ?? null,
     canReview: row.status === "completed" && !review && reviewable(row.completedAt),
     /** What picking changed, once it did: shown to the shopper only after the pick is finished. */
-    adjustment: adjustment && {
-      beforeGross: adjustment.beforeGross,
-      afterGross: adjustment.afterGross,
-      refundAmount: adjustment.refundAmount,
-    },
+    adjustment: adjustment
+      ? {
+          beforeGross: adjustment.beforeGross,
+          afterGross: adjustment.afterGross,
+          refundAmount: adjustment.refundAmount,
+        }
+      : null,
     totals: {
       base: row.base,
       vat: row.vat,

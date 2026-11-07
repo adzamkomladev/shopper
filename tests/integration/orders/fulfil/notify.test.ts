@@ -136,6 +136,13 @@ test("a shell without SMS credentials retries the message and tells nothing", as
   expect(texts).toHaveLength(1);
 });
 
+test("an order nobody has picked yet reads with no adjustment and no review, as the shop's page expects", async () => {
+  const order = await f.paid();
+  const view = await f.view(order);
+  expect(view).toMatchObject({ adjustment: null, review: null, canReview: false });
+  expect(view.lines.every((line: { pick: unknown }) => line.pick === null)).toBe(true);
+});
+
 test("the shopper's order page shows the timeline, what was changed, and nothing to anyone without the key", async () => {
   const { order, lines } = await start();
   await recordPick(f.world.db, f.ctx, {

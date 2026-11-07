@@ -6,6 +6,7 @@ import type { StoreInfo, StorePage } from "../../schemas/store";
 import { CategoryChips } from "./categories";
 import { ProductGrid } from "./grid";
 import { StoreHeader } from "./header";
+import { StoreReviews } from "./reviews";
 import { StoreSearch } from "./search";
 
 /** A page of the store: the bar, search, categories and the products, for the whole store or one category. */
@@ -49,6 +50,7 @@ export function StoreBrowse({
           q={q}
           onClear={() => void navigate({ to: ".", search: { branch: branchId } })}
         />
+        {q || category ? null : <StoreReviews shop={shop} />}
       </main>
     </div>
   );

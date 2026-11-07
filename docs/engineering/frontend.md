@@ -219,6 +219,21 @@ checkout. `/<code>/checkout` offers only what the branch takes, day pills and th
 and an address for delivery. `/<code>/orders/<id>?t=<key>` is the confirmation ("Awaiting payment", pay by the hold
 time). A branch's online orders are set from the branch list (Online orders) in the back office.
 
+## Fulfilment (Day 34)
+
+The store fills online orders in the back office (`@shopper/backoffice`), so the portal, the box SPA and the register
+share it: **Sales › Online orders** (`order.read`) is a queue by stage (New, Preparing, Ready, Done) with counts,
+soonest slot first, `/` to search and refetched every 15 s; an order's number opens its **pick list**. The pick list
+has a scan field (a keyboard-wedge scanner types the code and Enter; `/` focuses it), **Found all** and **Short or
+substitute…** per item, and a **Next step** panel with a shortcut per action (A accept, D decline, S start, F finish,
+X send out, H hand over, C cancel); decline, finish and cancel ask first. The register's sidebar gets **Online orders**
+(`Alt+W`, `order.read`, needs a connection) that opens `/backoffice/orders`. On the shop, `/<code>/orders/<id>` follows
+the order: a progress list (Paid, Accepted, Being picked, Ready or Out for delivery, Collected or Delivered), a card
+for anything the shop changed with the money that came back, a cancel button while unpaid, and, once collected, a
+review form (stars with keys 1 to 5, an optional comment). The store page shows the average and the latest reviews
+once there are any. No Figma frame covers these screens (the Figma MCP was over its plan limit on Days 32 to 34), so
+they follow the portal's table and tab patterns and the shop theme.
+
 ## UX rules
 
 - **Every screen has every state designed:** empty (with the next action), loading (a skeleton sized

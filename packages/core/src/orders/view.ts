@@ -7,6 +7,7 @@ import {
   onlineOrderLine,
   onlineOrderPick,
   orderPayment,
+  orderReview,
 } from "@shopper/db-pg";
 import { sha256 } from "@shopper/utils";
 import type { Queryable } from "../types";
@@ -45,6 +46,14 @@ export async function orderByDigest(db: Queryable, orgId: string, digest: string
     .select()
     .from(onlineOrderAdjustment)
     .where(and(eq(onlineOrderAdjustment.orgId, orgId), eq(onlineOrderAdjustment.orderId, row.id)));
+  const [review] = await db
+    .select({
+      rating: orderReview.rating,
+      comment: orderReview.comment,
+      status: orderReview.status,
+    })
+    .from(orderReview)
+    .where(and(eq(orderReview.orgId, orgId), eq(orderReview.orderId, row.id)));
   const timeline = await db
     .select({ status: onlineOrderEvent.status, at: onlineOrderEvent.at })
     .from(onlineOrderEvent)
@@ -83,6 +92,8 @@ export async function orderByDigest(db: Queryable, orgId: string, digest: string
       : null,
     placedAt: row.placedAt.toISOString(),
     timeline: timeline.map((event) => ({ status: event.status, at: event.at.toISOString() })),
+    /** The shopper's own review of the order, whatever its state; null until they give one. */
+    review: review ?? null,
     /** What picking changed, once it did: shown to the shopper only after the pick is finished. */
     adjustment: adjustment && {
       beforeGross: adjustment.beforeGross,

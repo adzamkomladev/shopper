@@ -147,3 +147,13 @@ test("the detail carries what a picker needs: the customer, barcodes a scanner r
   expect(body.lines[0].gross).toBe(600_000);
   expect(body.branch.name).toBe("Osu");
 });
+
+test("the shared runtime serves the staff routes: signed out they are refused, never missing", async () => {
+  for (const path of ["/orders", `/orders/${v7()}`, "/reviews"]) {
+    const reply = await f.http.request(path, {
+      origin: null,
+      headers: { "X-Shopper-Org": f.world.a.orgId },
+    });
+    expect(reply.status, path).toBe(401);
+  }
+});

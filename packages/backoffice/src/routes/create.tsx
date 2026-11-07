@@ -20,6 +20,7 @@ import { taxRoutes } from "./tax";
 import { ledgerRoutes } from "./ledger";
 import { auditRoutes } from "./audit";
 import { transactionRoutes } from "./transactions";
+import { orderRoutes } from "./orders";
 import { paymentRoutes } from "./payments";
 import { approvalRoutes } from "./approvals";
 import { billingRoutes } from "./billing";
@@ -161,6 +162,7 @@ export function createBackofficeRoutes(
       ...ledgerRoutes(shopRoute),
       ...auditRoutes(shopRoute),
       ...transactionRoutes(shopRoute),
+      ...orderRoutes(shopRoute),
       ...paymentRoutes(shopRoute),
       ...approvalRoutes(shopRoute),
       ...billingRoutes(shopRoute),

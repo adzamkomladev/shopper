@@ -47,7 +47,18 @@ export type FulfilmentOptions = v.InferOutput<typeof fulfilmentOptions>;
 export const placedOrder = v.object({
   id: v.string(),
   number: v.number(),
-  status: v.picklist(["placed", "expired", "cancelled", "paid", "accepted", "refunded"]),
+  status: v.picklist([
+    "placed",
+    "expired",
+    "cancelled",
+    "paid",
+    "accepted",
+    "picking",
+    "ready",
+    "out_for_delivery",
+    "completed",
+    "refunded",
+  ]),
   branch: named,
   fulfilment: v.picklist(["pickup", "delivery"]),
   slotStart: v.string(),
@@ -68,9 +79,30 @@ export const placedOrder = v.object({
       failureReason: v.nullable(v.string()),
     }),
   ),
+  timeline: v.array(v.object({ status: v.string(), at: v.string() })),
+  /** What picking changed, once the pick is finished. */
+  adjustment: v.nullable(
+    v.object({ beforeGross: amount, afterGross: amount, refundAmount: amount }),
+  ),
+  review: v.nullable(
+    v.object({
+      rating: v.number(),
+      comment: v.nullable(v.string()),
+      status: v.picklist(["submitted", "flagged", "published", "rejected"]),
+    }),
+  ),
   totals,
   lines: v.array(
     v.object({
+      pick: v.nullable(
+        v.object({
+          outcome: v.picklist(["picked", "short", "substituted"]),
+          pickedThousandths: v.number(),
+          substitute: v.nullable(
+            v.object({ name: v.string(), quantityThousandths: v.number(), gross: amount }),
+          ),
+        }),
+      ),
       kind: v.picklist(["product", "delivery"]),
       productId: v.nullable(v.string()),
       quantityThousandths: v.number(),
@@ -86,3 +118,21 @@ export type PlacedOrder = v.InferOutput<typeof placedOrder>;
 export const orderSearch = v.object({
   t: v.fallback(v.optional(v.pipe(v.string(), v.uuid())), undefined),
 });
+
+/** What a shop shows of its reviews. */
+export const shopReviews = v.object({
+  count: v.number(),
+  average: v.nullable(v.number()),
+  latest: v.array(
+    v.object({
+      rating: v.number(),
+      comment: v.nullable(v.string()),
+      authorName: v.string(),
+      at: v.string(),
+    }),
+  ),
+});
+export type ShopReviews = v.InferOutput<typeof shopReviews>;
+
+/** The reply to a review: it was received. */
+export const reviewSent = v.object({ reviewed: v.boolean() });

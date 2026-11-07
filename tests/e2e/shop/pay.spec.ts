@@ -67,11 +67,11 @@ test("a shopper pays by card on Paystack's page and returns to a paid order", as
   await page.route("https://checkout.paystack.test/**", (route) =>
     route.fulfill({ contentType: "text/html", body: "<h1>Paystack</h1>" }),
   );
-  // By keyboard: from the first way to pay, arrow to Card, Tab to Pay and press Enter.
+  // By keyboard: focus Card and press Space, Tab to Pay and press Enter.
   // Server-rendered: the keys work once the page hydrates.
   await expect(async () => {
-    await page.getByRole("radio", { name: "Mobile money" }).focus();
-    await page.keyboard.press("ArrowDown");
+    await page.getByRole("radio", { name: "Card" }).focus();
+    await page.keyboard.press("Space");
     await expect(page.getByRole("radio", { name: "Card" })).toBeChecked({ timeout: 1_000 });
   }).toPass({ timeout: 30_000 });
   await page.keyboard.press("Tab");

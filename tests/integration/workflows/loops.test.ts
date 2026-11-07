@@ -51,3 +51,32 @@ test("a wake buffered as the loop finds nothing due makes it look again before i
   await runStatementSchedule(statements.flow, deps, { orgId: ids.org, actorId: ids.cashier });
   expect(statements.waits).toEqual(["last-0", "last-1"]);
 });
+
+test("a replay past the due moment takes the branch its first run took (account and statements)", async () => {
+  // The first run read the clock an hour before `due` and slept; the box restarts after `due`. A replay that
+  // read the live clock would skip the recorded sleep, and Rivet and Cloudflare reject that history.
+  const due = Date.now() - 60_000;
+  const replay = (instanceId: string) => {
+    const waits: string[] = [];
+    const recorded: Record<string, unknown> = { "due-0": due, "now-0": due - 3_600_000 };
+    const flow = {
+      instanceId,
+      step: async (name: string) => recorded[name] ?? null,
+      waitFor: async (name: string, _event: string, timeoutMs: number) => {
+        waits.push(name);
+        throw new WorkflowTimeoutError(instanceId, name, "wake", timeoutMs);
+      },
+    } as never;
+    return { flow, waits };
+  };
+  const deps = {
+    withDatabase: () => Promise.reject(new Error("replayed")),
+    appVersion: "test",
+  } as never;
+  const account = replay(ids.cashier);
+  await runAccount(account.flow, deps, params(ids.cashier));
+  expect(account.waits[0]).toBe("wait-0");
+  const statements = replay(ids.org);
+  await runStatementSchedule(statements.flow, deps, { orgId: ids.org, actorId: ids.cashier });
+  expect(statements.waits[0]).toBe("wait-0");
+});

@@ -50,6 +50,19 @@ test("a wait that times out throws WorkflowTimeoutError into the shared code", a
   await expect.poll(marked(id), until).toEqual(["missing"]);
 });
 
+test("entry names are per operation, and never collide with the host's own", async () => {
+  // runPriceChange sleeps on "start" (the host's bootstrap name); runMomoRefund waits and steps on "settled".
+  const launcher = host.launch("names", params, async (flow) => {
+    await flow.sleepUntil("start", new Date(Date.now() + 50));
+    const payload = await flow.waitFor("settled", "refund", 10_000);
+    await flow.step("settled", policy, () => mark(flow.instanceId, { checkpoint: payload }));
+  });
+  const id = v7();
+  await launcher.start(id, {});
+  await launcher.send(id, "refund", { webhook: true });
+  await expect.poll(marked(id), until).toEqual([{ checkpoint: { webhook: true } }]);
+});
+
 test("steps retry by the port's policy and a name is stored once", async () => {
   let attempts = 0;
   const launcher = host.launch("retry", params, async (flow) => {

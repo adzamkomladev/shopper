@@ -65,13 +65,16 @@ export async function runRivetFlow(
       return new Promise<T>(() => {});
     });
   // Rivet rejects a name used twice in one run; the port returns the first result, as the memory engine does.
+  // Like the memory engine, steps, sleeps and waits have their own names: the entry is `<operation>-<name>`,
+  // which also keeps them clear of the host's own entries (`start`, `passes`).
   const seen = new Map<string, Promise<unknown>>();
-  const once = <T>(name: string, run: () => Promise<T>) => {
+  const once = <T>(operation: string, name: string, run: (entry: string) => Promise<T>) => {
     if (!name) throw new Error("Workflow entry name is required");
-    const known = seen.get(name);
+    const entry = `${operation}-${name}`;
+    const known = seen.get(entry);
     if (known) return known as Promise<T>;
-    const promise = run();
-    seen.set(name, promise);
+    const promise = run(entry);
+    seen.set(entry, promise);
     return promise;
   };
   const compensations: Array<() => Promise<void>> = [];
@@ -87,11 +90,11 @@ export async function runRivetFlow(
       compensate?: (output: T) => Promise<void>,
     ) {
       const policy = v.parse(retryPolicySchema, raw);
-      return once(name, async () => {
+      return once("step", name, async (entry) => {
         // Rivet never retries: the port's policy runs inside the step and a final failure is stored as data.
         const outcome = await guard(
           ctx.step<Outcome>({
-            name,
+            name: entry,
             maxRetries: 0,
             timeout: STEP_TIMEOUT_MS,
             run: async () => {
@@ -116,20 +119,20 @@ export async function runRivetFlow(
     sleep(name, durationMs) {
       if (!Number.isFinite(durationMs) || durationMs < 0)
         return Promise.reject(new RangeError("Workflow sleep duration must be non-negative"));
-      return once(name, () => guard(ctx.sleep(name, durationMs)));
+      return once("sleep", name, (entry) => guard(ctx.sleep(entry, durationMs)));
     },
     sleepUntil(name, instant) {
       if (!(instant instanceof Date) || Number.isNaN(instant.getTime()))
         return Promise.reject(new TypeError("Workflow sleepUntil requires a valid Date"));
-      return once(name, () => guard(ctx.sleepUntil(name, instant.getTime())));
+      return once("sleep", name, (entry) => guard(ctx.sleepUntil(entry, instant.getTime())));
     },
     waitFor(name, type, timeoutMs) {
       if (!type) return Promise.reject(new Error("Workflow wait type is required"));
       if (!Number.isFinite(timeoutMs) || timeoutMs < 0)
         return Promise.reject(new RangeError("Workflow timeout must be non-negative"));
-      return once(name, async () => {
+      return once("wait", name, async (entry) => {
         const [message] = await guard(
-          ctx.queue.nextBatch(name, { names: [type], count: 1, timeout: timeoutMs }),
+          ctx.queue.nextBatch(entry, { names: [type], count: 1, timeout: timeoutMs }),
         );
         if (!message) throw new WorkflowTimeoutError(instanceId, name, type, timeoutMs);
         return message.body as Json;

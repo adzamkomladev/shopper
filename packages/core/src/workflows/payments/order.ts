@@ -56,9 +56,11 @@ export async function runOrderPayment(
         await deps.orders.send(applied.orderId, "payment.settled", { reference: params.id });
       return { woke: !applied.duplicate && applied.outcome === "settled" };
     });
-  const awaitCode = (name: string, reason: string | undefined) =>
+  const awaitCode = (name: string, status: "otp" | "pending", reason?: string) =>
     flow.step(name, policy, () =>
-      deps.withDatabase((db) => awaitOrderPaymentCode(db, context, { id: params.id, reason })),
+      deps.withDatabase((db) =>
+        awaitOrderPaymentCode(db, context, { id: params.id, status, reason }),
+      ),
     );
 
   const charged =
@@ -103,7 +105,7 @@ export async function runOrderPayment(
   }
   // Some networks ask the payer for a one-time code first: the order page takes it and sends it here.
   let awaitingCode = charged?.status === "otp";
-  if (awaitingCode) await awaitCode("code", undefined);
+  if (awaitingCode) await awaitCode("code", "otp");
   const { until } = await flow.step("deadline", policy, async () => ({
     until: Date.now() + (deps.timeoutMs ?? remaining(row.holdExpiresAt)),
   }));
@@ -131,9 +133,13 @@ export async function runOrderPayment(
         );
         return;
       }
+      // A code taken but the prompt still on the phone: the attempt waits on the payer again and takes no more codes.
       awaitingCode = result.status === "otp";
-      if (awaitingCode)
-        await awaitCode(`code-${index}`, "message" in result ? result.message : undefined);
+      await awaitCode(
+        `code-${index}`,
+        result.status,
+        "message" in result ? result.message : undefined,
+      );
     }
   } catch (error) {
     if (!(error instanceof WorkflowTimeoutError)) throw error;

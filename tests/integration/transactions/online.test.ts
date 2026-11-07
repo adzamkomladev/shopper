@@ -85,3 +85,21 @@ test("the CSV holds the orders with the online shop as cashier", async () => {
     { kind: "text", value: "Online shop" },
   ]);
 });
+
+test("a duplicate attempt owed back is not one of the order's tenders", async () => {
+  const order = await f.place();
+  const card = (await f.pay(order, { method: "card" })).body.payment.id as string;
+  f.fake.behave("0551234956", "pending");
+  const momo = (await f.pay(order, { method: "momo", network: "mtn", phone: "0551234956" })).body
+    .payment.id as string;
+  for (const reference of [momo, card]) {
+    f.fake.knownCharge(reference, f.pesewas(order.gross));
+    await f.paystackEvent(reference, f.pesewas(order.gross));
+  }
+  await expect.poll(async () => (await f.refunds(order)).length).toBe(1);
+  const receipt = (await f.row(order)).receiptNumber!;
+  expect((await list({ q: receipt })).rows).toMatchObject([
+    { id: order.id, tenders: ["momo"], status: "completed" },
+  ]);
+  expect(await ids({ q: receipt, tender: "card" })).toEqual([]);
+});

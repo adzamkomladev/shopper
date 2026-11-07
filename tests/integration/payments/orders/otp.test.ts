@@ -40,6 +40,19 @@ test("the attempt waits for the code: a wrong code keeps it open with the reason
   );
 });
 
+test("a code the network accepts but still prompts for leaves the attempt pending, taking no more codes", async () => {
+  w.fake.behave("0551234991", "send_otp", "pending");
+  const order = await w.place();
+  await w.pay(order, prompt("0551234991"));
+  await expect.poll(async () => (await attempt(order)).status).toBe("otp");
+  expect((await code(order, "000000")).status).toBe(202);
+  await expect.poll(async () => (await attempt(order)).failureReason).toMatch(/incorrect/i);
+  expect((await code(order, FAKE_OTP)).status).toBe(202);
+  await expect.poll(async () => (await attempt(order)).status).toBe("pending");
+  expect((await attempt(order)).failureReason).toBeNull();
+  expect((await code(order, FAKE_OTP)).status).toBe(409);
+});
+
 test("a code needs the order's key and an attempt waiting for one", async () => {
   w.fake.behave("0551234988", "success");
   const paid = await w.place();

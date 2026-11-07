@@ -92,16 +92,19 @@ const onlineTax = `(${["vat", "nhil", "getfund", "covid"].map((part) => `(o.tax-
 const back = (value: string) => sql.raw(`CASE WHEN o.kind = 'refund' THEN ${value} ELSE 0 END`);
 
 /**
- * What online orders sold and gave back, per product line. Like a till refund, an online one is costed at the day
- * the order was paid, so it reverses exactly the cost booked; a substitute is costed on the day it went out.
+ * What online orders sold and gave back, per product line. Like a till refund, an online one is costed on the day its
+ * goods were sold (the order's payment, or the adjustment that sent a substitute), so it reverses exactly the cost booked.
+ * shortcut: a product both ordered and sent as a substitute in one order costs its refund at the later day, fine until it happens.
  */
 const onlineProducts = (filter: FoldFilter) => sql`
   SELECT o.org_id, o.store_id, o.branch_id, ${accraDay(o)}, o.product_id, o.branch_id,
-    CASE WHEN o.kind = 'refund' THEN (paid.paid_at AT TIME ZONE 'Africa/Accra')::date ELSE ${accraDay(o)} END,
+    CASE WHEN o.kind = 'refund' THEN (SELECT ${accraDay(sql`sold`)} FROM order_report_line sold
+      WHERE sold.org_id = o.org_id AND sold.order_id = o.order_id AND sold.product_id = o.product_id
+        AND sold.kind = 'sale' AND sold.occurred_at <= o.occurred_at
+      ORDER BY sold.occurred_at DESC LIMIT 1) ELSE ${accraDay(o)} END,
     ${sale("(o.tax->>'quantityThousandths')::bigint")}, ${sale("(o.tax->>'gross')::bigint")},
     ${sale("coalesce((o.tax->>'discount')::bigint, 0)")}, ${sale(onlineTax)},
     ${sale("(o.tax->>'base')::bigint")}, ${back("(o.tax->>'quantityThousandths')::bigint")},
     ${back("(o.tax->>'gross')::bigint")}, ${back("(o.tax->>'base')::bigint")}
   FROM order_report_line o
-  JOIN online_order paid ON paid.org_id = o.org_id AND paid.id = o.order_id
   WHERE ${onStoreDays(o, filter)} AND o.product_id IS NOT NULL`;

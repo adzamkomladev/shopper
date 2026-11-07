@@ -94,15 +94,19 @@ export function matching(
           WHERE p.org_id = o.org_id AND p.order_id = o.id AND r.reason NOT IN ('late_payment', 'duplicate_payment'))
         THEN 'refunded' ELSE 'completed' END,
       (SELECT array_agg(DISTINCT p.method ORDER BY p.method) FROM order_payment p
-        WHERE p.org_id = o.org_id AND p.order_id = o.id AND p.status = 'confirmed'),
+        WHERE p.org_id = o.org_id AND p.order_id = o.id AND ${kept}),
       (SELECT count(*)::int FROM online_order_line l WHERE l.org_id = o.org_id AND l.order_id = o.id AND l.kind = 'product')
     FROM online_order o
     WHERE o.org_id = ${orgId} AND o.paid_at >= ${from} AND o.paid_at < ${to}
       ${inBranches(sql`o`, branchIds)}
       ${query.cashierId ? sql`AND false` : sql``}
-      ${query.tender ? sql`AND EXISTS (SELECT 1 FROM order_payment p WHERE p.org_id = o.org_id AND p.order_id = o.id AND p.status = 'confirmed' AND p.method = ${query.tender})` : sql``}
+      ${query.tender ? sql`AND EXISTS (SELECT 1 FROM order_payment p WHERE p.org_id = o.org_id AND p.order_id = o.id AND ${kept} AND p.method = ${query.tender})` : sql``}
       ${search(sql`o.receipt_number ILIKE ${like} OR o.customer_name ILIKE ${like} OR o.customer_phone ILIKE ${like}`)}`;
 }
+
+/** An order payment that paid for it: confirmed, and not owed back as a late or duplicate attempt (as `keeperPayment`). */
+const kept = sql`p.status = 'confirmed' AND NOT EXISTS (SELECT 1 FROM order_refund r WHERE r.org_id = p.org_id
+  AND r.order_payment_id = p.id AND r.reason IN ('late_payment', 'duplicate_payment'))`;
 
 /** The cashier an online order shows: it has none. */
 const ONLINE = "Online shop";

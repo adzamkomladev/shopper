@@ -6,12 +6,15 @@ import {
   cancelStoreOrder,
   declineStoreOrder,
   dispatchStoreOrder,
+  decideReview,
   finishStoreOrder,
   handOverStoreOrder,
+  listFlaggedReviews,
   listOrderQueue,
   OrderError,
   readStaffOrder,
   recordPick,
+  reviewInstanceId,
   startPicking,
 } from "@shopper/core/orders";
 import { uuidV7Schema } from "@shopper/ports";
@@ -89,8 +92,29 @@ export function orderRoutes(options: ApiOptions) {
   step("start", (c, id) => startPicking(db, context(c), { id }));
   step("ready", (c, id) => finishStoreOrder(db, context(c), flows(), id));
   step("dispatch", (c, id) => dispatchStoreOrder(db, context(c), id));
-  step("handover", (c, id) => handOverStoreOrder(db, context(c), flows(), id));
+  step("handover", async (c, id) => {
+    await handOverStoreOrder(db, context(c), flows(), id);
+    // The review workflow asks the shopper how it went after a couple of days.
+    const orgId = c.get("principal").orgId;
+    await options.orderReviews?.start(reviewInstanceId(id), { orgId, id });
+  });
   step("cancel", (c, id) => cancelStoreOrder(db, context(c), flows(), id));
+  // Reviews a moderator decides on: those the screening flagged.
+  app.get("/reviews", requirePermission(options.authentication, "review.moderate"), async (c) =>
+    c.json({ reviews: await listFlaggedReviews(db, c.get("principal").orgId) }),
+  );
+  app.post(
+    "/reviews/:id/decision",
+    requirePermission(options.authentication, "review.moderate"),
+    async (c) => {
+      const decided = await decideReview(db, context(c), {
+        id: v.parse(uuidV7Schema, c.req.param("id").toLowerCase()),
+        decision: (await c.req.json().catch(() => ({}))).decision,
+      });
+      await options.orderReviews?.send(reviewInstanceId(decided.orderId), "moderator_decision", {});
+      return c.json({ id: c.req.param("id"), status: decided.status });
+    },
+  );
   app.put("/orders/:id/lines/:lineId", write, async (c) => {
     const order = await reach(c);
     const body = await c.req.json().catch(() => ({}));

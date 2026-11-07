@@ -23,7 +23,7 @@ const headers = () => ({
 export async function staffWorld(
   db: schema.ShopperDatabase,
   orgId: string,
-  over: { orderFlows?: WorkflowLauncher; queue?: Queue },
+  over: { orderFlows?: WorkflowLauncher; orderReviews?: WorkflowLauncher; queue?: Queue },
 ) {
   const auth = createAuth({ database: db, orgId, secret, baseURL, bootstrapToken });
   const signIn = async (email: string) => {
@@ -58,6 +58,7 @@ export async function staffWorld(
     authentication: auth,
     notifications: over.queue,
     orderFlows: over.orderFlows,
+    orderReviews: over.orderReviews,
   });
   const member = async (roleName: string, branchIds?: string[]) => {
     const address = `${v7()}@${roleName}.test`;

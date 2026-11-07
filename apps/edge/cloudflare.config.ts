@@ -168,6 +168,11 @@ export default defineConfig(({ mode }) => {
           worker: name,
           exportName: "OrderPaymentWorkflow",
         }),
+        ORDER_REVIEWS: bindings.workflow({
+          name: workflow("order-review"),
+          worker: name,
+          exportName: "OrderReviewWorkflow",
+        }),
         BILLING: bindings.workflow({
           name: workflow("billing"),
           worker: name,
@@ -211,6 +216,7 @@ export default defineConfig(({ mode }) => {
         OnboardingWorkflow: exports.workflow({ name: workflow("onboarding") }),
         KybWorkflow: exports.workflow({ name: workflow("kyb") }),
         OnlineOrderWorkflow: exports.workflow({ name: workflow("online-order") }),
+        OrderReviewWorkflow: exports.workflow({ name: workflow("order-review") }),
         OrderPaymentWorkflow: exports.workflow({ name: workflow("order-payment") }),
       },
     },

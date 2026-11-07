@@ -1,5 +1,5 @@
 {
-  "id": "8a7c4390-5732-4854-8194-29a408650bb5",
+  "id": "fda62ee3-3c5e-4909-803a-414c5e2dbe0c",
   "prevId": "281fd69a-5157-4376-a568-45bbc29fcc39",
   "version": "7",
   "dialect": "postgresql",
@@ -13211,6 +13211,12 @@
         },
         "completed_at": {
           "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "review_asked_at": {
+          "name": "review_asked_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false

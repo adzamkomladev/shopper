@@ -95,6 +95,8 @@ ALTER TABLE "online_order" ADD COLUMN IF NOT EXISTS "ready_at" timestamp with ti
 --> statement-breakpoint
 ALTER TABLE "online_order" ADD COLUMN IF NOT EXISTS "completed_at" timestamp with time zone;
 --> statement-breakpoint
+ALTER TABLE "online_order" ADD COLUMN IF NOT EXISTS "review_asked_at" timestamp with time zone;
+--> statement-breakpoint
 ALTER TABLE "online_order" ADD COLUMN IF NOT EXISTS "fulfilled_gross" bigint;
 --> statement-breakpoint
 ALTER TABLE "online_order_event" DROP CONSTRAINT IF EXISTS "online_order_event_org_id_org_id_fk";

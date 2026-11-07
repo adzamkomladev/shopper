@@ -125,6 +125,11 @@ export default defineConfig(({ mode }) => {
           worker: edge,
           exportName: "OrderPaymentWorkflow",
         }),
+        ORDER_REVIEWS: bindings.workflow({
+          name: workflow("order-review"),
+          worker: edge,
+          exportName: "OrderReviewWorkflow",
+        }),
         MOMO_REFUND: bindings.workflow({
           name: workflow("momo-refund"),
           worker: edge,

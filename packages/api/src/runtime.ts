@@ -139,6 +139,7 @@ async function route(request: Request, options: RuntimeOptions): Promise<Respons
       billing: options.billing,
       orderFlows: options.orderFlows,
       orderPayments: options.orderPayments,
+      orderReviews: options.orderReviews,
       notifications: options.notifications,
     }).fetch(request);
   const selected = request.headers.get("X-Shopper-Org");
@@ -220,6 +221,7 @@ function shop(request: Request, options: RuntimeOptions) {
       orderFlows: options.orderFlows,
       stockHolds: options.stockHolds,
       orderPayments: options.orderPayments,
+      orderReviews: options.orderReviews,
       paystack: options.paystack,
     },
   }).fetch(request);

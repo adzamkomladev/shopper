@@ -104,18 +104,24 @@ export async function runOnlineOrder(
   const slotEnd = new Date(accepted.slotEnd).getTime();
 
   await flow.sleepUntil("pick-due", new Date(slotStart - (deps.pickLeadMs ?? hour)));
-  if (!(await record("pick_due", "waiting", pickDue)).due) return;
-  const picked = await waited(flow.waitFor("pick", "picked", Math.max(0, slotEnd - Date.now())));
-  if (!picked) return await giveBack("unfilled", "not_fulfilled");
-  if ((picked as Decision).cancelled) return;
-  if (!(await record("picked", "waiting", orderPicked)).ok) return;
-
-  const collectBy = slotEnd + (deps.collectWithinMs ?? 24 * hour);
-  const handed = await waited(
-    flow.waitFor("hand-over", "handed_over", Math.max(0, collectBy - Date.now())),
-  );
-  if (!handed) return await giveBack("uncollected", "uncollected");
-  if ((handed as Decision).cancelled) return;
+  const due = await record("pick_due", "waiting", pickDue);
+  if (!due.due) return;
+  // What already happened (picked ahead of the pick hour) is read from the order, not waited for as an event.
+  if (!due.picked) {
+    const picked = await waited(flow.waitFor("pick", "picked", Math.max(0, slotEnd - Date.now())));
+    if (!picked) return await giveBack("unfilled", "not_fulfilled");
+    if ((picked as Decision).cancelled) return;
+  }
+  const done = await record("picked", "waiting", orderPicked);
+  if (!done.ok) return;
+  if (!done.handedOver) {
+    const collectBy = slotEnd + (deps.collectWithinMs ?? 24 * hour);
+    const handed = await waited(
+      flow.waitFor("hand-over", "handed_over", Math.max(0, collectBy - Date.now())),
+    );
+    if (!handed) return await giveBack("uncollected", "uncollected");
+    if ((handed as Decision).cancelled) return;
+  }
   await record("completed", "completed", orderCompleted);
 }
 

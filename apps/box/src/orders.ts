@@ -1,5 +1,10 @@
 import { buildInfo } from "@shopper/config";
-import { boxOnlineOrders, boxOrderPayments, boxStockHolds } from "@shopper/adapters-box";
+import {
+  boxOnlineOrders,
+  boxOrderPayments,
+  boxOrderReviews,
+  boxStockHolds,
+} from "@shopper/adapters-box";
 import type { Queue } from "@shopper/ports";
 import type { createHubtel } from "@shopper/core/payments/hubtel";
 import type { createPaystack } from "@shopper/core/payments/paystack";
@@ -29,6 +34,7 @@ export function boxOrders(
   const orderFlows = boxOnlineOrders({ ...deps, paystack: providers.paystack, notifications });
   return {
     orderFlows,
+    orderReviews: boxOrderReviews({ ...deps, notifications }),
     stockHolds: holds.holds,
     orderPayments: providers.paystack
       ? boxOrderPayments({

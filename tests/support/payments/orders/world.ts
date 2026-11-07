@@ -9,7 +9,7 @@
 //   w.row(order)                   -> the order row now;  w.count(table, where) -> rows
 import { and, eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
-import { boxOnlineOrders, boxOrderPayments } from "@shopper/adapters-box";
+import { boxOnlineOrders, boxOrderPayments, boxOrderReviews } from "@shopper/adapters-box";
 import { placeOrder } from "@shopper/core/orders";
 import { createHubtel } from "@shopper/core/payments/hubtel";
 import { createPaystack } from "@shopper/core/payments/paystack";
@@ -26,6 +26,8 @@ type Options = {
   paymentTimeoutMs?: number;
   pickLeadMs?: number;
   collectWithinMs?: number;
+  /** The review workflow's timers, in ms: ask after, wait for a review, wait for a moderator. */
+  review?: { askAfterMs: number; waitMs: number; moderateWithinMs: number };
 };
 
 export async function orderPayWorld(options: Options = {}) {
@@ -84,8 +86,14 @@ export async function orderPayWorld(options: Options = {}) {
     timeoutMs: options.paymentTimeoutMs,
     notifications: () => world.queue,
   });
+  const orderReviews = boxOrderReviews({
+    ...deps,
+    notifications: () => world.queue,
+    ...options.review,
+  });
   const http = shopHttp(world, {
     orderFlows,
+    orderReviews,
     orderPayments,
     paystack,
     paystackSecret: fake.secretKey,
@@ -177,6 +185,7 @@ export async function orderPayWorld(options: Options = {}) {
     hubtel,
     deps,
     orderFlows,
+    orderReviews,
     orderPayments,
     products: { oil, rice },
     place,

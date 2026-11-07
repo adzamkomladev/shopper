@@ -14,3 +14,4 @@ export { BillingWorkflow } from "./billing";
 export { OnboardingWorkflow } from "./onboarding";
 export { KybWorkflow } from "./kyb";
 export { OnlineOrderWorkflow } from "./order";
+export { OrderReviewWorkflow } from "./review";

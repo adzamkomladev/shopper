@@ -39,6 +39,9 @@ async function budgetOf(request: Request, ip: string, orgId?: string) {
   if (/^\/shop\/[^/]+\/orders$/.test(path)) return budget("checkout", `${ip}:checkout`);
   if (/^\/shop\/[^/]+\/orders\/[^/]+\/pay$/.test(path)) return budget("checkout", `${ip}:pay`);
   if (/^\/shop\/[^/]+\/cart$/.test(path)) return budget("public", `${ip}:cart`);
+  // A review or a cancel needs the order's key, so a wrong key is a guess at someone's order.
+  if (/^\/shop\/[^/]+\/orders\/[^/]+\/(?:review|cancel)$/.test(path))
+    return budget("public", `${ip}:shop-order`);
   // Each login also locks itself after five wrong codes; this stops one address cycling through many logins.
   if (/^\/shop\/[^/]+\/signin\/[^/]+\/(?:verify|resend)$/.test(path))
     return budget("auth", `${ip}:shop-code`);

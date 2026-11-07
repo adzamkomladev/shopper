@@ -108,6 +108,7 @@ export const BODIES: Record<string, Body> = {
     pickedThousandths: 1_000,
     substitute: { productId: id, quantityThousandths: 1_000 },
   }),
+  "POST /reviews/:id/decision": () => ({ decision: "approve" }),
   "POST /transactions/:id/receipt/email": () => ({ requestKey: v7(), email: "sweep@tenants.test" }),
   "PUT /customers/:id/limit": () => ({ creditLimit: 100_000 }),
   "PUT /ledger/lock": () => ({ through: null }),

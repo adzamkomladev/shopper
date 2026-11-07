@@ -23,7 +23,8 @@ export const pickDue = defineCommand({
         type: "order.pick_due",
         payload: { orderId: order.id },
       });
-    return { due };
+    // An order already picked (or handed over) ahead of its pick hour needs no wait for what has already happened.
+    return { due, picked: ["ready", "out_for_delivery", "completed"].includes(order.status) };
   },
   audit: (input, output) => ({ id: input.id, ...output }),
   details: (input) => ({ entity: "online_order", entityId: input.id }),
@@ -40,7 +41,18 @@ const reached = (name: string, statuses: Status[]) =>
     details: (input) => ({ entity: "online_order", entityId: input.id }),
   });
 
-export const orderPicked = reached("order.picked", ["ready", "out_for_delivery", "completed"]);
+export const orderPicked = defineCommand({
+  name: "order.picked",
+  async run(tx, ctx, input: { id: string }) {
+    const { status } = await read(tx, ctx.orgId, input.id);
+    return {
+      ok: ["ready", "out_for_delivery", "completed"].includes(status),
+      handedOver: status === "completed",
+    };
+  },
+  audit: (input, output) => ({ id: input.id, ...output }),
+  details: (input) => ({ entity: "online_order", entityId: input.id }),
+});
 export const orderCompleted = reached("order.completed", ["completed"]);
 
 async function read(tx: ShopperTransaction, orgId: string, id: string) {

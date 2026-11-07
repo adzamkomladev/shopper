@@ -67,3 +67,17 @@ export type Item = { name: string; unit: BaseUnit; productId: string | null; tax
 
 /** A column of the store's order queue. */
 export type Stage = "new" | "preparing" | "ready" | "done";
+
+/** What an order's review workflow needs from its runtime shell. */
+export type ReviewFlowDeps = {
+  withDatabase<T>(run: (db: ShopperDatabase) => Promise<T>): Promise<T>;
+  appVersion: string;
+  /** Where the request to review is queued; read when needed. */
+  notifications?: () => Queue | undefined;
+  /** How long after handover the shopper is asked; 48 hours unless a test shortens it. */
+  askAfterMs?: number;
+  /** How long the shopper has to review once asked; seven days unless a test shortens it. */
+  waitMs?: number;
+  /** How long a flagged review waits for a moderator; thirty days unless a test shortens it. */
+  moderateWithinMs?: number;
+};

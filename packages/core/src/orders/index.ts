@@ -13,6 +13,7 @@ export type {
   OrderPaymentApplied,
   OrderPaymentDeps,
   OrderRefundDeps,
+  ReviewFlowDeps,
   Stage,
 } from "./types";
 export type { PlaceOrderInput } from "../schemas/orders/place";
@@ -36,3 +37,7 @@ export {
 export { recordPick, startPicking } from "./fulfil/pick";
 export { ACCEPT_WITHIN_MS } from "../workflows/order";
 export { listOrderQueue, readStaffOrder, stages } from "./fulfil/queue";
+export { reviewInstanceId, runOrderReview } from "../workflows/review";
+export { askForReview, decideReview, submitReview } from "./reviews/submit";
+export { listFlaggedReviews, listPublishedReviews } from "./reviews/list";
+export { reviewInput, reviewDecision } from "../schemas/orders/review";

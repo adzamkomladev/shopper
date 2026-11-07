@@ -71,6 +71,8 @@ export const onlineOrder = pgTable(
     acceptedAt: timestamp("accepted_at", { withTimezone: true }),
     readyAt: timestamp("ready_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),
+    /** When the shopper was asked for a review; they are asked once. */
+    reviewAskedAt: timestamp("review_asked_at", { withTimezone: true }),
     /** What the shopper finally owes once picking short or substituting adjusted the order; null until then. */
     fulfilledGross: moneyColumn("fulfilled_gross"),
     /** The invoice number and receipt the payment issued (null until paid). */

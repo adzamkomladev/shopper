@@ -1,0 +1,23 @@
+# LAN TLS for the box: Caddy's internal CA signs shopper.local; tills pin that CA on first run (ca.crt below).
+{
+	# The box serves its own LAN: no ACME, no public CA.
+	local_certs
+	skip_install_trust
+}
+
+shopper.local {
+	tls internal
+	reverse_proxy 127.0.0.1:3001
+}
+
+# Plain HTTP serves only the root CA a new till pins, and sends everything else to HTTPS.
+http://shopper.local {
+	handle /ca.crt {
+		root * /var/lib/caddy/.local/share/caddy/pki/authorities/local
+		rewrite * /root.crt
+		file_server
+	}
+	handle {
+		redir https://shopper.local{uri} permanent
+	}
+}

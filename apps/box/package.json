@@ -22,6 +22,7 @@
     "@shopper/ports": "workspace:*",
     "@shopper/utils": "workspace:*",
     "hono": "4.13.13",
+    "pg": "8.23.1",
     "satori": "0.33.5"
   }
 }

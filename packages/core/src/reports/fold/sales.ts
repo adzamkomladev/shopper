@@ -52,7 +52,8 @@ const r = sql`r`;
 /**
  * Sales and refunds on the filter's store days, summed per branch, day, Accra hour and cashier. Sale amounts come
  * from the stored sale totals (gross = base + tax + the tax rounding adjustment) and its cash rounding; a refund
- * counts on the day it was made, its tax and base summed from its lines, with its own cash rounding.
+ * counts on the day it was made, its tax and base summed from its lines, with its own cash rounding. Online orders
+ * have no cashier (a null one) and no cash rounding.
  */
 export const foldSales = (filter: FoldFilter) => sql`
   SELECT org_id, store_id, branch_id, day, hour, cashier_id, ${totals}
@@ -83,5 +84,33 @@ export const foldSales = (filter: FoldFilter) => sql`
       FROM refund_line rl WHERE rl.org_id = r.org_id AND rl.refund_id = r.id
     ) lines
     WHERE ${onStoreDays(r, filter)}
+    UNION ALL
+    SELECT d.org_id, d.store_id, d.branch_id, ${accraDay(d)}, ${accraHour(d)}, NULL::uuid,
+      (d.source = 'order')::int, d.items, d.gross, d.discount, d.tax, d.vat, d.nhil, d.getfund, d.covid, d.net, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0
+    FROM (${onlineDocuments(filter, "sale")}) d
+    UNION ALL
+    SELECT d.org_id, d.store_id, d.branch_id, ${accraDay(d)}, ${accraHour(d)}, NULL::uuid,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      1, d.gross, d.tax, d.vat, d.nhil, d.getfund, d.covid, d.net, 0
+    FROM (${onlineDocuments(filter, "refund")}) d
   ) x
   GROUP BY org_id, store_id, branch_id, day, hour, cashier_id`;
+
+const d = sql`d`;
+const o = sql`o`;
+
+/**
+ * An online order's sales or refunds, one row per document (the paid order, the change its picking made, a refund),
+ * summed from its report lines. Only the paid order counts as a sale; the delivery fee is money, not an item.
+ */
+const onlineDocuments = (filter: FoldFilter, kind: "sale" | "refund") => sql`
+  SELECT o.org_id, o.store_id, o.branch_id, o.occurred_at, o.source,
+    coalesce(sum((o.tax->>'quantityThousandths')::bigint) FILTER (WHERE o.product_id IS NOT NULL), 0) AS items,
+    sum((o.tax->>'gross')::bigint) AS gross, sum(coalesce((o.tax->>'discount')::bigint, 0)) AS discount,
+    sum(${taxSum("o.tax")}) AS tax,
+    ${sql.raw(levies.map((levy) => `sum((o.tax->>'${levy}')::bigint) AS ${levy}`).join(", "))},
+    sum((o.tax->>'base')::bigint) AS net
+  FROM order_report_line o
+  WHERE ${onStoreDays(o, filter)} AND o.kind = ${kind}
+  GROUP BY o.org_id, o.store_id, o.branch_id, o.order_id, o.occurred_at, o.source`;

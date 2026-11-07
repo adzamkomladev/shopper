@@ -63,7 +63,8 @@ export const reportSales = pgTable(
   {
     ...grain(),
     hour: smallint("hour").notNull(),
-    cashierId: uuid("cashier_id").notNull(),
+    /** Null for online orders, which have no cashier. */
+    cashierId: uuid("cashier_id"),
     sales: integer("sales").notNull(),
     items: bigint("items", { mode: "number" }).notNull(),
     gross: moneyColumn("gross").notNull(),
@@ -87,7 +88,7 @@ export const reportSales = pgTable(
     refundRounding: moneyColumn("refund_rounding").notNull(),
   },
   (t) => [
-    unique().on(t.orgId, t.storeId, t.day, t.branchId, t.hour, t.cashierId),
+    unique().on(t.orgId, t.storeId, t.day, t.branchId, t.hour, t.cashierId).nullsNotDistinct(),
     index("report_sales_day").on(t.orgId, t.day),
     foreignKey({ columns: [t.orgId, t.branchId], foreignColumns: [branch.orgId, branch.id] }),
     foreignKey({ columns: [t.orgId, t.cashierId], foreignColumns: [user.orgId, user.id] }),

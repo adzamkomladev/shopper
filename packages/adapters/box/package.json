@@ -42,6 +42,7 @@
     "hono": "4.13.13",
     "pg": "8.23.1",
     "react": "19.3.0",
+    "rivetkit": "3.0.0-preview.3",
     "satori": "0.33.5",
     "unstorage": "1.17.4",
     "uuid": "14.0.2",

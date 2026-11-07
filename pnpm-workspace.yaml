@@ -25,6 +25,8 @@ allowBuilds:
   "@serialport/bindings-cpp": false
   # Squirrel installer support; we build NSIS.
   electron-winstaller: false
+  # cbor-x falls back to its pure-JS decoder; the native extractor is optional.
+  cbor-extract: false
 peerDependencyRules:
   allowAny:
     - vite

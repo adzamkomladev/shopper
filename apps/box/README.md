@@ -38,3 +38,9 @@ never box configuration) enforces it. `SHOPPER_LICENCE_DIR` (default `.shopper/l
 SHA-256 of `SHOPPER_MACHINE_ID_FILE` (default `/etc/machine-id`). Each night the watchdog checks in with
 `SHOPPER_LICENCE_URL` (the cloud API); 30 days without a confirmation warns, 60 turns the back office read-only.
 Tills never lock. Settings → Licence shows the request code a licence is issued from (`tooling/licence/issue.ts`).
+
+Egress (`src/egress.ts`): on Bun the box's `fetch` reaches only Paystack, Hubtel, Arkesel, Maileroo and the hosts of
+`SHOPPER_SDC_URL`, `SHOPPER_LICENCE_URL`, provider URL overrides, `SHOPPER_S3_ENDPOINT` and `RIVET_ENDPOINT`, plus
+`SHOPPER_EGRESS_ALLOW` (comma separated). Loopback, private LAN and `.local` always pass. `SHOPPER_EGRESS=off` turns it
+off. Backups: `src/backup.ts` with `deploy/systemd/backup.{service,timer}`; LAN TLS and mDNS: `deploy/Caddyfile`,
+`deploy/avahi/shopper.service`.

@@ -4,13 +4,18 @@ import {
   runAccount,
   type AccountFlowDeps,
 } from "@shopper/core/customers";
-import { boxLoopFlows } from "./loop";
+import type { Launch } from "../types";
+import { memoryLaunch } from "./launch";
 
-// ponytail: timers live in this process; a restart loses them, so `relaunch` on boot starts every account again and
-// each finds its own next due moment in PostgreSQL. Rivet Workflows take over on Day 36.
-export function boxAccountFlows(deps: AccountFlowDeps) {
-  const flows = boxLoopFlows("account.workflow", accountFlowParams, (flow, params) =>
-    runAccount(flow, deps, params),
+/** One loop per customer with a ledger. `relaunch` on boot starts every account; each finds its next due moment. */
+export function boxAccountFlows(deps: AccountFlowDeps, launch: Launch = memoryLaunch) {
+  const flows = launch(
+    "account",
+    accountFlowParams,
+    (flow, params) => runAccount(flow, deps, params),
+    {
+      loop: true,
+    },
   );
   return {
     ...flows,

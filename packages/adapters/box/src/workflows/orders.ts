@@ -10,61 +10,31 @@ import {
   type OrderPaymentDeps,
   type ReviewFlowDeps,
 } from "@shopper/core/orders";
-import { memoryWorkflow, workflowInstanceIdSchema, type WorkflowLauncher } from "@shopper/ports";
+import type { Json } from "@shopper/ports";
+import type { Launch } from "../types";
+import { memoryLaunch } from "./launch";
 
-// shortcut: process-local waits are lost on restart (the StockHold timer still frees the stock); use Rivet Workflows
-// when the box engine ships on Day 36.
-export function boxOnlineOrders(deps: OrderFlowDeps): WorkflowLauncher {
-  const started = new Set<string>();
-  return {
-    send: (id, type, payload) =>
-      memoryWorkflow(v.parse(workflowInstanceIdSchema, id)).send(id, type, payload),
-    async start(id, params) {
-      v.parse(workflowInstanceIdSchema, id);
-      v.parse(orderParams, params);
-      if (started.has(id)) return;
-      started.add(id);
-      runOnlineOrder(memoryWorkflow(id), deps, params).catch((error: unknown) =>
-        console.error({ event: "workflow.failed", instanceId: id, error }),
-      );
-    },
-  };
+// On the memory engine a restart loses the waits; the StockHold timer still frees the stock.
+export function boxOnlineOrders(deps: OrderFlowDeps, launch: Launch = memoryLaunch) {
+  return launch("online-order", orderParams, (flow, params) => runOnlineOrder(flow, deps, params));
 }
 
-// shortcut: process-local waits are lost on restart (an attempt is then settled by its webhook or the hold timer);
-// use Rivet Workflows when the box engine ships on Day 36.
-export function boxOrderPayments(deps: OrderPaymentDeps): WorkflowLauncher {
-  const started = new Set<string>();
-  return {
-    send: (id, type, payload) =>
-      memoryWorkflow(v.parse(workflowInstanceIdSchema, id)).send(id, type, payload),
-    async start(id, params) {
-      v.parse(workflowInstanceIdSchema, id);
-      v.parse(orderPaymentParams, params);
-      if (started.has(id)) return;
-      started.add(id);
-      runOrderPayment(memoryWorkflow(id), deps, params).catch((error: unknown) =>
-        console.error({ event: "workflow.failed", instanceId: id, error }),
-      );
-    },
-  };
+// On the memory engine a restart loses the waits; the attempt is then settled by its webhook or the hold timer.
+export function boxOrderPayments(deps: OrderPaymentDeps, launch: Launch = memoryLaunch) {
+  return launch("order-payment", orderPaymentParams, (flow, params) =>
+    runOrderPayment(flow, deps, params),
+  );
 }
 
-// shortcut: process-local waits and the 48 hour sleep are lost on restart; use Rivet Workflows when the box engine
-// ships on Day 36 (a restart then loses only the request to review, never an order).
-export function boxOrderReviews(deps: ReviewFlowDeps): WorkflowLauncher {
-  const started = new Set<string>();
+/** The review request for an order; an id that is not the order's review id starts nothing. */
+export function boxOrderReviews(deps: ReviewFlowDeps, launch: Launch = memoryLaunch) {
+  const flows = launch("order-review", orderParams, (flow, params) =>
+    runOrderReview(flow, deps, params),
+  );
   return {
-    send: (id, type, payload) =>
-      memoryWorkflow(v.parse(workflowInstanceIdSchema, id)).send(id, type, payload),
-    async start(id, params) {
-      v.parse(workflowInstanceIdSchema, id);
-      const { id: orderId } = v.parse(orderParams, params);
-      if (id !== reviewInstanceId(orderId) || started.has(id)) return;
-      started.add(id);
-      runOrderReview(memoryWorkflow(id), deps, params).catch((error: unknown) =>
-        console.error({ event: "workflow.failed", instanceId: id, error }),
-      );
+    ...flows,
+    async start(id: string, params: Json) {
+      if (id === reviewInstanceId(v.parse(orderParams, params).id)) await flows.start(id, params);
     },
   };
 }

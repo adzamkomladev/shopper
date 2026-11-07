@@ -1,41 +1,33 @@
-import * as v from "valibot";
 import { buildInfo } from "@shopper/config";
 import { runStoreDay, storeDayId, storeDayParams } from "@shopper/core/reports";
 import { and, eq, ne } from "drizzle-orm";
 import { store, workflowRun, type ShopperDatabase } from "@shopper/db-pg";
-import {
-  memoryWorkflow,
-  workflowInstanceIdSchema,
-  type Queue,
-  type WorkflowLauncher,
-} from "@shopper/ports";
+import type { Queue, WorkflowLauncher } from "@shopper/ports";
+import type { BoxLauncher, Launch } from "../types";
+import { memoryLaunch } from "./launch";
 
-// ponytail: in-process, so a restart forgets the sleeping days; `relaunch` starts them again on boot (their finished
-// steps replay from workflow_step). Rivet Workflows take over on Day 36.
-/** The box shell for store days; each day starts the next through this launcher. `idle` waits for started days. */
-export function boxStoreDays(options: { database: ShopperDatabase; queue?: Queue }) {
-  const running = new Map<string, Promise<void>>();
-  const launcher: WorkflowLauncher = {
-    send: async (id) => void v.parse(workflowInstanceIdSchema, id),
-    async start(instanceId, params) {
-      v.parse(workflowInstanceIdSchema, instanceId);
-      v.parse(storeDayParams, params);
-      if (running.has(instanceId)) return;
-      running.set(
-        instanceId,
-        runStoreDay(memoryWorkflow(instanceId), deps, params).catch((error: unknown) => {
-          running.delete(instanceId);
-          console.error({ event: "store_day.failed", instanceId, error });
-        }),
-      );
-    },
-  };
+/**
+ * The box shell for store days; each day starts the next through this launcher. On the memory engine a restart
+ * forgets the sleeping days, so `relaunch` starts them again on boot (finished steps replay from workflow_step); on
+ * Rivet it is a no-op for every day the engine still runs.
+ */
+export function boxStoreDays(
+  options: { database: ShopperDatabase; queue?: Queue },
+  launch: Launch = memoryLaunch,
+) {
   const deps = {
     withDatabase: <T>(run: (db: ShopperDatabase) => Promise<T>) => run(options.database),
     appVersion: buildInfo.version,
     queue: options.queue,
-    storeDays: launcher,
+    // Each day starts the next through this same launcher.
+    storeDays: {
+      start: (id, params) => launcher.start(id, params),
+      send: (id, type, payload) => launcher.send(id, type, payload),
+    } satisfies WorkflowLauncher,
   };
+  const launcher: BoxLauncher = launch("store-day", storeDayParams, (flow, params) =>
+    runStoreDay(flow, deps, params),
+  );
   return {
     launcher,
     /**
@@ -65,6 +57,6 @@ export function boxStoreDays(options: { database: ShopperDatabase; queue?: Queue
       for (const id of ids) await launcher.start(id, days.find((entry) => entry.id === id)!.params);
       return ids;
     },
-    idle: async () => void (await Promise.all(running.values())),
+    idle: launcher.idle,
   };
 }

@@ -1,4 +1,3 @@
-import * as v from "valibot";
 import { and, eq, isNull, max } from "drizzle-orm";
 import { buildInfo } from "@shopper/config";
 import {
@@ -8,36 +7,23 @@ import {
   runFiscalArchive,
 } from "@shopper/core/fiscal";
 import { fiscalDoc, type ShopperDatabase } from "@shopper/db-pg";
-import {
-  memoryWorkflow,
-  workflowInstanceIdSchema,
-  type Blobs,
-  type WorkflowLauncher,
-} from "@shopper/ports";
+import type { Blobs } from "@shopper/ports";
+import type { Launch } from "../types";
+import { memoryLaunch } from "./launch";
 
-// ponytail: in-process timers, so `relaunch` at boot starts a bundle for every store with unarchived documents; Rivet
-// Workflows replace this on Day 36.
-/** The box shell for the hourly fiscal archive. */
-export function boxFiscalArchive(options: { database: ShopperDatabase; blobs: Blobs }) {
-  const started = new Set<string>();
+/** The box shell for the hourly fiscal archive; `relaunch` at boot covers bundles a memory engine forgot. */
+export function boxFiscalArchive(
+  options: { database: ShopperDatabase; blobs: Blobs },
+  launch: Launch = memoryLaunch,
+) {
   const deps = {
     withDatabase: <T>(run: (db: ShopperDatabase) => Promise<T>) => run(options.database),
     blobs: options.blobs,
     appVersion: buildInfo.version,
   };
-  const launcher: WorkflowLauncher = {
-    send: async (id) => void v.parse(workflowInstanceIdSchema, id),
-    async start(instanceId, params) {
-      v.parse(workflowInstanceIdSchema, instanceId);
-      v.parse(fiscalArchiveParams, params);
-      if (started.has(instanceId)) return;
-      started.add(instanceId);
-      runFiscalArchive(memoryWorkflow(instanceId), deps, params).catch((error: unknown) => {
-        started.delete(instanceId);
-        console.error({ event: "fiscal.archive_failed", instanceId, error });
-      });
-    },
-  };
+  const launcher = launch("fiscal-archive", fiscalArchiveParams, (flow, params) =>
+    runFiscalArchive(flow, deps, params),
+  );
   return {
     launcher,
     /** At boot: each store with accepted documents not yet bundled gets the bundle of its latest hour. */

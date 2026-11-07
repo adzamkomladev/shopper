@@ -26,7 +26,7 @@ test("an event sent before the wait is delivered, and before the start too", asy
   const launcher = host.launch("early", params, async (flow, input) => {
     const payload = await flow.waitFor("ready", "ready", 10_000);
     await flow.step("seen", policy, () =>
-      mark(flow.instanceId, { payload, note: input.note ?? null }),
+      mark(flow.instanceId, { payload, note: v.parse(params, input).note ?? null }),
     );
   });
   const early = v7();

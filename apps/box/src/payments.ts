@@ -2,7 +2,13 @@ import { buildInfo } from "@shopper/config";
 import { createHubtel } from "@shopper/core/payments/hubtel";
 import { createPaystack } from "@shopper/core/payments/paystack";
 import type { Realtime } from "@shopper/ports";
-import { boxApprovals, boxMomoPayment, boxMomoRefund, boxSettlements } from "@shopper/adapters-box";
+import {
+  boxApprovals,
+  boxMomoPayment,
+  boxMomoRefund,
+  boxSettlements,
+  type Launch,
+} from "@shopper/adapters-box";
 
 type Database = Parameters<typeof boxSettlements>[0]["database"];
 
@@ -12,7 +18,7 @@ type Database = Parameters<typeof boxSettlements>[0]["database"];
  */
 export function boxPayments(
   environment: Record<string, string | undefined>,
-  options: { database: Database; realtime: Realtime; baseUrl: string },
+  options: { database: Database; realtime: Realtime; baseUrl: string; launch: Launch },
 ) {
   const hubtel =
     environment.HUBTEL_CLIENT_ID &&
@@ -25,11 +31,14 @@ export function boxPayments(
           callbackUrl: `${options.baseUrl}/webhooks/hubtel`,
         })
       : undefined;
-  const approvals = boxApprovals({
-    withDatabase: (run) => run(options.database),
-    realtime: options.realtime,
-    appVersion: buildInfo.version,
-  });
+  const approvals = boxApprovals(
+    {
+      withDatabase: (run) => run(options.database),
+      realtime: options.realtime,
+      appVersion: buildInfo.version,
+    },
+    options.launch,
+  );
   if (!environment.PAYSTACK_SECRET_KEY) return { hubtel, approvals, paystack: undefined };
   const paystack = createPaystack({
     secretKey: environment.PAYSTACK_SECRET_KEY,
@@ -45,8 +54,8 @@ export function boxPayments(
     hubtel,
     approvals,
     paystack,
-    momoPayment: boxMomoPayment({ ...momo, realtime: options.realtime }),
-    momoRefund: boxMomoRefund(momo),
-    settlements: boxSettlements({ database: options.database, paystack }),
+    momoPayment: boxMomoPayment({ ...momo, realtime: options.realtime }, options.launch),
+    momoRefund: boxMomoRefund(momo, options.launch),
+    settlements: boxSettlements({ database: options.database, paystack }, options.launch),
   };
 }

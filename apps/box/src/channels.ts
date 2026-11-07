@@ -2,7 +2,10 @@ import { createMaileroo } from "@shopper/auth";
 import { createArkesel } from "@shopper/core/sms/arkesel";
 
 /** Email (Maileroo) and SMS (Arkesel) when their keys are configured; a missing channel is undefined. */
-export function boxChannels(environment: Record<string, string | undefined>) {
+export function boxChannels(environment: Record<string, string | undefined>): {
+  mail?: ReturnType<typeof createMaileroo>;
+  sms?: ReturnType<typeof createArkesel>;
+} {
   return {
     mail:
       environment.MAILEROO_API_KEY && environment.MAILEROO_FROM

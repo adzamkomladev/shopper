@@ -74,5 +74,8 @@ test("a code never given: the hold's deadline ends the attempt and the order exp
   await w.pay(order, prompt("0551234990"));
   await expect.poll(async () => (await attempt(order)).status).toBe("otp");
   await expect.poll(async () => (await w.row(order)).status, { timeout: 20_000 }).toBe("expired");
-  expect(["expired", "failed"]).toContain((await attempt(order)).status);
+  // The order's own hold timer ends it; the attempt's run times out at the same deadline and closes a moment later.
+  await expect
+    .poll(async () => (await attempt(order)).status, { timeout: 20_000 })
+    .toMatch(/^(expired|failed)$/);
 });

@@ -1,7 +1,17 @@
 import { and, asc, desc, eq } from "drizzle-orm";
-import { branch, onlineOrder, onlineOrderLine, orderPayment } from "@shopper/db-pg";
+import {
+  branch,
+  onlineOrder,
+  onlineOrderAdjustment,
+  onlineOrderEvent,
+  onlineOrderLine,
+  onlineOrderPick,
+  orderPayment,
+  orderReview,
+} from "@shopper/db-pg";
 import { sha256 } from "@shopper/utils";
 import type { Queryable } from "../types";
+import { reviewable } from "./reviews/submit";
 
 /**
  * The order as its shopper sees it, found by the checkout key the browser kept. Anyone without the key gets nothing,
@@ -29,6 +39,27 @@ export async function orderByDigest(db: Queryable, orgId: string, digest: string
     .where(and(eq(onlineOrderLine.orgId, orgId), eq(onlineOrderLine.orderId, order.order.id)))
     .orderBy(asc(onlineOrderLine.position));
   const row = order.order;
+  const picks = await db
+    .select()
+    .from(onlineOrderPick)
+    .where(and(eq(onlineOrderPick.orgId, orgId), eq(onlineOrderPick.orderId, row.id)));
+  const [adjustment] = await db
+    .select()
+    .from(onlineOrderAdjustment)
+    .where(and(eq(onlineOrderAdjustment.orgId, orgId), eq(onlineOrderAdjustment.orderId, row.id)));
+  const [review] = await db
+    .select({
+      rating: orderReview.rating,
+      comment: orderReview.comment,
+      status: orderReview.status,
+    })
+    .from(orderReview)
+    .where(and(eq(orderReview.orgId, orgId), eq(orderReview.orderId, row.id)));
+  const timeline = await db
+    .select({ status: onlineOrderEvent.status, at: onlineOrderEvent.at })
+    .from(onlineOrderEvent)
+    .where(and(eq(onlineOrderEvent.orgId, orgId), eq(onlineOrderEvent.orderId, row.id)))
+    .orderBy(asc(onlineOrderEvent.at));
   const [attempt] = await db
     .select()
     .from(orderPayment)
@@ -61,6 +92,18 @@ export async function orderByDigest(db: Queryable, orgId: string, digest: string
         }
       : null,
     placedAt: row.placedAt.toISOString(),
+    timeline: timeline.map((event) => ({ status: event.status, at: event.at.toISOString() })),
+    /** The shopper's own review of the order, whatever its state; null until they give one. */
+    review: review ?? null,
+    canReview: row.status === "completed" && !review && reviewable(row.completedAt),
+    /** What picking changed, once it did: shown to the shopper only after the pick is finished. */
+    adjustment: adjustment
+      ? {
+          beforeGross: adjustment.beforeGross,
+          afterGross: adjustment.afterGross,
+          refundAmount: adjustment.refundAmount,
+        }
+      : null,
     totals: {
       base: row.base,
       vat: row.vat,
@@ -70,6 +113,8 @@ export async function orderByDigest(db: Queryable, orgId: string, digest: string
       gross: row.gross,
     },
     lines: lines.map((line) => ({
+      id: line.id,
+      pick: adjustment ? pickOf(picks.find((pick) => pick.lineId === line.id)) : null,
       kind: line.kind,
       productId: line.productId,
       priceId: line.priceId,
@@ -78,5 +123,21 @@ export async function orderByDigest(db: Queryable, orgId: string, digest: string
       name: (line.payload as { name: string }).name,
       baseUnit: (line.payload as { baseUnit?: string }).baseUnit ?? "each",
     })),
+  };
+}
+
+/** What picking found for a line, as the shopper is told: the quantity they get and any substitute. */
+function pickOf(pick: typeof onlineOrderPick.$inferSelect | undefined) {
+  if (!pick) return null;
+  return {
+    outcome: pick.outcome,
+    pickedThousandths: pick.pickedThousandths,
+    substitute: pick.substituteProductId
+      ? {
+          name: (pick.substitutePayload as { name: string }).name,
+          quantityThousandths: pick.substituteQuantityThousandths!,
+          gross: pick.substituteGross!,
+        }
+      : null,
   };
 }

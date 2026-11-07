@@ -1,5 +1,5 @@
-// Day 32 online order workflow skeleton (instance id = order id), on the portable engine:
-//   held -> wait `payment.settled` until the hold expires -> paid -> wait `store.accepted` -> accepted
+// Day 32/34 online order workflow (instance id = order id), on the portable engine:
+//   held -> wait `payment.settled` until the hold expires -> paid -> wait `store.accepted` -> accepted -> pick_due -> ...
 // No payment in time: the order expires and its stock comes back. Each step writes its table, an audit row and
 // workflow_run in one transaction.
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
@@ -85,10 +85,18 @@ test("a payment that kept the order moves the run on to wait for the store, whic
   await expect.poll(async () => (await run(seeded.orderId))?.currentStep).toBe("paid");
   expect(await run(seeded.orderId)).toMatchObject({ currentStep: "paid", status: "waiting" });
   await flow.send(seeded.orderId, "store.accepted", {});
-  await running;
+  // The slot is an hour away, so the run is already at the pickers' wake-up and waiting for them to finish.
+  await expect.poll(async () => (await run(seeded.orderId))?.currentStep).toBe("pick_due");
   expect((await order(seeded.orderId)).status).toBe("accepted");
-  expect(await run(seeded.orderId)).toMatchObject({ currentStep: "accepted", status: "completed" });
-  expect(await audits(seeded.orderId)).toEqual(["order.held", "order.paid", "order.accepted"]);
+  expect(await run(seeded.orderId)).toMatchObject({ currentStep: "pick_due", status: "waiting" });
+  expect(await audits(seeded.orderId)).toEqual([
+    "order.held",
+    "order.paid",
+    "order.accepted",
+    "order.pick_due",
+  ]);
+  await flow.send(seeded.orderId, "picked", { cancelled: true });
+  await running;
 });
 
 test("an order paid in the moment its hold ends is not expired: the run carries on as paid", async () => {
@@ -103,8 +111,10 @@ test("an order paid in the moment its hold ends is not expired: the run carries 
   await expect.poll(async () => (await run(seeded.orderId))?.currentStep).toBe("paid");
   expect((await order(seeded.orderId)).status).toBe("paid");
   await flow.send(seeded.orderId, "store.accepted", {});
+  await expect.poll(async () => (await order(seeded.orderId)).status).toBe("accepted");
+  await expect.poll(async () => (await run(seeded.orderId))?.currentStep).toBe("pick_due");
+  await flow.send(seeded.orderId, "picked", { cancelled: true });
   await running;
-  expect((await order(seeded.orderId)).status).toBe("accepted");
 });
 
 test("the run refuses an instance id that is not its order", async () => {

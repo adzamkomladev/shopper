@@ -138,6 +138,7 @@ export function createBoxApp(environment: Record<string, string | undefined> = p
           statements: statementFlows,
           refunds: payments?.momoRefund,
           orderRefunds: orders?.refunds,
+          realtime,
           queue: notifications,
         },
         delivery,

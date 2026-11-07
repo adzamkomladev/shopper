@@ -16,6 +16,7 @@ import { allocateStoreSequence } from "../sequence";
 import { placeOrderInput, type PlaceOrderInput } from "../schemas/orders/place";
 import { quoteCart } from "../storefront/cart";
 import { OrderError } from "./error";
+import { recordStatus } from "./fulfil/events";
 import { reserveStock } from "./holds";
 import { readFulfilment, slotStarts, takenSlots } from "./slots";
 import { orderByDigest } from "./view";
@@ -106,6 +107,7 @@ const placeCommand = defineCommand({
       holdExpiresAt,
       placedAt: now,
     });
+    await recordStatus(tx, context, id, "placed", now);
     const products = quote.lines.map((line, index) => ({
       orgId: context.orgId,
       orderId: id,

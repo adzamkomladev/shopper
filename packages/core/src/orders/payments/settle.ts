@@ -11,6 +11,7 @@ import { v7 } from "uuid";
 import { recordFiscalDoc } from "../../fiscal/documents";
 import { postOrder } from "../../ledger/orders";
 import { checkStockAlerts } from "../../stock/reorder";
+import { recordStatus } from "../fulfil/events";
 import { releaseOrderHolds } from "../holds";
 import { buildOrderReceipt } from "../receipt";
 
@@ -47,6 +48,7 @@ export async function settleOrder(
     .set({ status: "paid", paidAt: now, receiptNumber: number, receipt, updatedAt: now })
     .where(and(eq(onlineOrder.orgId, ctx.orgId), eq(onlineOrder.id, order.id)))
     .returning();
+  await recordStatus(tx, ctx, order.id, "paid", now);
   await recordFiscalDoc(tx, ctx.orgId, receipt, {
     storeId: order.storeId,
     branchId: order.branchId,

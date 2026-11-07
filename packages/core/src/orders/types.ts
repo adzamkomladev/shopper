@@ -1,4 +1,5 @@
-import type { orderPayment, ShopperDatabase } from "@shopper/db-pg";
+import type { BaseUnit, orderPayment, ShopperDatabase } from "@shopper/db-pg";
+import type { TaxSnapshot } from "@shopper/tax";
 import type { Queue, WorkflowLauncher } from "@shopper/ports";
 import type { createHubtel } from "../payments/hubtel/client";
 import type { createPaystack } from "../payments/paystack/client";
@@ -16,8 +17,14 @@ export type OrderFlowDeps = {
   appVersion: string;
   /** Sends a paid order's refund back through Paystack when the store never accepts it. */
   paystack?: OrderRefundDeps["paystack"];
-  /** How long the store has to accept a paid order; a day unless a test shortens it. */
+  /** Where the run queues what it must tell people (the pickers, the shopper); read when needed. */
+  notifications?: () => Queue | undefined;
+  /** How long the store has to accept a paid order; ten minutes unless a test shortens it. */
   acceptWithinMs?: number;
+  /** How long before the slot the order goes to the pickers; an hour unless a test shortens it. */
+  pickLeadMs?: number;
+  /** How long after the slot a picked order may wait to be collected; a day unless a test shortens it. */
+  collectWithinMs?: number;
 };
 
 /** What one order payment attempt's workflow needs from its runtime shell. */
@@ -46,3 +53,31 @@ export type OrderPaymentApplied =
 
 /** An order payment attempt as opened, with where the order's receipt email goes. */
 export type OrderPaymentStarted = typeof orderPayment.$inferSelect & { email: string | null };
+
+/** Why a paid order is given back to its payer. */
+export type CompensationReason =
+  | "not_accepted"
+  | "declined"
+  | "cancelled"
+  | "not_fulfilled"
+  | "uncollected";
+
+/** One line of goods or fees with the tax it carries: what an invoice or credit note is made of. */
+export type Item = { name: string; unit: BaseUnit; productId: string | null; tax: TaxSnapshot };
+
+/** A column of the store's order queue. */
+export type Stage = "new" | "preparing" | "ready" | "done";
+
+/** What an order's review workflow needs from its runtime shell. */
+export type ReviewFlowDeps = {
+  withDatabase<T>(run: (db: ShopperDatabase) => Promise<T>): Promise<T>;
+  appVersion: string;
+  /** Where the request to review is queued; read when needed. */
+  notifications?: () => Queue | undefined;
+  /** How long after handover the shopper is asked; 48 hours unless a test shortens it. */
+  askAfterMs?: number;
+  /** How long the shopper has to review once asked; seven days unless a test shortens it. */
+  waitMs?: number;
+  /** How long a flagged review waits for a moderator; thirty days unless a test shortens it. */
+  moderateWithinMs?: number;
+};

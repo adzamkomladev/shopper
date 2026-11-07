@@ -7,6 +7,7 @@ import {
   PanelBottomOpen,
   Receipt,
   Settings,
+  ShoppingBag,
   ShoppingCart,
   Timer,
   Wallet,
@@ -34,6 +35,7 @@ export function TillSidebar({
   online,
   shifts,
   accounts,
+  webOrders,
   onView,
   onAction,
   onHelp,
@@ -49,6 +51,8 @@ export function TillSidebar({
   shifts: boolean;
   /** The user may sell and read customers, so taking a payment on an account is theirs to open. */
   accounts: boolean;
+  /** The user holds order.read: the online order queue, in the back office, is theirs to open. */
+  webOrders: boolean;
   onView: (view: ShellView) => void;
   onAction: (action: ShellAction) => void;
   onHelp: () => void;
@@ -91,6 +95,18 @@ export function TillSidebar({
         ]
       : []),
     ...(accounts ? [act("payment", "Account payment", Wallet, "Alt+A")] : []),
+    ...(webOrders
+      ? [
+          {
+            label: online ? "Online orders" : "Online orders (needs connection)",
+            icon: ShoppingBag,
+            shortcut: "Alt+W",
+            render: online
+              ? createElement("a", { href: "/backoffice/orders" })
+              : createElement("button", { type: "button", disabled: true }),
+          },
+        ]
+      : []),
     go("settings", "Register settings", Settings, "Alt+T"),
     {
       label: online ? "Back office" : "Back office (needs connection)",

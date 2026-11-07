@@ -18,6 +18,7 @@ import {
   ScanBarcodeIcon,
   ScrollTextIcon,
   ShieldCheckIcon,
+  ShoppingBagIcon,
   ShoppingCartIcon,
   StoreIcon,
   UploadIcon,
@@ -75,6 +76,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     icon: ReceiptTextIcon,
     section: "Sales",
     permission: "report.read",
+  },
+  {
+    to: "/orders",
+    label: "Online orders",
+    icon: ShoppingBagIcon,
+    section: "Sales",
+    permission: "order.read",
   },
   {
     to: "/payments/reconciliation",

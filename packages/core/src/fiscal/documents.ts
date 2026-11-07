@@ -3,12 +3,18 @@ import { fiscalDoc, type ShopperTransaction } from "@shopper/db-pg";
 import { fiscalPayload } from "../receipts/fiscal";
 import type { ReceiptDocument } from "../schemas/receipts/document";
 
-type Source = { storeId: string; branchId: string } & (
-  | { saleId: string; refundId?: never; orderId?: never; orderRefundId?: never }
-  | { refundId: string; saleId?: never; orderId?: never; orderRefundId?: never }
-  | { orderId: string; saleId?: never; refundId?: never; orderRefundId?: never }
-  | { orderRefundId: string; saleId?: never; refundId?: never; orderId?: never }
-);
+type Ids = {
+  saleId: string;
+  refundId: string;
+  orderId: string;
+  orderRefundId: string;
+  adjustmentCreditId: string;
+  adjustmentInvoiceId: string;
+};
+/** Exactly one id: the sale, refund or online order document the fiscal document belongs to. */
+type Source = { storeId: string; branchId: string } & {
+  [Key in keyof Ids]: { [Other in keyof Ids]?: Other extends Key ? string : never };
+}[keyof Ids];
 
 /**
  * Records a VAT invoice or credit note as a pending fiscal document, inside the command that accepted it. A receipt
@@ -33,6 +39,8 @@ export async function recordFiscalDoc(
       refundId: source.refundId ?? null,
       orderId: source.orderId ?? null,
       orderRefundId: source.orderRefundId ?? null,
+      adjustmentCreditId: source.adjustmentCreditId ?? null,
+      adjustmentInvoiceId: source.adjustmentInvoiceId ?? null,
       invoiceNumber: receipt.header.receiptNumber,
       payload,
     })

@@ -53,6 +53,7 @@ export function ShellFrame({
   const shifts = can("shift.write");
   // A payment goes into the open shift's drawer and finds the customer by phone.
   const accounts = can("sale.create") && can("customer.read");
+  const webOrders = can("order.read");
   const register = useShortcuts(
     modal
       ? {}
@@ -66,6 +67,8 @@ export function ShellFrame({
             "Alt+J": () => onAction("nosale"),
           }),
           ...(accounts && { "Alt+A": () => onAction("payment") }),
+          ...(webOrders &&
+            link.online && { "Alt+W": () => window.location.assign("/backoffice/orders") }),
           F1: () => setHelp(true),
           "Mod+/": () => setHelp(true),
           [signOutShortcut]: onSignOut,
@@ -97,6 +100,7 @@ export function ShellFrame({
           shifts={shifts}
           user={user}
           view={view}
+          webOrders={webOrders}
         />
         <SidebarInset className="bg-muted/50">
           <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-card px-2 sm:px-4">

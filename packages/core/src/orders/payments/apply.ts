@@ -1,4 +1,5 @@
-import { and, eq, gt, inArray, isNull } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, sql } from "drizzle-orm";
+import { money, sub, type Money } from "@shopper/money";
 import { v7 } from "uuid";
 import { defineCommand, enqueueAfterCommit } from "@shopper/audit";
 import {
@@ -109,6 +110,10 @@ const refundReason = {
   refunded: "late_payment",
   paid: "duplicate_payment",
   accepted: "duplicate_payment",
+  picking: "duplicate_payment",
+  ready: "duplicate_payment",
+  out_for_delivery: "duplicate_payment",
+  completed: "duplicate_payment",
 } as const;
 
 /** Stock is still aside for the order: its hold has neither been released nor run out. */
@@ -135,11 +140,21 @@ export async function owe(
   context: { orgId: string },
   payment: typeof orderPayment.$inferSelect,
   reason: (typeof orderRefund.$inferInsert)["reason"],
+  /** Owed back so far or not, a refund for a part of the payment says how much; otherwise all that is left. */
+  part?: Money,
 ) {
+  const [owed] = await tx
+    .select({ total: sql<number>`coalesce(sum(${orderRefund.amount}), 0)`.mapWith(Number) })
+    .from(orderRefund)
+    .where(and(eq(orderRefund.orgId, context.orgId), eq(orderRefund.orderPaymentId, payment.id)));
+  const amount = part ?? sub(payment.amount, money(owed!.total));
+  if (amount <= 0) return undefined;
   const [created] = await tx
     .insert(orderRefund)
-    .values({ orgId: context.orgId, orderPaymentId: payment.id, amount: payment.amount, reason })
-    .onConflictDoNothing({ target: [orderRefund.orgId, orderRefund.orderPaymentId] })
+    .values({ orgId: context.orgId, orderPaymentId: payment.id, amount, reason })
+    .onConflictDoNothing({
+      target: [orderRefund.orgId, orderRefund.orderPaymentId, orderRefund.reason],
+    })
     .returning();
   if (created)
     enqueueAfterCommit(tx, {

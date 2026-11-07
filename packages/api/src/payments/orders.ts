@@ -87,6 +87,9 @@ export async function orderRefundReport(
       key: `${event.event}:${event.id ?? event.refundReference ?? event.reference}`,
       kind: event.event,
       reference: event.reference,
+      providerIds: [event.id, event.refundReference].flatMap((id) =>
+        id === undefined || id === null ? [] : [String(id)],
+      ),
     },
   );
   return true;

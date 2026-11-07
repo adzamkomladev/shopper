@@ -4,7 +4,11 @@ import type { PlacedOrder } from "../../schemas/checkout";
 import { quantityLabel } from "../cart/quantity";
 import { dayLabel, slotLabel } from "../checkout/slots";
 import { CartTotals } from "../cart/totals";
+import { CancelOrder } from "./cancel";
+import { OrderChanges } from "./changes";
 import { PayPanel } from "./pay";
+import { ReviewPanel } from "./review";
+import { OrderTimeline } from "./timeline";
 
 const clock = new Intl.DateTimeFormat("en-GH", {
   hour: "numeric",
@@ -34,6 +38,19 @@ const statusCopy: Record<
     detail: "The shop could not fill this order. Your payment is on its way back to you.",
   }),
   accepted: () => ({ title: "Being prepared", detail: "The shop is getting your order ready." }),
+  picking: () => ({
+    title: "Being picked",
+    detail: "Someone at the shop is gathering your items.",
+  }),
+  ready: (order) =>
+    order.fulfilment === "pickup"
+      ? { title: "Ready for pickup", detail: `Collect it at ${order.branch.name}.` }
+      : { title: "Packed", detail: "Your order is packed and waiting for the rider." },
+  out_for_delivery: () => ({ title: "On its way", detail: "Your order is out for delivery." }),
+  completed: (order) => ({
+    title: order.fulfilment === "pickup" ? "Collected" : "Delivered",
+    detail: "Enjoy your order. Thank you for shopping with us.",
+  }),
 };
 
 /** The order the shopper just placed: its number, where and when, what is in it, and what happens next. */
@@ -66,7 +83,17 @@ export function OrderConfirmation({
           </div>
         </section>
         {order.status === "placed" ? (
-          <PayPanel shop={shop} order={order} orderKey={orderKey} />
+          <>
+            <PayPanel shop={shop} order={order} orderKey={orderKey} />
+            <CancelOrder shop={shop} order={order} orderKey={orderKey} />
+          </>
+        ) : null}
+        {order.timeline.some((event) => event.status === "paid") && order.status !== "refunded" ? (
+          <OrderTimeline order={order} />
+        ) : null}
+        <OrderChanges order={order} />
+        {order.review || order.canReview ? (
+          <ReviewPanel shop={shop} order={order} orderKey={orderKey} />
         ) : null}
         <section
           aria-labelledby="order-when"

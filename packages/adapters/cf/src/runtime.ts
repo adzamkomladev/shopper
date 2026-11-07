@@ -91,6 +91,7 @@ export async function cloudflareRuntime(
         : undefined,
     storeDays: env.STORE_DAY ? cloudflareLauncher(env.STORE_DAY) : undefined,
     orderFlows: env.ORDER_FLOWS ? cloudflareLauncher(env.ORDER_FLOWS) : undefined,
+    orderReviews: env.ORDER_REVIEWS ? cloudflareLauncher(env.ORDER_REVIEWS) : undefined,
     orderPayments:
       env.ORDER_PAYMENTS && env.PAYSTACK_SECRET_KEY
         ? cloudflareLauncher(env.ORDER_PAYMENTS)

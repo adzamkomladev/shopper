@@ -7,28 +7,40 @@ import {
   type WorkflowCheckpoint,
 } from "@shopper/ports";
 import { acceptOrder, confirmHeld, expireOrder, markOrderPaid } from "../orders/flow";
+import { orderCompleted, orderEnded, orderPicked, pickDue } from "../orders/fulfil/stages";
 import { refundPaidOrder } from "../orders/payments/refunds/compensate";
 import { refundOrderPayment } from "../orders/payments/refunds/send";
-import type { OrderFlowDeps } from "../orders/types";
+import type { CompensationReason, OrderFlowDeps } from "../orders/types";
 import { orderParams } from "../schemas/orders/flow";
 
 const policy = { maxAttempts: 3, delayMs: 1000, backoff: "constant" } as const;
-const day = 86_400_000;
+const hour = 3_600_000;
+/** How long the store has to accept a paid order before it is refunded. */
+export const ACCEPT_WITHIN_MS = 10 * 60_000;
+
+/** What a store's decision carries: it turned the order down, or cancelled it (its refund is already made). */
+type Decision = { declined?: boolean; cancelled?: boolean };
 
 /**
- * One online order (instance id = order id): its stock is held at placement; it waits for `payment.settled` until the
- * hold runs out and expires the order if none came; a paid order waits for the store's `store.accepted` and is
- * refunded if the store never takes it on.
- * A payment that keeps the order pays and invoices it in its own transaction, then sends `payment.settled`.
+ * One online order (instance id = order id), start to finish:
+ * hold → wait `payment.settled` → wait `store.accepted` (ten minutes, else refunded) → sleep until an hour before
+ * the slot → pickers are told → wait `picked` (until the slot ends, else refunded) → wait `handed_over` (a day after
+ * the slot, else refunded and restocked) → completed.
+ * A payment pays and invoices the order in its own transaction before it sends `payment.settled`; a store's decline
+ * or cancel refunds in its own command and wakes whichever wait is open, so the run ends without a second refund.
  */
 export async function runOnlineOrder(
-  flow: Pick<Workflow, "instanceId" | "step" | "waitFor">,
+  flow: Pick<Workflow, "instanceId" | "step" | "waitFor" | "sleepUntil">,
   deps: OrderFlowDeps,
   raw: unknown,
 ) {
   const params = v.parse(orderParams, raw);
   if (params.id !== flow.instanceId) throw new Error("Online order business key mismatch");
-  const context = { orgId: params.orgId, appVersion: deps.appVersion };
+  const context = {
+    orgId: params.orgId,
+    appVersion: deps.appVersion,
+    queue: deps.notifications?.(),
+  };
   const record = <T extends Json>(
     step: string,
     status: WorkflowCheckpoint["status"],
@@ -44,6 +56,43 @@ export async function runOnlineOrder(
         command(db, context, { id: params.id }, checkpoint(params.id, step, status)),
       ),
     );
+  // Compensation: the paid order is refunded, its goods go back and its invoice is credited, then the money is sent.
+  const giveBack = async (
+    step: string,
+    reason: CompensationReason,
+    sendStep = `${step}-refund`,
+  ) => {
+    const refunded = await flow.step(step, policy, () =>
+      deps.withDatabase((db) =>
+        refundPaidOrder(
+          db,
+          context,
+          { id: params.id, reason },
+          checkpoint(params.id, step, "completed"),
+        ),
+      ),
+    );
+    if (refunded.id)
+      await flow.step(sendStep, { ...policy, maxAttempts: 1 }, async () => {
+        await refundOrderPayment(deps, refunded.id!, params.orgId);
+        return { id: refunded.id };
+      });
+  };
+
+  const end = (reason: string) =>
+    flow
+      .step("ended", policy, () =>
+        deps.withDatabase((db) =>
+          orderEnded(
+            db,
+            context,
+            { id: params.id, reason },
+            checkpoint(params.id, "ended", "completed"),
+          ),
+        ),
+      )
+      .then(() => undefined);
+
   const held = await record("held", "waiting", confirmHeld);
   const paid = await waited(
     flow.waitFor(
@@ -57,35 +106,46 @@ export async function runOnlineOrder(
     // A payment can land in the moment the hold ends; its own transaction decided, so a paid order carries on.
     if (lapsed.moved) return;
   }
-  if (!(await record("paid", "waiting", markOrderPaid)).paid) return;
-  const accepted = await waited(
-    flow.waitFor("accept", "store.accepted", deps.acceptWithinMs ?? day),
+  if (!(await record("paid", "waiting", markOrderPaid)).paid) return await end("not paid");
+
+  const decision = await waited(
+    flow.waitFor("accept", "store.accepted", deps.acceptWithinMs ?? ACCEPT_WITHIN_MS),
   );
-  if (accepted) return void (await record("accepted", "completed", acceptOrder));
-  // Compensation: a paid order the store never took on is refunded, its goods go back and its invoice is credited.
-  const refunded = await flow.step("unaccepted", policy, () =>
-    deps.withDatabase((db) =>
-      refundPaidOrder(
-        db,
-        context,
-        { id: params.id, reason: "not_accepted" },
-        checkpoint(params.id, "unaccepted", "completed"),
-      ),
-    ),
-  );
-  if (refunded.id)
-    await flow.step("refund", { ...policy, maxAttempts: 1 }, async () => {
-      await refundOrderPayment(deps, refunded.id!, params.orgId);
-      return { id: refunded.id };
-    });
+  if (!decision) return await giveBack("unaccepted", "not_accepted", "refund");
+  if ((decision as Decision).declined || (decision as Decision).cancelled)
+    return await end((decision as Decision).declined ? "declined" : "cancelled");
+  const accepted = await record("accepted", "waiting", acceptOrder);
+  const slotStart = new Date(accepted.slotStart).getTime();
+  const slotEnd = new Date(accepted.slotEnd).getTime();
+
+  await flow.sleepUntil("pick-due", new Date(slotStart - (deps.pickLeadMs ?? hour)));
+  const due = await record("pick_due", "waiting", pickDue);
+  if (!due.due) return await end("cancelled before the pick hour");
+  // What already happened (picked ahead of the pick hour) is read from the order, not waited for as an event.
+  if (!due.picked) {
+    const picked = await waited(flow.waitFor("pick", "picked", Math.max(0, slotEnd - Date.now())));
+    if (!picked) return await giveBack("unfilled", "not_fulfilled");
+    if ((picked as Decision).cancelled) return await end("cancelled while picking");
+  }
+  const done = await record("picked", "waiting", orderPicked);
+  if (!done.ok) return await end("not picked");
+  if (!done.handedOver) {
+    const collectBy = slotEnd + (deps.collectWithinMs ?? 24 * hour);
+    const handed = await waited(
+      flow.waitFor("hand-over", "handed_over", Math.max(0, collectBy - Date.now())),
+    );
+    if (!handed) return await giveBack("uncollected", "uncollected");
+    if ((handed as Decision).cancelled) return await end("cancelled before hand-over");
+  }
+  await record("completed", "completed", orderCompleted);
 }
 
-/** True when the event came, false when the wait timed out. */
-const waited = (wait: Promise<unknown>) =>
+/** The event's payload when it came, null when the wait timed out. */
+const waited = (wait: Promise<Json>) =>
   wait.then(
-    () => true,
+    (payload) => payload ?? {},
     (error: unknown) => {
-      if (error instanceof WorkflowTimeoutError) return false;
+      if (error instanceof WorkflowTimeoutError) return null;
       throw error;
     },
   );

@@ -37,6 +37,7 @@ import { shopAccountRoutes } from "./routes/shop/account";
 import { shopSignInRoutes } from "./routes/shop/signin";
 import { shopStoreRoutes } from "./routes/shop/store";
 import { shopOrderRoutes } from "./routes/shop/orders";
+import { orderRoutes } from "./routes/orders";
 
 export function createApi(options: ApiOptions = {}) {
   const app = new Hono<ApiEnvironment>();
@@ -116,6 +117,7 @@ export function createApi(options: ApiOptions = {}) {
   if (options.database) app.route("/", ledgerRoutes(options.database, options.authentication));
   if (options.database) app.route("/", reconciliationRoutes(options));
   if (options.database) app.route("/", transactionRoutes(options));
+  if (options.database) app.route("/", orderRoutes(options));
   if (options.database) app.route("/", approvalRoutes(options));
   if (options.database) app.route("/", billingRoutes(options));
   if (options.database && options.kyb) app.route("/", kybRoutes({ ...options, kyb: options.kyb }));

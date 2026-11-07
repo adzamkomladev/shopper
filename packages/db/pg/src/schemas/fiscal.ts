@@ -17,6 +17,7 @@ import { sale } from "./sales";
 import { refund } from "./refunds";
 import { onlineOrder } from "./orders/base";
 import { orderRefund } from "./orders/payments";
+import { onlineOrderAdjustment } from "./orders/picking";
 
 export const fiscalStatuses = ["pending", "submitted", "accepted", "rejected", "dead"] as const;
 
@@ -34,6 +35,9 @@ export const fiscalDoc = pgTable(
     orderId: uuid("order_id"),
     /** The credit note that gives an online order's payment back. */
     orderRefundId: uuid("order_refund_id"),
+    /** The credit note and the supplementary invoice of an online order whose picking changed what it charged. */
+    adjustmentCreditId: uuid("adjustment_credit_id"),
+    adjustmentInvoiceId: uuid("adjustment_invoice_id"),
     invoiceNumber: text("invoice_number").notNull(),
     payload: jsonb("payload").notNull(),
     status: text("status", { enum: fiscalStatuses }).notNull().default("pending"),
@@ -55,6 +59,8 @@ export const fiscalDoc = pgTable(
     unique().on(t.orgId, t.refundId),
     unique().on(t.orgId, t.orderId),
     unique().on(t.orgId, t.orderRefundId),
+    unique().on(t.orgId, t.adjustmentCreditId),
+    unique().on(t.orgId, t.adjustmentInvoiceId),
     index("fiscal_doc_store_status").on(t.orgId, t.storeId, t.status),
     index("fiscal_doc_unarchived")
       .on(t.orgId, t.storeId, t.acceptedAt)
@@ -72,6 +78,14 @@ export const fiscalDoc = pgTable(
       foreignColumns: [orderRefund.orgId, orderRefund.id],
     }),
     foreignKey({
+      columns: [t.orgId, t.adjustmentCreditId],
+      foreignColumns: [onlineOrderAdjustment.orgId, onlineOrderAdjustment.id],
+    }),
+    foreignKey({
+      columns: [t.orgId, t.adjustmentInvoiceId],
+      foreignColumns: [onlineOrderAdjustment.orgId, onlineOrderAdjustment.id],
+    }),
+    foreignKey({
       columns: [t.orgId, t.archiveId],
       foreignColumns: [fiscalArchive.orgId, fiscalArchive.id],
     }),
@@ -82,11 +96,11 @@ export const fiscalDoc = pgTable(
     check("fiscal_doc_kind_value", sql`${t.kind} IN ('invoice', 'credit_note')`),
     check(
       "fiscal_doc_source",
-      sql`num_nonnulls(${t.saleId}, ${t.refundId}, ${t.orderId}, ${t.orderRefundId}) = 1`,
+      sql`num_nonnulls(${t.saleId}, ${t.refundId}, ${t.orderId}, ${t.orderRefundId}, ${t.adjustmentCreditId}, ${t.adjustmentInvoiceId}) = 1`,
     ),
     check(
       "fiscal_doc_kind",
-      sql`(${t.kind} = 'invoice') = (${t.refundId} IS NULL AND ${t.orderRefundId} IS NULL)`,
+      sql`(${t.kind} = 'invoice') = (${t.refundId} IS NULL AND ${t.orderRefundId} IS NULL AND ${t.adjustmentCreditId} IS NULL)`,
     ),
     check(
       "fiscal_doc_accepted",

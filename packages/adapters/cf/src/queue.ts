@@ -5,6 +5,7 @@ import { createPaystack } from "@shopper/core/payments/paystack";
 import { createArkesel } from "@shopper/core/sms/arkesel";
 import { messageBody, NOTIFICATION_RETRY, retryDelay } from "@shopper/ports";
 import { cloudflareDatabase } from "./database";
+import { cloudflareRealtime } from "./realtime";
 import { cloudflareRenderer } from "./renderer";
 import { cloudflareLauncher, cloudflareLoopLauncher } from "./launcher";
 import type { CloudflareRuntimeEnvironment } from "./runtime/types";
@@ -79,6 +80,7 @@ export async function cloudflareNotifications(
     | "ACCOUNT_FLOWS"
     | "STATEMENT_FLOWS"
     | "NOTIFICATIONS"
+    | "STORE_HUB"
     | "MOMO_REFUND"
     | "PAYSTACK_SECRET_KEY"
     | "PAYSTACK_BASE_URL"
@@ -117,6 +119,7 @@ export async function cloudflareNotifications(
         ? cloudflareLoopLauncher(env.STATEMENT_FLOWS, "wake")
         : undefined,
       queue: env.NOTIFICATIONS ? cloudflareQueue(env.NOTIFICATIONS, NOTIFICATION_RETRY) : undefined,
+      realtime: env.STORE_HUB ? cloudflareRealtime(env.STORE_HUB) : undefined,
       // A MoMo refund message starts the provider refund; without Paystack it waits and retries.
       refunds:
         env.MOMO_REFUND && env.PAYSTACK_SECRET_KEY

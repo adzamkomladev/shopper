@@ -48,6 +48,8 @@ export interface ShopOptions {
   stockHolds?: StockHolds;
   /** Starts each payment attempt's workflow; without it placed orders cannot be paid. */
   orderPayments?: WorkflowLauncher;
+  /** Starts each handed-over order's review workflow and wakes it with the shopper's review or a moderator's call. */
+  orderReviews?: WorkflowLauncher;
   /** Opens Paystack's hosted checkout for card payments; without it only mobile money can be paid. */
   paystack?: Pick<ReturnType<typeof createPaystack>, "initialize">;
 }
@@ -79,6 +81,8 @@ export interface ApiOptions {
   orderFlows?: WorkflowLauncher;
   /** Wakes an order payment attempt's workflow when its webhook arrives. */
   orderPayments?: WorkflowLauncher;
+  /** Starts each handed-over order's review workflow and wakes it with the shopper's review or a moderator's call. */
+  orderReviews?: WorkflowLauncher;
   /** Wakes the MoMo refund workflow when Paystack reports a refund's outcome. */
   momoRefund?: WorkflowLauncher;
   paystackSecret?: string;
@@ -145,6 +149,8 @@ export interface RuntimeOptions {
   stockHolds?: StockHolds;
   /** Starts each online payment attempt's workflow. */
   orderPayments?: WorkflowLauncher;
+  /** Starts each handed-over order's review workflow and wakes it with the shopper's review or a moderator's call. */
+  orderReviews?: WorkflowLauncher;
   /** Paystack's client: opens the hosted checkout for card payments. */
   paystack?: ShopOptions["paystack"];
 }

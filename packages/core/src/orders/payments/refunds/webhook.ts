@@ -6,6 +6,8 @@ type RefundHook = {
   key: string;
   kind: "refund.processed" | "refund.failed";
   reference: string;
+  /** How Paystack names this refund (its id, its refund reference): matched to the refund we asked for. */
+  providerIds: string[];
 };
 
 /**
@@ -35,7 +37,24 @@ export const applyOrderRefundEvent = defineCommand({
       reference: input.reference,
       kind: input.kind,
     });
-    const done = await tx
+    // A payment can have several refunds (a short pick, then a cancel): the one this webhook is about is the one whose
+    // provider reference it names; with only one open there is nothing to mistake it for.
+    const open = await tx
+      .select({ id: orderRefund.id, providerReference: orderRefund.providerReference })
+      .from(orderRefund)
+      .where(
+        and(
+          eq(orderRefund.orgId, ctx.orgId),
+          eq(orderRefund.orderPaymentId, input.reference),
+          eq(orderRefund.status, "requested"),
+        ),
+      );
+    const target =
+      open.find(
+        (row) => row.providerReference && input.providerIds.includes(row.providerReference),
+      ) ?? (open.length === 1 ? open[0] : undefined);
+    if (!target) return false;
+    await tx
       .update(orderRefund)
       .set({
         status: input.kind === "refund.processed" ? "processed" : "failed",
@@ -43,15 +62,8 @@ export const applyOrderRefundEvent = defineCommand({
           input.kind === "refund.failed" ? "Paystack could not complete this refund." : null,
         updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(orderRefund.orgId, ctx.orgId),
-          eq(orderRefund.orderPaymentId, input.reference),
-          eq(orderRefund.status, "requested"),
-        ),
-      )
-      .returning({ id: orderRefund.id });
-    return done.length > 0;
+      .where(and(eq(orderRefund.orgId, ctx.orgId), eq(orderRefund.id, target.id)));
+    return true;
   },
   audit: (input, applied) => ({ reference: input.reference, kind: input.kind, applied }),
 });

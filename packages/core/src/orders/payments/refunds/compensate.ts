@@ -1,22 +1,28 @@
 import * as v from "valibot";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { defineCommand, type CommandContext } from "@shopper/audit";
-import {
-  onlineOrder,
-  onlineOrderLine,
-  orderPayment,
-  orderRefund,
-  stockMovement,
-  type ShopperTransaction,
-} from "@shopper/db-pg";
-import { money } from "@shopper/money";
+import { onlineOrder, stockMovement, type ShopperTransaction } from "@shopper/db-pg";
 import { recordFiscalDoc } from "../../../fiscal/documents";
 import { reverseOrder } from "../../../ledger/orders";
-import { accraClock } from "../../../receipts/build";
 import { receiptDocument } from "../../../schemas/receipts/document";
+import { recordStatus } from "../../fulfil/events";
+import type { CompensationReason } from "../../types";
+import { readGoods } from "../../fulfil/adjust";
+import { documentOf, goodsOf } from "../../fulfil/goods";
 import { owe } from "../apply";
+import { keeperPayment } from "../keeper";
 
 type Order = typeof onlineOrder.$inferSelect;
+type Status = Order["status"];
+
+/** Why a paid order is given back, and the statuses it can still be in when that happens. */
+const reasons = {
+  not_accepted: ["paid"],
+  declined: ["paid"],
+  cancelled: ["paid", "accepted", "picking", "ready", "out_for_delivery"],
+  not_fulfilled: ["accepted", "picking"],
+  uncollected: ["ready", "out_for_delivery"],
+} satisfies Record<CompensationReason, Status[]>;
 
 /**
  * Compensates a paid order the shop will not fill: the order is refunded, the goods go back on the shelf, the books
@@ -25,7 +31,7 @@ type Order = typeof onlineOrder.$inferSelect;
  */
 export const refundPaidOrder = defineCommand({
   name: "order.refund",
-  async run(tx, ctx, input: { id: string; reason: "not_accepted" | "cancelled"; now?: Date }) {
+  async run(tx, ctx, input: { id: string; reason: CompensationReason; now?: Date }) {
     const now = input.now ?? new Date();
     const [order] = await tx
       .update(onlineOrder)
@@ -34,33 +40,14 @@ export const refundPaidOrder = defineCommand({
         and(
           eq(onlineOrder.orgId, ctx.orgId),
           eq(onlineOrder.id, input.id),
-          eq(onlineOrder.status, "paid"),
+          inArray(onlineOrder.status, reasons[input.reason]),
         ),
       )
       .returning();
     if (!order) return { refunded: false as const, id: null };
-    // The payment that kept the order: confirmed, and not already owed back (a duplicate payment is).
-    const [payment] = await tx
-      .select({ payment: orderPayment })
-      .from(orderPayment)
-      .leftJoin(
-        orderRefund,
-        and(
-          eq(orderRefund.orgId, orderPayment.orgId),
-          eq(orderRefund.orderPaymentId, orderPayment.id),
-        ),
-      )
-      .where(
-        and(
-          eq(orderPayment.orgId, ctx.orgId),
-          eq(orderPayment.orderId, order.id),
-          eq(orderPayment.status, "confirmed"),
-          isNull(orderRefund.id),
-        ),
-      )
-      .orderBy(asc(orderPayment.confirmedAt))
-      .limit(1);
-    const refund = (await owe(tx, ctx, payment!.payment, input.reason))!;
+    await recordStatus(tx, ctx, order.id, "refunded", now);
+    const payment = await keeperPayment(tx, ctx.orgId, order.id);
+    const refund = (await owe(tx, ctx, payment, input.reason))!;
     await giveBack(tx, ctx, order, refund.id, now);
     return { refunded: true as const, id: refund.id };
   },
@@ -75,44 +62,41 @@ async function giveBack(
   refundId: string,
   now: Date,
 ) {
-  const lines = await tx
-    .select()
-    .from(onlineOrderLine)
-    .where(and(eq(onlineOrderLine.orgId, ctx.orgId), eq(onlineOrderLine.orderId, order.id)))
-    .orderBy(asc(onlineOrderLine.position));
-  const goods = lines.flatMap((line) =>
-    line.productId ? [{ ...line, productId: line.productId }] : [],
-  );
-  await tx.insert(stockMovement).values(
-    goods.map((line) => ({
-      orgId: ctx.orgId,
-      branchId: order.branchId,
-      productId: line.productId,
-      orderId: order.id,
-      reason: "return" as const,
-      quantityThousandths: line.quantityThousandths,
-      occurredAt: now,
-    })),
-  );
+  // Whatever of the order is still out of the shelf goes back: the sale less anything already returned.
+  const out = await tx
+    .select({
+      productId: stockMovement.productId,
+      quantity: sql<number>`sum(${stockMovement.quantityThousandths})`.mapWith(Number),
+    })
+    .from(stockMovement)
+    .where(and(eq(stockMovement.orgId, ctx.orgId), eq(stockMovement.orderId, order.id)))
+    .groupBy(stockMovement.productId);
+  const owed = out.filter((row) => row.quantity < 0);
+  if (owed.length)
+    await tx.insert(stockMovement).values(
+      owed.map((row) => ({
+        orgId: ctx.orgId,
+        branchId: order.branchId,
+        productId: row.productId,
+        orderId: order.id,
+        reason: "return" as const,
+        quantityThousandths: -row.quantity,
+        occurredAt: now,
+      })),
+    );
   await reverseOrder(tx, ctx, order, refundId, now);
+  // The credit note covers what the shopper finally held: the order as picked, not as first ordered.
+  const { lines, picks } = await readGoods(tx, ctx.orgId, order.id, true);
+  const goods = goodsOf(lines, picks);
   const receipt = v.parse(receiptDocument, order.receipt);
   await recordFiscalDoc(
     tx,
     ctx.orgId,
-    {
-      ...receipt,
+    documentOf(receipt, [...goods.kept, ...goods.substitutes], {
       kind: "refund",
-      refundOf: receipt.header.receiptNumber,
-      header: {
-        ...receipt.header,
-        receiptNumber: `${receipt.header.receiptNumber}-C`,
-        utcTime: now.toISOString(),
-        accraTime: accraClock(now),
-      },
-      paid: money(0),
-      change: money(0),
-      fiscal: null,
-    },
+      number: `${receipt.header.receiptNumber}-C`,
+      at: now,
+    }),
     { storeId: order.storeId, branchId: order.branchId, orderRefundId: refundId },
   );
 }

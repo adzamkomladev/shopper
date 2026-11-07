@@ -282,6 +282,38 @@ One more shell per run, on the edge Worker and bound by the portal too (Paystack
   (`NotificationDeps.orderRefunds`). Hubtel has no refund API in our client: its refunds wait as `refund_due`.
 - Box twin: `boxOrderPayments` (in-process, like `boxOnlineOrders`) until Rivet Workflows on Day 36.
 
+## Order fulfilment and reviews (Day 34)
+
+The online order workflow (`runOnlineOrder`, instance id = order id) now runs the whole life of a paid order:
+
+```
+held → wait payment.settled → paid → wait store.accepted (10 min; payload {declined?, cancelled?})
+     → sleepUntil(slot start − 1 h) → pick_due (queues order.pick_due once, if still accepted)
+     → wait picked (until the slot ends) → wait handed_over (24 h after the slot) → completed
+```
+
+- Missing a deadline compensates: `not_accepted` (10 min), `not_fulfilled` (slot over, nobody picked), `uncollected`
+  (picked, not collected; restocked). A store's **decline** or **cancel** refunds in its own command and wakes the open
+  wait so the run ends without a second refund. Waits that an action may have satisfied earlier (picked or handed over
+  ahead of the pick hour) are read from the order, not waited for as an event, so a runtime that does not buffer events
+  loses nothing.
+- Store actions are commands, each with an audit row and a `online_order_event` (the shopper's timeline):
+  `accepted`, `picking`, `order.pick` (one line), `picked` (finishing), `dispatched`, `handed_over`, `refund`
+  (decline / cancel). `finishPicking` makes the **adjustment** in its own transaction: missing goods return to stock,
+  substitutes leave it, one `order_refund` (`short_pick`) for the difference, a credit note `…-A` and (when a
+  substitute is charged) an invoice `…-S` as pending `fiscal_doc`s (`adjustment_credit_id` / `adjustment_invoice_id`),
+  and one balanced `order` journal entry sourced by the adjustment. A substitute is never charged more than the
+  missing goods cost. A later full refund reverses every `order` entry of the order, account by account.
+- `order.status` (ready / out for delivery / delivered) and `review.ask` are notification messages; each is told once
+  (the event row and `online_order.review_asked_at` remember it). `order.pick_due` is published on the store's realtime
+  channel (`NotificationDeps.realtime`).
+- Review workflow (`runOrderReview`, instance id `review-<order id>`, binding `shopper-order-review-<stage>`, started
+  by the hand-over route): sleep 48 h → ask (`review.ask`) → wait `review_submitted` (7 days) → screen → wait
+  `moderator_decision` (30 days) when flagged → publish. A review given before the ask is screened without waiting.
+- Box twins: `boxOnlineOrders` and `boxOrderReviews` (in-process waits and sleeps) until Rivet Workflows on Day 36.
+  Cloud: `OnlineOrderWorkflow` now also needs the `NOTIFICATIONS` queue, and the edge exports `OrderReviewWorkflow`
+  (`ORDER_REVIEWS` on the edge, the portal and the runtime).
+
 ## Payments workflows (Day 23)
 
 Four more shells on `cloudflareFlow`, each defined on the edge Worker and bound by the portal too:

@@ -103,6 +103,12 @@ export const BODIES: Record<string, Body> = {
   "POST /stock/takes": (id) => ({ id: v7(), branchId: id, scope: "category", categoryId: id }),
   "POST /stores": () => ({ name: "Sweep" }),
   "POST /suppliers": () => ({ name: "Sweep" }),
+  // A pick on another shop's order, naming another shop's product as the substitute.
+  "PUT /orders/:id/lines/:lineId": (id) => ({
+    pickedThousandths: 1_000,
+    substitute: { productId: id, quantityThousandths: 1_000 },
+  }),
+  "POST /reviews/:id/decision": () => ({ decision: "approve" }),
   "POST /transactions/:id/receipt/email": () => ({ requestKey: v7(), email: "sweep@tenants.test" }),
   "PUT /customers/:id/limit": () => ({ creditLimit: 100_000 }),
   "PUT /ledger/lock": () => ({ through: null }),

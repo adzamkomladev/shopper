@@ -70,6 +70,7 @@ export interface CloudflareRuntimeEnvironment extends AuthEnvironment, RateLimit
   KYB_FLOWS?: Parameters<typeof cloudflareLoopLauncher>[0];
   ORDER_FLOWS?: Parameters<typeof cloudflareLauncher>[0];
   ORDER_PAYMENTS?: Parameters<typeof cloudflareLauncher>[0];
+  ORDER_REVIEWS?: Parameters<typeof cloudflareLauncher>[0];
   STOCK_HOLD?: Parameters<typeof cloudflareStockHolds>[0];
 }
 

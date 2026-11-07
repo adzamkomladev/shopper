@@ -3,12 +3,16 @@ import * as v from "valibot";
 import { findOrgBySlug } from "@shopper/core/orgs";
 import { payoutSubaccount } from "@shopper/core/kyb";
 import {
+  cancelOwnOrder,
+  listPublishedReviews,
   listSlots,
   OrderError,
   placeOrder,
   readOrderView,
+  reviewInstanceId,
   saveCheckoutUrl,
   startOrderPayment,
+  submitReview,
 } from "@shopper/core/orders";
 import { quoteCart, storeBranch, StoreError } from "@shopper/core/storefront";
 import { tokenOf } from "./session";
@@ -87,6 +91,35 @@ export function shopOrderRoutes(options: ShopOptions) {
     );
     if (!order) throw new OrderError("not_found", "We could not find that order");
     return c.json(order);
+  });
+  // The shopper's own way out of an order they have not paid: their key proves it is theirs.
+  app.post("/shop/:code/orders/:id/cancel", async (c) => {
+    const found = await shopOf(c);
+    const { key } = (await body(c)) as { key?: string };
+    const id = c.req.param("id");
+    if (!(await readOrderView(options.database, found.id, id, String(key ?? ""))))
+      throw new OrderError("not_found", "We could not find that order");
+    await cancelOwnOrder(options.database, { orgId: found.id, appVersion: options.appVersion }, id);
+    return c.json(await readOrderView(options.database, found.id, id, String(key)));
+  });
+  // The shopper reviews an order they have received, with their key; the review's workflow screens and publishes it.
+  app.post("/shop/:code/orders/:id/review", async (c) => {
+    const found = await shopOf(c);
+    const input = await body(c);
+    const id = c.req.param("id");
+    if (!(await readOrderView(options.database, found.id, id, String(input.key ?? ""))))
+      throw new OrderError("not_found", "We could not find that order");
+    await submitReview(
+      options.database,
+      { orgId: found.id, appVersion: options.appVersion },
+      { id, rating: input.rating as number, comment: input.comment as string | undefined },
+    );
+    await options.orderReviews?.send(reviewInstanceId(id), "review_submitted", {});
+    return c.json({ reviewed: true }, 201);
+  });
+  app.get("/shop/:code/reviews", async (c) => {
+    const found = await shopOf(c);
+    return c.json(await listPublishedReviews(options.database, found.id));
   });
   app.post("/shop/:code/orders/:id/pay", async (c) => {
     const found = await shopOf(c);

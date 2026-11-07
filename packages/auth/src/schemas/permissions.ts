@@ -43,4 +43,7 @@ export const permissionNames = [
   "billing.manage",
   "org.kyb.submit",
   "staff.unlock",
+  "order.read",
+  "order.fulfil",
+  "review.moderate",
 ] as const;

@@ -24,6 +24,10 @@ export const orderStatuses = [
   "cancelled",
   "paid",
   "accepted",
+  "picking",
+  "ready",
+  "out_for_delivery",
+  "completed",
   "refunded",
 ] as const;
 export const fulfilmentKinds = ["pickup", "delivery"] as const;
@@ -64,6 +68,13 @@ export const onlineOrder = pgTable(
     gross: moneyColumn("gross").notNull(),
     holdExpiresAt: timestamp("hold_expires_at", { withTimezone: true }).notNull(),
     paidAt: timestamp("paid_at", { withTimezone: true }),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    readyAt: timestamp("ready_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    /** When the shopper was asked for a review; they are asked once. */
+    reviewAskedAt: timestamp("review_asked_at", { withTimezone: true }),
+    /** What the shopper finally owes once picking short or substituting adjusted the order; null until then. */
+    fulfilledGross: moneyColumn("fulfilled_gross"),
     /** The invoice number and receipt the payment issued (null until paid). */
     receiptNumber: text("receipt_number"),
     receipt: jsonb("receipt"),

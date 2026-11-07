@@ -15,6 +15,7 @@ export const TILL_SHORTCUTS: readonly ShortcutGroup[] = [
       { keys: "Alt+K", label: "Cash drop" },
       { keys: "Alt+J", label: "No sale (open the drawer)" },
       { keys: "Alt+T", label: "Register settings" },
+      { keys: "Alt+W", label: "Online orders (needs order.read)" },
       { keys: "Ctrl+M", label: "Show or hide the sidebar (also Ctrl+B)" },
       { keys: "F1", label: "Help (also Ctrl+/)" },
       { keys: "Ctrl+Shift+L", label: "Sign out" },

@@ -25,6 +25,21 @@ One `RateLimiter` port (`packages/ports/src/limits.ts`) with a fixed policy tabl
 - Better Auth's own limiter is off, so there is one mechanism.
 - Tests: `tests/integration/security/ratelimit.test.ts`, and conformance against both adapters.
 
+## Online order fulfilment (Day 34)
+
+- Staff routes: `GET /orders` and `GET /orders/:id` need `order.read`; every step (`accept`, `decline`, `start`, `ready`,
+  `dispatch`, `handover`, `cancel`, `PUT /orders/:id/lines/:lineId`) needs `order.fulfil`; `GET /reviews` and
+  `POST /reviews/:id/decision` need `review.moderate`. `order.read` and `order.fulfil` are till-allowed, because the
+  register's back office reaches the queue; `review.moderate` is not. A branch-scoped member reaches only their
+  branches' orders, and another branch's (or shop's) order answers 404, never 403. All are in the tenant sweep.
+- The shopper routes are public on purpose and authorised by the order's checkout key: `POST
+  /shop/:code/orders/:id/cancel` (unpaid orders only) and `POST /shop/:code/orders/:id/review` (completed orders, one
+  review). `GET /shop/:code/reviews` lists published reviews only. A wrong key answers 404 and spends the `public`
+  budget (30 per 10 s per client IP), as an order read does.
+- A review's text is screened (links, phone numbers, a small word list) before it is shown; flagged ones are hidden
+  until a moderator decides. Reviews carry the shopper's first name only. Phone numbers in order texts and audit rows
+  follow the existing masking.
+
 ## Lockout and manager unlock
 
 - 5 wrong PINs or passwords lock that user for 15 minutes, in PostgreSQL and in the till's own SQLite.

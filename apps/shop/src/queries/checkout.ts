@@ -1,6 +1,6 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { shopFetch } from "./api";
-import { cartQuote, fulfilmentOptions, placedOrder } from "../schemas/checkout";
+import { cartQuote, fulfilmentOptions, placedOrder, shopReviews } from "../schemas/checkout";
 import type { CartLine } from "../schemas/cart";
 
 // Keys start with the shop code, so one browser shopping at two shops never mixes them.
@@ -29,9 +29,22 @@ export const orderQuery = (shop: string, id: string, key: string) =>
   queryOptions({
     queryKey: [shop, "orders", id],
     queryFn: () => shopFetch(`/${shop}/orders/${id}?t=${key}`, placedOrder),
-    // While a payment is open the page follows it: the webhook, not the shopper, finishes it.
-    refetchInterval: (query) =>
-      query.state.data?.status === "placed" && query.state.data.payment?.status === "pending"
-        ? 3_000
-        : false,
+    // While a payment is open the page follows it: the webhook, not the shopper, finishes it. Once paid, the
+    // page follows the store filling the order until it ends.
+    refetchInterval: (query) => {
+      const order = query.state.data;
+      if (order?.status === "placed") return order.payment?.status === "pending" ? 3_000 : false;
+      return order &&
+        ["paid", "accepted", "picking", "ready", "out_for_delivery"].includes(order.status)
+        ? 15_000
+        : false;
+    },
+  });
+
+/** The shop's published reviews: how many, the average and the latest few. */
+export const reviewsQuery = (shop: string) =>
+  queryOptions({
+    queryKey: [shop, "reviews"],
+    queryFn: () => shopFetch(`/${shop}/reviews`, shopReviews),
+    staleTime: 60_000,
   });

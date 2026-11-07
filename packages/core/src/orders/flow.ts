@@ -1,6 +1,7 @@
-import { and, count, eq, isNull } from "drizzle-orm";
+import { and, count, eq, inArray, isNull } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
 import { onlineOrder, stockHold, type ShopperTransaction } from "@shopper/db-pg";
+import { recordStatus } from "./fulfil/events";
 import { releaseOrderHolds } from "./holds";
 
 type Input = { id: string };
@@ -47,23 +48,38 @@ export const markOrderPaid = defineCommand({
   name: "order.paid",
   async run(tx, context, input: Input) {
     const order = await readOrder(tx, context.orgId, input.id);
-    return { paid: order.status === "paid" || order.status === "accepted" };
+    return { paid: !["placed", "expired", "cancelled", "refunded"].includes(order.status) };
   },
   audit: (input, output) => ({ id: input.id, ...output }),
   details: (input) => ({ entity: "online_order", entityId: input.id }),
 });
 
-/** The store took the paid order on. */
+/** The store took the paid order on. Accepting twice (the store's click, then the workflow's step) changes nothing. */
 export const acceptOrder = defineCommand({
   name: "order.accepted",
-  run: async (tx, context, input: Input) => ({
-    moved: await move(tx, context.orgId, input.id, "paid", "accepted"),
-  }),
+  async run(tx, context, input: Input) {
+    const moved = await move(tx, context.orgId, input.id, "paid", "accepted");
+    if (moved) {
+      const now = new Date();
+      await tx
+        .update(onlineOrder)
+        .set({ acceptedAt: now })
+        .where(and(eq(onlineOrder.orgId, context.orgId), eq(onlineOrder.id, input.id)));
+      await recordStatus(tx, context, input.id, "accepted", now);
+    }
+    // The slot as it stands now, for the timers that follow acceptance.
+    const order = await readOrder(tx, context.orgId, input.id);
+    return {
+      moved,
+      slotStart: order.slotStart.toISOString(),
+      slotEnd: order.slotEnd.toISOString(),
+    };
+  },
   audit: (input, output) => ({ id: input.id, ...output }),
   details: (input) => ({ entity: "online_order", entityId: input.id }),
 });
 
-async function readOrder(tx: ShopperTransaction, orgId: string, id: string) {
+export async function readOrder(tx: ShopperTransaction, orgId: string, id: string) {
   const [order] = await tx
     .select()
     .from(onlineOrder)
@@ -73,11 +89,23 @@ async function readOrder(tx: ShopperTransaction, orgId: string, id: string) {
 }
 
 /** Moves the order from one status to the next; false when it had already moved (a replayed step). */
-async function move(tx: ShopperTransaction, orgId: string, id: string, from: Status, to: Status) {
+export async function move(
+  tx: ShopperTransaction,
+  orgId: string,
+  id: string,
+  from: Status | Status[],
+  to: Status,
+) {
   const moved = await tx
     .update(onlineOrder)
     .set({ status: to, updatedAt: new Date() })
-    .where(and(eq(onlineOrder.orgId, orgId), eq(onlineOrder.id, id), eq(onlineOrder.status, from)))
+    .where(
+      and(
+        eq(onlineOrder.orgId, orgId),
+        eq(onlineOrder.id, id),
+        inArray(onlineOrder.status, Array.isArray(from) ? from : [from]),
+      ),
+    )
     .returning({ id: onlineOrder.id });
   return moved.length > 0;
 }

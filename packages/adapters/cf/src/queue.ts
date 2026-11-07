@@ -76,6 +76,7 @@ export async function cloudflareNotifications(
     | "MAILEROO_ENDPOINT"
     | "SHOPPER_LINK_SECRET"
     | "SHOPPER_AUTH_URL"
+    | "SHOPPER_SHOP_URL"
     | "BROWSER"
     | "ACCOUNT_FLOWS"
     | "STATEMENT_FLOWS"
@@ -114,6 +115,7 @@ export async function cloudflareNotifications(
       renderer: env.BROWSER ? cloudflareRenderer(env.BROWSER) : undefined,
       linkSecret: env.SHOPPER_LINK_SECRET,
       baseUrl: env.SHOPPER_AUTH_URL,
+      shopUrl: env.SHOPPER_SHOP_URL || undefined,
       accounts: env.ACCOUNT_FLOWS ? cloudflareLoopLauncher(env.ACCOUNT_FLOWS, "wake") : undefined,
       statements: env.STATEMENT_FLOWS
         ? cloudflareLoopLauncher(env.STATEMENT_FLOWS, "wake")

@@ -52,6 +52,8 @@ export interface ShopOptions {
   orderReviews?: WorkflowLauncher;
   /** Opens Paystack's hosted checkout for card payments; without it only mobile money can be paid. */
   paystack?: Pick<ReturnType<typeof createPaystack>, "initialize">;
+  /** Checks the signed review links texted to shoppers. */
+  linkSecret: string;
 }
 /** What signs a customer's statement link and where the portal opens it. */
 export interface StatementLinks {

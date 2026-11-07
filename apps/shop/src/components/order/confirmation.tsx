@@ -58,10 +58,12 @@ export function OrderConfirmation({
   order,
   shop,
   orderKey,
+  reviewLink,
 }: {
   order: PlacedOrder;
   shop: string;
   orderKey: string;
+  reviewLink?: string;
 }) {
   const status = statusCopy[order.status](order);
   const products = order.lines.filter((line) => line.kind === "product");
@@ -93,7 +95,7 @@ export function OrderConfirmation({
         ) : null}
         <OrderChanges order={order} />
         {order.review || order.canReview ? (
-          <ReviewPanel shop={shop} order={order} orderKey={orderKey} />
+          <ReviewPanel shop={shop} order={order} orderKey={orderKey} reviewLink={reviewLink} />
         ) : null}
         <section
           aria-labelledby="order-when"

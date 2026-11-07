@@ -14,10 +14,13 @@ export function ReviewPanel({
   shop,
   order,
   orderKey,
+  reviewLink,
 }: {
   shop: string;
   order: PlacedOrder;
   orderKey: string;
+  /** The signed link from the shopper's text, standing in for the key in another browser. */
+  reviewLink?: string;
 }) {
   const queryClient = useQueryClient();
   const [rating, setRating] = useState(0);
@@ -25,7 +28,7 @@ export function ReviewPanel({
   const send = useMutation({
     mutationFn: () =>
       shopFetch(`/${shop}/orders/${order.id}/review`, reviewSent, {
-        body: { key: orderKey, rating, comment },
+        body: orderKey ? { key: orderKey, rating, comment } : { r: reviewLink, rating, comment },
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [shop, "orders", order.id] }),
   });

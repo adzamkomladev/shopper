@@ -15,6 +15,8 @@ export type NotificationDeps = StatementDeliveryDeps & {
   /** Sends the refunds owed to payers whose payment could not keep their order. */
   orderRefunds?: OrderRefundDeps;
   queue?: Queue;
+  /** The customer shop's public origin, for the links in a shopper's texts; without it they carry none. */
+  shopUrl?: string;
   /** The store hubs: an accepted order due for picking is announced on its store's channel. */
   realtime?: Realtime;
 };

@@ -119,6 +119,11 @@ export type PlacedOrder = v.InferOutput<typeof placedOrder>;
 /** The order page's address: the checkout key that reads the order back. */
 export const orderSearch = v.object({
   t: v.fallback(v.optional(v.pipe(v.string(), v.uuid())), undefined),
+  /** The signed review link from the shopper's text: it opens the order without the checkout key. */
+  r: v.fallback(
+    v.optional(v.pipe(v.string(), v.regex(/^[\w-]+\.[0-9a-f]{64}$/), v.maxLength(400))),
+    undefined,
+  ),
 });
 
 /** What a shop shows of its reviews. */

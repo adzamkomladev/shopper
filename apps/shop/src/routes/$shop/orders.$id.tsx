@@ -13,7 +13,7 @@ import { OrderConfirmation } from "../../components/order/confirmation";
 import { Missing } from "../../components/shop/missing";
 import { StoreSkeleton } from "../../components/store/skeleton";
 
-/** An order, read with the checkout key in its address; without the key there is nothing to see. */
+/** An order, read with the checkout key or a signed review link in its address; without one there is nothing to see. */
 export const Route = createFileRoute("/$shop/orders/$id")({
   validateSearch: orderSearch,
   loader: async ({ params }) => {
@@ -34,9 +34,14 @@ export const Route = createFileRoute("/$shop/orders/$id")({
 function Order() {
   const { shop, id } = Route.useParams();
   const info = Route.useLoaderData();
-  const key = Route.useSearch().t ?? "";
-  const order = useQuery({ ...orderQuery(shop, id, key), enabled: !!key, retry: false });
-  if (!key || (order.error instanceof ShopApiError && order.error.status === 404))
+  const search = Route.useSearch();
+  const key = search.t ?? "";
+  const order = useQuery({
+    ...orderQuery(shop, id, search),
+    enabled: !!(key || search.r),
+    retry: false,
+  });
+  if (!(key || search.r) || (order.error instanceof ShopApiError && order.error.status === 404))
     return (
       <Missing
         title="We could not find that order"
@@ -53,7 +58,7 @@ function Order() {
       back={{ to: "/$shop", label: "Back to the store" }}
     >
       {order.data ? (
-        <OrderConfirmation order={order.data} shop={shop} orderKey={key} />
+        <OrderConfirmation order={order.data} shop={shop} orderKey={key} reviewLink={search.r} />
       ) : order.isError ? (
         <Alert variant="destructive">
           <CircleAlert aria-hidden />

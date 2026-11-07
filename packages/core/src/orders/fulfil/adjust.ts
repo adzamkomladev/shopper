@@ -19,6 +19,7 @@ import { availableOf } from "../../stock/onhand";
 import { OrderError } from "../error";
 import { owe } from "../payments/apply";
 import { keeperPayment } from "../payments/keeper";
+import { recordReportLines } from "../report";
 import { documentOf, goodsOf, totalOf } from "./goods";
 
 type Order = typeof onlineOrder.$inferSelect;
@@ -98,6 +99,9 @@ export async function settleAdjustment(
       documentOf(receipt, goods.substitutes, { kind: "sale", number: `${number}-S`, at: now }),
       { ...source, adjustmentInvoiceId: adjustment!.id },
     );
+  const report = { source: "adjustment" as const, tender: payment.method, at: now };
+  await recordReportLines(tx, ctx.orgId, order, goods.credits, { ...report, kind: "refund" });
+  await recordReportLines(tx, ctx.orgId, order, goods.substitutes, { ...report, kind: "sale" });
   await tx.insert(stockMovement).values([
     ...goods.returned.map((item) => ({
       orgId: ctx.orgId,

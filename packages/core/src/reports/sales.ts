@@ -19,7 +19,13 @@ import {
 import type { ReportRange } from "./types";
 
 const metrics = ["sales", "items", "gross", "discount", "tax", "net", "refunds", "refund_gross"];
-const keys = { day: sql`day`, hour: sql`hour`, branch: sql`branch_id`, cashier: sql`cashier_id` };
+const keys = {
+  day: sql`day`,
+  hour: sql`hour`,
+  branch: sql`branch_id`,
+  cashier: sql`coalesce(cashier_id::text, 'online')`,
+};
+const ONLINE = "Online shop";
 
 /**
  * Sales by day (every day of the range, empty ones included), Accra hour, branch, cashier or tender, with a total.
@@ -57,7 +63,7 @@ async function bySales(
           tx,
           range.orgId,
           by,
-          rows.map((row) => row.key!),
+          rows.map((row) => row.key!).filter((key) => key !== "online"),
         )
       : new Map<string, string>();
   const read = rows.map((row) => salesRow(row.key!, label(by, row.key!, names), row));
@@ -100,6 +106,7 @@ const totalOf = (rows: Record<string, string>[]) =>
 
 function label(by: string, key: string, names: Map<string, string>) {
   if (by === "hour") return `${key.padStart(2, "0")}:00`;
+  if (by === "cashier" && key === "online") return ONLINE;
   return names.get(key) ?? key;
 }
 

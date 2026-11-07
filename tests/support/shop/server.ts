@@ -45,6 +45,8 @@ const notifications = boxQueue(NOTIFICATION_RETRY, (delivery) =>
 // Paystack is a fake the specs "pay" through: a number that approves at once, and `/test/paystack/pay` for a card.
 const paystackFake = await startPaystackFake();
 paystackFake.behave("0551234987", "success");
+// Asks for the one-time code first (Paystack's sandbox code is 123456).
+paystackFake.behave("0551234986", "send_otp");
 const paystack = createPaystack({
   secretKey: paystackFake.secretKey,
   baseUrl: paystackFake.baseUrl,

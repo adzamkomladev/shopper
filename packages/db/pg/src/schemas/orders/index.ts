@@ -5,3 +5,4 @@ export * from "./holds";
 export * from "./payments";
 export * from "./picking";
 export * from "./reviews";
+export * from "./reports";

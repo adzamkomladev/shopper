@@ -165,3 +165,46 @@ test("without report.read there is no link and the page is the no-permission sta
   );
   await shoot(page, info, kept("no-permission"), { sizes: SIZES });
 });
+
+test("a paid online order lists under the online shop, and its receipt opens the order page", async ({
+  page,
+}, info) => {
+  const order = {
+    ...busyTransactions.rows[0]!,
+    id: "019a0000-0000-7000-8000-0000000004a0",
+    kind: "order",
+    receiptNumber: "OSU1-W-000012",
+    cashierId: null,
+    cashierName: "Online shop",
+    customerId: null,
+    customerName: "Ama Mensah",
+    tenders: ["card"],
+    items: 2,
+  };
+  await page.route(
+    (url) => url.pathname.endsWith("/api/transactions"),
+    (route) =>
+      route.fulfill({
+        json: {
+          ...busyTransactions,
+          rows: [order],
+          counts: { all: 1, completed: 1, refunded: 0, pending: 0 },
+        },
+      }),
+  );
+  await page.route(
+    (url) => url.pathname.endsWith(`/api/orders/${order.id}`),
+    (route) => route.abort(),
+  );
+  await page.goto("/transactions?from=2026-10-27&to=2026-10-27");
+  const row = page.getByRole("region", { name: "Transactions" }).getByRole("row").nth(1);
+  await expect(row).toContainText("Ama Mensah");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(row).toContainText("Online shop");
+  await expect(row).toContainText("2 items");
+  const link = page.getByRole("link", { name: "OSU1-W-000012" });
+  await expect(link).toHaveAttribute("href", `/orders/${order.id}`);
+  await link.focus();
+  await expect(link).toBeFocused();
+  await shoot(page, info, kept("online-order"), { sizes: SIZES });
+});

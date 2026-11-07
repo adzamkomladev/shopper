@@ -7,11 +7,13 @@ import {
   type orderPayment,
   type ShopperTransaction,
 } from "@shopper/db-pg";
+import type { TaxSnapshot } from "@shopper/tax";
 import { v7 } from "uuid";
 import { recordFiscalDoc } from "../../fiscal/documents";
 import { postOrder } from "../../ledger/orders";
 import { checkStockAlerts } from "../../stock/reorder";
 import { recordStatus } from "../fulfil/events";
+import { recordReportLines } from "../report";
 import { releaseOrderHolds } from "../holds";
 import { buildOrderReceipt } from "../receipt";
 
@@ -54,6 +56,16 @@ export async function settleOrder(
     branchId: order.branchId,
     orderId: order.id,
   });
+  await recordReportLines(
+    tx,
+    ctx.orgId,
+    order,
+    lines.map((line) => ({
+      productId: line.productId,
+      tax: (line.payload as { tax: TaxSnapshot }).tax,
+    })),
+    { source: "order", kind: "sale", tender: payment.method, at: now },
+  );
   const goods = lines.flatMap((line) =>
     line.productId ? [{ ...line, productId: line.productId }] : [],
   );

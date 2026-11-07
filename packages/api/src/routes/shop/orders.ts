@@ -2,14 +2,17 @@ import { Hono, type Context } from "hono";
 import * as v from "valibot";
 import { findOrgBySlug } from "@shopper/core/orgs";
 import { payoutSubaccount } from "@shopper/core/kyb";
+import { momoOtp } from "@shopper/core/payments";
 import {
   cancelOwnOrder,
   listPublishedReviews,
   listSlots,
   OrderError,
+  orderById,
   placeOrder,
   readOrderView,
   reviewInstanceId,
+  reviewTokenOpens,
   saveCheckoutUrl,
   startOrderPayment,
   submitReview,
@@ -42,6 +45,18 @@ export function shopOrderRoutes(options: ShopOptions) {
     return found;
   };
   const body = (c: Context): Promise<Record<string, unknown>> => c.req.json().catch(() => ({}));
+  /** The order for a shopper holding its checkout key, or a live review link to it (`r`); else not found. */
+  const shopperOrder = async (orgId: string, id: string, proof: { key?: unknown; r?: unknown }) => {
+    const order =
+      typeof proof.key === "string" && proof.key
+        ? await readOrderView(options.database, orgId, id, proof.key)
+        : typeof proof.r === "string" &&
+            (await reviewTokenOpens(options.linkSecret, proof.r, { orgId, orderId: id }))
+          ? await orderById(options.database, orgId, id)
+          : undefined;
+    if (!order) throw new OrderError("not_found", "We could not find that order");
+    return order;
+  };
 
   app.get("/shop/:code/fulfilment", async (c) => {
     const found = await shopOf(c);
@@ -83,14 +98,12 @@ export function shopOrderRoutes(options: ShopOptions) {
   });
   app.get("/shop/:code/orders/:id", async (c) => {
     const found = await shopOf(c);
-    const order = await readOrderView(
-      options.database,
-      found.id,
-      c.req.param("id"),
-      c.req.query("t") ?? "",
+    return c.json(
+      await shopperOrder(found.id, c.req.param("id"), {
+        key: c.req.query("t"),
+        r: c.req.query("r"),
+      }),
     );
-    if (!order) throw new OrderError("not_found", "We could not find that order");
-    return c.json(order);
   });
   // The shopper's own way out of an order they have not paid: their key proves it is theirs.
   app.post("/shop/:code/orders/:id/cancel", async (c) => {
@@ -102,13 +115,12 @@ export function shopOrderRoutes(options: ShopOptions) {
     await cancelOwnOrder(options.database, { orgId: found.id, appVersion: options.appVersion }, id);
     return c.json(await readOrderView(options.database, found.id, id, String(key)));
   });
-  // The shopper reviews an order they have received, with their key; the review's workflow screens and publishes it.
+  // The shopper reviews an order they have received, with their key or the link texted to them; the review's workflow screens and publishes it.
   app.post("/shop/:code/orders/:id/review", async (c) => {
     const found = await shopOf(c);
     const input = await body(c);
     const id = c.req.param("id");
-    if (!(await readOrderView(options.database, found.id, id, String(input.key ?? ""))))
-      throw new OrderError("not_found", "We could not find that order");
+    await shopperOrder(found.id, id, input);
     await submitReview(
       options.database,
       { orgId: found.id, appVersion: options.appVersion },
@@ -120,6 +132,18 @@ export function shopOrderRoutes(options: ShopOptions) {
   app.get("/shop/:code/reviews", async (c) => {
     const found = await shopOf(c);
     return c.json(await listPublishedReviews(options.database, found.id));
+  });
+  // The one-time code a mobile money network asked the payer for, with their key: it goes to the attempt's workflow.
+  app.post("/shop/:code/orders/:id/pay/code", async (c) => {
+    const found = await shopOf(c);
+    const input = await body(c);
+    const id = c.req.param("id");
+    const order = await shopperOrder(found.id, id, { key: input.key });
+    const otp = v.parse(momoOtp, { otp: input.otp }).otp;
+    if (order.payment?.status !== "otp")
+      return c.json({ error: "This payment is not waiting for a code" }, 409);
+    await options.orderPayments?.send(order.payment.id, "payment", { type: "otp", otp });
+    return c.json(order, 202);
   });
   app.post("/shop/:code/orders/:id/pay", async (c) => {
     const found = await shopOf(c);

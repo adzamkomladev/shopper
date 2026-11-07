@@ -92,6 +92,38 @@ test("a collected order asks for a review by keyboard and thanks the shopper", a
   expect(sent).toEqual([{ key: KEY, rating: 4, comment: "Quick" }]);
 });
 
+test("the link from the review text opens the order in a fresh browser and sends the review with it", async ({
+  page,
+}, info) => {
+  const link = `eyJvcmdJZCI6IngifQ.${"ab".repeat(32)}`;
+  const seen: string[] = [];
+  const sent: unknown[] = [];
+  await serve(
+    page,
+    () => shopperOrder("completed", { review: null, canReview: true }),
+    (_url, body) => {
+      sent.push(body);
+      return { reviewed: true };
+    },
+  );
+  page.on("request", (request) => {
+    if (request.url().includes(`/orders/${ORDER_ID}?`)) seen.push(request.url());
+  });
+  await startShopper(page);
+  await page.goto(`/${SHOP}/orders/${ORDER_ID}?r=${link}`);
+  await expect(page.getByRole("heading", { name: "Collected" })).toBeVisible();
+  expect(seen.some((url) => url.includes(`r=${link}`) && !url.includes("t="))).toBe(true);
+  const stars = page.getByRole("radiogroup", { name: "Rating" });
+  await expect(async () => {
+    await stars.getByRole("radio", { name: "5 stars" }).focus();
+    await page.keyboard.press("5");
+    await expect(stars.getByRole("radio", { name: "5 stars" })).toBeChecked({ timeout: 1_000 });
+  }).toPass({ timeout: 30_000 });
+  await page.getByRole("button", { name: "Send review" }).click();
+  await expect.poll(() => sent).toEqual([{ r: link, rating: 5, comment: "" }]);
+  await shoot(page, info, "shop-review-link");
+});
+
 test("an unpaid order can be cancelled and then reads as cancelled", async ({ page }) => {
   let status = "placed";
   await serve(

@@ -18,3 +18,11 @@ export const reviewInput = v.object({
 
 /** A moderator's call on a flagged review. */
 export const reviewDecision = v.picklist(["approve", "reject"]);
+
+/** What a review link signs: the order it opens, its shop, and when it stops working (ms since the epoch). */
+export const reviewTokenPayload = v.strictObject({
+  orgId: v.pipe(v.string(), v.uuid()),
+  orderId: uuidV7Schema,
+  exp: v.pipe(v.number(), v.safeInteger()),
+});
+export type ReviewTokenPayload = v.InferOutput<typeof reviewTokenPayload>;

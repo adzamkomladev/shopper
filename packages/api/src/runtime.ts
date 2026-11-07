@@ -223,6 +223,7 @@ function shop(request: Request, options: RuntimeOptions) {
       orderPayments: options.orderPayments,
       orderReviews: options.orderReviews,
       paystack: options.paystack,
+      linkSecret: options.linkSecret,
     },
   }).fetch(request);
 }

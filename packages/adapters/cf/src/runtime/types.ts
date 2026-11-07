@@ -18,6 +18,8 @@ export interface AuthEnvironment {
   SHOPPER_AUTH_URL?: string;
   SHOPPER_BOOTSTRAP_TOKEN?: string;
   SHOPPER_LINK_SECRET?: string;
+  /** The customer shop's public origin, for the links in shoppers' texts; empty sends them without one. */
+  SHOPPER_SHOP_URL?: string;
   MAILEROO_API_KEY?: string;
   MAILEROO_FROM?: string;
   MAILEROO_ENDPOINT?: string;

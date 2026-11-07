@@ -105,3 +105,25 @@ test("a declined mobile money prompt says so and the shopper can try again", asy
     timeout: 30_000,
   });
 });
+
+test("a network that asks for a code takes it by keyboard: a wrong code says so, the right one pays", async ({
+  page,
+}, info) => {
+  await placedOrder(page);
+  await page.getByLabel("Mobile money number").fill("055 123 4986");
+  await page.getByRole("button", { name: "Pay GH₵ 30.00" }).click();
+  await expect(page.getByText("Enter the code your network sent")).toBeVisible({ timeout: 30_000 });
+  const code = page.getByLabel("Payment code");
+  await expect(code).toBeFocused();
+  await shoot(page, info, "shop-pay-code");
+  await page.keyboard.type("000000");
+  await expect(page.getByRole("status").filter({ hasText: "incorrect" })).toBeVisible({
+    timeout: 30_000,
+  });
+  await shoot(page, info, "shop-pay-code-wrong");
+  await code.focus();
+  await page.keyboard.type("123456");
+  await expect(page.getByRole("heading", { name: "Paid", exact: true })).toBeVisible({
+    timeout: 30_000,
+  });
+});

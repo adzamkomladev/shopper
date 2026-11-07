@@ -225,6 +225,9 @@ The edge requires `AUTH_FLOWS` bound to the exported `AuthWorkflow` class, and `
 configuration, never request input. `MAILEROO_ENDPOINT` is optional for the local network
 integration fake; production defaults to `https://smtp.maileroo.com/api/v2/emails`.
 `SHOPPER_AUTH_URL` also supplies the trusted origin and setup-link base URL.
+`SHOPPER_SHOP_URL` (optional, edge and box) is the online shop's origin. The text asking for an order review links to
+`<SHOPPER_SHOP_URL>/<code>/orders/<id>?r=<token>`, a token signed with `SHOPPER_LINK_SECRET` that opens that order and
+takes one review until the review window closes. Without it the text asks with no link.
 
 Use Worker secrets for these values and sealed box configuration on-prem. No sender configuration
 makes delivery fail visibly in its checkpoint and leaves explicit retry available. Every box closes public onboarding and keeps the controlled bootstrap-token path;

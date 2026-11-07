@@ -11,6 +11,7 @@ import { readGoods } from "../../fulfil/adjust";
 import { documentOf, goodsOf } from "../../fulfil/goods";
 import { owe } from "../apply";
 import { keeperPayment } from "../keeper";
+import { recordReportLines } from "../../report";
 
 type Order = typeof onlineOrder.$inferSelect;
 type Status = Order["status"];
@@ -48,7 +49,7 @@ export const refundPaidOrder = defineCommand({
     await recordStatus(tx, ctx, order.id, "refunded", now);
     const payment = await keeperPayment(tx, ctx.orgId, order.id);
     const refund = (await owe(tx, ctx, payment, input.reason))!;
-    await giveBack(tx, ctx, order, refund.id, now);
+    await giveBack(tx, ctx, order, { id: refund.id, tender: payment.method }, now);
     return { refunded: true as const, id: refund.id };
   },
   audit: (input, output) => ({ id: input.id, reason: input.reason, refunded: output.refunded }),
@@ -59,7 +60,7 @@ async function giveBack(
   tx: ShopperTransaction,
   ctx: CommandContext,
   order: Order,
-  refundId: string,
+  refund: { id: string; tender: "card" | "momo" },
   now: Date,
 ) {
   // Whatever of the order is still out of the shelf goes back: the sale less anything already returned.
@@ -84,19 +85,26 @@ async function giveBack(
         occurredAt: now,
       })),
     );
-  await reverseOrder(tx, ctx, order, refundId, now);
+  await reverseOrder(tx, ctx, order, refund.id, now);
   // The credit note covers what the shopper finally held: the order as picked, not as first ordered.
   const { lines, picks } = await readGoods(tx, ctx.orgId, order.id, true);
   const goods = goodsOf(lines, picks);
   const receipt = v.parse(receiptDocument, order.receipt);
+  const held = [...goods.kept, ...goods.substitutes];
+  await recordReportLines(tx, ctx.orgId, order, held, {
+    source: "refund",
+    kind: "refund",
+    tender: refund.tender,
+    at: now,
+  });
   await recordFiscalDoc(
     tx,
     ctx.orgId,
-    documentOf(receipt, [...goods.kept, ...goods.substitutes], {
+    documentOf(receipt, held, {
       kind: "refund",
       number: `${receipt.header.receiptNumber}-C`,
       at: now,
     }),
-    { storeId: order.storeId, branchId: order.branchId, orderRefundId: refundId },
+    { storeId: order.storeId, branchId: order.branchId, orderRefundId: refund.id },
   );
 }

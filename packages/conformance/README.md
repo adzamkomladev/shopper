@@ -23,7 +23,10 @@ with PostgreSQL-backed registration fixtures. It proves invalid instance ids
 fail, retry/completion events buffer before waits, duplicate launches preserve
 delivery checkpoints, and expired registrations finish without another email.
 The Workers runtime also forces the native event timeout. The box fixture uses
-the shipped memory engine; restart recovery remains the day 36 boundary.
+the memory engine; Rivet restart recovery is proven in `tests/integration/ports/rivet.test.ts`.
+
+`blobsConformance()` runs the Blobs cases alone, so the box's RustFS receipts storage passes the same
+cases as fs and R2. `queueConformance()` runs against `boxQueue` and `launchQueue` on both engines.
 
 `src/register.ts` registers the shared cases; `src/cases/` holds each port suite.
 `src/index.ts` only re-exports the public test registration API.

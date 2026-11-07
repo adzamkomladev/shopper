@@ -52,13 +52,15 @@ Rivet facts verified by spikes against the pinned `rivetkit@3.0.0-preview.3` + `
    Business tests keep using the memory engine; the **Rivet engine is proven by conformance against a real engine**.
    This also deletes the start/send/started-set boilerplate repeated in 17 launcher files.
 5. **Queue and watchdog move to Rivet** — they are the two restart losses that PostgreSQL does not cover today.
-   The `notices` actor keeps messages in its durable queue and retries with `NOTIFICATION_RETRY`; the `watchdog` actor
-   arms `c.cron.set("59 23 * * *", UTC)`.
+   Built on the same `Launch` engine rather than two more actors (changed while building): `launchQueue` makes each
+   message a one-shot workflow keyed by its envelope id (deliveries are steps, retry waits are engine sleeps, with
+   `NOTIFICATION_RETRY`); `boxWatchdog` is one workflow per day that sleeps to 23:59 UTC, fires, then starts the next
+   day's. Both run on either engine, so the memory engine passes the same tests.
 6. **Lane, StockHold, RateLimiter, StoreHub stay in process today.** Lane and StockHold are rebuilt from PostgreSQL
    at boot already, so an actor adds no durability; RateLimiter and StoreHub sit on every request / socket of a single
    box process, where an engine round-trip is pure latency. Recorded in platforms.md; revisit if the box ever runs more
    than one process. (Pushback on the Notion list — reported in remarks.)
-7. **The box serves the portal.** `SHOPPER_PORTAL_DIR` (default `apps/portal/dist/client` relative to the build) is
+7. **The box serves the portal.** `SHOPPER_PORTAL_DIR` (the portal build's static assets folder) is
    served by Hono's `serveStatic` for every non-`/api` GET, with SPA fallback to `index.html`; `/api/*` stays the API.
    Path traversal is refused by `serveStatic`. The host-only `/_serverFn/*` meta query is cloud-only and renders nothing
    on the box.

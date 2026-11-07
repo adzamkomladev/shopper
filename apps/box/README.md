@@ -20,6 +20,14 @@ Set `SHOPPER_LINK_SECRET` to enable invitation links, including LAN setup links 
 Email delivery additionally needs `MAILEROO_API_KEY` and `MAILEROO_FROM`; `MAILEROO_ENDPOINT`
 can point to the local integration fake. The box never exposes self-service onboarding, including when no fixed org is configured.
 Set `ARKESEL_API_KEY` (and `ARKESEL_SENDER`, default `Shopper`; `ARKESEL_BASE_URL` for a fake) to text
-low-stock alerts to branch alert phones. The in-memory notification queue loses pending messages on restart until day 36.
-Waiting auth flows currently use the shared memory engine; PostgreSQL still enforces deadlines
-and link consumption after restart, while automatic timer recovery is scheduled for day 36.
+low-stock alerts to branch alert phones.
+
+Set `RIVET_ENDPOINT` (and `RIVET_TOKEN`; `RIVET_NAMESPACE`, default `default`; `RIVET_POOL`, default
+`shopper-box`) to run every workflow and the notification queue on the Rivet engine (`src/engine.ts`), so
+waits, sleeps and pending messages survive a restart. Without it they run in process and are lost on restart;
+PostgreSQL still enforces deadlines and link consumption, and the boot relaunches restart what it can.
+
+Set `SHOPPER_PORTAL_DIR` (the portal build's static assets, `apps/portal/.cloudflare/output/v0/workers/default/assets`) to serve the back office on the box's origin
+(`src/portal.ts`): `/api/*` is the API, a built file is served as is, and a browser navigation gets the SPA
+shell with the portal's `_headers`. API routes at the root keep answering tills and other JSON clients.
+`SHOPPER_S3_*` puts imports and receipts in RustFS buckets (`src/storage.ts`).

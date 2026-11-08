@@ -47,7 +47,9 @@ off. Backups: `src/backup.ts` (entry `src/cli/backup.ts`) with `deploy/systemd/b
 
 Sealed binary (Day 38): `vp run box:seal` compiles `src/main.ts` (migrations, portal and wasm embedded) to `dist/shopper-box`;
 `vp run box:installer` builds `shopper-box-installer.run` (needs Docker and network once, and `SHOPPER_RELEASE_SIGNING_KEY`). See
-`docs/engineering/deployment.md#box-release`. `shopper-box backup` and `shopper-box doctor` are subcommands. Set
+`docs/engineering/deployment.md#box-release`. `shopper-box backup`, `shopper-box doctor` and `shopper-box rollback` (restores
+the pre-update dump after a failed update; run by `shopper-apply`) are subcommands. The box serves registers' update files
+from `till/<channel>/` in its slot at `/till/updates` (Day 39). Set
 `SHOPPER_RELEASE_DIR` (default `/opt/shopper/current`) and build with `SHOPPER_RELEASE_KEY` to enforce the signed-release check;
 `SHOPPER_UPDATES_DIR` and `SHOPPER_SLOTS_DIR` locate update bundles and the A/B slots; `SHOPPER_SETUP_CODE_HASH` enables
 first-boot setup (`/install`); `SHOPPER_SINGLE_SHOP=1` makes the only shop the tenant.

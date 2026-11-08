@@ -44,11 +44,15 @@ export const updatesResponse = v.strictObject({
 });
 /** Install now (no `at`), or after closing at `at`. */
 export const updateInstallInput = v.strictObject({ file: updateFile, at: v.optional(iso) });
-export const updateInstallResponse = v.strictObject({
-  status: v.picklist(["started", "scheduled"]),
-  file: updateFile,
-  at: v.optional(iso),
-});
+export const updateInstallResponse = v.variant("status", [
+  v.strictObject({
+    status: v.picklist(["started", "scheduled"]),
+    file: updateFile,
+    at: v.optional(iso),
+  }),
+  /** A tax rule pack: applied at once; `rules` is how many changed. */
+  v.strictObject({ status: v.literal("applied"), file: updateFile, rules: v.number() }),
+]);
 export const boxUpdateParams = v.strictObject({
   orgId: uuidV7Schema,
   actorId: v.optional(uuidV7Schema),

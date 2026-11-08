@@ -19,14 +19,19 @@ export const updatesQuery = (installing = false) =>
 export function useUpdateInstall() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: { file: string; at?: string }) =>
-      apiFetch("/updates/install", updateInstallResponse, { method: "POST", body: input }),
-    onSuccess: (result) => {
+    mutationFn: (input: { file: string; at?: string; version?: string }) =>
+      apiFetch("/updates/install", updateInstallResponse, {
+        method: "POST",
+        body: { file: input.file, ...(input.at ? { at: input.at } : {}) },
+      }),
+    onSuccess: (result, input) => {
       void queryClient.invalidateQueries({ queryKey: ["updates"] });
       toast.success(
-        result.status === "scheduled"
-          ? "Update scheduled. The box makes a backup first, then restarts."
-          : "Installing. The box restarts in a moment.",
+        result.status === "applied"
+          ? `Tax rules ${input.version} applied: ${result.rules} ${result.rules === 1 ? "rule" : "rules"} changed.`
+          : result.status === "scheduled"
+            ? "Update scheduled. The box makes a backup first, then restarts."
+            : "Installing. The box restarts in a moment.",
       );
     },
     onError: (error) => toast.error(error.message),

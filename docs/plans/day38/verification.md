@@ -36,8 +36,8 @@ boots `ubuntu:24.04` with systemd as PID 1 on `--network none` (Docker, privileg
 2. `sh /installer.run` leaves PostgreSQL 18, Caddy, the Rivet engine and the box active, the migration journal complete, the box
    answering through Caddy's own CA at `https://shopper.local`, `box.env` at mode 640 and `current` pointing at slot `a`;
    `/setup` redirects a browser to `/install`; the printed setup code plus a licence issued from the wizard's request code creates the
-   shop, the replay is 404, the owner signs in; a second run of the installer is refused. Installed and checked in **INSTALL_MINUTES**
-   (budget 30);
+   shop, the replay is 404, the owner signs in; a second run of the installer is refused. The whole test (this install, the wizard, an update and a rollback) takes about
+   six minutes against a 30-minute budget for the install;
 3. the owner signs in, lists two signed bundles, is refused the update until backups are set up ("needs a verified backup first"),
    installs `update-good` (verified backup to a local rclone remote, spare slot `b`, `shopper-apply` flips and the box comes up
    healthy, `running.slot` is `b`), then installs a signed bundle whose box exits at once: after the health wait the helper switches
@@ -74,3 +74,17 @@ mDNS (`avahi-daemon` cannot start in a no-network container: the installer warns
 Ubuntu VM and hardware, Windows tills on the box LAN (Day 40), real R2 upload (the backup test uses a local rclone remote), the
 `ufw` rules (not in the test image), a real production release key and licence issuer, and applying a tax rule pack (the verdict
 accepts it; the tax module that applies one does not exist yet).
+
+## Codex review (gpt-6.1-sol)
+
+The whole-branch review died on the diff's size, so the risky slices were reviewed per commit. Fixed: the box emptied its spare
+slot by removing the folder (already found by the machine test); the audit entry now commits before the restart handoff; one
+update at a time from the first step; the engine switches slot with the box; readiness, not liveness, decides success; cancel is
+an audited command; a licence issued for an earlier box key is refused; Back keeps the step's draft; seal runs get their own
+stage folder. Not changed: the wizard's browser tests replay the box's answers (the real flow is covered by the API tests and
+the machine test; an empty real box in the e2e database does not exist).
+
+## Local full run
+
+`vp test --run`: 1968 passed, 21 skipped, 1 failed: `ports/rivet.test.ts` "a flow sleeping in a host that dies" (the engine's
+45 s lost-runner timeout, at load 8); it passes alone (9 of 9). CI: all 30 checks.

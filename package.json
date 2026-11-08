@@ -16,6 +16,7 @@
     "e2e": "playwright test",
     "test:chaos": "vp test --run tests/integration/sync/chaos",
     "storage:setup": "vpx tooling/storage/setup.ts",
+    "box:seal": "vpx tooling/box/seal.ts",
     "fonts:receipt": "vpx tooling/fonts/receipt.ts",
     "till:package": "vpx tooling/build/package.ts",
     "till:provision": "vpx tooling/till/provision.ts",

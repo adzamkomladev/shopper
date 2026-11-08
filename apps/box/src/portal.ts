@@ -2,7 +2,7 @@ import { readFile, stat } from "node:fs/promises";
 import { resolve, sep } from "node:path";
 import { Hono } from "hono";
 import { getMimeType } from "hono/utils/mime";
-import type { BoxBindings } from "./types";
+import type { BoxBindings, Pack, PortalSource } from "./types";
 
 // The headers Workers Static Assets sends with the portal (apps/portal/public/_headers).
 const SHELL_HEADERS = {
@@ -16,8 +16,7 @@ const SHELL_HEADERS = {
  * The back office on the box's origin, as the cloud serves it: `/api/*` is the API (whose own routes sit at the root),
  * a GET for a built file gets the file, a browser navigation gets the SPA shell, and everything else is the API.
  */
-export function withPortal(api: Hono<{ Bindings: BoxBindings }>, dir: string | undefined) {
-  const root = dir && resolve(dir);
+export function withPortal(api: Hono<{ Bindings: BoxBindings }>, source: PortalSource | undefined) {
   return new Hono<{ Bindings: BoxBindings }>().all("*", async (context) => {
     const request = context.req.raw;
     const url = new URL(request.url);
@@ -28,23 +27,41 @@ export function withPortal(api: Hono<{ Bindings: BoxBindings }>, dir: string | u
         new Request(new URL(url.pathname.slice(4) + url.search, url), request),
         context.env,
       );
-    if (!root || request.method !== "GET") return api.fetch(request, context.env);
-    const file = await portalFile(root, url.pathname);
+    if (!source || request.method !== "GET") return api.fetch(request, context.env);
+    const file = await portalFile(source, url.pathname);
     if (file) return file;
     if (request.headers.get("accept")?.includes("text/html"))
-      return (await portalFile(root, "/index.html")) ?? api.fetch(request, context.env);
+      return (await portalFile(source, "/index.html")) ?? api.fetch(request, context.env);
     return api.fetch(request, context.env);
   });
 }
 
-async function portalFile(root: string, pathname: string) {
-  const path = resolve(root, `.${safeDecode(pathname)}`);
-  // A decoded `..` (or `\`) that leaves the portal folder is never read.
-  if (!path.startsWith(root + sep)) return undefined;
-  const found = await stat(path).catch(() => undefined);
-  if (!found?.isFile()) return undefined;
-  return new Response(await readFile(path), {
-    headers: { ...SHELL_HEADERS, "content-type": getMimeType(path) ?? "application/octet-stream" },
+/** The portal folder `dir`, read from disk (`SHOPPER_PORTAL_DIR`). */
+export function portalFolder(dir: string | undefined): PortalSource | undefined {
+  if (!dir) return undefined;
+  const root = resolve(dir);
+  return async (pathname) => {
+    const path = resolve(root, `.${safeDecode(pathname)}`);
+    // A decoded `..` (or `\`) that leaves the portal folder is never read.
+    if (!path.startsWith(root + sep)) return undefined;
+    const found = await stat(path).catch(() => undefined);
+    return found?.isFile() ? new Blob([await readFile(path)]) : undefined;
+  };
+}
+
+/** The portal embedded in the sealed binary, under `portal/`. */
+export function portalPack(pack: Pack): PortalSource {
+  return async (pathname) => pack.file(`portal${safeDecode(pathname)}`);
+}
+
+async function portalFile(source: PortalSource, pathname: string) {
+  const body = await source(pathname);
+  if (!body) return undefined;
+  return new Response(body, {
+    headers: {
+      ...SHELL_HEADERS,
+      "content-type": getMimeType(pathname) ?? "application/octet-stream",
+    },
   });
 }
 

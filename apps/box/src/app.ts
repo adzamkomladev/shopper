@@ -3,12 +3,12 @@ import { buildInfo } from "@shopper/config";
 import { deliverNotification } from "@shopper/core/notifications";
 import { runWatchdog } from "@shopper/core/reports";
 import { createSdc } from "@shopper/core/fiscal";
-import type { BoxBindings } from "./types";
+import type { BoxBindings, PortalSource } from "./types";
 import { boxPayments } from "./payments";
 import { boxOrders } from "./orders";
 import { boxEngine } from "./engine";
 import { boxStorage } from "./storage";
-import { withPortal } from "./portal";
+import { portalFolder, withPortal } from "./portal";
 import { boxLicence } from "./licence";
 import { boxChannels } from "./channels";
 import {
@@ -35,8 +35,12 @@ import { NOTIFICATION_RETRY, type Queue } from "@shopper/ports";
 import { isPublicRequest, publicApi, runtimeUnavailable, serveRuntime } from "@shopper/api/runtime";
 export function createBoxApp(
   environment: Record<string, string | undefined> = process.env,
-  // Test seam: the issuer is a build define, never box configuration, so an operator cannot swap it.
-  options: { licenceIssuer?: string; fetch?: (request: Request) => Promise<Response> } = {},
+  // The issuer is a build define (a test seam); the sealed binary passes its embedded portal, else SHOPPER_PORTAL_DIR.
+  options: {
+    licenceIssuer?: string;
+    fetch?: (request: Request) => Promise<Response>;
+    portal?: PortalSource;
+  } = {},
 ) {
   const licence = boxLicence(environment, {
     issuer: options.licenceIssuer ?? buildInfo.licenceIssuer,
@@ -242,5 +246,5 @@ export function createBoxApp(
       await connection.close();
     }
   });
-  return withPortal(api, environment.SHOPPER_PORTAL_DIR);
+  return withPortal(api, options.portal ?? portalFolder(environment.SHOPPER_PORTAL_DIR));
 }

@@ -7,6 +7,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./pack": {
+      "types": "./src/pack.ts",
+      "default": "./src/pack.ts"
     }
   },
   "scripts": {
@@ -14,15 +18,23 @@
   },
   "dependencies": {
     "@resvg/resvg-wasm": "2.6.2",
+    "@rivetkit/rivetkit-napi": "3.0.0-preview.3",
     "@shopper/adapters-box": "workspace:*",
     "@shopper/api": "workspace:*",
+    "@shopper/audit": "workspace:*",
     "@shopper/auth": "workspace:*",
     "@shopper/config": "workspace:*",
     "@shopper/core": "workspace:*",
+    "@shopper/db-pg": "workspace:*",
     "@shopper/ports": "workspace:*",
     "@shopper/utils": "workspace:*",
+    "drizzle-orm": "0.45.3",
     "hono": "4.13.13",
     "pg": "8.23.1",
-    "satori": "0.33.5"
+    "satori": "0.33.5",
+    "valibot": "1.5.0"
+  },
+  "optionalDependencies": {
+    "@rivetkit/rivetkit-napi-linux-x64-gnu": "3.0.0-preview.3"
   }
 }

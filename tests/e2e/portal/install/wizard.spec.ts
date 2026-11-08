@@ -131,6 +131,9 @@ test("Back keeps what was typed, and a box that is already set up goes to log in
   await page.getByLabel("Shop name").fill("Esi Mart");
   await page.getByRole("button", { name: "Back" }).click();
   await expect(page.getByLabel("Setup code")).toHaveValue("AAAA-BBBB-CCCC");
+  // What was typed on the step left with Back is kept too, without pressing Continue.
+  await next(page);
+  await expect(page.getByLabel("Shop name")).toHaveValue("Esi Mart");
   await page.unroute(() => true).catch(() => undefined);
   await box(page, { status: 404, json: { error: "Not found" } });
   await page.goto("/install");

@@ -156,8 +156,31 @@ test("scheduled after closing: it waits, installs once at its time, and cancelli
   const later = await service();
   await bundle(later.updates, "ok.tgz", shopper.privateKey);
   await later.service.schedule("ok.tgz", new Date(Date.now() + 1500).toISOString(), who());
-  await later.service.cancel();
+  await later.service.cancel(who());
   await new Promise((resolve) => setTimeout(resolve, 4000));
   expect(await exists(join(later.updates, "apply.json"))).toBe(false);
   expect(later.backup).not.toHaveBeenCalled();
+  // Who cancelled is in the audit log, not only that the file went.
+  const { rows } = await pool.query(
+    "select row_to_json(a)::text as entry from audit_log a where org_id = $1 and command = 'box.update.run' order by chain_seq desc limit 1",
+    [org],
+  );
+  expect(rows[0].entry).toContain("cancelled");
 }, 60_000);
+
+test("two requests at once unpack once: the second is told an update is already being installed", async () => {
+  const t = await service();
+  await bundle(t.updates, "ok.tgz", shopper.privateKey);
+  const results = await Promise.all([
+    t.service.install("ok.tgz", who()).then(
+      () => "ok",
+      (error: BoxUpdateError) => error.status,
+    ),
+    t.service.install("ok.tgz", who()).then(
+      () => "ok",
+      (error: BoxUpdateError) => error.status,
+    ),
+  ]);
+  expect(results.slice().sort((a, b) => String(a).localeCompare(String(b)))).toEqual([409, "ok"]);
+  expect(t.backup).toHaveBeenCalledOnce();
+});

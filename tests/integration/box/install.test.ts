@@ -49,13 +49,13 @@ const state = async () =>
   }>;
 const count = async (table: string) =>
   (await pool.query(`select count(*)::int as n from ${table}`)).rows[0].n as number;
-async function licenceFor(forMachine: string) {
+async function licenceFor(forMachine: string, key = boxKey) {
   return issueLicence(issuer.privateKey, {
     id: v7(),
     org: v7(),
     site: "Osu",
     machine: forMachine,
-    key: boxKey,
+    key,
     terminals: 5,
     issuedAt: new Date().toISOString(),
     maintenanceUntil: "2027-11-01",
@@ -109,6 +109,12 @@ test("a wrong code, a licence for another machine and a weak password create not
   expect(other.status).toBe(422);
   expect(((await other.json()) as { error: string }).error).toMatch(/another machine/i);
   expect((await post(body({ owner: { ...owner, password: "short" } }))).status).toBe(400);
+  // Issued for an earlier key of this machine: genuine and for this machine, but it could never check in.
+  const earlier = await post(
+    body({ licence: await licenceFor(machine, (await generateKey()).publicKey) }),
+  );
+  expect(earlier.status).toBe(422);
+  expect(((await earlier.json()) as { error: string }).error).toMatch(/request code/i);
   // No licence at all is refused where a licence is enforced.
   expect((await post(body())).status).toBe(422);
   expect(await count("org")).toBe(0);

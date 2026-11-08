@@ -68,11 +68,27 @@ export function boxUpdates(options: {
     return { path: join(updates, name.output), manifest: bundle.manifest };
   }
 
-  // Backup first, then unpack into the spare slot and check every file against the signed manifest; only then ask the
-  // root helper to switch. Any refusal leaves the running slot, and the spare, as they were.
+  // One update at a time, from the first step: two requests must not unpack into the same spare slot. Held from the
+  // start of `stage` until `handoff` has written the request (which then guards by itself) or a step fails.
+  let reserved = false;
+  const spareSlot = async () => ((await slot()) === "a" ? "b" : "a");
+
+  // Backup first, then unpack into the spare slot and check every file against the signed manifest. Any refusal leaves
+  // the running slot, and the spare, as they were. The root helper is asked to switch only by `handoff`.
   async function stage(file: string) {
-    if (await readState("apply.json"))
-      throw new BoxUpdateError(409, "An update is already being installed.");
+    if (reserved) throw new BoxUpdateError(409, "An update is already being installed.");
+    reserved = true;
+    try {
+      if (await readState("apply.json"))
+        throw new BoxUpdateError(409, "An update is already being installed.");
+      return await unpack(file);
+    } catch (error) {
+      reserved = false;
+      throw error;
+    }
+  }
+
+  async function unpack(file: string) {
     const { path, manifest } = await prepare(file);
     await options.backup().catch((error: unknown) => {
       throw new BoxUpdateError(
@@ -80,8 +96,7 @@ export function boxUpdates(options: {
         `The update needs a verified backup first, and it failed: ${error instanceof Error ? error.message : error}`,
       );
     });
-    const spare = (await slot()) === "a" ? "b" : "a";
-    const dir = join(root, "slots", spare);
+    const dir = join(root, "slots", await spareSlot());
     await emptySlot(dir);
     await run("tar", ["-xzf", path, "-C", dir]);
     const changed = await changedFiles(manifest, (name) =>
@@ -91,13 +106,20 @@ export function boxUpdates(options: {
       await emptySlot(dir);
       throw new BoxUpdateError(422, `${changed.join(", ")} is not what Shopper signed.`);
     }
-    await mkdir(updates, { recursive: true });
-    await rm(state("result.json"), { force: true });
-    await writeFile(
-      state("apply.json"),
-      JSON.stringify({ slot: spare, version: manifest.version, file }),
-    );
     return manifest.version;
+  }
+
+  async function handoff(file: string, version: string) {
+    try {
+      await mkdir(updates, { recursive: true });
+      await rm(state("result.json"), { force: true });
+      await writeFile(
+        state("apply.json"),
+        JSON.stringify({ slot: await spareSlot(), version, file }),
+      );
+    } finally {
+      reserved = false;
+    }
   }
 
   const deps: BoxUpdateDeps = {
@@ -110,6 +132,7 @@ export function boxUpdates(options: {
       await rm(state("scheduled.json"), { force: true });
       return { version };
     },
+    handoff,
   };
   const launcher = options.launch("box-update", boxUpdateParams, (flow, params) =>
     runBoxUpdate(flow, deps, params),
@@ -158,13 +181,20 @@ export function boxUpdates(options: {
     },
     async install(file, who) {
       const version = await stage(file);
-      await options.withDatabase((db) =>
-        recordUpdate(
-          db,
-          { ...who, appVersion: options.installed.version },
-          { file, status: "started", version },
-        ),
-      );
+      // The audit entry commits before the handoff: the root helper restarts this process.
+      await options
+        .withDatabase((db) =>
+          recordUpdate(
+            db,
+            { ...who, appVersion: options.installed.version },
+            { file, status: "started", version },
+          ),
+        )
+        .catch(async (error: unknown) => {
+          reserved = false;
+          throw error;
+        });
+      await handoff(file, version);
     },
     async schedule(file, at, who) {
       await prepare(file);
@@ -187,7 +217,18 @@ export function boxUpdates(options: {
           throw error;
         });
     },
-    cancel: () => rm(state("scheduled.json"), { force: true }),
+    async cancel(who) {
+      const scheduled = await readState("scheduled.json");
+      await rm(state("scheduled.json"), { force: true });
+      if (scheduled?.file)
+        await options.withDatabase((db) =>
+          recordUpdate(
+            db,
+            { ...who, appVersion: options.installed.version },
+            { file: scheduled.file!, status: "cancelled" },
+          ),
+        );
+    },
   };
 }
 

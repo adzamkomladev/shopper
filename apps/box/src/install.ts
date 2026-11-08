@@ -18,6 +18,7 @@ const REASONS = {
   unreadable: "That is not a licence file.",
   forged: "That licence was not issued by Shopper.",
   machine: "That licence was issued for another machine.",
+  key: "That licence was issued for another request code. Ask Shopper support to reissue it from this box's current code.",
 } as const;
 // shortcut: wrong codes are counted in this process, not stored; a restart forgives them. The code is 12 characters of
 // 31 and the box answers only its own shop network, so this only slows a neighbour; upgrade if the box ever faces the internet.

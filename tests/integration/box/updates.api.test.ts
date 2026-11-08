@@ -73,7 +73,10 @@ test("only an owner (billing.manage) reads or starts updates; now and after clos
     expect.objectContaining({ orgId: principal.orgId }),
   );
   expect((await call(box, "POST", "/updates/cancel", {})).status).toBe(204);
-  expect(service.cancel).toHaveBeenCalledOnce();
+  expect(service.cancel).toHaveBeenCalledWith({
+    orgId: principal.orgId,
+    actorId: principal.userId,
+  });
 });
 
 test("a refusal reaches the owner with the box's own sentence and status", async () => {

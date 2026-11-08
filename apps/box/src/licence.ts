@@ -80,6 +80,9 @@ export async function acceptLicence(
     now: new Date(),
   });
   if (status.state === "locked" && status.reason !== "expired") return status.reason;
+  // A licence issued for an earlier key of this machine would pass every check but could never check in.
+  if (status.licence?.key !== publicKeyOf(await ownKey(join(dir, "box.key"))))
+    return "key" as const;
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, "licence.json"), JSON.stringify(value, null, 2));
   return undefined;

@@ -18,7 +18,8 @@ import { InstallStep } from "./step";
 type Step<Keys extends keyof InstallValues> = {
   values: Partial<InstallValues>;
   onNext: (values: Pick<InstallValues, Keys>) => void;
-  onBack?: () => void;
+  /** Called with what is typed so far, which Back keeps. */
+  onBack?: (draft: Partial<InstallValues>) => void;
   action?: string;
   pending?: boolean;
   error?: string;
@@ -73,7 +74,7 @@ export function ShopStep({
   return (
     <InstallStep
       onSubmit={() => void form.handleSubmit()}
-      onBack={onBack}
+      onBack={onBack && (() => onBack(form.state.values))}
       action={action}
       error={error}
     >
@@ -141,7 +142,7 @@ export function OwnerStep({
   return (
     <InstallStep
       onSubmit={() => void form.handleSubmit()}
-      onBack={onBack}
+      onBack={onBack && (() => onBack(form.state.values))}
       action={action}
       pending={pending}
       error={error}
@@ -188,7 +189,7 @@ export function LicenceStep({
   return (
     <InstallStep
       onSubmit={() => void form.handleSubmit()}
-      onBack={onBack}
+      onBack={onBack && (() => onBack(form.state.values))}
       action="Install"
       pending={pending}
       error={error}

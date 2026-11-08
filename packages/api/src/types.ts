@@ -125,7 +125,8 @@ export interface BoxUpdates {
   install(file: string, who: { orgId: string; actorId?: string }): Promise<void>;
   /** The same, at `at` (an ISO time, "after closing"). */
   schedule(file: string, at: string, who: { orgId: string; actorId?: string }): Promise<void>;
-  cancel(): Promise<void>;
+  /** Cancels the scheduled update, if any, and records who did. */
+  cancel(who: { orgId: string; actorId?: string }): Promise<void>;
 }
 
 /** An update the box refuses, with the sentence the owner reads. */

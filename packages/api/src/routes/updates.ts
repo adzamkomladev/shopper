@@ -36,7 +36,7 @@ export function updateRoutes(options: ApiOptions) {
     );
   });
   app.post("/updates/cancel", guard, async (c) => {
-    await updates.cancel();
+    await updates.cancel({ orgId: c.get("principal").orgId, actorId: c.get("principal").userId });
     return c.body(null, 204);
   });
   return app;

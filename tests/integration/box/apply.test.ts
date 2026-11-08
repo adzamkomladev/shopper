@@ -60,8 +60,11 @@ test("a healthy new slot becomes current; an unhealthy one is switched back and 
   expect((await readlink(join(good.root, "current"))).endsWith("slots/b")).toBe(true);
   expect((await result(good)).status).toBe("applied");
   // The box was stopped, started on the new slot, and the request is consumed.
+  // The engine runs from the same slot, so it switches with the box.
   expect((await readFile(good.log, "utf8")).trim().split("\n")).toEqual([
     "stop shopper-box",
+    "stop shopper-engine",
+    "start shopper-engine",
     "start shopper-box",
   ]);
   await expect(readFile(join(good.updates, "apply.json"))).rejects.toThrow();
@@ -76,8 +79,12 @@ test("a healthy new slot becomes current; an unhealthy one is switched back and 
   expect(rolled.message).toContain("restore the backup");
   expect((await readFile(bad.log, "utf8")).trim().split("\n")).toEqual([
     "stop shopper-box",
+    "stop shopper-engine",
+    "start shopper-engine",
     "start shopper-box",
     "stop shopper-box",
+    "stop shopper-engine",
+    "start shopper-engine",
     "start shopper-box",
   ]);
 });

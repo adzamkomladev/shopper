@@ -18,7 +18,7 @@ export async function runBoxUpdate(
   const params = v.parse(boxUpdateParams, rawParams);
   const context = { orgId: params.orgId, actorId: params.actorId, appVersion: deps.appVersion };
   await flow.sleepUntil("due", new Date(params.at));
-  const outcome = await flow.step("apply", once, async () => {
+  const outcome = await flow.step("stage", once, async () => {
     const result: {
       status: "started" | "failed" | "cancelled";
       version: string | null;
@@ -42,17 +42,31 @@ export async function runBoxUpdate(
         },
         updateCheckpoint(
           flow.instanceId,
-          "apply",
-          result.status === "failed" ? "failed" : "completed",
+          "stage",
+          result.status === "failed"
+            ? "failed"
+            : result.status === "started"
+              ? "running"
+              : "completed",
         ),
       ),
     );
     return result;
   });
   if (outcome.status === "failed") throw new Error(String(outcome.message));
+  // After the audit entry above: the handoff restarts the box, which may end this process at once.
+  if (outcome.status === "started")
+    await flow.step("handoff", once, async () => {
+      await deps.handoff(params.file, String(outcome.version));
+      return null;
+    });
 }
 
 /** Records that an update was started, or why a scheduled one could not be. */
+// The output is a workflow checkpoint and the audit payload: both are JSON, so a field not given is left out.
+const given = (input: Record<string, unknown>) =>
+  Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined));
+
 export const recordUpdate = defineCommand({
   name: "box.update.run",
   run: async (
@@ -64,8 +78,8 @@ export const recordUpdate = defineCommand({
       version?: string;
       message?: string;
     },
-  ) => input,
-  audit: (input) => input,
+  ) => given(input),
+  audit: (input) => given(input),
 });
 
 /** Schedules an update and records the workflow as waiting, in one transaction with its audit entry. */
@@ -94,7 +108,7 @@ export const scheduleUpdate = defineCommand({
 
 export function updateCheckpoint(
   instanceId: string,
-  step: "schedule" | "apply",
+  step: "schedule" | "stage" | "handoff",
   status: WorkflowCheckpoint["status"],
 ): WorkflowCheckpoint {
   return { instanceId, businessKey: instanceId, type: "box-update", step, status };

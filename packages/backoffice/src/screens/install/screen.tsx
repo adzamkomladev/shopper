@@ -50,7 +50,13 @@ export function InstallScreen() {
       },
     });
   };
-  const back = step > 0 ? () => setStep(step - 1) : undefined;
+  const back =
+    step > 0
+      ? (draft: Partial<InstallValues>) => {
+          setValues({ ...values, ...draft });
+          setStep(step - 1);
+        }
+      : undefined;
   const error = install.error?.message;
   const done = install.data;
   return (

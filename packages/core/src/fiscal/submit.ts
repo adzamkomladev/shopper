@@ -1,17 +1,26 @@
 import { and, eq, sql } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
 import { fiscalDoc, type ShopperDatabase } from "@shopper/db-pg";
-import type { Json, Sdc, SdcResult, WorkflowLauncher } from "@shopper/ports";
+import {
+  SdcUnavailable,
+  type Json,
+  type Sdc,
+  type SdcResult,
+  type WorkflowLauncher,
+} from "@shopper/ports";
 import { fiscalArchiveId, fiscalHour } from "./archive";
 import { FiscalError } from "./error";
 import { recordChanges } from "../changes/record";
 import { fiscalSigned } from "../changes/project";
 
-/** Tries before a document is dead-lettered: with the lane's backoff, about six hours of SDC outage. */
+/**
+ * Tries the SDC answered (and failed) before a document is dead-lettered: with the lane's backoff, about six hours of the
+ * SDC failing. Tries that never reached it (the box's line is down) do not count: a 48-hour outage only delays.
+ */
 export const FISCAL_MAX_ATTEMPTS = 10;
 
 type Context = { orgId: string; appVersion: string };
-type Outcome = SdcResult | { status: "unavailable"; message: string };
+type Outcome = SdcResult | { status: "unavailable"; message: string; reached: boolean };
 
 /**
  * Submits one fiscal document and records the outcome. "retry" means the SDC was unavailable and the lane should try
@@ -33,6 +42,7 @@ export async function submitFiscalDoc(
     .catch((error: unknown) => ({
       status: "unavailable" as const,
       message: error instanceof Error ? error.message : "The SDC could not be reached",
+      reached: error instanceof SdcUnavailable && error.reached,
     }));
   const settled = await settle(db, ctx, { docId, attempts: doc.attempts, outcome });
   if (settled.status === "accepted" && archive) {
@@ -100,11 +110,18 @@ const settle = defineCommand({
               rejectionMessage: outcome.message,
               lastError: null,
             }
-          : {
-              status:
-                input.attempts >= FISCAL_MAX_ATTEMPTS ? ("dead" as const) : ("pending" as const),
-              lastError: outcome.message,
-            };
+          : outcome.reached
+            ? {
+                status:
+                  input.attempts >= FISCAL_MAX_ATTEMPTS ? ("dead" as const) : ("pending" as const),
+                lastError: outcome.message,
+              }
+            : // Not the SDC's answer: the try is given back, so attempts counts only what the SDC failed.
+              {
+                status: "pending" as const,
+                attempts: sql`greatest(${fiscalDoc.attempts} - 1, 0)`,
+                lastError: outcome.message,
+              };
     const [doc] = await tx
       .update(fiscalDoc)
       .set({ ...changes, updatedAt: now })

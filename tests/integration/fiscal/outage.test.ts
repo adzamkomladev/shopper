@@ -56,9 +56,9 @@ test("SDC down → sale completes, doc pending → SDC up → accepted", async (
   expect(Date.now() - started).toBeLessThan(5_000);
   const doc = async () =>
     (await world.db.select().from(fiscalDoc).where(eq(fiscalDoc.saleId, event.sale.id)))[0]!;
-  await expect.poll(async () => (await doc()).attempts).toBeGreaterThan(0);
-  expect(await doc()).toMatchObject({ status: "pending", signature: null });
-  expect((await doc()).lastError).toMatch(/SDC/);
+  await expect.poll(async () => (await doc()).lastError).toMatch(/SDC/);
+  // A try that never reached the SDC is given back: only the SDC's own failures count toward dead-lettering.
+  expect(await doc()).toMatchObject({ status: "pending", signature: null, attempts: 0 });
   expect(fake.arrivals).toEqual([]);
 
   fake.up();

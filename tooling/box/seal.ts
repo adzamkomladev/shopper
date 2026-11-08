@@ -10,7 +10,12 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
  * Seals the box: the bundled entry (`src/main.ts`), the database migrations and the portal's static files compiled
  * into one Bun executable with bytecode. `vp run box:seal [--portal <dir>] [--out <file>]`.
  */
-export async function sealBox(options: { portal: string; out: string }) {
+export async function sealBox(options: {
+  portal: string;
+  out: string;
+  /** Build defines for this binary, such as `SHOPPER_RELEASE_KEY`. */
+  env?: Record<string, string>;
+}) {
   // The stage sits inside apps/box so the bundle's bare imports (satori, resvg) resolve from its node_modules.
   const stage = join(root, "apps/box/dist/seal");
   await rm(stage, { recursive: true, force: true });
@@ -18,7 +23,7 @@ export async function sealBox(options: { portal: string; out: string }) {
   execFileSync("node", [join(root, "tooling/build/server.mjs"), "box-sealed"], {
     cwd: join(root, "apps/box"),
     stdio: "inherit",
-    env: { ...process.env, SHOPPER_BUILD_OUT_DIR: stage },
+    env: { ...process.env, ...options.env, SHOPPER_BUILD_OUT_DIR: stage },
   });
   await writeFile(
     join(stage, "payload.bin"),

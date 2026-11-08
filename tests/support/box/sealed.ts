@@ -6,14 +6,14 @@ import { join } from "node:path";
 import { sealBox } from "../../../tooling/box/seal";
 
 /** A tiny portal build: enough to prove the shell and an asset come out of the binary. */
-export async function sealedBox() {
+export async function sealedBox(env?: Record<string, string>) {
   const dir = await mkdtemp(join(tmpdir(), "shopper-sealed-"));
   const portal = join(dir, "portal");
   await mkdir(join(portal, "assets"), { recursive: true });
   await writeFile(join(portal, "index.html"), "<!doctype html><title>Sealed portal</title>");
   await writeFile(join(portal, "assets", "app-9f8e.js"), "export const sealed = true;");
   const built = join(dir, "build", "shopper-box");
-  await sealBox({ portal, out: built });
+  await sealBox({ portal, out: built, env });
   return {
     dir,
     /** A copy in a folder of its own, so nothing beside the binary can be what it runs from. */

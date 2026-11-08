@@ -1,8 +1,10 @@
 import { websocket } from "hono/bun";
+import { buildInfo } from "@shopper/config";
 import { runBackup } from "./cli/backup";
 import { runDoctor } from "./cli/doctor";
 import { migrateBox } from "./boot";
 import { embeddedPack } from "./pack";
+import { verifyRelease } from "./release";
 import { portalPack } from "./portal";
 import { boxServer } from "./serve";
 
@@ -20,6 +22,7 @@ main().catch((error: unknown) => {
 async function main() {
   if (process.argv[2] === "backup") return runBackup(process.env);
   if (process.argv[2] === "doctor") return runDoctor(process.env).then(() => process.exit(0));
+  await verifyRelease(process.env, buildInfo.releaseKey);
   const pack = await embeddedPack();
   if (pack && process.env.DATABASE_URL) await migrateBox(process.env.DATABASE_URL, pack);
   Bun.serve(boxServer(websocket, pack && portalPack(pack)).config);

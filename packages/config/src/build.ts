@@ -9,6 +9,7 @@ declare const TILL_UPDATE_URL: string;
 declare const TILL_UPSTREAM: string;
 declare const SENTRY_DSN: string;
 declare const LICENCE_ISSUER: string;
+declare const RELEASE_KEY: string;
 
 export const buildInfo = Object.freeze({
   version: SHOPPER_VERSION,
@@ -22,4 +23,5 @@ export const buildInfo = Object.freeze({
   tillUpstream: TILL_UPSTREAM,
   sentryDsn: SENTRY_DSN,
   licenceIssuer: LICENCE_ISSUER,
+  releaseKey: RELEASE_KEY,
 });

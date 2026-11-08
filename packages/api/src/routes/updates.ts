@@ -14,11 +14,11 @@ export function updateRoutes(options: ApiOptions) {
   const updates = options.updates;
   if (!updates) return app;
   const guard = requirePermission(options.authentication, "billing.manage");
-  app.onError((error, c) =>
-    error instanceof BoxUpdateError
-      ? c.json({ error: error.message }, error.status)
-      : c.json({ error: "Update failed" }, 500),
-  );
+  app.onError((error, c) => {
+    if (error instanceof BoxUpdateError) return c.json({ error: error.message }, error.status);
+    console.error({ event: "update.failed", error });
+    return c.json({ error: "Update failed" }, 500);
+  });
   app.get("/updates", guard, async (c) => c.json(await updates.overview()));
   app.post("/updates/install", guard, async (c) => {
     const input = v.safeParse(updateInstallInput, await c.req.json().catch(() => undefined));

@@ -8,6 +8,7 @@ import { fromBase64Url, publicKeyOf, sign } from "../../packages/core/src/licenc
 import { sha256 } from "../../packages/utils/src/crypto";
 import { sealBox } from "../box/seal";
 import { writeManifest } from "../release/sign";
+import { buildUpdate } from "./update";
 import pins from "./pins.json" with { type: "json" };
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -24,6 +25,10 @@ export async function buildInstaller(options: {
   portal: string;
   /** Prebuilt .deb files to use instead of downloading them (tests). */
   debs?: string;
+  /** Build defines for the box, such as `SHOPPER_LICENCE_ISSUER` (the release key is always set). */
+  env?: Record<string, string>;
+  /** Also writes an update bundle of the same box (tests): `version` is what its manifest claims. */
+  update?: { out: string; version: string };
 }) {
   const work = await mkdtemp(join(tmpdir(), "shopper-installer-"));
   const payload = join(work, "payload");
@@ -32,10 +37,21 @@ export async function buildInstaller(options: {
   await sealBox({
     out: join(slot, "shopper-box"),
     portal: options.portal,
-    env: { SHOPPER_RELEASE_KEY: publicKeyOf(options.releaseKey) },
+    env: { ...options.env, SHOPPER_RELEASE_KEY: publicKeyOf(options.releaseKey) },
   });
   copyEngine(join(slot, "engine", "rivet-engine"));
   await writeManifest(slot, options.releaseKey, { kind: "install" });
+  if (options.update) {
+    // Its own copy: the update's manifest is of another kind and version than the installed slot's.
+    const copy = join(work, "update-slot");
+    await cp(slot, copy, { recursive: true });
+    await buildUpdate({
+      slot: copy,
+      out: options.update.out,
+      releaseKey: options.releaseKey,
+      version: options.update.version,
+    });
+  }
   if (options.debs) await cp(options.debs, join(payload, "debs"), { recursive: true });
   else downloadDebs(join(payload, "debs"));
   await cp(join(root, "apps/box/deploy"), join(payload, "deploy"), { recursive: true });

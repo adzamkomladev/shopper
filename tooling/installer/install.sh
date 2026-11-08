@@ -31,9 +31,10 @@ pg_lsclusters -h | grep -q '^18 main' || fail "PostgreSQL 18 did not create its 
 if [ "$systemd" = 1 ]; then systemctl enable --now postgresql@18-main >/dev/null 2>&1 || true
 else pg_ctlcluster 18 main status >/dev/null 2>&1 || pg_ctlcluster 18 main start; fi
 for _ in $(seq 1 60); do su postgres -c "psql -qAt -c 'select 1'" >/dev/null 2>&1 && break; sleep 1; done
+# CREATEDB: the nightly backup proves itself by restoring into a scratch database.
 dbpass=$(random 40)
 su postgres -c "psql -v ON_ERROR_STOP=1 -q" >/dev/null <<SQL
-CREATE ROLE shopper LOGIN PASSWORD '$dbpass';
+CREATE ROLE shopper LOGIN CREATEDB PASSWORD '$dbpass';
 CREATE DATABASE shopper OWNER shopper;
 SQL
 

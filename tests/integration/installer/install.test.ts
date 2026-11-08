@@ -7,12 +7,20 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { generateKey } from "@shopper/core/licence";
+import {
+  brokenUpdate,
+  licenceFor,
+  ownerApi,
+  secure,
+  setUpBackups,
+} from "../../support/installer/owner";
 import { buildInstaller, downloadDebs } from "../../../tooling/installer/build";
 import { bareMachine } from "../../support/installer/machine";
 
 let dir: string;
 let machine: ReturnType<typeof bareMachine>;
 let release: Awaited<ReturnType<typeof generateKey>>;
+let issuer: Awaited<ReturnType<typeof generateKey>>;
 const journal = async () =>
   (
     JSON.parse(
@@ -26,6 +34,7 @@ const journal = async () =>
 beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), "shopper-install-test-"));
   release = await generateKey();
+  issuer = await generateKey();
   // Packages are downloaded once per checkout; the machine under test never has a network.
   const debs = join(process.cwd(), ".shopper", "installer-debs");
   if (!existsSync(join(debs, "..", "installer-debs.done"))) {
@@ -41,7 +50,10 @@ beforeAll(async () => {
     releaseKey: release.privateKey,
     portal,
     debs,
+    env: { SHOPPER_LICENCE_ISSUER: issuer.publicKey },
+    update: { out: join(dir, "update-good.tgz"), version: "9.9.9" },
   });
+  await brokenUpdate(dir, release.privateKey);
   machine = bareMachine(`shopper-install-${process.pid}`, join(dir, "installer.run"));
 }, 900_000);
 afterAll(async () => {
@@ -112,8 +124,6 @@ test("a bare Ubuntu with no network becomes a running shop server in minutes, an
   );
   expect(https.output).toContain('"status":"ok"');
   // First boot, through Caddy's TLS: /setup sends a browser to the wizard, and the printed code creates the shop.
-  const secure =
-    "curl -sS --cacert /var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt --resolve shopper.local:443:127.0.0.1";
   expect(
     machine.run(
       `${secure} -o /dev/null -w '%{http_code} %{redirect_url}' -H 'accept: text/html' https://shopper.local/setup`,
@@ -127,6 +137,7 @@ test("a bare Ubuntu with no network becomes a running shop server in minutes, an
     shop: { name: "Esi Mart", code: "esi-mart" },
     store: { name: "Osu" },
     owner: { name: "Esi Mensah", email: "esi@example.com", password: "a long enough passphrase" },
+    licence: await licenceFor(machine, issuer.privateKey),
   });
   expect(
     machine.run(
@@ -149,4 +160,71 @@ test("a bare Ubuntu with no network becomes a running shop server in minutes, an
   const again = machine.run("sh /installer.run");
   expect(again.status).not.toBe(0);
   expect(again.output).toContain("already has a Shopper box");
+}, 1_800_000);
+
+/** Polls the machine until `check` is true; the update flow restarts the box and switches slots in the background. */
+async function until(check: () => boolean, seconds: number, what: string) {
+  for (let waited = 0; waited < seconds; waited += 3) {
+    if (check()) return;
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+  throw new Error(`Timed out waiting for ${what}`);
+}
+const healthy = () => machine.run("curl -fsS http://127.0.0.1:3001/api/health").status === 0;
+const slot = () => machine.run("readlink /opt/shopper/current").output.trim();
+const result = () => {
+  const text = machine.run("cat /var/lib/shopper/updates/result.json 2>/dev/null").output.trim();
+  return text ? (JSON.parse(text) as { status: string; message: string }) : undefined;
+};
+
+test("the owner installs an update from the box (backup first, slot switch), and a broken one is switched back", async () => {
+  const api = ownerApi(machine);
+  expect(api.signIn().status).toBe(200);
+  // Bundles arrive by USB or scp, into the updates folder.
+  for (const file of ["update-good.tgz", "update-broken.tgz"])
+    machine.copyIn(join(dir, file), `/var/lib/shopper/updates/${file}`);
+  machine.run("chown shopper:shopper /var/lib/shopper/updates/*.tgz");
+  const listed = JSON.parse(api.call("GET", "/updates").text) as {
+    running: { slot: string };
+    bundles: Array<{ file: string; verdict: { ok: boolean } }>;
+  };
+  expect(listed.running.slot).toBe("a");
+  expect(listed.bundles.map((bundle) => [bundle.file, bundle.verdict.ok]).sort()).toEqual([
+    ["update-broken.tgz", true],
+    ["update-good.tgz", true],
+  ]);
+  // The mandatory backup is not set up yet: the update is refused and nothing is switched.
+  const refused = api.call("POST", "/updates/install", { file: "update-good.tgz" });
+  expect(refused.status).toBe(409);
+  expect(refused.text).toContain("verified backup");
+  expect(slot()).toBe("/opt/shopper/slots/a");
+
+  setUpBackups(machine);
+  await until(healthy, 120, "the box to restart");
+  api.signIn();
+  const started = api.call("POST", "/updates/install", { file: "update-good.tgz" });
+  const why =
+    started.status === 202
+      ? ""
+      : machine.run("journalctl -u shopper-box --no-pager | grep -A12 update.failed | cut -c1-300")
+          .output;
+  expect(started.status, `${started.text}\n${why}`).toBe(202);
+  await until(() => result() !== undefined, 240, "the update to be applied");
+  expect(result()!.status).toBe("applied");
+  expect(slot()).toBe("/opt/shopper/slots/b");
+  await until(healthy, 60, "the updated box");
+  expect(
+    machine.run("ls /var/lib/shopper/backup-remote | grep -c '\\.dump\\.age$'").output.trim(),
+  ).toBe("1");
+  api.signIn();
+  expect(
+    (JSON.parse(api.call("GET", "/updates").text) as { running: { slot: string } }).running.slot,
+  ).toBe("b");
+
+  // A signed bundle whose box does not start: the helper waits, switches back and says so.
+  expect(api.call("POST", "/updates/install", { file: "update-broken.tgz" }).status).toBe(202);
+  await until(() => result()?.status === "rolled_back", 300, "the broken update to be rolled back");
+  expect(slot()).toBe("/opt/shopper/slots/b");
+  await until(healthy, 60, "the box after rollback");
+  expect(result()!.message).toContain("restore the backup");
 }, 1_800_000);

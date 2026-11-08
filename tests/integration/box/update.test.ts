@@ -56,6 +56,8 @@ async function service(
 const who = () => ({ orgId: org });
 const refusal = async (run: Promise<unknown>) =>
   (await run.catch((error: unknown) => error)) as BoxUpdateError;
+// A spare slot that was never unpacked into: absent or empty.
+const untouched = async (dir: string) => (await readdir(dir).catch(() => [])).length === 0;
 const exists = (path: string) =>
   stat(path).then(
     () => true,
@@ -82,7 +84,7 @@ test("a bundle is judged by the day it was built against the licence's updates d
     message: expect.stringContaining("built on 5 Jan 2027, after your updates ended on 1 Dec 2026"),
   });
   expect((await refusal(t.service.install("late.tgz", who()))).status).toBe(422);
-  expect(await exists(join(t.root, "slots", "b"))).toBe(false);
+  expect(await untouched(join(t.root, "slots", "b"))).toBe(true);
   expect(await exists(join(t.updates, "apply.json"))).toBe(false);
 });
 
@@ -116,7 +118,7 @@ test("a failed backup, a changed file and a bundle that is not an update leave t
   const stopped = await refusal(failing.service.install("ok.tgz", who()));
   expect(stopped.status).toBe(409);
   expect(stopped.message).toContain("verified backup first");
-  expect(await exists(join(failing.root, "slots", "b"))).toBe(false);
+  expect(await untouched(join(failing.root, "slots", "b"))).toBe(true);
 
   const t = await service();
   // Signed, then one file changed before the bundle was packed again: the manifest no longer matches it.
@@ -125,7 +127,7 @@ test("a failed backup, a changed file and a bundle that is not an update leave t
   execFileSync("tar", ["-czf", join(t.updates, "ok.tgz"), "-C", source, "."]);
   const changed = await refusal(t.service.install("ok.tgz", who()));
   expect(changed.message).toBe("engine/rivet-engine is not what Shopper signed.");
-  expect(await readdir(join(t.root, "slots")).then((names) => names.includes("b"))).toBe(false);
+  expect(await untouched(join(t.root, "slots", "b"))).toBe(true);
   expect(await exists(join(t.updates, "apply.json"))).toBe(false);
 
   await bundle(t.updates, "tax.tgz", shopper.privateKey, {

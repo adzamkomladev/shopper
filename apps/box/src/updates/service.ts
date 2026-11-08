@@ -82,14 +82,13 @@ export function boxUpdates(options: {
     });
     const spare = (await slot()) === "a" ? "b" : "a";
     const dir = join(root, "slots", spare);
-    await rm(dir, { recursive: true, force: true });
-    await mkdir(dir, { recursive: true });
+    await emptySlot(dir);
     await run("tar", ["-xzf", path, "-C", dir]);
     const changed = await changedFiles(manifest, (name) =>
       readFile(join(dir, name)).catch(() => undefined),
     );
     if (changed.length) {
-      await rm(dir, { recursive: true, force: true });
+      await emptySlot(dir);
       throw new BoxUpdateError(422, `${changed.join(", ")} is not what Shopper signed.`);
     }
     await mkdir(updates, { recursive: true });
@@ -190,4 +189,11 @@ export function boxUpdates(options: {
     },
     cancel: () => rm(state("scheduled.json"), { force: true }),
   };
+}
+
+// The slot's folder belongs to the box's user but its parent does not, so it is emptied, never removed.
+async function emptySlot(dir: string) {
+  await mkdir(dir, { recursive: true });
+  for (const name of await readdir(dir))
+    await rm(join(dir, name), { recursive: true, force: true });
 }

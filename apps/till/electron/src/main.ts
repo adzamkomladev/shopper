@@ -3,7 +3,7 @@ import { appendFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { app, BrowserWindow, dialog, Menu, nativeTheme } from "electron";
+import { app, BrowserWindow, dialog, Menu, nativeTheme, session } from "electron";
 import electronUpdater from "electron-updater";
 import { buildInfo } from "@shopper/config";
 import { startCrashReporting } from "./crash";
@@ -11,7 +11,7 @@ import { openDisplay } from "./display";
 import { answerRender } from "./render";
 import { loadSecrets, writeAtomic } from "./secrets";
 import type { UpdatePolicy } from "./types";
-import { pinBoxCa } from "./trust";
+import { chainOf, pinBoxCa, trustsPinned } from "./trust";
 import { createUpdates } from "./updates";
 import { lockDown } from "./window";
 
@@ -89,7 +89,14 @@ async function startRegister() {
   // A box's LAN certificate chains to the CA pinned at first run; the cloud's to the public CAs.
   const ca = stored.ca ? { NODE_EXTRA_CA_CERTS: stored.ca } : {};
   const host = fork(hostEntry, [], { env: { ...process.env, ELECTRON_RUN_AS_NODE: "1", ...ca } });
-  // No feed configured (dev, tests) means no updater: nothing phones home.
+  // The updater's session is Chromium's network stack, which never reads NODE_EXTRA_CA_CERTS.
+  const pinned = stored.ca && (await readFile(stored.ca, "utf8"));
+  if (pinned)
+    session
+      .fromPartition("electron-updater", { cache: false })
+      .setCertificateVerifyProc((request, verdict) =>
+        verdict(trustsPinned(chainOf(request.certificate), request.hostname, pinned) ? 0 : -3),
+      );
   // A box hands its registers its own feed, so a build without one still listens for the policy.
   const updates = startUpdates(host);
   app.on("window-all-closed", () => app.quit());

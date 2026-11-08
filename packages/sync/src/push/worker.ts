@@ -1,7 +1,7 @@
 import { v7 } from "uuid";
 import { createReceiptStorage } from "../receipts";
-import { readHandshake } from "../connection";
 import { createBatch } from "./batch";
+import { requestHandshake } from "./handshake";
 import { createPushTransport } from "./http";
 import { dueBy, retryDeadline } from "./backoff";
 import { readAcknowledgment } from "./acknowledgment";
@@ -81,21 +81,16 @@ export function createPushWorker(options: PushOptions) {
         return;
       let retryAfter: string | null = null;
       try {
-        const requestId = v7();
-        const sentAt = now();
-        const { response, raw } = await transport.request("/sync/handshake", {
-          requestId,
-          appVersion: config.appVersion,
-          protocol: config.protocol,
-          receiptLastUsed: await receipts.lastUsed(),
-        });
-        retryAfter = response.headers.get("retry-after");
-        if (terminal(response.status)) return;
-        if (!response.ok) throw new Error("Handshake unavailable");
-        const result = readHandshake(JSON.parse(raw), requestId, config.protocol);
+        const exchange = await requestHandshake(transport, config, await receipts.lastUsed(), now);
+        retryAfter = exchange.response.headers.get("retry-after");
+        if (terminal(exchange.response.status)) return;
+        if (!exchange.response.ok) throw new Error("Handshake unavailable");
+        const result = exchange.read();
         // The server stamped its time somewhere in the round trip; its midpoint keeps latency out of the skew.
         if (result.receipts)
-          await receipts.save(result.receipts, result.serverTime, Math.round((sentAt + now()) / 2));
+          await receipts.save(result.receipts, result.serverTime, exchange.midpoint());
+        // A box restored from an older backup holds fewer of this register's sales: send them again.
+        if (result.held !== undefined && (await queue.replay(result.held))) saved = await counts();
         negotiated = result.protocol;
         options.onHandshake?.(result);
         connectionRetryAt = 0;
@@ -163,6 +158,8 @@ export function createPushWorker(options: PushOptions) {
         saved = await counts();
       } catch {
         if (stopped) return;
+        // The next connection may be another server (a spare restored from a backup): handshake with it first.
+        negotiated = undefined;
         await retry(batch.rows, retryAfter);
         publish({
           server: "offline",
@@ -235,6 +232,8 @@ export function createPushWorker(options: PushOptions) {
       }
     },
     trigger,
+    /** The connection came back, maybe to a spare box: handshake before the next upload. */
+    reconnected: () => ((negotiated = undefined), trigger()),
     async stop() {
       stopped = true;
       clearTimeout(timer);

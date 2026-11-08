@@ -53,6 +53,6 @@ export async function expectStillSelling(fixture: Fixture, host: Host) {
   const [row] = await fixture.database.read((tx) =>
     tx.select().from(localSale).where(eq(localSale.localId, localId!)),
   );
-  expect((row?.payload as { receiptNumber?: string }).receiptNumber).toMatch(/\S/);
+  expect((row!.payload as { receiptNumber?: string }).receiptNumber).toMatch(/\S/);
   return localId!;
 }

@@ -85,7 +85,11 @@ export function createHostSync(
     onMode: notify,
     onPayment: payments?.receive,
     onApproval,
-    onConnected: payments?.recover,
+    // A socket that comes back may be a different server (a spare box restored from a backup).
+    async onConnected() {
+      void push.reconnected();
+      await payments?.recover();
+    },
   });
   const uploads = createReceiptUploadWorker({
     ...options,

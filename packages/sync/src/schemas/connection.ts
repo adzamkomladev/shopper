@@ -14,4 +14,6 @@ export const handshake = v.object({
   /** The oldest till version allowed to open a shift; null when there is none. */
   minTillVersion: v.optional(v.nullable(v.pipe(v.string(), v.minLength(1)))),
   updateChannel: v.optional(v.picklist(updateChannels)),
+  /** How many of this register's sales the server holds. */
+  held: v.optional(v.pipe(v.number(), v.safeInteger(), v.minValue(0))),
 });

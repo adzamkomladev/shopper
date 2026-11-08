@@ -1,8 +1,8 @@
 import { saleVersion, saleSession } from "../schemas/sync/routes";
 import { handshake, envelope, identity } from "../schemas/sync/routes";
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
-import { org } from "@shopper/db-pg";
+import { and, count, eq } from "drizzle-orm";
+import { org, sale } from "@shopper/db-pg";
 import { bodyLimit } from "hono/body-limit";
 import * as v from "valibot";
 import { negotiateProtocol } from "@shopper/sync/versions";
@@ -95,6 +95,14 @@ export function createSyncRoutes(options: {
           .from(org)
           .where(eq(org.id, principal.orgId))
       )[0]!.channel,
+      // A box restored from an older backup holds fewer of this register's sales than it acknowledged; the register
+      // sends those again (acceptance is idempotent by local id).
+      held: (
+        await options.database
+          .select({ n: count() })
+          .from(sale)
+          .where(and(eq(sale.orgId, principal.orgId), eq(sale.deviceId, principal.deviceId)))
+      )[0]!.n,
     });
   });
   app.post("/sync/push", async (c) => {

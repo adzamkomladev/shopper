@@ -177,6 +177,24 @@ context:
   address pins that root at first run and starts its host with `NODE_EXTRA_CA_CERTS`
   (`apps/till/electron/src/trust.ts`).
 
+### The sealed box (Day 38)
+
+- **Boot gate** (`apps/box/src/release.ts`): the folder named by `SHOPPER_RELEASE_DIR` (default `/opt/shopper/current`) must
+  match its signed `rel/1` manifest, including the Rivet engine, and `process.execPath` must be that folder's `shopper-box`.
+  Then `migrateBox` (`apps/box/src/boot.ts`) runs the embedded migrations and records the version.
+- **A/B slots**: `/opt/shopper/slots/{a,b}`, `current` a symlink. The box (user `shopper`) unpacks and verifies an update in the spare
+  slot and writes `apply.json`; `shopper-update.path` starts `shopper-apply` (root), which switches the symlink, restarts the
+  box and switches back if `/api/health` is not up in 90 s. The box never switches slots itself.
+- **Update routes** (`GET /updates`, `POST /updates/install`, `POST /updates/cancel`, `billing.manage`) exist only where a host injects
+  `updates` (the box, with the release key built in); the cloud mounts none. `Install after closing` is the `box-update` workflow in
+  `@shopper/core/release` (`sleepUntil`, then the same stage as Install now, a `workflow_run` row and `box.update.*` audit entries);
+  one schedule at a time, cancelled by removing `scheduled.json`, which the flow checks when it wakes.
+- **First boot** (`apps/box/src/install.ts`): `GET/POST /install` while the database has no shop; `box.install` (`@shopper/auth`)
+  creates the shop, its first store and its owner in one transaction. `SHOPPER_SINGLE_SHOP=1` makes the only shop the tenant.
+- **Workflow engine in the binary**: `rivetkit` loads its native addon by a computed name, so `tooling/build/rivet.mjs` rewrites that
+  one line for the sealed build and `bun build --compile` embeds the addon. If a rivetkit upgrade changes the line, `sealed.test.ts`
+  (`shopper-box doctor` on Rivet) fails.
+
 ## Rules that keep both sides honest
 
 - **PostgreSQL is the record.** Every workflow step and every DO/actor write also writes its table

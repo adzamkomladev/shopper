@@ -14,7 +14,12 @@ const heavy = [
   // Chaos: 2,000 offline sales through a spawned register, and ten SIGKILL rounds.
   "tests/integration/sync/chaos/offline.test.ts",
   "tests/integration/sync/chaos/kill.test.ts",
+  // Each seals the box (a Vite bundle and a Bun compile) before it starts it.
+  "tests/integration/box/sealed.test.ts",
+  "tests/integration/box/release.test.ts",
 ];
+// A whole store server installed with no network inside a systemd container (Docker, --privileged): its own CI job.
+const machine = ["tests/integration/installer/*.test.ts"];
 // Release builds: packaging rebuilds the till host and Electron into the dist/ other files run from.
 const solo = [
   "tests/integration/till/electron/package.test.ts",
@@ -57,7 +62,7 @@ export default defineConfig({
         test: {
           name: "integration",
           include: ["tests/**/*.test.ts"],
-          exclude: ["**/node_modules/**", ...heavy, ...solo],
+          exclude: ["**/node_modules/**", ...heavy, ...solo, ...machine],
           maxWorkers: 4,
           sequence: { groupOrder: 0 },
         },
@@ -69,6 +74,17 @@ export default defineConfig({
       {
         extends: true,
         test: { name: "solo", include: solo, maxWorkers: 1, sequence: { groupOrder: 2 } },
+      },
+      {
+        extends: true,
+        test: {
+          name: "machine",
+          include: machine,
+          maxWorkers: 1,
+          testTimeout: 1_800_000,
+          hookTimeout: 900_000,
+          sequence: { groupOrder: 3 },
+        },
       },
     ],
   },

@@ -149,10 +149,42 @@ entries.
 
 ## Box release
 
-- The box is `bun build --compile --bytecode`: one sealed binary with the portal embedded.
-- On start, the binary runs pending migrations, records the version in `shopper_meta`, then serves.
-- Rollback = restore the pre-upgrade backup + previous binary. Migrations never run backwards.
-- Backups (Day 37): `shopper-backup.timer` runs nightly at 02:30 (and at boot if missed). Each run is
+The box is one sealed Bun executable plus the pinned Rivet engine, installed from one offline file.
+
+- **Seal** (`vp run box:seal [-- --portal <dir> --out <file>]`, `tooling/box/seal.ts`): `bun build --compile --bytecode` of
+  the bundled `apps/box/src/main.ts` (no top-level await: bytecode cannot hold it). The database migrations, the portal's
+  static files and the resvg/harfbuzz wasm are packed into one embedded `payload.bin` (`apps/box/src/pack.ts`); the Rivet
+  napi addon is embedded too (`tooling/build/rivet.mjs` names it literally for Bun). Nothing is read from `node_modules` or the
+  build tree at run time: `sealed.test.ts` runs the binary on a bare Ubuntu container to prove it.
+- **Start**: verify the release (below), run pending migrations (forward only, one advisory lock), add a `shopper_meta`
+  `upgrade` row per shop whose version changed, then serve. `shopper-box backup` and `shopper-box doctor` are subcommands.
+- **Release signing**: `SHOPPER_RELEASE_SIGNING_KEY` (an Ed25519 private JWK, a CI secret) signs `manifest.json` (`rel/1`:
+  kind, version, build date, schema version, SHA-256 of every file) with `tooling/release/sign.ts`. The public key is built in
+  (`SHOPPER_RELEASE_KEY`, like the licence issuer). At boot the box refuses to start unless its folder, its Rivet engine
+  and its own binary are what Shopper signed, and names the file. A build without the key (development) checks nothing.
+- **Installer** (`vp run box:installer`, `tooling/installer/build.ts`): `shopper-box-installer.run`, a shell header with the
+  release public key and a tar payload: the sealed box and engine (slot `a`), PostgreSQL 18, Caddy, Avahi, age and rclone as .deb
+  files (apt downloads them once, at build time, after checking the PostgreSQL repository's pinned key fingerprint in
+  `pins.json`), units and the Caddyfile. Shopper signs the hash list; the script verifies it with `openssl` before touching the
+  machine. On Ubuntu 24.04 x86-64 as root, offline: `sudo sh shopper-box-installer.run`. It creates the `shopper` user, the
+  database (role with `CREATEDB`, for the backup's scratch restore), `/etc/shopper/{box,engine}.env` (random secrets, mode 640),
+  starts everything, checks https://shopper.local through Caddy's CA and runs `shopper-box doctor`, then prints a one-time
+  **setup code**. The engine keeps its own state under `/var/lib/shopper/rivet` (the preview engine has no PostgreSQL store; the
+  Notion row said "pointed at the same PG").
+- **First boot** (`https://shopper.local/setup`, which sends a browser to `/install`): the setup code (its SHA-256 is
+  `SHOPPER_SETUP_CODE_HASH` in `box.env`), the shop and first store, the owner, and the licence (paste `licence.json`; the
+  request code is on the page). One audited transaction (`box.install`); afterwards `/install` answers 404. The installer sets
+  `SHOPPER_SINGLE_SHOP=1`, so the only shop in the database is the tenant for every request.
+- **Updates**: a signed bundle (`tooling/installer/update.ts`: the slot folder as a .tgz, manifest kind `update`) is copied to
+  `/var/lib/shopper/updates` (USB or scp). The owner opens Billing → Updates (`billing.manage`). The box refuses a bundle built
+  after the licence's `maintenanceUntil` (tax rule packs always pass that check), one older than what runs, and one not signed
+  by Shopper; then makes the verified Day 37 backup (refusing the update if backups are not set up: `/etc/shopper/backup.env`),
+  unpacks into the spare A/B slot (`/opt/shopper/slots/{a,b}`, `current` is a symlink), checks every file and writes `apply.json`.
+  `shopper-update.path` wakes `/opt/shopper/bin/shopper-apply` (root), which flips `current`, restarts the box, and flips back
+  with a `rolled_back` result if it is not healthy in 90 s. Migrations never run backwards: after a rollback that followed a
+  migration, restore the pre-update backup. **Install after closing** is the `box-update` Workflow (`sleepUntil`, one at a time).
+- Rollback otherwise = restore the pre-upgrade backup + previous slot.
+- Backups (Day 37): `shopper-backup.timer` runs nightly at 02:30 when `/etc/shopper/backup.env` exists. Each run is
   verified before upload (restore into a scratch database, identical row counts per table) and lands in R2
   as `shopper-<UTC stamp>.dump.age`. To restore: `age -d -i <identity> -o shopper.dump <file>`, then
   `pg_restore --no-owner -d <url> shopper.dump` and `tooling/backup/verify.ts <url>`. Shopper keeps the age
@@ -162,6 +194,8 @@ entries.
   --request <code> --org <id> --site <name> --maintenance <yyyy-mm-dd> [--terminals 5]` prints
   `licence.json` for `SHOPPER_LICENCE_DIR`. An air-gapped site gets a `confirmation.json` the same way a
   check-in returns one. The edge holds the same key as the secret `SHOPPER_LICENCE_SIGNING_KEY`.
+- Not in the installer yet: RustFS (box imports need `SHOPPER_S3_*`; receipts and snapshots use local files), the OS egress
+  firewall beyond inbound ufw rules, a Windows till on the LAN (Day 40), the Shopper Archive import step (Days 41–44).
 
 ## Till release (Day 27)
 

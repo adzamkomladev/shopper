@@ -259,3 +259,10 @@ Direct-upload tests require the local RustFS service and `vp run storage:setup` 
 - Lane conformance (`packages/conformance/src/cases/lane.ts`) runs on the box in `tests/integration/ports/lane.test.ts`
   and on Workers in `tooling/worker/tests/lane.test.ts`; `drain(store, rounds)` fires backoff timers at once.
 - Archive tests run the workflow with its sleep already over and date acceptances directly: the test plays the clock.
+
+## Installer machine (Day 38)
+
+`tests/integration/installer/` is its own Vitest project (`vp test --run --project machine`, CI job `installer`). It builds the
+signed installer, boots an Ubuntu 24.04 container with systemd on `--network none` (Docker, `--privileged`), installs, runs the
+first-boot wizard over Caddy's TLS, installs a signed update and rolls a broken one back. Packages are downloaded once into
+`.shopper/installer-debs`. The box tests that seal the binary (`box/sealed`, `box/release`) are in the `heavy` group.

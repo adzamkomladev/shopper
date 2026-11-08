@@ -34,6 +34,9 @@ existing row, button and AlertDialog patterns.
 - **Fixed**: the register's updater (Electron's network stack) did not trust the pinned box CA, so LAN updates over
   `https://shopper.local` would fail TLS. Its session now accepts a chain that verifies to the pinned CA and names the
   host (`trustsPinned`), never "trust everything". `tests/integration/till/electron/trust.test.ts`.
+- **Fixed (second pass)**: the updater's check let a leaf's key sign certificates; every signer in the path must now be
+  a CA. A tax pack signed without `taxrules.json` in its file map no longer accepts rules added beside it. The
+  confirmation now says a scheduled rule with other rates for the same day is replaced. Each had a test fail first.
 - **Open (needs a security decision)**: sales made under a cashier session signed in after the backup cannot be
   replayed: the restored box has no `cashier_session` row to check the proof against, so they are refused as
   `INVALID_SESSION` and stay on the register. Accepting them means trusting the register's word for the cashier;

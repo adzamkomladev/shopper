@@ -141,4 +141,40 @@ test("the updater trusts the box's chain only when it leads to the pinned CA and
   ]).toString();
   expect(trustsPinned(chain, "127.0.0.1", other)).toBe(false);
   expect(trustsPinned([other], "127.0.0.1", ca)).toBe(false);
+  // A leaf's key never issues certificates, even one whose own chain leads to the pinned CA.
+  const openssl = (...args: string[]) =>
+    execFileSync("openssl", args, { cwd: dir, stdio: "ignore" });
+  openssl(
+    "req",
+    "-newkey",
+    "ec",
+    "-pkeyopt",
+    "ec_paramgen_curve:P-256",
+    "-nodes",
+    "-keyout",
+    "forged.key",
+    "-out",
+    "forged.csr",
+    "-subj",
+    "/CN=evil.example",
+  );
+  await writeFile(join(dir, "forged.ext"), "subjectAltName=DNS:evil.example\n");
+  openssl(
+    "x509",
+    "-req",
+    "-in",
+    "forged.csr",
+    "-CA",
+    "leaf.crt",
+    "-CAkey",
+    "leaf.key",
+    "-CAcreateserial",
+    "-out",
+    "forged.crt",
+    "-days",
+    "2",
+    "-extfile",
+    "forged.ext",
+  );
+  expect(trustsPinned([await pem("forged.crt"), chain[0]!, ca], "evil.example", ca)).toBe(false);
 });

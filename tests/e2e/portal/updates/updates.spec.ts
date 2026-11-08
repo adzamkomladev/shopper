@@ -118,6 +118,7 @@ test("a tax rule pack applies at once after a confirmation, even when updates ha
   await page.getByRole("button", { name: "Apply tax rules" }).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("alertdialog")).toContainText("does not restart");
+  await expect(page.getByRole("alertdialog")).toContainText("with other rates is replaced");
   await page.getByRole("button", { name: "Not now" }).click();
   expect(installs).toHaveLength(0);
   await page.getByRole("button", { name: "Apply tax rules" }).click();

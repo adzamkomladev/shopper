@@ -27,8 +27,12 @@ export async function applyTaxPackBundle(
   const changed = await changedFiles(manifest, async (name) =>
     name === "taxrules.json" ? Buffer.from(text) : undefined,
   );
-  if (changed.length)
-    throw new BoxUpdateError(422, `${changed.join(", ")} is not what Shopper signed.`);
+  // The rules themselves must be signed: a pack signed without them proves nothing about them.
+  if (changed.length || !manifest.files["taxrules.json"])
+    throw new BoxUpdateError(
+      422,
+      `${changed.length ? changed.join(", ") : "taxrules.json"} is not what Shopper signed.`,
+    );
   const result = await options
     .withDatabase((db) =>
       applyTaxPack(

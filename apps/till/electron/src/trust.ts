@@ -22,7 +22,7 @@ export async function pinBoxCa(upstream: string, userData: string) {
 }
 
 /**
- * Whether a TLS chain (leaf first, PEM) is the box's: each certificate signed by the next, the last signed by the
+ * Whether a TLS chain (leaf first, PEM) is the box's: each certificate signed by the next (a CA), the last by the
  * pinned CA, all in date, and the leaf naming `host`. Electron's own network stack (the updater) does not read
  * `NODE_EXTRA_CA_CERTS`, so its session asks this.
  */
@@ -40,6 +40,10 @@ export function trustsPinned(chain: string[], host: string, pinnedPem: string) {
     (certificate, index) =>
       Date.parse(certificate.validFrom) <= now &&
       now <= Date.parse(certificate.validTo) &&
+      // Only a CA signs: a leaf's key (CA:FALSE) never issues certificates, whatever it chains to.
+      (index === 0 || certificate.ca) &&
+      (path[index + 1] ?? pinned).ca &&
+      certificate.checkIssued(path[index + 1] ?? pinned) &&
       certificate.verify((path[index + 1] ?? pinned).publicKey),
   );
 }

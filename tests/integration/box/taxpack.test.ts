@@ -115,5 +115,15 @@ test("updates ended: an update is refused with both dates, a tax rule pack is ap
   expect((await refusal(updates.install("forged.tgz", who))).message).toBe(
     "taxrules.json is not what Shopper signed.",
   );
+  // A genuine pack signed with no rules, and rules slipped in beside it: Shopper never signed them.
+  const empty = await bundle(tree.updates, "added.tgz", shopper.privateKey, {
+    kind: "taxpack",
+    files: {},
+  });
+  await writeFile(join(empty, "taxrules.json"), JSON.stringify([rule("2027-03-01", 0)]));
+  execFileSync("tar", ["-czf", join(tree.updates, "added.tgz"), "-C", empty, "."]);
+  expect((await refusal(updates.install("added.tgz", who))).message).toBe(
+    "taxrules.json is not what Shopper signed.",
+  );
   expect(await rules()).toHaveLength(before + 1);
 });

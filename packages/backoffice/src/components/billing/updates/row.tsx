@@ -71,7 +71,7 @@ export function BundleRow({ bundle, busy }: { bundle: Bundle; busy: boolean }) {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {pack
-                ? "The pack's rates are scheduled for the days GRA set, and rules you already have are left alone. The box does not restart; sales already made keep their tax."
+                ? "The pack's rates are scheduled for the days GRA set. A rule you scheduled for one of those days with other rates is replaced; one that matches is left alone. The box does not restart; sales already made keep their tax."
                 : "The box makes a verified backup, then restarts. The back office is unavailable for about a minute; tills keep selling. If the new version does not start, the box switches back."}
             </AlertDialogDescription>
           </AlertDialogHeader>

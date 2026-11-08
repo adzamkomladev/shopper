@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { v7 } from "uuid";
 import { issueLicence } from "@shopper/core/licence";
@@ -61,16 +61,67 @@ export function setUpBackups(machine: Machine) {
   );
 }
 
-/** A signed bundle whose "box" cannot start, to prove a bad update is switched back. */
+/**
+ * A signed bundle whose "box" runs a migration and then dies on the next one, as a bad release would: it records a
+ * migration, says why it failed where the real box does, and exits. The switch back must restore the pre-update dump.
+ */
 export async function brokenUpdate(dir: string, releaseKey: string) {
   const { mkdir } = await import("node:fs/promises");
   const source = join(dir, "broken-slot");
   await mkdir(source, { recursive: true });
-  await writeFile(join(source, "shopper-box"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+  await writeFile(
+    join(source, "shopper-box"),
+    `#!/bin/sh
+psql "$DATABASE_URL" -qc "insert into drizzle.__drizzle_migrations (hash, created_at) values ('drill', 0)"
+echo "migration 9999_drill failed: division by zero" > "$SHOPPER_UPDATES_DIR/boot-error.txt"
+exit 1
+`,
+    { mode: 0o755 },
+  );
   await buildUpdate({
     slot: source,
     out: join(dir, "update-broken.tgz"),
     releaseKey,
     version: "9.9.10",
   });
+}
+
+/** What the installed box reports about itself, read on the machine. */
+export function boxState(machine: Machine) {
+  return {
+    healthy: () => machine.run("curl -fsS http://127.0.0.1:3001/api/health").status === 0,
+    slot: () => machine.run("readlink /opt/shopper/current").output.trim(),
+    migrations: () =>
+      machine
+        .run(
+          `su postgres -c "psql -d shopper -qAt -c 'select count(*) from drizzle.__drizzle_migrations'"`,
+        )
+        .output.trim(),
+    result: () => {
+      const text = machine
+        .run("cat /var/lib/shopper/updates/result.json 2>/dev/null")
+        .output.trim();
+      return text ? (JSON.parse(text) as { status: string; message: string }) : undefined;
+    },
+  };
+}
+
+/** How many migrations this checkout ships. */
+export const journal = async () =>
+  (
+    JSON.parse(
+      await readFile(
+        new URL("../../../packages/db/pg/migrations/meta/_journal.json", import.meta.url),
+        "utf8",
+      ),
+    ) as { entries: unknown[] }
+  ).entries.length;
+
+/** Polls until `check` is true; the update flow restarts the box and switches slots in the background. */
+export async function until(check: () => boolean, seconds: number, what: string) {
+  for (let waited = 0; waited < seconds; waited += 3) {
+    if (check()) return;
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+  throw new Error(`Timed out waiting for ${what}`);
 }

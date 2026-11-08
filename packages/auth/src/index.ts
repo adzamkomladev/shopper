@@ -15,6 +15,7 @@ export {
   assertCanGrantRole,
   assertHasPermission,
 } from "./roles/service";
+export { installBox } from "./install/command";
 export { createOnboarding, type OnboardingOptions } from "./onboarding/service";
 export { createLinkToken, AuthLinkError } from "./links/tokens";
 export { createInvitations } from "./invitations/service";

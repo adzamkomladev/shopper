@@ -9,6 +9,7 @@ import { boxOrders } from "./orders";
 import { boxEngine } from "./engine";
 import { boxStorage } from "./storage";
 import { portalFolder, withPortal } from "./portal";
+import { boxInstall, boxNeedsInstall, boxTenant, withInstallRedirect } from "./install";
 import { boxLicence } from "./licence";
 import { boxChannels } from "./channels";
 import {
@@ -37,10 +38,8 @@ export function createBoxApp(
   environment: Record<string, string | undefined> = process.env,
   options: BoxOptions = {},
 ) {
-  const licence = boxLicence(environment, {
-    issuer: options.licenceIssuer ?? buildInfo.licenceIssuer,
-    fetch: options.fetch,
-  });
+  const issuer = options.licenceIssuer ?? buildInfo.licenceIssuer;
+  const licence = boxLicence(environment, { issuer, fetch: options.fetch });
   const realtime = boxRealtime();
   const rateLimiter = boxRateLimiter();
   let workflowPool: ReturnType<typeof boxPool> | undefined;
@@ -58,22 +57,21 @@ export function createBoxApp(
   let orders: ReturnType<typeof boxOrders> | undefined;
   let engine: ReturnType<typeof boxEngine> | undefined;
   const renderer = boxRenderer({ wasm: options.wasm });
+  const install = boxInstall(environment, { issuer, licence });
+  const tenant = boxTenant(environment);
   const api = new Hono<{ Bindings: BoxBindings }>().all("*", async (context) => {
     const request = context.req.raw;
+    if (new URL(request.url).pathname === "/install") return install.fetch(request);
     if (isPublicRequest(request)) return publicApi.fetch(request);
-    const {
-      DATABASE_URL,
-      SHOPPER_AUTH_SECRET,
-      SHOPPER_AUTH_URL,
-      SHOPPER_ORG_ID,
-      SHOPPER_BOOTSTRAP_TOKEN,
-    } = environment;
+    const { DATABASE_URL, SHOPPER_AUTH_SECRET, SHOPPER_AUTH_URL, SHOPPER_BOOTSTRAP_TOKEN } =
+      environment;
     if (!DATABASE_URL || !SHOPPER_AUTH_SECRET || !SHOPPER_AUTH_URL) return runtimeUnavailable();
     const blobs = () =>
       boxStorage(environment, { baseUrl: SHOPPER_AUTH_URL, secret: SHOPPER_AUTH_SECRET });
     engine ??= boxEngine(environment);
     const launch = engine.launch;
     const connection = await boxDatabase(DATABASE_URL);
+    const shopId = await tenant(connection.db);
     cache ??= boxCache(environment.SHOPPER_CACHE_PATH ?? ".shopper/cache.sqlite");
     // Created on first use, never at import: workflows outlive requests, so they get their own pool.
     workflowPool ??= boxPool(DATABASE_URL);
@@ -219,7 +217,7 @@ export function createBoxApp(
         blobs: await blobs(),
         secret: SHOPPER_AUTH_SECRET,
         baseURL: SHOPPER_AUTH_URL,
-        orgId: SHOPPER_ORG_ID,
+        orgId: shopId,
         bootstrapToken: SHOPPER_BOOTSTRAP_TOKEN,
         clientIP: context.env?.requestIP?.(request)?.address ?? "127.0.0.1",
         priceChange: priceChange.launcher,
@@ -241,5 +239,8 @@ export function createBoxApp(
       await connection.close();
     }
   });
-  return withPortal(api, options.portal ?? portalFolder(environment.SHOPPER_PORTAL_DIR));
+  return withInstallRedirect(
+    withPortal(api, options.portal ?? portalFolder(environment.SHOPPER_PORTAL_DIR)),
+    () => boxNeedsInstall(environment),
+  );
 }

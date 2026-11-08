@@ -33,6 +33,7 @@
     "hono": "4.13.13",
     "pg": "8.23.1",
     "satori": "0.33.5",
+    "uuid": "14.0.2",
     "valibot": "1.5.0"
   },
   "optionalDependencies": {

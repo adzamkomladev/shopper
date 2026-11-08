@@ -111,6 +111,37 @@ test("a bare Ubuntu with no network becomes a running shop server in minutes, an
     "curl -fsS --cacert /var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt --resolve shopper.local:443:127.0.0.1 https://shopper.local/api/health",
   );
   expect(https.output).toContain('"status":"ok"');
+  // First boot, through Caddy's TLS: /setup sends a browser to the wizard, and the printed code creates the shop.
+  const secure =
+    "curl -sS --cacert /var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt --resolve shopper.local:443:127.0.0.1";
+  expect(
+    machine.run(
+      `${secure} -o /dev/null -w '%{http_code} %{redirect_url}' -H 'accept: text/html' https://shopper.local/setup`,
+    ).output,
+  ).toBe("302 https://shopper.local/install");
+  const code = result.output.match(
+    /Setup code \(shown once[^:]*: ([A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4})/,
+  )![1]!;
+  const wizard = JSON.stringify({
+    code,
+    shop: { name: "Esi Mart", code: "esi-mart" },
+    store: { name: "Osu" },
+    owner: { name: "Esi Mensah", email: "esi@example.com", password: "a long enough passphrase" },
+  });
+  expect(
+    machine.run(
+      `${secure} -o /dev/null -w '%{http_code}' -H 'content-type: application/json' -d '${wizard.replaceAll("'", "")}' https://shopper.local/api/install`,
+    ).output,
+  ).toBe("201");
+  expect(
+    machine.run(`${secure} -o /dev/null -w '%{http_code}' https://shopper.local/api/install`)
+      .output,
+  ).toBe("404");
+  expect(
+    machine.run(
+      `${secure} -o /dev/null -w '%{http_code}' -H 'content-type: application/json' -H 'origin: https://shopper.local' -d '{"email":"esi@example.com","password":"a long enough passphrase"}' https://shopper.local/api/auth/sign-in/email`,
+    ).output,
+  ).toBe("200");
   // The box's folder is exactly what Shopper signed, and its secrets are not readable by everyone.
   expect(machine.run("stat -c %a /etc/shopper/box.env").output.trim()).toBe("640");
   expect(machine.run("readlink /opt/shopper/current").output.trim()).toBe("/opt/shopper/slots/a");

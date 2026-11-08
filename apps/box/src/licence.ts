@@ -63,6 +63,28 @@ export function boxLicence(
   };
 }
 
+/**
+ * The first-boot wizard's licence step: `value` must be genuine for this machine (a stale one is fine, the next check-in
+ * confirms it). Writes `licence.json` and returns undefined, or the reason it was refused.
+ */
+export async function acceptLicence(
+  environment: Record<string, string | undefined>,
+  issuer: string,
+  value: unknown,
+) {
+  const dir = environment.SHOPPER_LICENCE_DIR ?? ".shopper/licence";
+  const status = await licenceStatus({
+    issuer,
+    machine: await machineId(environment.SHOPPER_MACHINE_ID_FILE ?? "/etc/machine-id"),
+    licence: value,
+    now: new Date(),
+  });
+  if (status.state === "locked" && status.reason !== "expired") return status.reason;
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, "licence.json"), JSON.stringify(value, null, 2));
+  return undefined;
+}
+
 async function ownKey(path: string) {
   const existing = await readFile(path, "utf8").catch(() => undefined);
   if (existing) return existing;

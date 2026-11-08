@@ -11,6 +11,7 @@ import { mappingsQuery } from "../queries/catalogue/mappings";
 import { permissionsQuery } from "../queries/session/permissions";
 import { administrationRoutes } from "./administration";
 import { publicAuthRoutes } from "./auth/public";
+import { installRoutes } from "./install";
 import { customerRoutes } from "./customers";
 import { inventoryRoutes } from "./inventory";
 import { kycRoutes } from "./kyc";
@@ -144,6 +145,7 @@ export function createBackofficeRoutes(
     indexRoute,
     loginRoute,
     ...publicAuthRoutes(rootRoute),
+    ...installRoutes(rootRoute),
     ...publicStatementRoutes(rootRoute),
     shopRoute.addChildren([
       productsRoute,

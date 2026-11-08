@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { copyFile, mkdir, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,9 +18,9 @@ export async function sealBox(options: {
   env?: Record<string, string>;
 }) {
   // The stage sits inside apps/box so the bundle's bare imports (satori, resvg) resolve from its node_modules.
-  const stage = join(root, "apps/box/dist/seal");
-  await rm(stage, { recursive: true, force: true });
-  await mkdir(stage, { recursive: true });
+  // Its own folder per run: test files seal in parallel.
+  await mkdir(join(root, "apps/box/dist"), { recursive: true });
+  const stage = await mkdtemp(join(root, "apps/box/dist/seal-"));
   execFileSync("node", [join(root, "tooling/build/server.mjs"), "box-sealed"], {
     cwd: join(root, "apps/box"),
     stdio: "inherit",

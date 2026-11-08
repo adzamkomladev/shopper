@@ -50,6 +50,8 @@ SHOPPER_BLOBS_PATH=/var/lib/shopper/blobs
 SHOPPER_CACHE_PATH=/var/lib/shopper/cache.sqlite
 SHOPPER_UPDATES_DIR=/var/lib/shopper/updates
 SHOPPER_SETUP_CODE_HASH=$codehash
+# This box is one shop: the shop the wizard creates is the tenant for everyone who signs in.
+SHOPPER_SINGLE_SHOP=1
 RIVET_ENDPOINT=http://127.0.0.1:6420
 RIVET_TOKEN=$enginetoken
 RIVET_POOL=shopper-box

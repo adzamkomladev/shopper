@@ -32,6 +32,7 @@ export function boxUpdatesFor(
           recipient: env.SHOPPER_BACKUP_RECIPIENT,
           remote: env.SHOPPER_BACKUP_REMOTE,
           workDir: env.SHOPPER_BACKUP_DIR ?? ".shopper/backups",
+          keep: preUpdateDump(env),
         });
       },
       withDatabase: (run) => run(database),
@@ -39,3 +40,7 @@ export function boxUpdatesFor(
     });
   }
 }
+
+/** The verified dump taken before an update, which a rollback restores when the update's migrations ran. */
+export const preUpdateDump = (env: Record<string, string | undefined>) =>
+  `${env.SHOPPER_UPDATES_DIR ?? ".shopper/updates"}/pre-update.dump`;

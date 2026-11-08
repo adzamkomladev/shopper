@@ -1,8 +1,8 @@
 import { saleVersion, saleSession } from "../schemas/sync/routes";
 import { handshake, envelope, identity } from "../schemas/sync/routes";
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
-import { org } from "@shopper/db-pg";
+import { and, count, eq } from "drizzle-orm";
+import { org, sale } from "@shopper/db-pg";
 import { bodyLimit } from "hono/body-limit";
 import * as v from "valibot";
 import { negotiateProtocol } from "@shopper/sync/versions";
@@ -43,6 +43,7 @@ export function createSyncRoutes(options: {
   now?: () => number;
   /** SHOPPER_MIN_TILL_VERSION: below it a till opens no new shift. Empty or unset means no minimum. */
   minTillVersion?: string;
+  tillFeed?: string;
 }) {
   const protocol = options.protocol ?? buildInfo.syncProtocol;
   const app = new Hono();
@@ -89,12 +90,21 @@ export function createSyncRoutes(options: {
         data.appVersion,
       ),
       minTillVersion: options.minTillVersion || null,
+      ...(options.tillFeed ? { updateFeed: options.tillFeed } : {}),
       updateChannel: (
         await options.database
           .select({ channel: org.updateChannel })
           .from(org)
           .where(eq(org.id, principal.orgId))
       )[0]!.channel,
+      // A box restored from an older backup holds fewer of this register's sales than it acknowledged; the register
+      // sends those again (acceptance is idempotent by local id).
+      held: (
+        await options.database
+          .select({ n: count() })
+          .from(sale)
+          .where(and(eq(sale.orgId, principal.orgId), eq(sale.deviceId, principal.deviceId)))
+      )[0]!.n,
     });
   });
   app.post("/sync/push", async (c) => {

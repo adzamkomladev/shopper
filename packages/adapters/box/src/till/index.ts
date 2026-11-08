@@ -4,3 +4,4 @@ export { startEnrolmentHost } from "./host/enrol";
 export { listPrinters } from "./host/peripherals/printers";
 export { createHostPayments } from "./host/payments";
 export { parentRenderer } from "./host/renderer";
+export { createUpdates as createHostUpdates } from "./host/updates";

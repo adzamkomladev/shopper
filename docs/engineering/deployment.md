@@ -181,9 +181,25 @@ The box is one sealed Bun executable plus the pinned Rivet engine, installed fro
   by Shopper; then makes the verified Day 37 backup (refusing the update if backups are not set up: `/etc/shopper/backup.env`),
   unpacks into the spare A/B slot (`/opt/shopper/slots/{a,b}`, `current` is a symlink), checks every file and writes `apply.json`.
   `shopper-update.path` wakes `/opt/shopper/bin/shopper-apply` (root), which flips `current`, restarts the box, and flips back
-  with a `rolled_back` result if it is not healthy in 90 s. Migrations never run backwards: after a rollback that followed a
-  migration, restore the pre-update backup. **Install after closing** is the `box-update` Workflow (`sleepUntil`, one at a time).
-- Rollback otherwise = restore the pre-upgrade backup + previous slot.
+  with a `rolled_back` result if it is not healthy in 90 s. **Install after closing** is the `box-update` Workflow (`sleepUntil`,
+  one at a time).
+- **Rollback with restore (Day 39)**: the update's verified backup is also kept on the box as
+  `/var/lib/shopper/updates/pre-update.dump` (mode 600) with `pre-update.dump.json` (its migration count). A box that fails
+  to start writes why to `boot-error.txt`. After switching back, `shopper-apply` runs `shopper-box rollback` from the old slot
+  as the box's user: same migration count → the dump is dropped ("changed nothing"); more → the dump is restored into a fresh
+  database that takes the shop's name, and the changed one is kept as `shopper_failed_<stamp>` for support (drop it once
+  read). The result's message carries the reason and what was done; Billing → Updates shows it. A healthy update removes the dump.
+- **Tax rule packs (Day 39)**: a bundle of kind `taxpack` holds `taxrules.json` (rules as the tax module takes them) signed
+  in its manifest. Install applies it at once (`tax.pack.apply`, audited, no backup, no restart, never scheduled), whatever the
+  licence's maintenance date: applying the same pack twice changes nothing, and a pack with any rule already in force is refused whole.
+- **Restore runbook (spare box, Day 39)**: install the spare from the installer, stop `shopper-box`, then
+  `age -d -i <identity> -o shopper.dump <last nightly>`, `dropdb shopper && createdb -O shopper shopper`,
+  `pg_restore --no-owner -d $DATABASE_URL shopper.dump`, start the box at the old box's address (`shopper.local`, same LAN IP).
+  Registers need nothing: at their next handshake the box says how many of their sales it holds, and a register whose
+  acknowledged sales outnumber that queues them again (`till.sync.replay`); the box takes each once, with its receipt number.
+  Refunds, shifts, stock counts and other uploads the backup missed are not replayed (shortcut, Day 39), and sales made
+  under a cashier sign-in newer than the backup are refused (`INVALID_SESSION`) and stay on the register until that is
+  designed. A register's receipt blocks the backup missed are issued again, the same numbers (up to 10 000 ahead).
 - Backups (Day 37): `shopper-backup.timer` runs nightly at 02:30 when `/etc/shopper/backup.env` exists. Each run is
   verified before upload (restore into a scratch database, identical row counts per table) and lands in R2
   as `shopper-<UTC stamp>.dump.age`. To restore: `age -d -i <identity> -o shopper.dump <file>`, then

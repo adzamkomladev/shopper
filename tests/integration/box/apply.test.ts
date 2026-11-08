@@ -34,7 +34,11 @@ const request = (t: { updates: string }, slot: string) =>
     JSON.stringify({ slot, version: "1.1.0", file: "ok.tgz" }),
   );
 // Async: the health server is in this process and must answer while the helper waits for it.
-async function apply(t: { root: string; updates: string; fake: string }) {
+async function apply(
+  t: { root: string; updates: string; fake: string },
+  // The box's `rollback` command; `false` is an old box that has none.
+  rollback = "false",
+) {
   await promisify(execFile)("sh", [join(process.cwd(), "apps/box/deploy/bin/shopper-apply")], {
     env: {
       PATH: process.env.PATH ?? "",
@@ -43,6 +47,7 @@ async function apply(t: { root: string; updates: string; fake: string }) {
       SHOPPER_SYSTEMCTL: t.fake,
       SHOPPER_HEALTH_URL: url,
       SHOPPER_HEALTH_SECONDS: "2",
+      SHOPPER_ROLLBACK: rollback,
     },
   }).catch(() => undefined); // a rollback exits 1 on purpose
 }
@@ -99,4 +104,48 @@ test("a request for the slot already running, or for no slot, changes nothing", 
   expect((await result(t)).status).toBe("failed");
   expect((await readlink(join(t.root, "current"))).endsWith("slots/a")).toBe(true);
   await expect(readFile(t.log)).rejects.toThrow();
+});
+
+// Notion Day 39 drill: a failing migration → automatic rollback to the previous binary and the pre-update backup, with
+// the reason. The new box writes why it would not start; the helper switches back, runs the old box's rollback (which
+// restores the kept dump when migrations ran) and reports both. A healthy update removes the kept dump.
+test("a rolled-back update says why the new box did not start and what happened to the database", async () => {
+  const bad = await tree();
+  healthy = false;
+  await request(bad, "b");
+  // The new box fails its migration on start and says why, as main.ts does.
+  await writeFile(
+    bad.fake,
+    `#!/bin/sh\necho "$@" >> ${bad.log}\n[ "$*" = "start shopper-box" ] && readlink ${bad.root}/current | grep -q slots/b && printf 'migration 0042_tax failed: "division" by zero\\n' > ${bad.updates}/boot-error.txt\nexit 0\n`,
+  );
+  const rollback = join(bad.root, "rollback");
+  await writeFile(
+    rollback,
+    `#!/bin/sh\necho rollback >> ${bad.log}\necho 'The update changed nothing in the database.'\n`,
+  );
+  await chmod(rollback, 0o755);
+  await apply(bad, rollback);
+  const rolled = await result(bad);
+  expect(rolled.status).toBe("rolled_back");
+  expect(rolled.message).toBe(
+    "1.1.0 did not start: migration 0042_tax failed: division by zero. The box is back on slot a. The update changed nothing in the database.",
+  );
+  // The rollback runs with both services stopped and the old slot current, before they start again.
+  expect((await readFile(bad.log, "utf8")).trim().split("\n").slice(4)).toEqual([
+    "stop shopper-box",
+    "stop shopper-engine",
+    "rollback",
+    "start shopper-engine",
+    "start shopper-box",
+  ]);
+
+  const good = await tree();
+  healthy = true;
+  for (const name of ["pre-update.dump", "pre-update.dump.json", "boot-error.txt"])
+    await writeFile(join(good.updates, name), "x");
+  await request(good, "b");
+  await apply(good);
+  expect((await result(good)).status).toBe("applied");
+  for (const name of ["pre-update.dump", "pre-update.dump.json", "boot-error.txt"])
+    await expect(readFile(join(good.updates, name))).rejects.toThrow();
 });

@@ -63,7 +63,7 @@ export async function startTillHost(
     transport?.broadcast(message);
   });
   const approvals = createApprovals({ database, config });
-  const updates = createUpdates(send);
+  const updates = createUpdates(send, config.upstream);
   const worker = createHostSync(
     database,
     config,

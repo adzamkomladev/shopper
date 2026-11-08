@@ -29,5 +29,6 @@ export type PushOptions = {
   onHandshake?: (release: {
     minTillVersion?: string | null;
     updateChannel?: "pilot" | "stable";
+    updateFeed?: string;
   }) => void;
 };

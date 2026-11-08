@@ -17,6 +17,8 @@ const heavy = [
   // Each seals the box (a Vite bundle and a Bun compile) before it starts it.
   "tests/integration/box/sealed.test.ts",
   "tests/integration/box/release.test.ts",
+  // Failure drills: each seals the box and runs registers against it.
+  "tests/integration/box/drills/*.test.ts",
 ];
 // A whole store server installed with no network inside a systemd container (Docker, --privileged): its own CI job.
 const machine = ["tests/integration/installer/*.test.ts"];

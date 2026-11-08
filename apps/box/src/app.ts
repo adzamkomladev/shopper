@@ -9,6 +9,7 @@ import { boxOrders } from "./orders";
 import { boxEngine } from "./engine";
 import { boxStorage } from "./storage";
 import { portalFolder, withPortal } from "./portal";
+import { TILL_FEED, withTillFeed } from "./tillfeed";
 import { boxUpdatesFor } from "./updates/box";
 import { boxInstall, boxNeedsInstall, boxTenant, withInstallRedirect } from "./install";
 import { boxLicence } from "./licence";
@@ -235,6 +236,7 @@ export function createBoxApp(
         ...orders,
         linkSecret: environment.SHOPPER_LINK_SECRET,
         minTillVersion: environment.SHOPPER_MIN_TILL_VERSION,
+        tillFeed: TILL_FEED,
         licence,
         updates: updatesFor(workflowDatabase, launch),
       });
@@ -242,8 +244,6 @@ export function createBoxApp(
       await connection.close();
     }
   });
-  return withInstallRedirect(
-    withPortal(api, options.portal ?? portalFolder(environment.SHOPPER_PORTAL_DIR)),
-    () => boxNeedsInstall(environment),
-  );
+  const portal = withPortal(api, options.portal ?? portalFolder(environment.SHOPPER_PORTAL_DIR));
+  return withInstallRedirect(withTillFeed(portal, environment), () => boxNeedsInstall(environment));
 }

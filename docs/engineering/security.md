@@ -190,4 +190,8 @@ One `RateLimiter` port (`packages/ports/src/limits.ts`) with a fixed policy tabl
 - **Updates.** Bundles are copied to the box, never uploaded through the browser. A file name is a name, never a path. Refused:
   unsigned or forged, a file changed after signing (named), older or same version, built after the licence's `maintenanceUntil`,
   no genuine licence. A verified backup is mandatory. The box only writes `apply.json`; a root helper switches slots and
-  restarts, and switches back if the new box is not healthy.
+  restarts, and switches back if the new box is not healthy. The pre-update dump it keeps for a rollback is the shop's whole database in
+  plain form: mode 600, owned by the box's user, deleted once the update is healthy or restored (Day 39). A tax rule pack's
+  `taxrules.json` must match its signed manifest byte for byte, or nothing is applied (`tests/integration/box/taxpack.test.ts`).
+  The till feed (`/till/updates/<channel>/<file>`) serves only named files from the running slot's `till/` folder; a path is
+  refused (`tests/integration/till/updates.test.ts`).

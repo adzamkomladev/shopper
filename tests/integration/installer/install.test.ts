@@ -8,11 +8,14 @@ import { join } from "node:path";
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { generateKey } from "@shopper/core/licence";
 import {
+  boxState,
   brokenUpdate,
+  journal,
   licenceFor,
   ownerApi,
   secure,
   setUpBackups,
+  until,
 } from "../../support/installer/owner";
 import { buildInstaller, downloadDebs } from "../../../tooling/installer/build";
 import { bareMachine } from "../../support/installer/machine";
@@ -21,16 +24,6 @@ let dir: string;
 let machine: ReturnType<typeof bareMachine>;
 let release: Awaited<ReturnType<typeof generateKey>>;
 let issuer: Awaited<ReturnType<typeof generateKey>>;
-const journal = async () =>
-  (
-    JSON.parse(
-      await readFile(
-        new URL("../../../packages/db/pg/migrations/meta/_journal.json", import.meta.url),
-        "utf8",
-      ),
-    ) as { entries: unknown[] }
-  ).entries.length;
-
 beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), "shopper-install-test-"));
   release = await generateKey();
@@ -112,13 +105,7 @@ test("a bare Ubuntu with no network becomes a running shop server in minutes, an
   for (const unit of ["postgresql", "caddy", "shopper-engine", "shopper-box"])
     expect(machine.run(`systemctl is-active ${unit}`).output.trim(), unit).toBe("active");
   // Migrations ran on the box's first start; Caddy's own CA answers for shopper.local.
-  expect(
-    machine
-      .run(
-        `su postgres -c "psql -d shopper -qAt -c 'select count(*) from drizzle.__drizzle_migrations'"`,
-      )
-      .output.trim(),
-  ).toBe(String(await journal()));
+  expect(migrations()).toBe(String(await journal()));
   const https = machine.run(
     "curl -fsS --cacert /var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt --resolve shopper.local:443:127.0.0.1 https://shopper.local/api/health",
   );
@@ -162,22 +149,13 @@ test("a bare Ubuntu with no network becomes a running shop server in minutes, an
   expect(again.output).toContain("already has a Shopper box");
 }, 1_800_000);
 
-/** Polls the machine until `check` is true; the update flow restarts the box and switches slots in the background. */
-async function until(check: () => boolean, seconds: number, what: string) {
-  for (let waited = 0; waited < seconds; waited += 3) {
-    if (check()) return;
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-  }
-  throw new Error(`Timed out waiting for ${what}`);
-}
-const healthy = () => machine.run("curl -fsS http://127.0.0.1:3001/api/health").status === 0;
-const slot = () => machine.run("readlink /opt/shopper/current").output.trim();
-const result = () => {
-  const text = machine.run("cat /var/lib/shopper/updates/result.json 2>/dev/null").output.trim();
-  return text ? (JSON.parse(text) as { status: string; message: string }) : undefined;
-};
+const box = () => boxState(machine);
+const healthy = () => box().healthy();
+const slot = () => box().slot();
+const result = () => box().result();
+const migrations = () => box().migrations();
 
-test("the owner installs an update from the box (backup first, slot switch), and a broken one is switched back", async () => {
+test("the owner installs an update from the box (backup first, slot switch), and a broken one is switched back with its database restored", async () => {
   const api = ownerApi(machine);
   expect(api.signIn().status).toBe(200);
   // Bundles arrive by USB or scp, into the updates folder.
@@ -226,5 +204,42 @@ test("the owner installs an update from the box (backup first, slot switch), and
   await until(() => result()?.status === "rolled_back", 300, "the broken update to be rolled back");
   expect(slot()).toBe("/opt/shopper/slots/b");
   await until(healthy, 60, "the box after rollback");
-  expect(result()!.message).toContain("restore the backup");
+  // The box's own reason, and the database put back as it was before the update; the changed one is kept for support.
+  expect(result()!.message).toContain(
+    "9.9.10 did not start: migration 9999_drill failed: division by zero.",
+  );
+  expect(result()!.message).toContain("restored from the backup taken before the update");
+  expect(migrations()).toBe(String(await journal()));
+  expect(
+    machine.run(`su postgres -c "psql -qAt -l" | grep -c '^shopper_failed_'`).output.trim(),
+  ).toBe("1");
+  expect(machine.run("ls /var/lib/shopper/updates/pre-update.dump 2>&1").status).not.toBe(0);
+}, 1_800_000);
+
+test("systemd brings a killed engine and a killed box back on their own", async () => {
+  for (const unit of ["shopper-engine", "shopper-box"]) {
+    const pid = () => machine.run(`systemctl show -p MainPID --value ${unit}`).output.trim();
+    const before = pid();
+    machine.run(`systemctl kill -s KILL ${unit}`);
+    await until(
+      () =>
+        pid() !== before &&
+        pid() !== "0" &&
+        machine.run(`systemctl is-active ${unit}`).output.trim() === "active",
+      60,
+      `${unit} to restart`,
+    );
+  }
+  await until(
+    () => machine.run("curl -fsS http://127.0.0.1:3001/api/health/ready").status === 0,
+    120,
+    "the box to be ready again",
+  );
+  // Registers on the LAN take their own updates from the slot the box runs, through Caddy.
+  machine.run(
+    "install -d /opt/shopper/current/till/stable && printf 'version: 0.1.3\\n' > /opt/shopper/current/till/stable/latest.yml",
+  );
+  expect(
+    machine.run(`${secure} https://shopper.local/till/updates/stable/latest.yml`).output,
+  ).toContain("version: 0.1.3");
 }, 1_800_000);

@@ -20,6 +20,9 @@ export function issueReceiptBlocks(
     { principal, lastUsed },
   );
 }
+/** How far past the box's last issued number a register may be after a restore: a few days' trade. */
+const RESTORE_SLACK = 10_000;
+
 const issue = defineCommand({
   name: "device.receipts.issue",
   async run(tx, ctx, input: { principal: UploadPrincipal; lastUsed: number }) {
@@ -28,8 +31,23 @@ const issue = defineCommand({
       .from(device)
       .where(and(eq(device.orgId, ctx.orgId), eq(device.id, input.principal.deviceId)))
       .for("update");
-    if (!registered || input.lastUsed > registered.receiptLast)
+    if (!registered || input.lastUsed > registered.receiptLast + RESTORE_SLACK)
       throw new Error("Invalid receipt cursor");
+    // A box restored from a backup forgot blocks it issued after the backup: blocks are 1000 wide and issued in order,
+    // so the same numbers are issued again (the register already holds them) up to the one it is selling from.
+    while (registered.receiptLast < input.lastUsed) {
+      registered.receiptLast += 1000;
+      await tx.insert(receiptBlock).values({
+        orgId: ctx.orgId,
+        deviceId: registered.id,
+        start: registered.receiptLast - 999,
+        end: registered.receiptLast,
+      });
+      await tx
+        .update(device)
+        .set({ receiptLast: registered.receiptLast })
+        .where(eq(device.id, registered.id));
+    }
     const lastUsed = Math.max(input.lastUsed, registered.receiptUsed);
     if (lastUsed !== registered.receiptUsed)
       await tx.update(device).set({ receiptUsed: lastUsed }).where(eq(device.id, registered.id));

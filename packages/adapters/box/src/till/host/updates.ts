@@ -12,7 +12,9 @@ import { compareVersions } from "@shopper/utils";
 // ponytail: the handshake's answer is kept in memory and read once per connection: a raised minimum reaches a running
 // till at its next handshake (restart or re-enrol), and a till restarted offline is unblocked until it reconnects,
 // which is also when it could first download the update. Re-handshake on a timer or persist it if that matters.
-export function createUpdates(send: (message: unknown) => void) {
+export function createUpdates(send: (message: unknown) => void, upstream: string) {
+  // A box hands its registers its own feed (a path on its origin); the cloud does not, and the build's feed is used.
+  let feed: string | undefined;
   let release: Pick<UpdateStatus, "channel" | "minVersion"> = {
     minVersion: null,
     channel: "stable",
@@ -31,7 +33,12 @@ export function createUpdates(send: (message: unknown) => void) {
   });
   return {
     status,
-    handshake(next: { minTillVersion?: string | null; updateChannel?: "pilot" | "stable" }) {
+    handshake(next: {
+      minTillVersion?: string | null;
+      updateChannel?: "pilot" | "stable";
+      updateFeed?: string;
+    }) {
+      feed = next.updateFeed && new URL(next.updateFeed, upstream).toString();
       release = {
         minVersion: next.minTillVersion ?? null,
         channel: next.updateChannel ?? "stable",
@@ -56,6 +63,7 @@ export function createUpdates(send: (message: unknown) => void) {
         channel: current.channel,
         required: current.required,
         shiftOpen,
+        ...(feed ? { feed } : {}),
       };
       if (JSON.stringify(next) === policy) return;
       policy = JSON.stringify(next);

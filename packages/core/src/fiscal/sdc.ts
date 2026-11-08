@@ -27,7 +27,7 @@ export function createSdc({ url, apiKey, fetch: fetcher = fetch }: SdcOptions): 
         const rejected = v.safeParse(sdcRejectedSchema, body);
         if (rejected.success) return rejected.output;
       }
-      throw new SdcUnavailable(`The SDC replied ${response.status}`);
+      throw new SdcUnavailable(`The SDC replied ${response.status}`, { reached: true });
     },
   };
 }

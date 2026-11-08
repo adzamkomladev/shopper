@@ -74,6 +74,7 @@ export function createHostSync(
     await onPulled?.();
     await approvers();
   };
+  let connectedBefore = false;
   const live = createLiveWorker({
     config: options.config,
     cursor: () => pull.getStatus().cursor ?? "0",
@@ -85,7 +86,12 @@ export function createHostSync(
     onMode: notify,
     onPayment: payments?.receive,
     onApproval,
-    onConnected: payments?.recover,
+    // A socket that comes back may be a different server (a spare box restored from a backup).
+    async onConnected() {
+      if (connectedBefore) void push.reconnected();
+      connectedBefore = true;
+      await payments?.recover();
+    },
   });
   const uploads = createReceiptUploadWorker({
     ...options,

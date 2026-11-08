@@ -11,3 +11,6 @@ export const taxRuleInput = v.strictObject({
   covidBps: bps,
   source: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(500)),
 });
+
+/** A signed tax rule pack's `taxrules.json`: each rule is checked with `taxRuleInput` when the pack is applied. */
+export const taxPackRules = v.array(v.unknown());

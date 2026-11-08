@@ -59,8 +59,9 @@ export function createUpdates(
     if (state.state !== "ready") set({ state: "error", percent: null });
   });
   const check = () => {
-    if (!policy) return;
-    const next = `${feed}/${policy.channel}/`;
+    const base = policy?.feed ?? feed;
+    if (!policy || !base) return;
+    const next = `${base}/${policy.channel}/`;
     if (next !== url) updater.setFeedURL({ provider: "generic", url: (url = next) });
     // The `error` event already reported it; a feed that is down never stops the register.
     updater.checkForUpdates().catch(() => undefined);
@@ -69,7 +70,7 @@ export function createUpdates(
   timer.unref();
   return {
     policy(next: UpdatePolicy) {
-      const moved = next.channel !== policy?.channel;
+      const moved = next.channel !== policy?.channel || next.feed !== policy?.feed;
       policy = next;
       if (moved) check();
       installIfRequired();

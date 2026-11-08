@@ -4,4 +4,10 @@ export type UpdateState = {
   percent: number | null;
 };
 /** What the host says: the org's channel, whether this build is below the minimum, and whether a shift is open. */
-export type UpdatePolicy = { channel: "pilot" | "stable"; required: boolean; shiftOpen: boolean };
+export type UpdatePolicy = {
+  channel: "pilot" | "stable";
+  required: boolean;
+  shiftOpen: boolean;
+  /** A box's own feed, which replaces the build's on its LAN. */
+  feed?: string;
+};

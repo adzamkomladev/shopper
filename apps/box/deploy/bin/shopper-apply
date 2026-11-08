@@ -10,6 +10,8 @@ systemctl=${SHOPPER_SYSTEMCTL:-systemctl}
 health=${SHOPPER_HEALTH_URL:-http://127.0.0.1:3001/api/health/ready}
 seconds=${SHOPPER_HEALTH_SECONDS:-90}
 request="$updates/apply.json"
+# After switching back, as the box's user with its environment: restores the pre-update dump if migrations ran.
+rollback=${SHOPPER_ROLLBACK:-systemd-run --wait --pipe --quiet -p User=${SHOPPER_USER:-shopper} -p EnvironmentFile=/etc/shopper/box.env -p WorkingDirectory=/var/lib/shopper $root/current/shopper-box rollback}
 now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 field() { sed -n "s/.*\"$1\":\"\([^\"]*\)\".*/\1/p" "$request"; }
 finish() { # status message
@@ -26,20 +28,24 @@ old=$(basename "$(readlink -f "$root/current")")
 case "$new" in a|b) ;; *) finish failed "The update named no slot"; exit 1 ;; esac
 [ "$new" != "$old" ] && [ -x "$root/slots/$new/shopper-box" ] || { finish failed "Slot $new is not ready"; exit 1; }
 
+# One line, safe inside the JSON string finish() writes.
+plain() { tr -d '"\\' | tr '\n' ' ' | sed 's/ *$//' | cut -c1-400; }
+rm -f "$updates/boot-error.txt"
 # The engine runs from the same slot (ExecStart goes through current), so it switches with the box.
-run_slot() { # slot
-  "$systemctl" stop shopper-box
-  "$systemctl" stop shopper-engine
-  switch "$1"
-  "$systemctl" start shopper-engine
-  "$systemctl" start shopper-box
-}
-run_slot "$new"
+stop_all() { "$systemctl" stop shopper-box; "$systemctl" stop shopper-engine; }
+start_all() { "$systemctl" start shopper-engine; "$systemctl" start shopper-box; }
+stop_all; switch "$new"; start_all
 if healthy; then
   # The slot we left becomes the spare the next update unpacks into, as the box's own user.
   chown -R "${SHOPPER_USER:-shopper}:${SHOPPER_USER:-shopper}" "$root/slots/$old" 2>/dev/null || true
+  rm -f "$updates/pre-update.dump" "$updates/pre-update.dump.json" "$updates/boot-error.txt"
   finish applied "Now running $version from slot $new"; exit 0
 fi
-run_slot "$old"
-finish rolled_back "$version did not start; the box is back on slot $old. If the database changed, restore the backup taken before the update"
+why=$(plain < "$updates/boot-error.txt" 2>/dev/null)
+stop_all; switch "$old"
+# An old box without the rollback command leaves the database to the owner, as before.
+restored=$($rollback 2>/dev/null | plain) || restored=""
+[ -n "$restored" ] || restored="If the database changed, restore the backup taken before the update."
+start_all
+finish rolled_back "$version did not start${why:+: $why}. The box is back on slot $old. $restored"
 exit 1

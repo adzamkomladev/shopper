@@ -10,6 +10,12 @@ import { afterEach, beforeEach, expect, test } from "vite-plus/test";
 import { compareVersions } from "@shopper/utils";
 import { createUpdates } from "@shopper/till-electron/updates";
 import type { UpdateState } from "@shopper/till-electron/types";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createBoxApp } from "@shopper/box";
+import { createHostUpdates } from "@shopper/adapters-box/till";
+import { serveHono } from "../../support/till/http";
 
 const current = "0.1.0";
 let server: Server;
@@ -153,3 +159,54 @@ class FeedUpdater extends EventEmitter {
     this.installs += 1;
   }
 }
+
+// Notion Day 39 drill: after a box update, its registers update from the box. A box LAN has no route to the cloud feed,
+// so the box serves the running slot's till/ folder and its handshake names that path; the register's host resolves it
+// on the box's origin and the updater downloads from there. On the cloud no feed is named and the build's is kept.
+test("on a box LAN the register takes its update from the box's running slot", async () => {
+  const release = await mkdtemp(join(tmpdir(), "shopper-tillfeed-"));
+  await mkdir(join(release, "till", "stable"), { recursive: true });
+  await writeFile(
+    join(release, "till", "stable", "latest.yml"),
+    "version: 0.1.3\npath: Shopper-Setup-0.1.3-x64.exe\nsha512: none\n",
+  );
+  await writeFile(join(release, "till", "stable", "Shopper-Setup-0.1.3-x64.exe"), "installer");
+  await writeFile(join(release, "manifest.json"), "{}");
+  const box = await serveHono(createBoxApp({ SHOPPER_RELEASE_DIR: release }));
+  try {
+    const sent: Array<Record<string, unknown>> = [];
+    const host = createHostUpdates((message) => sent.push(message as never), `${box.url}/api`);
+    host.handshake({ updateChannel: "stable", updateFeed: "/till/updates" });
+    host.tell(false);
+    expect(sent.at(-1)).toEqual({
+      type: "update-policy",
+      channel: "stable",
+      required: false,
+      shiftOpen: false,
+      feed: `${box.url}/till/updates`,
+    });
+    // This build has no feed of its own; the box's is the one it reads.
+    const updater = new FeedUpdater();
+    const states: UpdateState[] = [];
+    updates = createUpdates(updater as never, "", (state) => states.push(state));
+    updates.policy(sent.at(-1) as never);
+    await expect
+      .poll(() => states.at(-1))
+      .toEqual({ state: "ready", version: "0.1.3", percent: 100 });
+    expect(updater.urls).toEqual([`${box.url}/till/updates/stable/`]);
+    // Only the slot's till/ folder is served.
+    for (const path of [
+      "/till/updates/stable/..%2f..%2fmanifest.json",
+      "/till/updates/beta/latest.yml",
+    ])
+      expect(await (await fetch(`${box.url}${path}`)).text()).not.toContain("version: 0.1.3");
+
+    // The cloud names no feed: the policy carries none and the build's feed stays.
+    host.handshake({ updateChannel: "stable" });
+    host.tell(true);
+    expect(sent.at(-1)).not.toHaveProperty("feed");
+  } finally {
+    await box.close();
+    await rm(release, { recursive: true, force: true });
+  }
+});

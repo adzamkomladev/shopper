@@ -156,3 +156,49 @@ test("the cloud confirms only a genuine, licence-signed check-in", async () => {
   // A host without the issuer's key answers no check-ins.
   expect((await createApi({}).fetch(attempt)).status).toBe(404);
 });
+
+// Notion Day 39 drill: the licence expiry ladder end to end. The same box, walked from a fresh licence to day 60 without a
+// check-in, then a licence that is not Shopper's: the back office follows the ladder and the till sells at every step.
+test("the whole ladder: grace from day 30, read-only from day 60, locked when forged, and the till sells at every step", async () => {
+  await rm(join(dir, "confirmation.json"), { force: true });
+  const request = JSON.parse(
+    Buffer.from((await (await as("/billing")).json()).licence.request, "base64url").toString(),
+  );
+  const licenceFrom = (key: string, ageDays: number) =>
+    issueLicence(key, {
+      id: v7(),
+      org: ids.org,
+      site: "Golden Mart",
+      machine: request.machine,
+      key: request.key,
+      terminals: 3,
+      // A minute past the day boundary, so each step sits clearly on its rung.
+      issuedAt: new Date(Date.now() - ageDays * DAY - 60_000).toISOString(),
+      maintenanceUntil: "2027-01-01",
+    });
+  const stranger = await generateKey();
+  const steps = [
+    [0, issuer.privateKey, { state: "valid" }, 201],
+    [29, issuer.privateKey, { state: "valid" }, 201],
+    [30, issuer.privateKey, { state: "grace" }, 201],
+    [59, issuer.privateKey, { state: "grace" }, 201],
+    [60, issuer.privateKey, { state: "locked", reason: "expired" }, 402],
+    [0, stranger.privateKey, { state: "locked", reason: "forged" }, 402],
+  ] as const;
+  for (const [age, key, licenceState, write] of steps) {
+    await writeFile(join(dir, "licence.json"), JSON.stringify(await licenceFrom(key, age)));
+    const status = await (await as("/billing/status")).json();
+    expect(status.licence, `day ${age}`).toMatchObject(licenceState);
+    expect((await change()).status, `day ${age}`).toBe(write);
+    const event = await ringGolden(
+      world,
+      tradingDay.find((s) => s.name === "manual card")!,
+    );
+    const pushed = await pushEvents(
+      { request: async (path, init) => box.request(path, init) },
+      [event],
+      [{ sessionId: world.session.id, proof: world.session.proof }],
+    );
+    expect((await pushed.json()).accepted, `day ${age}`).toHaveLength(1);
+  }
+});

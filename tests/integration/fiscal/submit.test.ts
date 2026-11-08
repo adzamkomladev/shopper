@@ -1,5 +1,5 @@
 // One submission of one fiscal document: an accepted document keeps the SDC's signature, a rejection is final, and
-// an SDC that is down leaves the document pending for the lane to retry until the tenth failure dead-letters it.
+// an SDC that keeps failing leaves the document pending for the lane to retry until the tenth failure dead-letters it.
 // Every transition is an audited command.
 import { afterAll, beforeAll, beforeEach, expect, test } from "vite-plus/test";
 import { asc, eq } from "drizzle-orm";
@@ -87,9 +87,10 @@ test("a rejection is final: the code and message are kept and the document is no
   expect(fake.arrivals).toHaveLength(1);
 });
 
-test("an SDC that is down leaves the document pending, and the tenth failure dead-letters it", async () => {
+test("an SDC that keeps failing leaves the document pending, and the tenth failure dead-letters it", async () => {
   const doc = await pendingDoc();
-  fake.down();
+  // The SDC answers with an error each time; one it never reached is not its failure (lte.test.ts).
+  fake.failNext(FISCAL_MAX_ATTEMPTS);
   for (let attempt = 1; attempt < FISCAL_MAX_ATTEMPTS; attempt++) {
     expect(await submitFiscalDoc(world.db, ctx(), sdc, doc.id)).toBe("retry");
     expect(await reload(doc.id)).toMatchObject({ status: "pending", attempts: attempt });

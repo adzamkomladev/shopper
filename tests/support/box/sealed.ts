@@ -27,7 +27,7 @@ export async function sealedBox(env?: Record<string, string>) {
   };
 }
 
-async function freePort() {
+export async function freePort() {
   const server = createServer();
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const port = (server.address() as { port: number }).port;
@@ -40,7 +40,7 @@ export async function startSealed(
   install: { home: string; binary: string },
   env: Record<string, string>,
 ) {
-  const port = await freePort();
+  const port = env.PORT ?? (await freePort());
   const output: string[] = [];
   const child = spawn(install.binary, [], {
     cwd: install.home,
@@ -60,6 +60,11 @@ export async function startSealed(
     output: () => output.join(""),
     async stop() {
       child.kill("SIGTERM");
+      await exited;
+    },
+    /** A power cut: no shutdown hook runs. */
+    async kill() {
+      child.kill("SIGKILL");
       await exited;
     },
   };

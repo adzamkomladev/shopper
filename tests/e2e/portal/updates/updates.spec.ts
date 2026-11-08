@@ -38,6 +38,13 @@ const late = {
       "This update was built on 5 Jan 2027, after your updates ended on 1 Dec 2026. Renew support to install it.",
   },
 };
+const pack = {
+  file: "shopper-taxpack-2027.01.tgz",
+  kind: "taxpack",
+  version: "2027.01",
+  builtAt: "2027-01-05T08:00:00.000Z",
+  verdict: { ok: true },
+};
 const running = { version: "1.0.0", slot: "a" };
 
 async function open(
@@ -53,7 +60,13 @@ async function open(
     (url) => url.pathname === "/api/updates/install",
     (route) => {
       installs.push(route.request());
-      const at = (route.request().postDataJSON() as { at?: string }).at;
+      const body = route.request().postDataJSON() as { file: string; at?: string };
+      const at = body.at;
+      if (body.file === pack.file)
+        return route.fulfill({
+          status: 200,
+          json: { status: "applied", file: pack.file, rules: 2 },
+        });
       return route.fulfill({
         status: at ? 201 : 202,
         json: { status: at ? "scheduled" : "started", file: ok.file, at },
@@ -91,6 +104,27 @@ test("a bundle covered by the licence installs now, after a confirmation; one bu
   await expect(page.getByText("Installing. The box restarts in a moment.")).toBeVisible();
   expect(installs).toHaveLength(1);
   expect(installs[0]!.postDataJSON()).toEqual({ file: ok.file });
+});
+
+test("a tax rule pack applies at once after a confirmation, even when updates have ended", async ({
+  page,
+}, info) => {
+  const installs: Request[] = [];
+  await open(page, { running, bundles: [late, pack] }, installs);
+  // A pack is never scheduled: it has one action, and the refused update beside it has none.
+  await expect(page.getByRole("button", { name: "After closing" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Install now" })).toHaveCount(0);
+  await shoot(page, info, "updates-taxpack", { sizes: SIZES });
+  await page.getByRole("button", { name: "Apply tax rules" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("alertdialog")).toContainText("does not restart");
+  await expect(page.getByRole("alertdialog")).toContainText("with other rates is replaced");
+  await page.getByRole("button", { name: "Not now" }).click();
+  expect(installs).toHaveLength(0);
+  await page.getByRole("button", { name: "Apply tax rules" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Apply" }).click();
+  await expect(page.getByText("Tax rules 2027.01 applied: 2 rules changed.")).toBeVisible();
+  expect(installs[0]!.postDataJSON()).toEqual({ file: pack.file });
 });
 
 test("after closing: the time defaults to tonight 23:00 and the schedule can be cancelled", async ({
@@ -134,10 +168,12 @@ test("the last attempt's result, and an empty folder", async ({ page }, info) =>
       version: "1.1.0",
       at: "2026-11-10T23:05:00.000Z",
       message:
-        "1.1.0 did not start; the box is back on slot a. If the database changed, restore the backup taken before the update",
+        "1.1.0 did not start: migration 0042_tax failed: division by zero. The box is back on slot a. The update changed nothing in the database.",
     },
   });
   await expect(page.getByText("Update rolled back")).toBeVisible();
+  // The box says why, in its own words.
+  await expect(page.getByText("division by zero", { exact: false })).toBeVisible();
   await expect(page.getByText("No update bundles yet")).toBeVisible();
   await shoot(page, info, "updates-rolled-back", { sizes: SIZES });
 });

@@ -79,6 +79,46 @@ test("a consumed block refills once and the response is redelivered after a lost
   expect((await handshake(0)).receipts).toEqual(first.receipts);
 });
 
+test("a box restored from a backup re-issues the blocks it forgot, so the register's receipts stay valid", async () => {
+  const { databases } = await import("../../../support/till/server");
+  const { device, receiptBlock } = await import("@shopper/db-pg");
+  const { and, eq, gt } = await import("drizzle-orm");
+  const { db, context } = databases();
+  const handshake = (receiptLastUsed: number) =>
+    api.request("/sync/handshake", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${deviceToken}`,
+        "X-Shopper-Device": deviceId,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        requestId: v7(),
+        appVersion,
+        protocol: syncProtocol,
+        receiptLastUsed,
+      }),
+    });
+  const mine = and(eq(receiptBlock.orgId, context.orgId), eq(receiptBlock.deviceId, deviceId));
+  // Last night's backup knew only the first block; the register has since sold into the third.
+  await db.update(device).set({ receiptLast: 1000, receiptUsed: 0 }).where(eq(device.id, deviceId));
+  await db.delete(receiptBlock).where(and(mine, gt(receiptBlock.start, 1000)));
+  const response = await handshake(2500);
+  expect(response.status).toBe(200);
+  expect(((await response.json()) as { receipts: { blocks: unknown[] } }).receipts.blocks).toEqual([
+    { start: 2001, end: 3000 },
+    { start: 3001, end: 4000 },
+  ]);
+  // The block the register already used up is the box's again, so its sales are accepted on replay.
+  expect(
+    (await db.select().from(receiptBlock).where(mine))
+      .map((block) => block.start)
+      .sort((a, b) => a - b),
+  ).toEqual([1, 1001, 2001, 3001]);
+  // A cursor far past anything the box could have issued is still refused.
+  expect((await handshake(1_000_000)).status).not.toBe(200);
+});
+
 test("concurrent branch creates get distinct automatic codes", async () => {
   const { mutateManagement } = await import("@shopper/core/management");
   const { databases } = await import("../../../support/till/server");

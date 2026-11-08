@@ -20,7 +20,7 @@ const overview = {
 function updates(): BoxUpdates {
   return {
     overview: vi.fn(async () => overview),
-    install: vi.fn(async () => {}),
+    install: vi.fn(async () => ({ kind: "update" as const })),
     schedule: vi.fn(async () => {}),
     cancel: vi.fn(async () => {}),
   };

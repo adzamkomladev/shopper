@@ -195,6 +195,22 @@ context:
   one line for the sealed build and `bun build --compile` embeds the addon. If a rivetkit upgrade changes the line, `sealed.test.ts`
   (`shopper-box doctor` on Rivet) fails.
 
+### Box failure drills (Day 39)
+
+Each failure the box must survive has a test that causes it for real:
+
+| Drill                                     | Test                                                           | Proves                                                                        |
+| ----------------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Box killed mid-trade (SIGKILL)            | `tests/integration/box/drills/kill.test.ts`                    | Two registers keep selling, every sale lands once on restart                  |
+| Rivet engine crashes mid-batch            | `tests/integration/box/drills/engine.test.ts`                  | Engine restarts, books whole, new workflows run                               |
+| Spare box restored from last night's dump | `tests/integration/box/drills/restore.test.ts`                 | Registers replay what the dump missed; no receipt number twice                |
+| LTE down 48 h                             | `tests/integration/fiscal/lte.test.ts`                         | An SDC never reached never dead-letters a document; queue drains in order     |
+| Licence expiry ladder                     | `tests/integration/licence/readonly.test.ts`                   | valid → grace (day 30) → locked (day 60); tills keep selling                  |
+| Update fails after a migration            | `tests/integration/box/{apply,rollback}.test.ts`, machine test | Switch back, restore the pre-update dump, report why                          |
+| systemd restarts, LAN till feed           | `tests/integration/installer/install.test.ts` (machine)        | Killed units come back; `/till/updates/<channel>/<file>` served through Caddy |
+
+The drills run in the `heavy` test project; the machine test in `machine`.
+
 ## Rules that keep both sides honest
 
 - **PostgreSQL is the record.** Every workflow step and every DO/actor write also writes its table
@@ -283,7 +299,9 @@ Direct browser asset uploads are managed by `@shopper/assets` and use presigned 
 The till update feed is static files in R2 (`shopper-till-releases`), read by electron-updater's generic provider
 over the bucket's custom domain; no Worker serves it. `tooling/till/feed/store.ts` writes it through the S3 API with
 aws4fetch (`SHOPPER_TILL_RELEASE_*`), so the release tooling runs against RustFS in tests. The policy (channel and
-minimum version) comes from PostgreSQL through the sync handshake, not from the feed.
+minimum version) comes from PostgreSQL through the sync handshake, not from the feed. A register on a box (Day 39) takes the
+feed from the box instead: the box's handshake carries `updateFeed` (`/till/updates`), and the box serves
+`<channel>/<file>` from `till/<channel>/` in its running slot, so the shop needs no internet to update registers.
 
 ## KYC workflow
 

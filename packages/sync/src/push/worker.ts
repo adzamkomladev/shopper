@@ -158,8 +158,6 @@ export function createPushWorker(options: PushOptions) {
         saved = await counts();
       } catch {
         if (stopped) return;
-        // The next connection may be another server (a spare restored from a backup): handshake with it first.
-        negotiated = undefined;
         await retry(batch.rows, retryAfter);
         publish({
           server: "offline",

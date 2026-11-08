@@ -77,7 +77,8 @@ test("the engine crashes mid-batch: the register keeps selling, the engine comes
   const selling = sell(host, fixture.config.references.products[0]!.id, 80);
   await expect.poll(onBox, { timeout: 60_000, interval: 50 }).toBeGreaterThan(5);
   const before = enginePid();
-  execFileSync("kill", ["-9", before]);
+  // The container's process belongs to root: CI's runner user needs sudo, a root dev box does not.
+  execFileSync("sh", ["-c", `kill -9 ${before} 2>/dev/null || sudo -n kill -9 ${before}`]);
 
   await selling;
   for (let round = 0; round < 5; round++) await expectStillSelling(fixture, host);

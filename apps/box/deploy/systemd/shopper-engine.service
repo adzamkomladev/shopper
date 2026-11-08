@@ -1,0 +1,22 @@
+# The pinned Rivet engine, on the box's own disk (/var/lib/shopper/rivet). The box reaches it on loopback.
+[Unit]
+Description=Shopper workflow engine (Rivet)
+After=network.target
+
+[Service]
+User=shopper
+EnvironmentFile=/etc/shopper/engine.env
+Environment=RIVET__STORAGE__LOG_DIRECTORY=/var/lib/shopper/rivet
+Environment=RIVET__STORAGE__AUTO_PROVISION_PARTITIONS=true
+Environment=RIVET__OBJECT_STORAGE__PRIMARY__FILE_SYSTEM__PATH=/var/lib/shopper/rivet/objects
+ExecStart=/opt/shopper/current/engine/rivet-engine
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/shopper
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

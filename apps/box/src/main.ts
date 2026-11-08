@@ -5,7 +5,6 @@ import { runDoctor } from "./cli/doctor";
 import { migrateBox } from "./boot";
 import { embeddedPack } from "./pack";
 import { verifyRelease } from "./release";
-import { portalPack } from "./portal";
 import { boxServer } from "./serve";
 
 declare const Bun: { serve(options: unknown): unknown };
@@ -25,5 +24,5 @@ async function main() {
   await verifyRelease(process.env, buildInfo.releaseKey);
   const pack = await embeddedPack();
   if (pack && process.env.DATABASE_URL) await migrateBox(process.env.DATABASE_URL, pack);
-  Bun.serve(boxServer(websocket, pack && portalPack(pack)).config);
+  Bun.serve(boxServer(websocket, pack).config);
 }

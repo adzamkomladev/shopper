@@ -147,3 +147,23 @@ test("the Rivet runner runs inside the binary: doctor runs a workflow to its fir
     }),
   ).toContain('"engine":"rivet"');
 }, 200_000);
+
+test("it runs on a bare Ubuntu that has never seen this checkout: wasm, fonts and the renderer come out of the binary", async () => {
+  const install = await sealed.install();
+  const out = execFileSync(
+    "docker",
+    [
+      "run",
+      "--rm",
+      "--network",
+      "none",
+      "-v",
+      `${install.home}:/box:ro`,
+      "ubuntu:24.04",
+      "/box/shopper-box",
+      "doctor",
+    ],
+    { timeout: 120_000 },
+  ).toString();
+  expect(out).toContain('"renderer":"ok"');
+}, 180_000);

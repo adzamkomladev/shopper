@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { build } from "vite-plus";
 import { runtimeExternals } from "./externals.mjs";
 import { rivetNative } from "./rivet.mjs";
@@ -7,10 +8,29 @@ await build({
   configFile: false,
   define: buildDefines,
   plugins: sealed ? [rivetNative] : [],
+  // The sealed box takes satori's text shaper from its own embedded wasm (apps/box/src/shims/harfbuzz.ts).
+  resolve: sealed
+    ? {
+        alias: [
+          {
+            find: /^harfbuzzjs$/,
+            replacement: fileURLToPath(
+              new URL("../../apps/box/src/shims/harfbuzz.ts", import.meta.url),
+            ),
+          },
+        ],
+      }
+    : {},
   // Everything is bundled except the native and wasm packages, which load from node_modules (externals.mjs), and Electron itself.
   ssr: {
     noExternal: true,
-    external: [...runtimeExternals, "electron", ...(sealed ? ["@rivetkit/rivetkit-napi"] : [])],
+    external: sealed
+      ? [
+          ...runtimeExternals.filter((name) => name !== "satori"),
+          "electron",
+          "@rivetkit/rivetkit-napi",
+        ]
+      : [...runtimeExternals, "electron"],
   },
   build: {
     ssr:

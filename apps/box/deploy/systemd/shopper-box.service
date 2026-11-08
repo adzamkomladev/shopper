@@ -1,0 +1,22 @@
+# Installed as shopper-box.service by shopper-box-installer.run. /opt/shopper/current is the active A/B slot.
+[Unit]
+Description=Shopper box
+After=postgresql.service shopper-engine.service network.target
+Wants=shopper-engine.service
+
+[Service]
+User=shopper
+EnvironmentFile=/etc/shopper/box.env
+WorkingDirectory=/var/lib/shopper
+ExecStart=/opt/shopper/current/shopper-box
+Restart=always
+RestartSec=2
+# The box serves its own LAN through Caddy; it needs no capabilities.
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/shopper
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

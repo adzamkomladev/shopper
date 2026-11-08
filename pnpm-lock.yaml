@@ -331,6 +331,9 @@ importers:
       drizzle-orm:
         specifier: 0.45.3
         version: 0.45.3(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.1)
+      harfbuzzjs:
+        specifier: 0.10.0
+        version: 0.10.0
       hono:
         specifier: 4.13.13
         version: 4.13.13

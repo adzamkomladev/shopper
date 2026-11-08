@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, rm, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { packFolders } from "../../apps/box/src/pack";
@@ -25,11 +26,23 @@ export async function sealBox(options: {
     stdio: "inherit",
     env: { ...process.env, ...options.env, SHOPPER_BUILD_OUT_DIR: stage },
   });
+  // Wasm the box's libraries would otherwise read from node_modules on the build machine.
+  const require = createRequire(join(root, "apps/box/package.json"));
+  await mkdir(join(stage, "wasm"));
+  await copyFile(
+    require.resolve("@resvg/resvg-wasm/index_bg.wasm"),
+    join(stage, "wasm", "index_bg.wasm"),
+  );
+  await copyFile(
+    createRequire(require.resolve("satori")).resolve("harfbuzzjs/hb.wasm"),
+    join(stage, "wasm", "hb.wasm"),
+  );
   await writeFile(
     join(stage, "payload.bin"),
     await packFolders({
       migrations: join(root, "packages/db/pg/migrations"),
       portal: options.portal,
+      wasm: join(stage, "wasm"),
     }),
   );
   await mkdir(dirname(options.out), { recursive: true });

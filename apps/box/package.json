@@ -29,6 +29,7 @@
     "@shopper/ports": "workspace:*",
     "@shopper/utils": "workspace:*",
     "drizzle-orm": "0.45.3",
+    "harfbuzzjs": "0.10.0",
     "hono": "4.13.13",
     "pg": "8.23.1",
     "satori": "0.33.5",

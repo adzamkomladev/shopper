@@ -3,7 +3,7 @@ import { buildInfo } from "@shopper/config";
 import { deliverNotification } from "@shopper/core/notifications";
 import { runWatchdog } from "@shopper/core/reports";
 import { createSdc } from "@shopper/core/fiscal";
-import type { BoxBindings, PortalSource } from "./types";
+import type { BoxBindings, BoxOptions } from "./types";
 import { boxPayments } from "./payments";
 import { boxOrders } from "./orders";
 import { boxEngine } from "./engine";
@@ -35,12 +35,7 @@ import { NOTIFICATION_RETRY, type Queue } from "@shopper/ports";
 import { isPublicRequest, publicApi, runtimeUnavailable, serveRuntime } from "@shopper/api/runtime";
 export function createBoxApp(
   environment: Record<string, string | undefined> = process.env,
-  // The issuer is a build define (a test seam); the sealed binary passes its embedded portal, else SHOPPER_PORTAL_DIR.
-  options: {
-    licenceIssuer?: string;
-    fetch?: (request: Request) => Promise<Response>;
-    portal?: PortalSource;
-  } = {},
+  options: BoxOptions = {},
 ) {
   const licence = boxLicence(environment, {
     issuer: options.licenceIssuer ?? buildInfo.licenceIssuer,
@@ -62,7 +57,7 @@ export function createBoxApp(
   let storeDays: ReturnType<typeof boxStoreDays> | undefined;
   let orders: ReturnType<typeof boxOrders> | undefined;
   let engine: ReturnType<typeof boxEngine> | undefined;
-  const renderer = boxRenderer();
+  const renderer = boxRenderer({ wasm: options.wasm });
   const api = new Hono<{ Bindings: BoxBindings }>().all("*", async (context) => {
     const request = context.req.raw;
     if (isPublicRequest(request)) return publicApi.fetch(request);

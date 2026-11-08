@@ -19,6 +19,9 @@ say "Creating the shopper user and folders"
 id shopper >/dev/null 2>&1 || useradd --system --home-dir /var/lib/shopper --shell /usr/sbin/nologin shopper
 install -d -o shopper -g shopper /var/lib/shopper /var/lib/shopper/updates /var/lib/shopper/licence /var/lib/shopper/rivet /var/lib/shopper/tmp
 install -d /opt/shopper/slots/a /opt/shopper/bin /etc/shopper
+# The box unpacks updates into the spare slot as itself; the helper that switches slots runs as root.
+install -d -o shopper -g shopper /opt/shopper/slots/b
+install -m 0755 deploy/bin/shopper-apply /opt/shopper/bin/shopper-apply
 cp -a slot/. /opt/shopper/slots/a/
 printf '#!/bin/sh\nexec /opt/shopper/current/shopper-box backup "$@"\n' > /opt/shopper/bin/shopper-backup
 chmod 0755 /opt/shopper/bin/shopper-backup
@@ -49,6 +52,7 @@ SHOPPER_LICENCE_DIR=/var/lib/shopper/licence
 SHOPPER_BLOBS_PATH=/var/lib/shopper/blobs
 SHOPPER_CACHE_PATH=/var/lib/shopper/cache.sqlite
 SHOPPER_UPDATES_DIR=/var/lib/shopper/updates
+SHOPPER_SLOTS_DIR=/opt/shopper
 SHOPPER_SETUP_CODE_HASH=$codehash
 # This box is one shop: the shop the wizard creates is the tenant for everyone who signs in.
 SHOPPER_SINGLE_SHOP=1
@@ -70,6 +74,7 @@ cp deploy/avahi/shopper.service /etc/avahi/services/shopper.service
 [ -e /etc/caddy/Caddyfile.ubuntu ] || cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.ubuntu
 cp deploy/Caddyfile /etc/caddy/Caddyfile
 cp deploy/systemd/shopper-box.service deploy/systemd/shopper-engine.service /etc/systemd/system/
+cp deploy/systemd/shopper-update.path deploy/systemd/shopper-update.service /etc/systemd/system/
 cp deploy/systemd/backup.service /etc/systemd/system/shopper-backup.service
 cp deploy/systemd/backup.timer /etc/systemd/system/shopper-backup.timer
 ln -sfn /opt/shopper/slots/a /opt/shopper/current
@@ -86,7 +91,7 @@ if [ "$systemd" = 1 ]; then
   systemctl daemon-reload
   # mDNS needs a network interface; a box still works by address without it, so it never stops the install.
   systemctl enable --now avahi-daemon >/dev/null 2>&1 || echo "warning: the mDNS service (shopper.local) did not start; check the network cable"
-  systemctl enable --now caddy shopper-engine shopper-box shopper-backup.timer >/dev/null 2>&1
+  systemctl enable --now caddy shopper-engine shopper-box shopper-backup.timer shopper-update.path >/dev/null 2>&1
   systemctl restart caddy
   for _ in $(seq 1 120); do curl -fsS --max-time 2 http://127.0.0.1:3001/api/health >/dev/null 2>&1 && break; sleep 1; done
   curl -fsS --max-time 2 http://127.0.0.1:3001/api/health >/dev/null 2>&1 || fail "the box did not start; see: journalctl -u shopper-box"

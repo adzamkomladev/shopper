@@ -1,7 +1,7 @@
 // A release manifest is Shopper's word on every file, the kind and the build date; changing any of them voids it.
 import { expect, test } from "vite-plus/test";
 import { generateKey } from "@shopper/core/licence";
-import { changedFiles, readManifest, signManifest } from "@shopper/core/release";
+import { changedFiles, readManifest, signManifest, updateVerdict } from "@shopper/core/release";
 
 const file = "a".repeat(64);
 const fields = {
@@ -58,4 +58,37 @@ test("changedFiles names every file that differs or is missing", async () => {
   expect(
     (await changedFiles(manifest, async (path) => bytes[path])).sort((a, b) => a.localeCompare(b)),
   ).toEqual(["edited", "gone"]);
+});
+
+test("an update is covered by the day it was built; a tax pack is always accepted", () => {
+  const installed = { version: "1.0.0", schemaVersion: 41 };
+  const manifest = {
+    kind: "update" as const,
+    version: "1.1.0",
+    builtAt: "2026-11-10T08:00:00.000Z",
+    schemaVersion: 42,
+  };
+  const verdict = (
+    extra: Partial<Parameters<typeof updateVerdict>[0]["manifest"]>,
+    maintenanceUntil: string | undefined = "2026-12-01",
+  ) => updateVerdict({ manifest: { ...manifest, ...extra }, installed, maintenanceUntil });
+  expect(verdict({})).toEqual({ ok: true });
+  // The last day of cover counts; the day after does not, and the message names both dates.
+  expect(verdict({}, "2026-11-10")).toEqual({ ok: true });
+  expect(verdict({}, "2026-11-09")).toMatchObject({
+    ok: false,
+    reason: "maintenance",
+    message: expect.stringContaining(
+      "built on 10 Nov 2026, after your updates ended on 9 Nov 2026",
+    ),
+  });
+  // The same dates for a tax pack: accepted.
+  expect(verdict({ kind: "taxpack" }, "2026-11-09")).toEqual({ ok: true });
+  expect(updateVerdict({ manifest, installed, maintenanceUntil: undefined })).toMatchObject({
+    reason: "licence",
+  });
+  expect(verdict({ version: "1.0.0" })).toMatchObject({ reason: "current" });
+  expect(verdict({ version: "0.9.0" })).toMatchObject({ reason: "older" });
+  expect(verdict({ schemaVersion: 40 })).toMatchObject({ reason: "older" });
+  expect(verdict({ kind: "install" as never })).toMatchObject({ reason: "kind" });
 });

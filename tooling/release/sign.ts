@@ -12,7 +12,12 @@ import { buildDefines } from "../build/info";
 export async function writeManifest(
   dir: string,
   key: string,
-  fields: { kind: "install" | "update" | "taxpack"; builtAt?: string },
+  fields: {
+    kind: "install" | "update" | "taxpack";
+    builtAt?: string;
+    version?: string;
+    schemaVersion?: number;
+  },
 ) {
   const names = (await readdir(dir, { recursive: true, withFileTypes: true }))
     .filter((entry) => entry.isFile())
@@ -23,9 +28,9 @@ export async function writeManifest(
   );
   const manifest = await signManifest(key, {
     kind: fields.kind,
-    version: JSON.parse(buildDefines.SHOPPER_VERSION) as string,
+    version: fields.version ?? (JSON.parse(buildDefines.SHOPPER_VERSION) as string),
     builtAt: fields.builtAt ?? JSON.parse(buildDefines.BUILD_DATE),
-    schemaVersion: Number(buildDefines.SCHEMA_VERSION),
+    schemaVersion: fields.schemaVersion ?? Number(buildDefines.SCHEMA_VERSION),
     files: Object.fromEntries(names.map((name, index) => [name, hashes[index]!])),
   });
   await writeFile(join(dir, "manifest.json"), JSON.stringify(manifest, null, 2));

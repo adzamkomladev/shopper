@@ -9,6 +9,7 @@ import { boxOrders } from "./orders";
 import { boxEngine } from "./engine";
 import { boxStorage } from "./storage";
 import { portalFolder, withPortal } from "./portal";
+import { boxUpdatesFor } from "./updates/box";
 import { boxInstall, boxNeedsInstall, boxTenant, withInstallRedirect } from "./install";
 import { boxLicence } from "./licence";
 import { boxChannels } from "./channels";
@@ -59,6 +60,7 @@ export function createBoxApp(
   const renderer = boxRenderer({ wasm: options.wasm });
   const install = boxInstall(environment, { issuer, licence });
   const tenant = boxTenant(environment);
+  const updatesFor = boxUpdatesFor(environment, licence, options.releaseKey);
   const api = new Hono<{ Bindings: BoxBindings }>().all("*", async (context) => {
     const request = context.req.raw;
     if (new URL(request.url).pathname === "/install") return install.fetch(request);
@@ -234,6 +236,7 @@ export function createBoxApp(
         linkSecret: environment.SHOPPER_LINK_SECRET,
         minTillVersion: environment.SHOPPER_MIN_TILL_VERSION,
         licence,
+        updates: updatesFor(workflowDatabase, launch),
       });
     } finally {
       await connection.close();

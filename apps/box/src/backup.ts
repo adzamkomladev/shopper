@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdir, rm } from "node:fs/promises";
+import { chmod, copyFile, mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Client } from "pg";
 
@@ -17,6 +17,11 @@ export async function backupBox(options: {
   remote: string;
   workDir: string;
   now?: Date;
+  /**
+   * Before an update: also keep the verified plaintext dump here (mode 600, beside `<keep>.json` with its migration
+   * count), so a rollback can restore it without Shopper's age identity. The live database is on the same disk.
+   */
+  keep?: string;
 }) {
   const stamp = (options.now ?? new Date()).toISOString().replace(/[-:]|\.\d+/g, "");
   const dump = join(options.workDir, `shopper-${stamp}.dump`);
@@ -25,6 +30,14 @@ export async function backupBox(options: {
   try {
     const counts = await dumpSnapshot(options.databaseUrl, dump);
     await restoreAndCount(options.databaseUrl, dump, stamp, counts);
+    if (options.keep) {
+      await copyFile(dump, options.keep);
+      await chmod(options.keep, 0o600);
+      await writeFile(
+        `${options.keep}.json`,
+        JSON.stringify({ migrations: counts["drizzle.__drizzle_migrations"] ?? 0 }),
+      );
+    }
     await run("age", ["-r", options.recipient, "-o", `${dump}.age`, dump]);
     await run("rclone", ["copyto", `${dump}.age`, `${options.remote}/${file}`]);
     return { file, counts };

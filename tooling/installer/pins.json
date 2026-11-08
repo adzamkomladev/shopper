@@ -1,0 +1,16 @@
+{
+  "ubuntu": "24.04",
+  "postgresMajor": "18",
+  "pgdgKeyFingerprint": "B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8",
+  "engineImage": "rivetdev/engine@sha256:12589daa5d87c77ad0508570dc0e44d03d49f0209abe15cb1cb4950ba332a523",
+  "packages": [
+    "postgresql-18",
+    "postgresql-client-18",
+    "caddy",
+    "avahi-daemon",
+    "age",
+    "rclone",
+    "curl",
+    "openssl"
+  ]
+}

@@ -49,7 +49,7 @@ export async function apiFetch<S extends v.GenericSchema>(
 ): Promise<v.InferOutput<S>> {
   const params = new URL(path, "http://shopper.invalid").searchParams;
   const sensitive =
-    /^\/(onboarding|invitations|auth)(?:\/|$)/.test(path) ||
+    /^\/(onboarding|invitations|auth|install)(?:\/|$)/.test(path) ||
     ["/catalogue/imports/uploads", "/kyb/documents"].includes(path.split("?")[0]!) ||
     CREDENTIAL_KEYS.some(
       (name) => params.has(name) || (body !== null && typeof body === "object" && name in body),

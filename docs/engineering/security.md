@@ -176,3 +176,18 @@ One `RateLimiter` port (`packages/ports/src/limits.ts`) with a fixed policy tabl
 - CI runs `vp pm audit --production --level high`.
 - A high or critical advisory is fixed by bumping the direct dependency. When a parent holds the package
   back, add a pinned override in `pnpm-workspace.yaml`, set to the first patched release.
+
+## Box release, setup and updates (Day 38)
+
+- **Signed releases.** Shopper's Ed25519 release key signs a manifest of every file's SHA-256, the kind (`install`, `update`,
+  `taxpack`), the version and the build date. Its public half is a build define, never box configuration, so an operator cannot
+  swap it. The box checks it at every boot (folder, Rivet engine, its own binary) and before it stages an update; the installer
+  checks it with `openssl` before it changes the machine. The installer carries its own copy of the public key: support compares
+  the fingerprint it prints.
+- **Setup code.** The installer prints a 12-character code once; only its SHA-256 is stored (`box.env`). `/install` compares in
+  constant time, refuses after five wrong codes in 15 minutes (in memory: a restart forgives them; a box answers its own shop
+  network), creates the shop under an advisory lock so two submissions make one, and answers 404 for ever once a shop exists.
+- **Updates.** Bundles are copied to the box, never uploaded through the browser. A file name is a name, never a path. Refused:
+  unsigned or forged, a file changed after signing (named), older or same version, built after the licence's `maintenanceUntil`,
+  no genuine licence. A verified backup is mandatory. The box only writes `apply.json`; a root helper switches slots and
+  restarts, and switches back if the new box is not healthy.

@@ -1,0 +1,7 @@
+# Switches the box to its spare A/B slot and back if the new one is not healthy (deploy/bin/shopper-apply).
+[Unit]
+Description=Switch the Shopper box to an updated slot
+
+[Service]
+Type=oneshot
+ExecStart=/opt/shopper/bin/shopper-apply

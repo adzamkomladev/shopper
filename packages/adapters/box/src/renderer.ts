@@ -18,24 +18,26 @@ import {
 import type { Renderer } from "@shopper/ports";
 import * as v from "valibot";
 
-// ponytail: reads the wasm from node_modules; the sealed Bun binary (Day 37) must embed it.
+/** The resvg wasm: read from node_modules, or from the sealed binary's embedded files (`wasm`). */
+type RendererOptions = { wasm?: () => Promise<Uint8Array> };
+const fromNodeModules = () =>
+  readFile(createRequire(import.meta.url).resolve("@resvg/resvg-wasm/index_bg.wasm"));
 let wasm: Promise<void> | undefined;
-const ready = () =>
-  (wasm ??= readFile(createRequire(import.meta.url).resolve("@resvg/resvg-wasm/index_bg.wasm"))
+const ready = (load: () => Promise<Uint8Array>) =>
+  (wasm ??= load()
     .then((bytes) => initWasm(bytes))
     .catch((error: unknown) => {
       wasm = undefined; // let the next render retry instead of failing until restart
       throw error;
     }));
 
-async function png(element: ReactElement, width: number) {
-  const svg = await satori(element, { width, fonts: receiptFonts });
-  await ready();
-  return new Resvg(svg, { fitTo: { mode: "width", value: width } }).render().asPng();
-}
-
 /** Satori → resvg-wasm → PNG, and pdf-lib for PDF. Same React tree as the HTML/Electron path. */
-export function boxRenderer(): Renderer {
+export function boxRenderer(config: RendererOptions = {}): Renderer {
+  const png = async (element: ReactElement, width: number) => {
+    const svg = await satori(element, { width, fonts: receiptFonts });
+    await ready(config.wasm ?? fromNodeModules);
+    return new Resvg(svg, { fitTo: { mode: "width", value: width } }).render().asPng();
+  };
   return {
     async receipt(json, options, format) {
       const receipt = v.parse(receiptDocument, json);
@@ -54,4 +56,14 @@ export function boxRenderer(): Renderer {
       );
     },
   };
+}
+
+/** Renders one small image: proves satori's text engine and the resvg wasm load where they are installed. */
+export async function renderCheck(options: RendererOptions = {}) {
+  const svg = await satori(createElement("div", { style: { display: "flex" } }, "Shopper"), {
+    width: 64,
+    fonts: receiptFonts,
+  });
+  await ready(options.wasm ?? fromNodeModules);
+  return new Resvg(svg).render().asPng().length;
 }

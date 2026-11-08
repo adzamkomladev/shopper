@@ -1,3 +1,4 @@
+import type { UpdatesResponse } from "@shopper/core/release";
 import type { createHubtel } from "@shopper/core/payments/hubtel";
 import type { createPaystack } from "@shopper/core/payments/paystack";
 import type {
@@ -111,8 +112,31 @@ export interface ApiOptions {
   minTillVersion?: string;
   /** The box's licence, box only: a locked one turns the back office read-only (tills never lock). */
   licence?: BoxLicence;
+  /** The box's update bundles, box only. */
+  updates?: BoxUpdates;
   /** The issuer's Ed25519 private JWK, cloud only: it confirms box check-ins. */
   licenceSigningKey?: string;
+}
+
+/** The box's update bundles (box only): see apps/box/src/updates. */
+export interface BoxUpdates {
+  overview(): Promise<UpdatesResponse>;
+  /** Backs up, stages and hands over now; the box restarts into the new slot a moment later. */
+  install(file: string, who: { orgId: string; actorId?: string }): Promise<void>;
+  /** The same, at `at` (an ISO time, "after closing"). */
+  schedule(file: string, at: string, who: { orgId: string; actorId?: string }): Promise<void>;
+  /** Cancels the scheduled update, if any, and records who did. */
+  cancel(who: { orgId: string; actorId?: string }): Promise<void>;
+}
+
+/** An update the box refuses, with the sentence the owner reads. */
+export class BoxUpdateError extends Error {
+  constructor(
+    readonly status: 400 | 404 | 409 | 422,
+    message: string,
+  ) {
+    super(message);
+  }
 }
 
 export interface BoxLicence {
@@ -168,6 +192,7 @@ export interface RuntimeOptions {
   /** Paystack's client: opens the hosted checkout for card payments. */
   paystack?: ShopOptions["paystack"];
   licence?: BoxLicence;
+  updates?: BoxUpdates;
   licenceSigningKey?: string;
 }
 

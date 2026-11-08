@@ -51,3 +51,4 @@ export {
 } from "./invitations";
 export { registrationPreviewSchema } from "./onboarding";
 export { emailSchema, passwordSchema, personNameSchema } from "./onboarding";
+export { installSchema, installStateResponse, installResultResponse } from "./install";

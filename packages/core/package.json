@@ -139,6 +139,14 @@
     "./licence": {
       "types": "./src/licence/index.ts",
       "default": "./src/licence/index.ts"
+    },
+    "./provisioning": {
+      "types": "./src/provisioning.ts",
+      "default": "./src/provisioning.ts"
+    },
+    "./release": {
+      "types": "./src/release/index.ts",
+      "default": "./src/release/index.ts"
     }
   },
   "scripts": {

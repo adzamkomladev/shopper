@@ -1,15 +1,18 @@
 # Installed as shopper-backup.service. One verified backup: dump, restore-and-count, age, rclone to R2.
-# /etc/shopper/box.env holds DATABASE_URL, SHOPPER_BACKUP_RECIPIENT (age1…), SHOPPER_BACKUP_REMOTE (r2:<bucket>/<site>)
-# and rclone's R2 remote as RCLONE_CONFIG_R2_TYPE=s3, _PROVIDER=Cloudflare, _ENDPOINT, _ACCESS_KEY_ID, _SECRET_ACCESS_KEY.
+# /etc/shopper/backup.env (written when a site is set up for backups, absent until then) holds SHOPPER_BACKUP_RECIPIENT
+# (age1…), SHOPPER_BACKUP_REMOTE (r2:<bucket>/<site>) and rclone's R2 remote as RCLONE_CONFIG_R2_TYPE=s3, _PROVIDER=Cloudflare,
+# _ENDPOINT, _ACCESS_KEY_ID, _SECRET_ACCESS_KEY. /etc/shopper/box.env supplies DATABASE_URL.
 [Unit]
 Description=Shopper verified backup to R2
 After=postgresql.service network-online.target
 Wants=network-online.target
+ConditionPathExists=/etc/shopper/backup.env
 
 [Service]
 Type=oneshot
 User=shopper
 EnvironmentFile=/etc/shopper/box.env
+EnvironmentFile=/etc/shopper/backup.env
 Environment=SHOPPER_BACKUP_DIR=/var/lib/shopper/backups
-# apps/box/src/cli/backup.ts; the sealed binary carries it from Day 38.
+# `shopper-box backup` (apps/box/src/cli/backup.ts); the installer writes this wrapper.
 ExecStart=/opt/shopper/bin/shopper-backup

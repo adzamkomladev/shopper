@@ -44,3 +44,22 @@ export const provisionOrg = defineCommand({
     taxEffectiveFrom: ghana2026.effectiveFrom,
   }),
 });
+
+/** A shop's product version changed with a binary upgrade: the next `shopper_meta` row, as install wrote the first. */
+export const recordUpgrade = defineCommand({
+  name: "org.record_upgrade",
+  async run(
+    tx,
+    context,
+    input: { schemaVersion: number; syncProtocol: number; archiveFormat: number },
+  ) {
+    await tx.insert(shopperMeta).values({
+      orgId: context.orgId,
+      productVersion: context.appVersion,
+      event: "upgrade",
+      ...input,
+    });
+    return { orgId: context.orgId, productVersion: context.appVersion };
+  },
+  audit: (_input, output) => ({ orgId: output.orgId, productVersion: output.productVersion }),
+});

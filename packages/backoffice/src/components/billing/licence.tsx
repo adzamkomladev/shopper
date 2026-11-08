@@ -101,7 +101,7 @@ function Term({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-function RequestCode({ code }: { code: string }) {
+export function RequestCode({ code }: { code: string }) {
   const copy = () =>
     navigator.clipboard.writeText(code).then(
       () => toast.success("Request code copied"),

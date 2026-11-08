@@ -42,6 +42,8 @@ export const buildDefines = {
   TILL_UPSTREAM: JSON.stringify(process.env.SHOPPER_TILL_UPSTREAM ?? ""),
   // The licence issuer's Ed25519 public key (base64url): a box build without one enforces no licence.
   LICENCE_ISSUER: JSON.stringify(process.env.SHOPPER_LICENCE_ISSUER ?? ""),
+  // The release signing key's Ed25519 public key (base64url): a box build without one verifies no release files.
+  RELEASE_KEY: JSON.stringify(process.env.SHOPPER_RELEASE_KEY ?? ""),
   // Where the till's main process reports crashes; empty turns Sentry off.
   SENTRY_DSN: JSON.stringify(process.env.SHOPPER_SENTRY_DSN ?? ""),
 };
@@ -58,6 +60,7 @@ export function buildTask(command: string) {
         "SHOPPER_TILL_UPSTREAM",
         "SHOPPER_SENTRY_DSN",
         "SHOPPER_LICENCE_ISSUER",
+        "SHOPPER_RELEASE_KEY",
       ],
       input: [
         { auto: true },

@@ -1,0 +1,10 @@
+# The box (as the shopper user) writes apply.json once an update is verified and unpacked; this wakes the root helper.
+[Unit]
+Description=Shopper update requested
+
+[Path]
+PathExists=/var/lib/shopper/updates/apply.json
+Unit=shopper-update.service
+
+[Install]
+WantedBy=multi-user.target

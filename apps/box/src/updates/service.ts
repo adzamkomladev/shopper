@@ -17,6 +17,7 @@ import {
 } from "@shopper/core/release";
 import type { Launch } from "@shopper/adapters-box";
 import { readBundle } from "./bundle";
+import { applyTaxPackBundle } from "./taxpack";
 
 const run = promisify(execFile);
 
@@ -49,7 +50,7 @@ export function boxUpdates(options: {
       ? "b"
       : "a";
 
-  async function prepare(file: string) {
+  async function prepare(file: string, kinds: string[] = ["update"]) {
     const name = v.safeParse(updateFile, file);
     if (!name.success) throw new BoxUpdateError(400, "That is not an update bundle's file name.");
     const bundle = await readBundle(join(updates, name.output), {
@@ -60,10 +61,10 @@ export function boxUpdates(options: {
     if (!bundle) throw new BoxUpdateError(404, "That bundle is not in the updates folder.");
     if (!bundle.ok) throw new BoxUpdateError(422, bundle.message);
     if (!bundle.verdict.ok) throw new BoxUpdateError(422, bundle.verdict.message);
-    if (bundle.manifest.kind !== "update")
+    if (!kinds.includes(bundle.manifest.kind))
       throw new BoxUpdateError(
         422,
-        "A tax rule pack is applied by the tax module, not installed as an update.",
+        "A tax rule pack is applied at once, never into a slot or later.",
       );
     return { path: join(updates, name.output), manifest: bundle.manifest };
   }
@@ -180,6 +181,11 @@ export function boxUpdates(options: {
       };
     },
     async install(file, who) {
+      const { path, manifest } = await prepare(file, ["update", "taxpack"]);
+      if (manifest.kind === "taxpack") {
+        const deps = { withDatabase: options.withDatabase, appVersion: options.installed.version };
+        return { kind: "taxpack", applied: await applyTaxPackBundle(path, manifest, deps, who) };
+      }
       const version = await stage(file);
       // The audit entry commits before the handoff: the root helper restarts this process.
       await options
@@ -195,6 +201,7 @@ export function boxUpdates(options: {
           throw error;
         });
       await handoff(file, version);
+      return { kind: "update" };
     },
     async schedule(file, at, who) {
       await prepare(file);

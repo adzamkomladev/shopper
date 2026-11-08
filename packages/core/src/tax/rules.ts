@@ -5,7 +5,7 @@ import { taxRule, type ShopperTransaction } from "@shopper/db-pg";
 import { ManagementError } from "../management";
 import { affectedStores, recordChanges } from "../changes/record";
 import { deleted, taxRulePayload, taxRuleUpsert } from "../changes/project";
-import { taxRuleInput } from "../schemas/tax/rules";
+import { taxPackRules, taxRuleInput } from "../schemas/tax/rules";
 import { ghanaDate } from "../till/quotation";
 import type { Queryable } from "../types";
 
@@ -72,6 +72,45 @@ export const deleteTaxRule = defineCommand({
   },
   audit: (_input, output) => ({ ...output }),
   details: (input, output) => ({ entity: "tax_rule", entityId: input.id, before: output.before }),
+});
+
+/**
+ * A tax rule pack Shopper signed from GRA's published rates, applied whatever the box's maintenance date: each rule the
+ * shop does not have is scheduled, a scheduled one with other rates takes the pack's, and one that already matches is
+ * left alone, so applying a pack twice changes nothing. Every rule must start after today: a day in force is history,
+ * and one such rule refuses the whole pack.
+ */
+export const applyTaxPack = defineCommand({
+  name: "tax.pack.apply",
+  async run(tx, ctx, input: { version: string; rules: unknown; now?: Date }) {
+    const rules = v.parse(taxPackRules, input.rules).map((rule) => scheduled(rule, input.now));
+    const applied = [];
+    for (const rule of rules) {
+      const [existing] = await tx
+        .select()
+        .from(taxRule)
+        .where(and(eq(taxRule.orgId, ctx.orgId), eq(taxRule.effectiveFrom, rule.effectiveFrom)))
+        .for("update");
+      if (
+        existing &&
+        Object.entries(rule).every(([key, value]) => existing[key as keyof typeof rule] === value)
+      )
+        continue;
+      const [row] = existing
+        ? await tx
+            .update(taxRule)
+            .set({ ...rule, updatedAt: new Date() })
+            .where(and(eq(taxRule.orgId, ctx.orgId), eq(taxRule.id, existing.id)))
+            .returning()
+        : await tx
+            .insert(taxRule)
+            .values({ orgId: ctx.orgId, ...rule })
+            .returning();
+      applied.push(await publish(tx, ctx.orgId, row!));
+    }
+    return { version: input.version, applied };
+  },
+  audit: (_input, output) => ({ ...output }),
 });
 
 /** The rule in the body; it must start after today in Accra, so no sale already made falls under it. */

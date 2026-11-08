@@ -25,7 +25,9 @@ export function updateRoutes(options: ApiOptions) {
     if (!input.success) return c.json({ error: "Invalid request data" }, 400);
     const who = { orgId: c.get("principal").orgId, actorId: c.get("principal").userId };
     if (input.output.at) await updates.schedule(input.output.file, input.output.at, who);
-    else await updates.install(input.output.file, who);
+    const done = input.output.at ? undefined : await updates.install(input.output.file, who);
+    if (done?.kind === "taxpack")
+      return c.json({ status: "applied", file: input.output.file, rules: done.applied }, 200);
     return c.json(
       {
         status: input.output.at ? "scheduled" : "started",

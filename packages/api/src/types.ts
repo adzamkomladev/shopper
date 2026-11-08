@@ -123,8 +123,14 @@ export interface ApiOptions {
 /** The box's update bundles (box only): see apps/box/src/updates. */
 export interface BoxUpdates {
   overview(): Promise<UpdatesResponse>;
-  /** Backs up, stages and hands over now; the box restarts into the new slot a moment later. */
-  install(file: string, who: { orgId: string; actorId?: string }): Promise<void>;
+  /**
+   * Backs up, stages and hands over now; the box restarts into the new slot a moment later. A tax rule pack is applied
+   * at once instead, and says how many rules it changed.
+   */
+  install(
+    file: string,
+    who: { orgId: string; actorId?: string },
+  ): Promise<{ kind: "update" } | { kind: "taxpack"; applied: number }>;
   /** The same, at `at` (an ISO time, "after closing"). */
   schedule(file: string, at: string, who: { orgId: string; actorId?: string }): Promise<void>;
   /** Cancels the scheduled update, if any, and records who did. */

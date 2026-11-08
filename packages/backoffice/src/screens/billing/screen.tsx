@@ -3,6 +3,7 @@ import { InvoiceTable, PAY_ID } from "../../components/billing/invoices";
 import { BillingSkeleton, NoInvoices } from "../../components/billing/states";
 import { SubscriptionSummary } from "../../components/billing/summary";
 import { CHECK_IN_ID, LicenceCard } from "../../components/billing/licence";
+import { UpdatesCard } from "../../components/billing/updates/card";
 import { Gate } from "../../components/register/states";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { focusIfIdle } from "../../lib/focus";
@@ -35,7 +36,13 @@ export function BillingScreen() {
 
 function Billing() {
   const { data } = useSuspenseQuery(billingQuery());
-  if (data.licence) return <LicenceCard licence={data.licence} />;
+  if (data.licence)
+    return (
+      <>
+        <LicenceCard licence={data.licence} />
+        <UpdatesCard />
+      </>
+    );
   return (
     <>
       <SubscriptionSummary subscription={data.subscription} />

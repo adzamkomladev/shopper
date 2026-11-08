@@ -110,6 +110,8 @@ export interface ApiOptions {
   platform?: { orgSlug: string };
   /** SHOPPER_MIN_TILL_VERSION: the handshake tells tills below it to update before their next shift. */
   minTillVersion?: string;
+  /** Box only: where its registers find till updates, a path on the box's own origin (the running slot's till/). */
+  tillFeed?: string;
   /** The box's licence, box only: a locked one turns the back office read-only (tills never lock). */
   licence?: BoxLicence;
   /** The box's update bundles, box only. */
@@ -179,6 +181,7 @@ export interface RuntimeOptions {
   kyb?: ApiOptions["kyb"];
   platform?: ApiOptions["platform"];
   minTillVersion?: string;
+  tillFeed?: string;
   linkSecret?: string;
   publicOnboarding?: boolean;
   /** Verifies the shop sign-in form's Turnstile token; without it (the box, development) no check runs. */

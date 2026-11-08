@@ -16,7 +16,19 @@ import { refundEvent } from "../../support/sales/refunds";
 import { shiftEvent } from "../../support/sales/shifts";
 import { goldenReceipt } from "../../support/hardware/receipt";
 import { createPushFixture, type PushFixture } from "../../support/till/push";
-import { databases, deviceId, recordSale } from "../../support/till/server";
+import {
+  appVersion,
+  databases,
+  deviceId,
+  devices,
+  recordSale,
+  routeFactory,
+  syncProtocol,
+} from "../../support/till/server";
+import { boxSequencer } from "@shopper/adapters-box";
+import { v7 } from "uuid";
+import { serveHono } from "../../support/till/http";
+import { syncHeaders } from "../../support/till/requests";
 
 let fixture: PushFixture | undefined;
 afterEach(async () => {
@@ -175,4 +187,27 @@ describe("refund and Z versions", () => {
     expect(decodeShiftClosedEvent(read)).toEqual(read);
     expect(() => decodeShiftClosedEvent({ ...old, v: 2 })).toThrow();
   });
+});
+
+test("a box names its own till feed in the handshake, the cloud none, and both say how many sales they hold", async () => {
+  const { db, context } = databases();
+  const held = (await db.select({ id: sale.id }).from(sale).where(eq(sale.deviceId, deviceId)))
+    .length;
+  for (const tillFeed of ["/till/updates", undefined]) {
+    const api = await serveHono(
+      routeFactory({ database: db, devices, sequencer: boxSequencer(db), tillFeed }),
+    );
+    try {
+      const response = await api.request("/sync/handshake", {
+        method: "POST",
+        headers: syncHeaders(context.orgId),
+        body: JSON.stringify({ requestId: v7(), appVersion, protocol: syncProtocol }),
+      });
+      const body = (await response.json()) as Record<string, unknown>;
+      expect(body.updateFeed).toBe(tillFeed);
+      expect(body.held).toBe(held);
+    } finally {
+      await api.close();
+    }
+  }
 });

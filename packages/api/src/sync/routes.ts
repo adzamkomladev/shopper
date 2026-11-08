@@ -43,6 +43,7 @@ export function createSyncRoutes(options: {
   now?: () => number;
   /** SHOPPER_MIN_TILL_VERSION: below it a till opens no new shift. Empty or unset means no minimum. */
   minTillVersion?: string;
+  tillFeed?: string;
 }) {
   const protocol = options.protocol ?? buildInfo.syncProtocol;
   const app = new Hono();
@@ -89,6 +90,7 @@ export function createSyncRoutes(options: {
         data.appVersion,
       ),
       minTillVersion: options.minTillVersion || null,
+      ...(options.tillFeed ? { updateFeed: options.tillFeed } : {}),
       updateChannel: (
         await options.database
           .select({ channel: org.updateChannel })

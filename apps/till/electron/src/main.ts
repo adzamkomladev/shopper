@@ -90,7 +90,8 @@ async function startRegister() {
   const ca = stored.ca ? { NODE_EXTRA_CA_CERTS: stored.ca } : {};
   const host = fork(hostEntry, [], { env: { ...process.env, ELECTRON_RUN_AS_NODE: "1", ...ca } });
   // No feed configured (dev, tests) means no updater: nothing phones home.
-  const updates = buildInfo.tillUpdateUrl ? startUpdates(host) : undefined;
+  // A box hands its registers its own feed, so a build without one still listens for the policy.
+  const updates = startUpdates(host);
   app.on("window-all-closed", () => app.quit());
   let quitting = false;
   let ready = false;
@@ -124,9 +125,9 @@ async function startRegister() {
       if (message?.type === "error" && !ready) cause = message.message;
       else if (message?.type === "update-policy") {
         crash.tag("channel", (message as UpdatePolicy).channel);
-        updates?.policy(message as UpdatePolicy);
-      } else if (message?.type === "update-install") updates?.install();
-      else if (message?.type === "update-check") updates?.check();
+        updates.policy(message as UpdatePolicy);
+      } else if (message?.type === "update-install") updates.install();
+      else if (message?.type === "update-check") updates.check();
       else if (message?.type === "enrolled" && message.registration)
         void enrol(message.registration).catch((error: unknown) => fail("Register stopped", error));
       else if (message?.type === "ready" && message.capability) {

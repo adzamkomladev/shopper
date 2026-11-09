@@ -12,4 +12,6 @@ export const hostSession = sqliteTable("host_session", {
   permissions: text("permissions", { mode: "json" }).$type<string[]>().notNull(),
   proof: text("proof").notNull(),
   parentSessionId: text("parent_session_id"),
+  /** The server session's signed grant; a box restored from an older backup records the session from it. */
+  grant: text("session_grant"),
 });

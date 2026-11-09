@@ -113,6 +113,19 @@ export const cashierSession = pgTable(
   ],
 );
 
+/**
+ * The key the server signs cashier-session grants with, one per org. It lives in the database, not the box's
+ * environment, so a spare box restored from the nightly dump still verifies grants signed after that dump.
+ */
+export const sessionKey = pgTable(
+  "session_key",
+  {
+    ...tenant(),
+    key: text("key").notNull(),
+  },
+  (t) => [unique().on(t.orgId)],
+);
+
 export const enrollmentAttempt = pgTable(
   "enrollment_attempt",
   {

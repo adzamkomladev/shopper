@@ -197,9 +197,16 @@ The box is one sealed Bun executable plus the pinned Rivet engine, installed fro
   `pg_restore --no-owner -d $DATABASE_URL shopper.dump`, start the box at the old box's address (`shopper.local`, same LAN IP).
   Registers need nothing: at their next handshake the box says how many of their sales it holds, and a register whose
   acknowledged sales outnumber that queues them again (`till.sync.replay`); the box takes each once, with its receipt number.
-  Refunds, shifts, stock counts and other uploads the backup missed are not replayed (shortcut, Day 39), and sales made
-  under a cashier sign-in newer than the backup are refused (`INVALID_SESSION`) and stay on the register until that is
-  designed. A register's receipt blocks the backup missed are issued again, the same numbers (up to 10 000 ahead).
+  Refunds, shifts, stock counts and other uploads the backup missed are not replayed (shortcut, Day 39). A cashier
+  sign-in newer than the backup is recorded again from its **session grant**: at sign-in the box HMAC-signs the
+  session (register, branch, cashier, role, permissions, times, proof hash) with the org's `session_key`, a database
+  row, so the dump carries it (`box.env` secrets are new on a spare). The register keeps the grant and sends it with
+  the proof; a box without the session checks the signature and the proof, and records it once
+  (`cashier.session.restore`, audited) while the cashier still holds that role, keeping only permissions the role still
+  grants and ending at deactivation or a branch scope; an offline session under it is adopted after it. Accepted
+  limits: a revocation, role change or new cashier made after the backup is lost with it (a cashier or role the dump
+  lacks is refused and stays on the register), and anyone who can write the database can mint a grant, as they could
+  already insert a session. A register's receipt blocks the backup missed are issued again, the same numbers (up to 10 000 ahead).
 - Backups (Day 37): `shopper-backup.timer` runs nightly at 02:30 when `/etc/shopper/backup.env` exists. Each run is
   verified before upload (restore into a scratch database, identical row counts per table) and lands in R2
   as `shopper-<UTC stamp>.dump.age`. To restore: `age -d -i <identity> -o shopper.dump <file>`, then

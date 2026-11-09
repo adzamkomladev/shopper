@@ -2,7 +2,8 @@
 // its nightly dump, trades on for a while (every register drains: the box has acknowledged everything), then dies. A
 // spare box is restored from the dump by the support runbook (pg_restore into a fresh database) and answers at the same
 // address. The registers never stop selling; the sales the dump missed reach the spare once each, with the receipt
-// numbers the customers were given, and no receipt number is issued twice.
+// numbers the customers were given, and no receipt number is issued twice. A cashier who signs in after the dump sells
+// under a session the spare never saw; the box-signed grant from that sign-in restores it, once and audited.
 import { execFileSync } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -10,13 +11,24 @@ import { join } from "node:path";
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
+import { defineCommand } from "@shopper/audit";
+import { hashPassword } from "../../../support/auth/password";
 import { postgresFixture } from "../../../fixtures/postgres";
-import { context, databaseConnectionString, enrollAnotherTill } from "../../../support/till/server";
+import {
+  context,
+  databaseConnectionString,
+  databases,
+  enrollAnotherTill,
+  principal,
+} from "../../../support/till/server";
 import { createHostFixture } from "../../../support/till/host/fixture";
 import { sell, waitForDrained, waitForStatus } from "../../../support/till/host/chaos";
 import { drillBox, expectStillSelling } from "../../../support/box/drill";
+import { hostSession } from "@shopper/db-sqlite";
+
+const password = "restore drill password";
 
 let box: Awaited<ReturnType<typeof drillBox>>;
 let spare: Awaited<ReturnType<typeof postgresFixture>>;
@@ -50,6 +62,18 @@ test("a spare box restored from last night's dump gets every later sale back fro
   // Last night's backup, then a day of trade the backup never saw: acknowledged, so gone from every outbox.
   const dump = join(folder, "nightly.dump");
   execFileSync("pg_dump", ["-Fc", "-f", dump, databaseConnectionString()]);
+  // The first register's cashier signs in again: a session only the dead box recorded.
+  await setPassword(databases().db, context, { userId: principal.userId, password });
+  expect(
+    await hosts[0].request({
+      type: "session.signIn",
+      email: "sync-cashier@test.invalid",
+      password,
+    }),
+  ).toMatchObject({ status: { user: { offline: false } } });
+  const late = (await first.database.read((tx) => tx.select().from(hostSession))).find(
+    (row) => row.id !== first.config.session!.id,
+  )!;
   await Promise.all(hosts.map((host) => sell(host, product, 15)));
   await Promise.all(hosts.map((host) => waitForDrained(host, 60_000)));
   expect(await first.queued()).toEqual([]);
@@ -82,6 +106,23 @@ test("a spare box restored from last night's dump gets every later sale back fro
     }
     expect(new Set(rows.map((row) => row.receiptNumber)).size).toBe(rows.length);
     expect(new Set(rows.map((row) => String(row.storeSequence))).size).toBe(rows.length);
+    // The late session's sales (the 15 after the dump and the one rung after the restore) came back under it,
+    // the session restored once from its grant.
+    const lateSales = (await first.localSales()).filter(
+      (row) => (row.payload as { sessionId: string }).sessionId === late.id,
+    );
+    expect(lateSales.length).toBeGreaterThanOrEqual(15);
+    expect(rows.filter((row) => row.sessionId === late.id)).toHaveLength(lateSales.length);
+    const restored = await db
+      .select()
+      .from(schema.auditLog)
+      .where(
+        and(
+          eq(schema.auditLog.orgId, context.orgId),
+          eq(schema.auditLog.command, "cashier.session.restore"),
+        ),
+      );
+    expect(restored.map((row) => row.entityId)).toEqual([late.id]);
 
     // Both registers keep pulling from the spare instead of halting on its older history.
     for (const host of hosts) {
@@ -102,3 +143,18 @@ test("a spare box restored from last night's dump gets every later sale back fro
     await pool.end();
   }
 }, 600_000);
+
+const setPassword = defineCommand({
+  name: "drill.test.cashier-password",
+  async run(tx, ctx, input: { userId: string; password: string }) {
+    await tx.insert(schema.account).values({
+      orgId: ctx.orgId,
+      userId: input.userId,
+      accountId: input.userId,
+      providerId: "credential",
+      password: await hashPassword(input.password),
+    });
+    return {};
+  },
+  audit: () => ({}),
+});

@@ -14,6 +14,7 @@ export const uploadSession = {
   issuedAt: hostSession.issuedAt,
   expiresAt: hostSession.expiresAt,
   permissions: hostSession.permissions,
+  grant: hostSession.grant,
 };
 
 /**

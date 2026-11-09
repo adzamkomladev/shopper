@@ -119,6 +119,7 @@ export function createHostSession(host: { database: TillDatabase; config: HostCo
       expiresAt: login.expiresAt,
       permissions: login.permissions,
       proof: login.token,
+      grant: login.grant ?? null,
     };
     await signInStaff(database, audit(session.userId, session.roleName), {
       userId: session.userId,

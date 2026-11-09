@@ -49,7 +49,7 @@ export async function push(
 export async function pushEvents(
   target: { request(path: string, init?: RequestInit): Promise<Response> },
   events: unknown[],
-  proofs: { sessionId: string; proof: string; offline?: unknown }[],
+  proofs: { sessionId: string; proof: string; offline?: unknown; grant?: string }[],
   org = context.orgId,
   requestId = v7(),
 ) {

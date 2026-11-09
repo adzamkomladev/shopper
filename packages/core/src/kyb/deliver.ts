@@ -4,6 +4,7 @@ import { kybCase, org, user } from "@shopper/db-pg";
 import type { Delivery, WorkflowLauncher } from "@shopper/ports";
 import { orgOwners } from "../audit/anchor";
 import type { StatementDeliveryDeps } from "../customers";
+import { renderEmail } from "../emails";
 import { kybId } from "./records";
 import { kybNoticeMessage } from "./schemas/base";
 import type { KybNotice } from "./types";
@@ -13,25 +14,30 @@ type Deps = Pick<StatementDeliveryDeps, "db" | "mail" | "baseUrl"> & { kyb?: Wor
 /** The notices that move the workflow on; starting a running instance only wakes it. */
 const WAKES: readonly KybNotice[] = ["submitted", "approved", "rejected"];
 
-const EMAILS: Partial<Record<KybNotice, { subject: string; body: string }>> = {
+const EMAILS: Partial<Record<KybNotice, { subject: string; heading: string; body: string }>> = {
   checks_failed: {
     subject: "business verification needs attention",
+    heading: "Your verification needs attention",
     body: "Some details did not pass our checks. Open the verification page to see what to fix, then submit again.",
   },
   approved: {
     subject: "business verification approved",
+    heading: "Your business is verified",
     body: "Your business is verified. Mobile money taken on your tills is now paid out to your own account.",
   },
   rejected: {
     subject: "business verification not approved",
+    heading: "Verification not approved",
     body: "Shopper could not approve your business verification.",
   },
   renew: {
     subject: "renew your business verification",
+    heading: "Renew your business verification",
     body: "A Ghana Card or business document on your verification expires within 30 days. Upload current ones and submit again.",
   },
   expired: {
     subject: "business verification lapsed",
+    heading: "Your business verification has lapsed",
     body: "A Ghana Card or business document on your verification has expired. Payouts continue for now; submit current documents to keep them.",
   },
 };
@@ -61,12 +67,18 @@ export async function deliverKybNotice(deps: Deps, delivery: Delivery) {
       email: row.email,
       subject: `${shop?.name ?? "Your shop"}: ${email.subject}`,
       link,
-      plain: [
-        email.body,
-        ...(notice === "rejected" && shop?.note ? ["", `Reviewer's note: ${shop.note}`] : []),
-        "",
-        link,
-      ].join("\n"),
+      ...renderEmail({
+        preheader: email.body,
+        shop: shop?.name,
+        heading: email.heading,
+        blocks: [
+          { kind: "text", text: email.body },
+          ...(notice === "rejected" && shop?.note
+            ? [{ kind: "notice" as const, text: `Reviewer's note: ${shop.note}` }]
+            : []),
+        ],
+        action: { label: "Open verification", url: link },
+      }),
       attachments: [],
     });
   }

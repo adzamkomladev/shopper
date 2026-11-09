@@ -5,6 +5,7 @@ import { formatGHS } from "@shopper/money";
 import type { Delivery, Json } from "@shopper/ports";
 import { formatQuantity } from "@shopper/utils";
 import type { StatementDeliveryDeps } from "../../customers";
+import { renderEmail } from "../../emails";
 import { receiptDocument, type ReceiptDocument } from "../../schemas/receipts/document";
 import { receiptEmailMessage } from "../schemas/email";
 import { markReceiptSent } from "./commands";
@@ -30,7 +31,7 @@ export async function deliverReceiptEmail(deps: StatementDeliveryDeps, delivery:
     email: found.email,
     subject: `Your receipt ${number} from ${receipt.header.org}`,
     link: deps.baseUrl ?? "",
-    plain: receiptText(receipt, number),
+    ...receiptContent(receipt, number),
     attachments: [
       { fileName: `receipt-${number}.pdf`, contentType: "application/pdf", content: pdf },
     ],
@@ -73,26 +74,40 @@ async function readReceipt(db: ShopperDatabase, orgId: string, id: string) {
   };
 }
 
-function receiptText(receipt: ReceiptDocument, number: string) {
-  return [
-    `Thank you for shopping at ${receipt.header.org}, ${receipt.header.branch}.`,
-    `Receipt ${number}, ${receipt.header.accraTime}`,
-    "",
-    ...receipt.lines.map(
-      (line) =>
-        `${formatQuantity(line.quantityThousandths)} × ${line.name}: ${formatGHS(line.gross)}`,
-    ),
-    "",
-    `Total ${formatGHS(receipt.total)}`,
-    ...receipt.tenders.map((tender) => `Paid by ${tender.kind}: ${formatGHS(tender.amount)}`),
-    ...(receipt.change > 0 ? [`Change ${formatGHS(receipt.change)}`] : []),
-    ...(receipt.fiscal
-      ? [
-          "",
-          `Fiscal code: ${receipt.fiscal.signature} (SDC ${receipt.fiscal.sdcId}, ${receipt.fiscal.counter})`,
-        ]
-      : []),
-    "",
-    "Your receipt is attached as a PDF.",
-  ].join("\n");
+function receiptContent(receipt: ReceiptDocument, number: string) {
+  return renderEmail({
+    preheader: `Total ${formatGHS(receipt.total)}, ${receipt.header.accraTime}.`,
+    shop: `${receipt.header.org}, ${receipt.header.branch}`,
+    heading: "Thank you for shopping with us",
+    blocks: [
+      {
+        kind: "facts",
+        title: `Receipt ${number}, ${receipt.header.accraTime}`,
+        rows: receipt.lines.map((line) => ({
+          label: `${formatQuantity(line.quantityThousandths)} × ${line.name}`,
+          value: formatGHS(line.gross),
+        })),
+      },
+      {
+        kind: "facts",
+        rows: [
+          { label: "Total", value: formatGHS(receipt.total) },
+          ...receipt.tenders.map((tender) => ({
+            label: `Paid by ${tender.kind}`,
+            value: formatGHS(tender.amount),
+          })),
+          ...(receipt.change > 0 ? [{ label: "Change", value: formatGHS(receipt.change) }] : []),
+        ],
+      },
+      ...(receipt.fiscal
+        ? [
+            {
+              kind: "text" as const,
+              text: `Fiscal code ${receipt.fiscal.signature} (SDC ${receipt.fiscal.sdcId}, ${receipt.fiscal.counter})`,
+            },
+          ]
+        : []),
+      { kind: "text", text: "Your receipt is attached as a PDF." },
+    ],
+  });
 }

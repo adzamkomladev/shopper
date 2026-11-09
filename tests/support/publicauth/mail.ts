@@ -11,7 +11,7 @@ async function messages(request: APIRequestContext, email: string) {
   return (await response.json()) as Message[];
 }
 
-/** The capability link in the nth email sent to `email` (the link is the second paragraph). */
+/** The capability link in the nth email sent to `email`: the first URL in its plain text. */
 export async function emailedLink(request: APIRequestContext, email: string, nth = 0) {
   let found: Message | undefined;
   await expect
@@ -19,7 +19,7 @@ export async function emailedLink(request: APIRequestContext, email: string, nth
       message: `an email to ${email}`,
     })
     .toBe(true);
-  return new URL(found!.plain.split("\n\n")[1]!);
+  return new URL(found!.plain.match(/https?:\/\/\S+/)![0]);
 }
 
 export async function mailCount(request: APIRequestContext, email: string) {

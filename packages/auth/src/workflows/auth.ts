@@ -6,6 +6,7 @@ export { authFlowParamsSchema, type AuthFlowParams } from "../schemas/workflows/
 import * as v from "valibot";
 import { and, eq, sql } from "drizzle-orm";
 import { buildInfo } from "@shopper/config";
+import { renderEmail } from "@shopper/core/emails";
 import { registrationRequest, registrationWorkflowStep, workflowStep } from "@shopper/db-pg";
 import { WorkflowTimeoutError, type Workflow, type WorkflowCheckpoint } from "@shopper/ports";
 import { createLinkToken } from "../links/tokens";
@@ -107,6 +108,33 @@ export async function runAuthFlow(
                   ? "Verify your Shopper email"
                   : "Join your shop on Shopper",
               link: url.toString(),
+              ...renderEmail(
+                params.purpose === "registration"
+                  ? {
+                      preheader: "Confirm this address to finish creating your Shopper account.",
+                      heading: "Verify your email",
+                      blocks: [
+                        {
+                          kind: "text",
+                          text: "Confirm this address to finish creating your Shopper account. The link is for you alone, so please do not forward it.",
+                        },
+                      ],
+                      action: { label: "Verify email", url: url.toString() },
+                      footnote: "If you did not sign up for Shopper, ignore this email.",
+                    }
+                  : {
+                      preheader: "You have been invited to a shop on Shopper.",
+                      heading: "Join your shop on Shopper",
+                      blocks: [
+                        {
+                          kind: "text",
+                          text: "You have been invited to a shop on Shopper. Accept the invitation to join the team and start working.",
+                        },
+                      ],
+                      action: { label: "Accept invitation", url: url.toString() },
+                      footnote: "If you were not expecting this invitation, ignore this email.",
+                    },
+              ),
             });
             sent = true;
           } catch {

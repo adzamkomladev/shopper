@@ -6,6 +6,7 @@ import { defineCommand, enqueueAfterCommit, type CommandContext } from "@shopper
 import { customer, loyaltyTier, org, tierNotice, type ShopperTransaction } from "@shopper/db-pg";
 import type { Delivery } from "@shopper/ports";
 import { formatDay } from "@shopper/utils";
+import { renderEmail } from "../../emails";
 import { tierNoticeMessage } from "../../schemas/customers/accounts";
 import type { StatementDeliveryDeps } from "../statements/types";
 import type { Queryable } from "../../types";
@@ -103,7 +104,17 @@ export async function deliverTierNotice(deps: StatementDeliveryDeps, delivery: D
         email: row.email!,
         subject: text,
         link: "",
-        plain: text,
+        ...renderEmail({
+          preheader: text,
+          shop: row.shop,
+          heading: row.to ? `Your tier is changing to ${row.to}` : "Your tier is ending",
+          blocks: [
+            {
+              kind: "text",
+              text: `Your ${row.from} tier ${row.to ? `changes to ${row.to}` : "ends"} on ${when}.`,
+            },
+          ],
+        }),
         attachments: [],
       });
     else if (deps.sms) await deps.sms.send([row.phone], text);

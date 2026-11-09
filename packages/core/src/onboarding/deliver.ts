@@ -3,6 +3,7 @@ import * as v from "valibot";
 import { org, user } from "@shopper/db-pg";
 import type { Delivery, WorkflowLauncher } from "@shopper/ports";
 import type { StatementDeliveryDeps } from "../customers";
+import { renderEmail } from "../emails";
 import { readSetup } from "./queries";
 import { ONBOARDING_WAKE, onboardingId } from "./records";
 import { onboardingEventMessage, onboardingNudgeMessage } from "./schemas/base";
@@ -53,7 +54,13 @@ export async function deliverOnboardingNudge(deps: Deps, delivery: Delivery) {
       ? `${row.shop}: finish setting up Shopper`
       : `${row.shop}: ready for your first sale`,
     link,
-    plain: [`Next for ${row.shop}: ${next}`, "", `Pick up where you left off: ${link}`].join("\n"),
+    ...renderEmail({
+      preheader: next,
+      shop: row.shop,
+      heading: setup.next ? "Finish setting up Shopper" : "Ready for your first sale",
+      blocks: [{ kind: "text", text: next }],
+      action: { label: setup.next ? "Continue setup" : "Open Shopper", url: link },
+    }),
     attachments: [],
   });
   await delivery.ack();

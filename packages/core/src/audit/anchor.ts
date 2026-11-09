@@ -6,6 +6,7 @@ import { auditAnchor, device, member, role, user } from "@shopper/db-pg";
 import type { Delivery } from "@shopper/ports";
 import { formatDay } from "@shopper/utils";
 import type { StatementDeliveryDeps } from "../customers";
+import { renderEmail } from "../emails";
 import { auditAnchorMessage } from "../schemas/audit/anchor";
 import type { Queryable } from "../types";
 import { auditStreams } from "./streams";
@@ -87,21 +88,28 @@ export async function deliverAuditAnchor(
     .orderBy(asc(auditAnchor.stream));
   const day = formatDay(message.payload.day);
   const link = `${deps.baseUrl.replace(/\/$/, "")}/audit/integrity`;
-  const plain = [
-    `The audit chains of ${day} closed with these heads. Keep this email: if a chain is ever edited, its head will`,
-    `no longer match.`,
-    "",
-    ...anchors.map(
-      (a) => `${a.stream === "org" ? "Back office" : (a.name ?? a.stream)} #${a.seq} ${a.hash}`,
-    ),
-    "",
-    `Verify the chains: ${link}`,
-  ].join("\n");
   await deps.mail({
     email: owner.email,
     subject: `Shopper audit anchor for ${day}`,
     link,
-    plain,
+    ...renderEmail({
+      preheader: `${anchors.length} audit chain(s) closed. Keep this email as proof.`,
+      heading: `Audit anchor for ${day}`,
+      blocks: [
+        {
+          kind: "text",
+          text: "The audit chains of the day closed with these heads. Keep this email: if a chain is ever edited, its head will no longer match.",
+        },
+        {
+          kind: "records",
+          rows: anchors.map((a) => ({
+            label: `${a.stream === "org" ? "Back office" : (a.name ?? a.stream)} #${a.seq}`,
+            value: a.hash,
+          })),
+        },
+      ],
+      action: { label: "Verify the chains", url: link },
+    }),
     attachments: [],
   });
   await delivery.ack();

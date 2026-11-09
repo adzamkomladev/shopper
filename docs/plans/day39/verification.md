@@ -37,10 +37,14 @@ existing row, button and AlertDialog patterns.
 - **Fixed (second pass)**: the updater's check let a leaf's key sign certificates; every signer in the path must now be
   a CA. A tax pack signed without `taxrules.json` in its file map no longer accepts rules added beside it. The
   confirmation now says a scheduled rule with other rates for the same day is replaced. Each had a test fail first.
-- **Open (needs a security decision)**: sales made under a cashier session signed in after the backup cannot be
-  replayed: the restored box has no `cashier_session` row to check the proof against, so they are refused as
-  `INVALID_SESSION` and stay on the register. Accepting them means trusting the register's word for the cashier;
-  left for a follow-up.
+- **Resolved (Day 40, security decision: box-signed grant)**: sales made under a cashier session signed in after the
+  backup were refused as `INVALID_SESSION` (no `cashier_session` row on the restored box). Options weighed: trust the
+  register (rejected), a manager approving each lost session on the box, or a grant the box signs at sign-in with a key
+  kept in the database. The owner chose the grant, offline sessions under a lost parent included. The register sends it
+  with the proof; the restored box verifies it and records the session once (`cashier.session.restore`). The restore
+  drill now signs a cashier in after the dump and proves those sales land once with their receipt numbers (with the
+  grant dropped at the device service, 36 of 52 sales landed); `tests/integration/sync/session/restore.test.ts` covers
+  online and offline recovery and refuses altered grants, a forged signature and another session's grant.
 
 ## Not exercised / limits
 

@@ -160,6 +160,7 @@ export function createDeviceService(
       return {
         id: result.id!,
         token: result.token!,
+        grant: result.grant!,
         issuedAt: result.issuedAt!,
         expiresAt: result.expiresAt!,
         permissions: result.permissions!,

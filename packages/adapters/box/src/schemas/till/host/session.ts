@@ -11,4 +11,6 @@ export const cashierLogin = v.object({
   roleName: v.string(),
   userId: tillSession.entries.userId,
   userName: v.string(),
+  /** Absent from a box older than Day 40. */
+  grant: v.optional(v.string()),
 });

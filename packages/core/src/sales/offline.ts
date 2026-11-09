@@ -135,7 +135,7 @@ const adopt = defineCommand({
 });
 
 /** When the member lost this session: deactivated, or limited to branches without this one (the scope's time). */
-async function cutoffs(
+export async function cutoffs(
   tx: ShopperTransaction,
   orgId: string,
   parent: { userId: string; branchId: string },

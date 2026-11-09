@@ -119,7 +119,11 @@ export async function finishDraftSale(
   if (
     savedSession &&
     canonicalJson(savedSession) !==
-      canonicalJson({ ...session, parentSessionId: session.parentSessionId ?? null })
+      canonicalJson({
+        ...session,
+        parentSessionId: session.parentSessionId ?? null,
+        grant: session.grant ?? null,
+      })
   )
     throw new TillError("conflict", "Saved cashier session identity has different content");
   if (!savedSession) await tx.insert(hostSession).values(session);

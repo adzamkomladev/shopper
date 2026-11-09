@@ -12,6 +12,7 @@ import {
   cashierSession,
   type ShopperTransaction,
 } from "@shopper/db-pg";
+import { signSessionGrant } from "@shopper/core/sales";
 import { memberBranchIds } from "../members/target";
 import { cashierLoginInput } from "../schemas/devices";
 import { digest, minutes, randomToken } from "./commands";
@@ -69,6 +70,7 @@ export const loginCommand = defineCommand({
     const token = randomToken();
     const issuedAt = new Date();
     const expiresAt = minutes(8 * 60);
+    const tokenHash = await digest(token);
     const [session] = await tx
       .insert(cashierSession)
       .values({
@@ -77,7 +79,7 @@ export const loginCommand = defineCommand({
         branchId: c.branchId!,
         userId,
         roleId: roleId,
-        tokenHash: await digest(token),
+        tokenHash,
         issuedAt,
         permissions,
         roleName: roleName,
@@ -85,9 +87,24 @@ export const loginCommand = defineCommand({
       })
       .returning();
     // The single-row insert returns the newly issued session.
+    const claims = {
+      id: session!.id,
+      orgId: c.orgId,
+      deviceId: input.deviceId,
+      branchId: c.branchId!,
+      userId,
+      roleId,
+      roleName,
+      tokenHash,
+      issuedAt: issuedAt.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      permissions,
+    };
     return {
       id: session!.id,
       token,
+      // What a box restored from an older backup records this session from (`restoreServerSession`).
+      grant: await signSessionGrant(tx, claims),
       issuedAt,
       expiresAt,
       permissions,

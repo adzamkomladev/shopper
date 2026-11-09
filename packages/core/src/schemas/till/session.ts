@@ -14,6 +14,8 @@ export const tillSession = v.strictObject({
   proof: v.pipe(v.string(), v.minLength(1)),
   /** Set on an offline session: the server session it follows from, whose proof prefixes its own. */
   parentSessionId: v.optional(v.nullable(tillId)),
+  /** The server session as the server signed it at sign-in; an offline session keeps its parent's. */
+  grant: v.optional(v.nullable(v.string())),
 });
 export type TillSession = v.InferOutput<typeof tillSession>;
 
@@ -35,3 +37,19 @@ export const offlineWithheld = [
   "sale.void",
   "shift.approve",
 ];
+
+/** What a server session is, as the server signed it at sign-in; the register keeps the signed copy (its grant). */
+export const sessionGrantClaims = v.strictObject({
+  id: tillId,
+  orgId: tillId,
+  deviceId: tillId,
+  branchId: tillId,
+  userId: tillId,
+  roleId: tillId,
+  roleName: v.string(),
+  tokenHash: v.string(),
+  issuedAt: v.pipe(v.string(), v.isoTimestamp()),
+  expiresAt: v.pipe(v.string(), v.isoTimestamp()),
+  permissions: v.array(v.string()),
+});
+export type SessionGrantClaims = v.InferOutput<typeof sessionGrantClaims>;

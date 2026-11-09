@@ -5,6 +5,7 @@ import { formatGHS, money } from "@shopper/money";
 import type { Delivery } from "@shopper/ports";
 import { formatDay } from "@shopper/utils";
 import type { StatementDeliveryDeps } from "../../customers";
+import { renderEmail } from "../../emails";
 import { storeDayReminder, storeDaySummary } from "../../schemas/reports/day";
 import { tenderLabels } from "../sums";
 
@@ -28,13 +29,20 @@ export async function deliverStoreDayReminder(deps: Deps, delivery: Delivery) {
     email: found.email,
     subject: `${found.store}: Z reports still to come for ${day}`,
     link,
-    plain: [
-      `${found.store} has closed for ${day}, and these registers took sales but have not sent their Z report:`,
-      "",
-      ...message.payload.registers.map((name) => `- ${name}`),
-      "",
-      `Ask each cashier to close their shift, then check the shifts: ${link}`,
-    ].join("\n"),
+    ...renderEmail({
+      preheader: `${message.payload.registers.length} register(s) took sales but have not sent a Z report.`,
+      shop: found.store,
+      heading: `Z reports still to come for ${day}`,
+      blocks: [
+        {
+          kind: "text",
+          text: `${found.store} has closed for ${day}. These registers took sales but have not sent their Z report:`,
+        },
+        { kind: "list", items: message.payload.registers },
+        { kind: "text", text: "Ask each cashier to close their shift, then check the shifts." },
+      ],
+      action: { label: "Check the shifts", url: link },
+    }),
     attachments: [],
   });
   await delivery.ack();
@@ -65,25 +73,43 @@ export async function deliverStoreDaySummary(deps: Deps, delivery: Delivery) {
     email: found.email,
     subject: `${found.store}: ${day} in figures`,
     link,
-    plain: [
-      `${found.store}, ${day} (yesterday in brackets):`,
-      "",
-      `Net sales ${ghs(k.netSales.value)} (${ghs(k.netSales.yesterday)})${change(k.netSales)}`,
-      `Transactions ${k.transactions.value} (${k.transactions.yesterday})`,
-      `Average basket ${ghs(k.basket.value)} (${ghs(k.basket.yesterday)})`,
-      `Refunds ${ghs(k.refunds.value)} (${ghs(k.refunds.yesterday)})`,
-      `Margin ${ghs(k.margin.value)} (${ghs(k.margin.yesterday)})`,
-      "",
-      "Top products:",
-      ...(summary.top.length
-        ? summary.top.map((p) => `- ${p.name}: ${ghs(p.netSales)}`)
-        : ["- No sales"]),
-      "",
-      "Takings by tender:",
-      ...summary.tenders.map((t) => `- ${tenderLabels[t.kind] ?? t.kind}: ${ghs(t.net)}`),
-      "",
-      `The full dashboard: ${link}`,
-    ].join("\n"),
+    ...renderEmail({
+      preheader: `Net sales ${ghs(k.netSales.value)}${change(k.netSales)} against yesterday.`,
+      shop: found.store,
+      heading: `${day} in figures`,
+      blocks: [
+        {
+          kind: "facts",
+          rows: [
+            { label: "Net sales", value: ghs(k.netSales.value), note: against(k.netSales, ghs) },
+            {
+              label: "Transactions",
+              value: String(k.transactions.value),
+              note: against(k.transactions, String),
+            },
+            { label: "Average basket", value: ghs(k.basket.value), note: against(k.basket, ghs) },
+            { label: "Refunds", value: ghs(k.refunds.value), note: against(k.refunds, ghs) },
+            { label: "Margin", value: ghs(k.margin.value), note: against(k.margin, ghs) },
+          ],
+        },
+        {
+          kind: "facts",
+          title: "Top products",
+          rows: summary.top.length
+            ? summary.top.map((p) => ({ label: p.name, value: ghs(p.netSales) }))
+            : [{ label: "No sales", value: ghs(0) }],
+        },
+        {
+          kind: "facts",
+          title: "Takings by tender",
+          rows: summary.tenders.map((t) => ({
+            label: tenderLabels[t.kind] ?? t.kind,
+            value: ghs(t.net),
+          })),
+        },
+      ],
+      action: { label: "Open the dashboard", url: link },
+    }),
     attachments: [],
   });
   await delivery.ack();
@@ -105,3 +131,6 @@ const change = (figure: Figure) =>
   figure.changeBps === null
     ? ""
     : `, ${figure.changeBps >= 0 ? "up" : "down"} ${Math.abs(figure.changeBps) / 100}%`;
+
+const against = (figure: Figure, show: (amount: number) => string) =>
+  `yesterday ${show(figure.yesterday)}${change(figure)}`;

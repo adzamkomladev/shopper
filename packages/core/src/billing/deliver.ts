@@ -5,6 +5,7 @@ import { formatGHS } from "@shopper/money";
 import type { Delivery } from "@shopper/ports";
 import { formatDay } from "@shopper/utils";
 import type { StatementDeliveryDeps } from "../customers";
+import { renderEmail } from "../emails";
 import { invoiceMessage } from "./schemas/base";
 
 type Deps = Pick<StatementDeliveryDeps, "db" | "mail" | "baseUrl">;
@@ -40,7 +41,37 @@ export async function deliverInvoiceEmail(deps: Deps, delivery: Delivery) {
       "invoice.read_only": `${row.shop}: the back office is read-only until the invoice is paid`,
     }[message.type],
     link,
-    plain: [opening, "", `Pay it here: ${link}`, "", `Billing settings: ${settings}`].join("\n"),
+    ...renderEmail({
+      preheader: `${amount} for ${period}.`,
+      shop: row.shop,
+      heading: {
+        "invoice.issued": "Your Shopper invoice is ready",
+        "invoice.reminder": "Your Shopper invoice is unpaid",
+        "invoice.read_only": "The back office is read-only",
+      }[message.type],
+      blocks: [
+        { kind: "text", text: opening },
+        ...(message.type === "invoice.read_only"
+          ? [
+              {
+                kind: "notice" as const,
+                text: "Paying the invoice opens the back office again.",
+              },
+            ]
+          : []),
+        {
+          kind: "facts",
+          rows: [
+            { label: "Period", value: period },
+            { label: "Stores", value: String(row.invoice.stores) },
+            { label: "Registers", value: String(row.invoice.terminals) },
+            { label: "Amount due", value: amount },
+          ],
+        },
+      ],
+      action: { label: "Pay invoice", url: link },
+      footnote: `Billing settings: ${settings}`,
+    }),
     attachments: [],
   });
   await delivery.ack();

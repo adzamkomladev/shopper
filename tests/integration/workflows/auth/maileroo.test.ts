@@ -22,6 +22,24 @@ test("the real Maileroo client sends authenticated plain text email without trac
     tracking: false,
   });
 });
+test("an HTML part rides along with the plain text, which stays the fallback", async () => {
+  const start = mail.requests.length;
+  await createMaileroo({
+    apiKey: mail.apiKey,
+    from: "noreply@shopper.test",
+    endpoint: mail.endpoint,
+  })({
+    email: "owner@example.com",
+    subject: "Your invoice",
+    link: "https://shopper.test/pay",
+    plain: "Pay at https://shopper.test/pay",
+    html: "<p>Pay</p>",
+  });
+  expect(mail.requests[start]).toMatchObject({
+    plain: "Pay at https://shopper.test/pay",
+    html: "<p>Pay</p>",
+  });
+});
 test("Maileroo authentication, HTTP errors and unsuccessful provider responses reject delivery", async () => {
   const send = createMaileroo({
     apiKey: mail.apiKey,

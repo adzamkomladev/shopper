@@ -18,6 +18,7 @@ export function createMaileroo(options: MailerooOptions) {
         plain:
           message.plain ??
           `${message.subject}\n\n${message.link}\n\nIf you did not request this, ignore this email.`,
+        ...(message.html ? { html: message.html } : {}),
         tracking: false,
         ...(message.attachments?.length
           ? {

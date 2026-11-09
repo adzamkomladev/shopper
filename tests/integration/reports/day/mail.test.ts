@@ -32,7 +32,7 @@ function deps(storeDays = recordingLauncher().launcher) {
   };
 }
 async function deliver(message: Envelope, mail = true) {
-  const sent: { email: string; subject: string; plain: string; link: string }[] = [];
+  const sent: { email: string; subject: string; plain: string; html: string; link: string }[] = [];
   const outcome: string[] = [];
   await deliverNotification(
     {
@@ -72,6 +72,7 @@ test("the reminder names the register still without a Z and links to the shifts"
     .registers;
   expect(registers).toHaveLength(1);
   expect(mail!.plain).toContain(`- ${registers[0]}`);
+  expect(mail!.html).toContain(`<li>${registers[0]}</li>`);
   expect(mail!.email).toMatch(/@owner\.test$/);
 });
 
@@ -82,9 +83,11 @@ test("the summary carries the day's figures against yesterday and links to that 
     subject: expect.stringContaining("15 Oct 2026 in figures"),
     link: "https://portal.example/reports?day=2026-10-15",
   });
-  expect(sent[0]!.plain).toContain("Net sales GH₵ 12.00 (GH₵ 12.00)");
-  expect(sent[0]!.plain).toContain("Transactions 1 (1)");
-  expect(sent[0]!.plain).toContain("MoMo: GH₵ 12.00");
+  expect(sent[0]!.plain).toContain("Net sales: GH₵ 12.00 (yesterday GH₵ 12.00");
+  expect(sent[0]!.plain).toContain("Transactions: 1 (yesterday 1");
+  expect(sent[0]!.plain).toContain("Takings by tender\nMoMo: GH₵ 12.00");
+  expect(sent[0]!.html).toContain("Top products");
+  expect(sent[0]!.html).toContain('href="https://portal.example/reports?day=2026-10-15"');
 });
 
 test("without mail or a portal origin the message waits for a retry", async () => {

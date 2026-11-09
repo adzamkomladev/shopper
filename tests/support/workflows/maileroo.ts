@@ -6,6 +6,7 @@ const emailSchema = v.strictObject({
   to: v.strictObject({ address: v.pipe(v.string(), v.email()) }),
   subject: v.string(),
   plain: v.string(),
+  html: v.optional(v.string()),
   tracking: v.literal(false),
   attachments: v.optional(
     v.array(

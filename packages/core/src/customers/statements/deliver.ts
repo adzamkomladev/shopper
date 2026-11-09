@@ -5,6 +5,7 @@ import { customer, statementDelivery, statementLink } from "@shopper/db-pg";
 import { sub, money, toDecimal } from "@shopper/money";
 import type { Delivery, Json } from "@shopper/ports";
 import { formatDay } from "@shopper/utils";
+import { renderEmail } from "../../emails";
 import { statementMessage, type StatementDocument } from "../../schemas/customers/statements";
 import { readStatementDocument } from "./document";
 import { signStatementToken, statementLinkUrl } from "./links";
@@ -96,10 +97,27 @@ async function email(
     email: address,
     subject: `Your statement from ${shop.name}, ${formatDay(period.from)} to ${formatDay(period.to)}`,
     link,
-    plain:
-      `Hello ${document.customer.name},\n\nYour statement from ${shop.name} for ` +
-      `${formatDay(period.from)} to ${formatDay(period.to)} is attached. Closing balance: GHS ${toDecimal(closing)}${closing < 0 ? " (credit)" : ""}.\n\n` +
-      `View it online: ${link}`,
+    ...renderEmail({
+      preheader: `Closing balance GHS ${toDecimal(closing)}${closing < 0 ? " (credit)" : ""}.`,
+      shop: shop.name,
+      heading: `Your statement, ${formatDay(period.from)} to ${formatDay(period.to)}`,
+      blocks: [
+        {
+          kind: "text",
+          text: `Hello ${document.customer.name}, your statement is attached as a PDF.`,
+        },
+        {
+          kind: "facts",
+          rows: [
+            {
+              label: closing < 0 ? "Closing credit" : "Closing balance",
+              value: `GHS ${toDecimal(closing < 0 ? sub(money(0), closing) : closing)}`,
+            },
+          ],
+        },
+      ],
+      action: { label: "View it online", url: link },
+    }),
     attachments: [
       {
         fileName: `statement-${period.from}-${period.to}.pdf`,

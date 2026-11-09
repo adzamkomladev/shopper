@@ -8,6 +8,7 @@ export type StatementMail = (message: {
   subject: string;
   link: string;
   plain: string;
+  html: string;
   attachments: { fileName: string; contentType: string; content: Uint8Array }[];
 }) => Promise<string | undefined>;
 

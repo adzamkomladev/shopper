@@ -5,6 +5,7 @@ import { branch, onlineOrder, org } from "@shopper/db-pg";
 import { formatGHS } from "@shopper/money";
 import type { Delivery, Json } from "@shopper/ports";
 import type { StatementDeliveryDeps } from "../../customers";
+import { renderEmail } from "../../emails";
 import { receiptDocument } from "../../schemas/receipts/document";
 import { orderMessage } from "../../schemas/orders/messages";
 
@@ -58,11 +59,25 @@ export async function deliverOrderConfirmation(deps: StatementDeliveryDeps, deli
       email: order.email!,
       subject: `Your order ${order.receiptNumber} from ${found.shop}`,
       link: deps.baseUrl ?? "",
-      plain: [
-        `Thank you for your order at ${found.shop}, ${found.branchName}.`,
-        `Order ${order.receiptNumber}, paid ${formatGHS(order.gross)}.`,
-        "Your receipt is attached as a PDF.",
-      ].join("\n"),
+      ...renderEmail({
+        preheader: `Order ${order.receiptNumber} is paid, ${formatGHS(order.gross)}.`,
+        shop: `${found.shop}, ${found.branchName}`,
+        heading: "Thank you for your order",
+        blocks: [
+          {
+            kind: "facts",
+            rows: [
+              { label: "Order", value: order.receiptNumber! },
+              { label: "Paid", value: formatGHS(order.gross) },
+              {
+                label: order.fulfilment === "pickup" ? "Pick up" : "Delivery",
+                value: clock.format(order.slotStart),
+              },
+            ],
+          },
+          { kind: "text", text: "Your receipt is attached as a PDF." },
+        ],
+      }),
       attachments: [
         {
           fileName: `receipt-${order.receiptNumber}.pdf`,

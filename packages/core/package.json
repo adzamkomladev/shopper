@@ -64,6 +64,10 @@
       "types": "./src/reports/index.ts",
       "default": "./src/reports/index.ts"
     },
+    "./emails": {
+      "types": "./src/emails/index.ts",
+      "default": "./src/emails/index.ts"
+    },
     "./ledger": {
       "types": "./src/ledger/index.ts",
       "default": "./src/ledger/index.ts"

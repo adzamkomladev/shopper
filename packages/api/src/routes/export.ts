@@ -81,8 +81,11 @@ export function exportRoutes(
     });
   });
   app.delete("/export/archives/:id", async (c) => {
-    await removeArchiveExport(database, context(c), { jobId: c.req.param("id"), blobs: blobs() });
-    return c.body(null, 204);
+    const removed = await removeArchiveExport(database, context(c), {
+      jobId: c.req.param("id"),
+      blobs: blobs(),
+    });
+    return c.json({ id: removed.jobId });
   });
   app.onError(problem);
   return app;

@@ -111,7 +111,7 @@ test("a second archive is refused while one is running, and a deleted archive is
   await archive.relaunch();
   await (archive.launcher as unknown as { idle(): Promise<void> }).idle();
   expect((await json(await call(a, `/export/archives/${id}`))).status).toBe("ready");
-  expect((await call(a, `/export/archives/${id}`, { method: "DELETE" })).status).toBe(204);
+  expect((await call(a, `/export/archives/${id}`, { method: "DELETE" })).status).toBe(200);
   expect((await call(a, `/export/archives/${id}`)).status).toBe(404);
   expect((await call(a, `/export/archives/${id}/download`)).status).toBe(404);
 });

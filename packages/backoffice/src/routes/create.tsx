@@ -25,6 +25,7 @@ import { orderRoutes } from "./orders";
 import { paymentRoutes } from "./payments";
 import { approvalRoutes } from "./approvals";
 import { billingRoutes } from "./billing";
+import { exportRoutes } from "./export";
 import { publicStatementRoutes } from "./statements/public";
 import { shiftRoutes } from "./shifts";
 import { setupRoutes } from "./setup";
@@ -168,6 +169,7 @@ export function createBackofficeRoutes(
       ...paymentRoutes(shopRoute),
       ...approvalRoutes(shopRoute),
       ...billingRoutes(shopRoute),
+      ...exportRoutes(shopRoute),
     ]),
   ]);
 }

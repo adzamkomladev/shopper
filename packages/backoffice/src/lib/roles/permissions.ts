@@ -51,6 +51,7 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   "order.read": "View online orders",
   "order.fulfil": "Accept, pick and hand over online orders",
   "review.moderate": "Moderate flagged shop reviews",
+  "export.run": "Export the business's data",
 };
 
 /** The matrix reads top to bottom in these groups. */
@@ -90,6 +91,7 @@ export const PERMISSION_GROUPS: readonly { name: string; codes: readonly Permiss
       "ledger.write",
       "ledger.lock",
       "audit.read",
+      "export.run",
     ],
   },
   {

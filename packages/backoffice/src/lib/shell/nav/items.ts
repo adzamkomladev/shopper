@@ -7,6 +7,7 @@ import {
   ChartNoAxesColumnIcon,
   ClockIcon,
   CreditCardIcon,
+  DatabaseIcon,
   GiftIcon,
   GitBranchIcon,
   InboxIcon,
@@ -183,6 +184,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     icon: ScrollTextIcon,
     section: "Audit",
     permission: "audit.read",
+  },
+  {
+    to: "/export",
+    label: "Data export",
+    icon: DatabaseIcon,
+    section: "Organisation",
+    permission: "export.run",
   },
   {
     to: "/billing",

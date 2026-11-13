@@ -1,4 +1,5 @@
 import {
+  boxArchiveExport,
   boxAuthFlows,
   boxBlobs,
   boxCache,
@@ -73,6 +74,7 @@ const blobs = await boxBlobs(e2eRun.path(".shopper/portal/blobs", "portal/blobs"
   // KYB scans and receipt PDFs live under receipts/; the run's one bucket keeps them too.
   receiptsObjectStorage: { ...rustfs, bucket: e2eRun.bucket },
 });
+const archiveExports = boxArchiveExport({ database: database.db, blobs: blobs.blobs }).launcher;
 const kyb = await e2eKyb({ database: database.db, blobs: blobs.blobs, mail, baseUrl: baseURL });
 const server = await import(
   pathToFileURL(resolve(`${app}/${e2eRun.outDir}/server/server.js`)).href
@@ -97,6 +99,7 @@ const portalRuntime = async (request: Request) => {
       authFlows,
       priceChange,
       kyc,
+      archiveExports,
       publicOnboarding,
       clientIP,
       blobs: blobs.blobs,

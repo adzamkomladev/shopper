@@ -3,3 +3,4 @@ export type EnrolFailure = "SHOP_NOT_FOUND" | "ENROL_REFUSED" | "ENROL_LOCKED" |
 export type EnrolOutcome =
   | { kind: "enrolled"; shopName: string; registerName: string }
   | { kind: "refused"; code: EnrolFailure };
+export type ServerOutcome = { kind: "changed" } | { kind: "refused"; message: string };

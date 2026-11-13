@@ -159,7 +159,7 @@ function receive(data: unknown, current: WebSocket) {
     publish({ host: "connected", status: message.status, error: null, unenrolled: false });
   }
   if (message.type === "result" && message.kind === "unenrolled")
-    publish({ host: "connected", status: null, error: null, unenrolled: true });
+    publish({ host: "connected", status: null, error: null, unenrolled: message.server });
   if (message.type === "result" && message.kind === "enrolled") rejoining = 40;
   waiter?.(message);
 }

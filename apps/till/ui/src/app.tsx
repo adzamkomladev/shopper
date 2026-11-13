@@ -20,7 +20,7 @@ import { SignInScreen } from "./screens/signin/screen";
 import { EnrolScreen } from "./screens/enrol/screen";
 import { UpdateScreen } from "./screens/update/screen";
 import { UpdateBanner } from "./components/update/banner";
-import { enrolTill } from "./enrol/store";
+import { changeServer, enrolTill } from "./enrol/store";
 import { ShellFrame } from "./components/shell/frame";
 import { followThemeInTitleBar } from "./components/shell/titlebar";
 import { shellLink } from "./components/shell/link";
@@ -67,7 +67,13 @@ function Register() {
   // A till fresh from the installer has no identity; enrolling it comes before signing anyone in.
   if (connection.unenrolled)
     return (
-      <EnrolScreen host={connection.host} onReconnect={connectRegister} onSubmit={enrolTill} />
+      <EnrolScreen
+        host={connection.host}
+        onReconnect={connectRegister}
+        onServer={changeServer}
+        onSubmit={enrolTill}
+        server={connection.unenrolled}
+      />
     );
   // A register with no signed-in user can do nothing else, so sign-in comes before every other screen.
   if (user === null)

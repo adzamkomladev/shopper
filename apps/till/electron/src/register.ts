@@ -1,7 +1,8 @@
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { buildInfo } from "@shopper/config";
 import { writeAtomic } from "./secrets";
-import { findServer } from "./trust";
+import { changeServer, findServer } from "./trust";
 
 /**
  * A fresh install has no register file: write the install half of one, and the host starts as an enrolment host
@@ -25,4 +26,12 @@ export async function firstRun(configPath: string, userData: string, devOrigin?:
   );
   await writeAtomic(configPath, text);
   return text;
+}
+
+/** A box address typed on the enrol screen: pinned, then the register file points at it. Throws why, for the cashier. */
+export async function moveServer(configPath: string, userData: string, address: string) {
+  const stored = JSON.parse(await readFile(configPath, "utf8")) as { identity?: unknown };
+  if (stored.identity !== undefined) throw new Error("This till is already enrolled");
+  const server = await changeServer(address, userData);
+  await writeAtomic(configPath, JSON.stringify({ ...stored, ...server }, null, 2));
 }

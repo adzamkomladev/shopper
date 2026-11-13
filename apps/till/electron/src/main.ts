@@ -11,7 +11,7 @@ import { openDisplay } from "./display";
 import { answerRender } from "./render";
 import { loadSecrets, writeAtomic } from "./secrets";
 import type { UpdatePolicy } from "./types";
-import { firstRun } from "./register";
+import { firstRun, moveServer } from "./register";
 import { chainOf, trustsPinned } from "./trust";
 import { createUpdates } from "./updates";
 import { lockDown } from "./window";
@@ -126,6 +126,7 @@ async function startRegister() {
             capability?: string;
             port?: number;
             message?: string;
+            address?: string;
             registration?: object;
           } & Partial<UpdatePolicy>)
         | null,
@@ -136,6 +137,19 @@ async function startRegister() {
         updates.policy(message as UpdatePolicy);
       } else if (message?.type === "update-install") updates.install();
       else if (message?.type === "update-check") updates.check();
+      else if (message?.type === "server" && typeof message.address === "string")
+        void moveServer(configPath, userData, message.address).then(
+          () => {
+            host.send({ type: "server-changed" });
+            // The host trusts the new box's CA only from its start (NODE_EXTRA_CA_CERTS): start afresh on it.
+            setTimeout(() => {
+              app.relaunch();
+              app.exit(0);
+            }, 500);
+          },
+          (error: Error) =>
+            host.connected && host.send({ type: "server-refused", message: error.message }),
+        );
       else if (message?.type === "enrolled" && message.registration)
         void enrol(message.registration).catch((error: unknown) => fail("Register stopped", error));
       else if (message?.type === "ready" && message.capability) {

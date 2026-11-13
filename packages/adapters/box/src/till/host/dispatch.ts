@@ -177,6 +177,7 @@ export function createDispatch(host: Host) {
           host.updates.check();
           break;
         case "device.enrol":
+        case "device.server":
           return error(request, "ALREADY_ENROLLED", "This till is already enrolled");
         case "shutdown":
           if (!trusted)

@@ -13,12 +13,25 @@ export const enrolRequests = [
     code: v.pipe(v.string(), v.regex(/^\d{6}$/)),
     name: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(200)),
   }),
+  /** The box address a cashier types when the box was not found on the LAN; the register checks and pins it. */
+  v.strictObject({
+    id,
+    type: v.literal("device.server"),
+    address: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(255)),
+  }),
 ] as const;
 export const enrolRequestTypes = enrolRequests.map((schema) => schema.entries.type.literal);
 
 export const enrolReplies = [
-  /** The answer to hello or status from a till that has no identity yet. */
-  v.strictObject({ id, type: v.literal("result"), kind: v.literal("unenrolled") }),
+  /** The answer to hello or status from a till that has no identity yet, with where it will enrol. */
+  v.strictObject({
+    id,
+    type: v.literal("result"),
+    kind: v.literal("unenrolled"),
+    server: v.strictObject({ address: v.string(), box: v.boolean() }),
+  }),
+  /** The register pinned the typed box and restarts on it; the page reconnects to the new host. */
+  v.strictObject({ id, type: v.literal("result"), kind: v.literal("server-changed") }),
   v.strictObject({
     id,
     type: v.literal("result"),

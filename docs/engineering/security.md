@@ -195,3 +195,17 @@ One `RateLimiter` port (`packages/ports/src/limits.ts`) with a fixed policy tabl
   `taxrules.json` must match its signed manifest byte for byte, or nothing is applied (`tests/integration/box/taxpack.test.ts`).
   The till feed (`/till/updates/<channel>/<file>`) serves only named files from the running slot's `till/` folder; a path is
   refused (`tests/integration/till/updates.test.ts`).
+
+## Data export (Day 41)
+
+- **No credentials leave.** A Shopper Archive carries no password or PIN hash, sign-in session, session key, device
+  credential or one-time code (`dump/tables.ts`, held by `coverage.test.ts` and by seeded secrets that the dump test
+  greps for). People reset their password or PIN and registers enrol again after a move.
+- **The signing key** (`archive_key`) lives in the database like `session_key`, so a restored box signs with the same
+  key; it is never exported, never in an audit payload, and not shown (only a fingerprint). It proves an archive is
+  unaltered, not who made it.
+- **Who.** `export.run`, granted to the owner and admin roles, not till-allowed. Every route is in the tenant sweep; a
+  job id from another org is 404 on get, download and delete.
+- **Audit.** `export.entity`, `export.archive.start|seal|fail|delete|download` name the entity, counts, size and job
+  (never rows or keys). An archive is a copy of everything the org owns: it is as sensitive as a database dump, so the
+  screen says so and Delete removes the parts.

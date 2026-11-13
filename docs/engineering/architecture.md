@@ -477,3 +477,35 @@ The owner approved this architecture on 14 October 2026. This cleanup documents 
   `payment.settled` until the hold expires (then expires the order and frees the stock), then for `store.accepted`.
 - Limit of offline-first: a till that is offline can still sell a held unit. The hold stops the online side
   overselling; the conflict shows when the till syncs.
+
+## Data export and the Shopper Archive (Day 41)
+
+`@shopper/export` (layer 4) takes a business's data out, two ways, both behind `export.run` (owner and admin roles;
+a till session never holds it) and both audited commands.
+
+- **Spreadsheets.** `GET /export/entities/<entity>.csv|.xlsx` for `products, prices, customers, sales, lines, tenders,
+  stock, tax, audit`. Each entity is one query (`entities/`) turned into a `ReportTable`, so `reportCsv` and
+  `reportWorkbook` write it. CSV streams in 5,000-row pages; Excel is built in memory and refused above 200,000 rows
+  ("use CSV, or the full archive"). History entities take a day range of at most 366 days; the page size and the Excel
+  cap are the server's, never the request's. `export.entity` records entity, format, range and row count.
+- **The archive** (`.shopper`) is a stored ZIP (no ZIP64: under 4 GB and 65,535 files, said in the error):
+  `manifest.json` (`archive_format`, `product_version`, `schema_version`, org, public key, every file's size, SHA-256
+  and rows), `manifest.sig` (Ed25519 over the exact manifest bytes), `tables/<table>/<NNNN>.ndjson` (5,000 rows a file,
+  Postgres' own JSON text so 64-bit values are exact) and `blobs/<key>` (product images, KYB documents and fiscal
+  bundles; receipt PDFs and sync snapshots are rebuilt from rows). `verifyArchive` needs only the file.
+- **Which tables.** Every table with an `org_id` is in, unless `dump/tables.ts` names it: sessions, session and archive
+  keys, device and enrolment credentials, PIN hashes, one-time codes and the export bookkeeping are out; password,
+  token and digest columns are dropped from tables that stay. `tests/integration/export/coverage.test.ts` fails on a
+  new table with no `id`, a name that no longer exists, or a credential-looking column nobody decided about.
+- **One snapshot.** A single `REPEATABLE READ, READ ONLY` transaction reads every table (keyset on `id`), inside one
+  Workflow step; a second step seals. `ArchiveExportWorkflow` (cloud) and `boxArchiveExport` (Rivet) wrap
+  `runArchiveExport`; instance id `export-archive_<org>_<job>`. The job's parts, `files.json` and `entries.json` live
+  in the org's blobs under `exports/<job>/`; only one archive is prepared per org at a time.
+- **Download.** There is no multipart upload in the `Blobs` port, so no single R2 object and no signed URL for the
+  whole archive: `GET /export/archives/:id/download` streams the ZIP from the stored parts (sizes and CRCs are known
+  before the first byte, so `Content-Length` is exact and memory stays at one part). Delete removes the parts.
+- **Signature.** An Ed25519 pair per org in `archive_key`, made at the first export and never exported. The manifest
+  carries the public key; the screen shows its fingerprint. The key proves the archive was not altered since it was
+  signed, not who made it: the importer (Day 42) decides which keys it trusts.
+- **Versioning.** `ARCHIVE_FORMAT` (a test holds it equal to the build's constant) is refused when higher ("made by a
+  newer Shopper"); the upcaster chain for older formats arrives with the importer and the first format bump.

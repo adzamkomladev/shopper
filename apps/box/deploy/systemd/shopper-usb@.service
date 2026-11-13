@@ -1,0 +1,7 @@
+# Started by the udev rule (deploy/udev/99-shopper-usb.rules) for each USB stick plugged into the box.
+[Unit]
+Description=Copy Shopper update bundles from USB stick %I
+
+[Service]
+Type=oneshot
+ExecStart=/opt/shopper/bin/shopper-usb %I

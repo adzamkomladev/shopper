@@ -77,8 +77,8 @@ export function UpdatesCard() {
               </ul>
             ) : (
               <p className="text-muted-foreground">
-                No update bundles yet. Copy one from Shopper to the box's updates folder
-                (/var/lib/shopper/updates), from a USB drive or over SSH.
+                No update bundles yet. Plug the USB stick with the update from Shopper into the box;
+                its bundles appear here a few seconds later.
               </p>
             )}
           </>

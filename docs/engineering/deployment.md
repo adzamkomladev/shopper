@@ -217,8 +217,22 @@ The box is one sealed Bun executable plus the pinned Rivet engine, installed fro
   --request <code> --org <id> --site <name> --maintenance <yyyy-mm-dd> [--terminals 5]` prints
   `licence.json` for `SHOPPER_LICENCE_DIR`. An air-gapped site gets a `confirmation.json` the same way a
   check-in returns one. The edge holds the same key as the secret `SHOPPER_LICENCE_SIGNING_KEY`.
+- **Air-gapped updates (Day 40)**: plugging a USB stick into the box starts `shopper-usb@<device>` (udev rule
+  `/etc/udev/rules.d/99-shopper-usb.rules`). `/opt/shopper/bin/shopper-usb` mounts it `ro,nosuid,nodev,noexec`, copies
+  only regular top-level files named like a bundle (`*.tgz`, at most 2 GB; links never followed) into
+  `/var/lib/shopper/updates` as `shopper`, mode 640, and unmounts. It trusts nothing on the stick: the bundle is checked
+  when the owner presses Install, as any other. `journalctl -u 'shopper-usb@*'` says how many bundles it copied.
+- **Registers on the box LAN (Day 40)**: the one signed till installer serves both. On first run the register tries
+  `https://shopper.local` for 3 s; a box that hands over its CA at `/ca.crt` is pinned and becomes its server, otherwise
+  it uses the build's cloud upstream (`SHOPPER_TILL_UPSTREAM` at runtime overrides both, for development). The enrol
+  screen names the server; when mDNS is blocked (a Windows network set to Public), **Change server** (Alt+S) takes the
+  box's address (`192.168.1.20` or `shopper.local`), pins its CA and restarts the register on it. Only before enrolment.
+  Caddy answers by address too: a TLS connection with no name gets an on-demand certificate for the address it reached,
+  from the same internal CA (rate-limited to 5 a minute). Give the box a fixed or reserved LAN address: a register that
+  enrolled by address follows that address.
+  Trust on first use, as for the pin itself: a rogue `shopper.local` on the shop LAN could take an enrolment code.
 - Not in the installer yet: RustFS (box imports need `SHOPPER_S3_*`; receipts and snapshots use local files), the OS egress
-  firewall beyond inbound ufw rules, a Windows till on the LAN (Day 40), the Shopper Archive import step (Days 41–44).
+  firewall beyond inbound ufw rules, the Shopper Archive import step (Days 41–44).
 
 ## Till release (Day 27)
 

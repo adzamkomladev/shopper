@@ -74,6 +74,76 @@ describe("a till enrols itself", () => {
     ).toMatchObject({ type: "error", code: "ENROL_REFUSED" });
   });
 
+  // First run on a box LAN pins the box's CA and records it in the register file; the host must start with it.
+  it("an install that pinned a box CA starts unenrolled, enrols and boots with it", async () => {
+    const config = { ...(await unenrolledConfig()), ca: "/register/box-ca.pem" };
+    const host = await startTillHost(config);
+    cleanup.push(() => host.stop());
+    expect(await host.request({ type: "status" })).toMatchObject({ kind: "unenrolled" });
+    const challenge = await devices.issueEnrollment(principal, { branchId: ids.branch });
+    const parent = host.waitForMessage((message) => message.type === "enrolled");
+    await host.request({
+      type: "device.enrol",
+      shopCode: await slug(),
+      code: challenge.code,
+      name: "Box till",
+    });
+    const registration = (await parent).registration as Record<string, unknown>;
+    const ready = host.waitForMessage((message) => message.type === "ready");
+    host.child.send({ type: "start", config: { ...config, ...registration, session: null } });
+    expect(await ready).toMatchObject({ identity: { registerName: "Box till" } });
+    // An enrolled till never changes server from its page.
+    expect(await host.request({ type: "device.server", address: "192.168.1.20" })).toMatchObject({
+      type: "error",
+      code: "ALREADY_ENROLLED",
+    });
+  });
+
+  // The enrol screen says where the till will enrol, and a typed box address goes to the parent (Electron), which
+  // pins the box and restarts the register, or says why not.
+  it("names its server, and hands a typed address to the parent, which answers", async () => {
+    const config = await unenrolledConfig();
+    const host = await startTillHost(config);
+    cleanup.push(() => host.stop());
+    expect(await host.request({ type: "status" })).toMatchObject({
+      kind: "unenrolled",
+      server: { address: new URL(api.url).host, box: false },
+    });
+    const boxed = await startTillHost({
+      ...(await unenrolledConfig()),
+      upstream: "https://shopper.local",
+      ca: "/register/box-ca.pem",
+    });
+    cleanup.push(() => boxed.stop());
+    expect(await boxed.request({ type: "status" })).toMatchObject({
+      server: { address: "shopper.local", box: true },
+    });
+
+    const asked = host.waitForMessage((message) => message.type === "server");
+    const refused = host.request({ type: "device.server", address: " 192.168.1.20 " });
+    expect(await asked).toMatchObject({ address: "192.168.1.20" });
+    // While the register checks the box, a code is not spent on a server it may be about to leave.
+    expect(
+      await host.request({ type: "device.enrol", shopCode: "any", code: "123456", name: "Till" }),
+    ).toMatchObject({ type: "error", code: "ENROL_REFUSED" });
+    expect(await host.request({ type: "device.server", address: "10.0.0.2" })).toMatchObject({
+      type: "error",
+      code: "ENROL_REFUSED",
+    });
+    host.child.send({ type: "server-refused", message: "Nothing answered at 192.168.1.20." });
+    expect(await refused).toMatchObject({
+      type: "error",
+      code: "SERVER_REFUSED",
+      message: "Nothing answered at 192.168.1.20.",
+    });
+
+    const again = host.waitForMessage((message) => message.type === "server");
+    const changed = host.request({ type: "device.server", address: "192.168.1.21" });
+    await again;
+    host.child.send({ type: "server-changed" });
+    expect(await changed).toMatchObject({ type: "result", kind: "server-changed" });
+  });
+
   it("says the server cannot be reached and stays unenrolled", async () => {
     const host = await startTillHost({
       ...(await unenrolledConfig()),

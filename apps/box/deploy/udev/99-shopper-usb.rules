@@ -1,0 +1,3 @@
+# Installed in /etc/udev/rules.d/. A USB stick with a filesystem plugged into the box: shopper-usb@<device> copies the
+# update bundles on it into the updates folder (deploy/bin/shopper-usb), for the owner to install from Billing → Updates.
+ACTION=="add", SUBSYSTEM=="block", ENV{ID_BUS}=="usb", ENV{ID_FS_USAGE}=="filesystem", TAG+="systemd", ENV{SYSTEMD_WANTS}+="shopper-usb@%k.service"

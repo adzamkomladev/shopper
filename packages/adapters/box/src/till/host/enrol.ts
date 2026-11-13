@@ -3,7 +3,7 @@ import * as v from "valibot";
 import { buildInfo } from "@shopper/config";
 import { enrollmentResult } from "@shopper/auth/schemas";
 import { bridgeRequest, type BridgeMessage, type BridgeRequest } from "@shopper/sync/bridge";
-import { enrolmentConfiguration, shopLookup } from "../../schemas/till/host/config";
+import { enrolmentConfiguration, serverAnswer, shopLookup } from "../../schemas/till/host/config";
 import { error, openHostTransport } from "./transport";
 
 type Enrol = Extract<BridgeRequest, { type: "device.enrol" }>;
@@ -21,9 +21,31 @@ export async function startEnrolmentHost(raw: unknown, send: (message: unknown) 
   const enrolled = new Promise<Registration>((resolve) => {
     finish = resolve;
   });
+  const server = { address: new URL(config.upstream).host, box: config.ca !== undefined };
+  // A typed box address waits for the parent's answer: refused with why, or changed (the register then restarts).
+  let answerServer: ((answer: ServerAnswer) => void) | undefined;
   const dispatch = async (request: BridgeRequest): Promise<BridgeMessage> => {
     if (request.type === "hello" || request.type === "status")
-      return { id: request.id, type: "result", kind: "unenrolled" };
+      return { id: request.id, type: "result", kind: "unenrolled", server };
+    if (request.type === "device.server") {
+      if (busy) return error(request, "ENROL_REFUSED", "This till is already enrolling");
+      // Held while the register checks the box, and kept once it changed: the register is restarting on it.
+      busy = true;
+      const answer = new Promise<ServerAnswer>((resolve) => {
+        answerServer = resolve;
+        setTimeout(resolve, 15_000, {
+          type: "server-refused",
+          message: "This till cannot change its server here.",
+        });
+      });
+      send({ type: "server", address: request.address });
+      const reply = await answer;
+      answerServer = undefined;
+      busy = reply.type === "server-changed";
+      return reply.type === "server-changed"
+        ? { id: request.id, type: "result", kind: "server-changed" }
+        : error(request, "SERVER_REFUSED", reply.message);
+    }
     if (request.type !== "device.enrol")
       return error(request, "UNENROLLED", "Enrol this till before using it");
     if (busy) return error(request, "ENROL_REFUSED", "This till is already enrolling");
@@ -59,6 +81,8 @@ export async function startEnrolmentHost(raw: unknown, send: (message: unknown) 
     enrolled,
     /** A request on the parent's private channel, answered like one from the page. */
     async receive(value: unknown) {
+      const answer = v.safeParse(serverAnswer, value);
+      if (answer.success) return answerServer?.(answer.output);
       const parsed = v.safeParse(bridgeRequest, value);
       send(
         parsed.success
@@ -69,6 +93,8 @@ export async function startEnrolmentHost(raw: unknown, send: (message: unknown) 
     close: () => transport.close(),
   };
 }
+
+type ServerAnswer = v.InferOutput<typeof serverAnswer>;
 
 type Registration = Exclude<Awaited<ReturnType<typeof enrol>>, { code: string }> & {
   port: number;

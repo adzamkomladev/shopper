@@ -11,7 +11,8 @@ import { openDisplay } from "./display";
 import { answerRender } from "./render";
 import { loadSecrets, writeAtomic } from "./secrets";
 import type { UpdatePolicy } from "./types";
-import { chainOf, pinBoxCa, trustsPinned } from "./trust";
+import { firstRun, moveServer } from "./register";
+import { chainOf, trustsPinned } from "./trust";
 import { createUpdates } from "./updates";
 import { lockDown } from "./window";
 
@@ -60,7 +61,7 @@ async function startRegister() {
     join(userData, "register.json");
   const text = await readFile(configPath, "utf8").catch((error: NodeJS.ErrnoException) => {
     if (error.code !== "ENOENT") throw error;
-    return firstRun(configPath, userData);
+    return firstRun(configPath, userData, app.isPackaged ? undefined : new URL(tillUi).origin);
   });
   let stored: {
     ui?: string;
@@ -125,6 +126,7 @@ async function startRegister() {
             capability?: string;
             port?: number;
             message?: string;
+            address?: string;
             registration?: object;
           } & Partial<UpdatePolicy>)
         | null,
@@ -135,6 +137,19 @@ async function startRegister() {
         updates.policy(message as UpdatePolicy);
       } else if (message?.type === "update-install") updates.install();
       else if (message?.type === "update-check") updates.check();
+      else if (message?.type === "server" && typeof message.address === "string")
+        void moveServer(configPath, userData, message.address).then(
+          () => {
+            host.send({ type: "server-changed" });
+            // The host trusts the new box's CA only from its start (NODE_EXTRA_CA_CERTS): start afresh on it.
+            setTimeout(() => {
+              app.relaunch();
+              app.exit(0);
+            }, 500);
+          },
+          (error: Error) =>
+            host.connected && host.send({ type: "server-refused", message: error.message }),
+        );
       else if (message?.type === "enrolled" && message.registration)
         void enrol(message.registration).catch((error: unknown) => fail("Register stopped", error));
       else if (message?.type === "ready" && message.capability) {
@@ -157,25 +172,6 @@ async function startRegister() {
     secrets.push(prepared.deviceToken, "databaseKey" in prepared && prepared.databaseKey);
     host.send({ type: "start", config: prepared, renderer: "parent" });
   }
-}
-
-/**
- * A fresh install has no register file: write the install half of one, and the host starts as an enrolment host
- * on the "Set up this till" screen. The packaged app serves its own UI, so it needs no other origin.
- */
-async function firstRun(configPath: string, userData: string) {
-  const upstream = process.env.SHOPPER_TILL_UPSTREAM ?? buildInfo.tillUpstream;
-  if (!upstream)
-    throw new Error("This build names no server to enrol with (SHOPPER_TILL_UPSTREAM)");
-  const origins = app.isPackaged ? [] : [new URL(tillUi).origin];
-  const ca = await pinBoxCa(upstream, userData);
-  const text = JSON.stringify(
-    { upstream, sqlitePath: join(userData, "register.sqlite"), origins, port: 0, ca },
-    null,
-    2,
-  );
-  await writeAtomic(configPath, text);
-  return text;
 }
 
 /** electron-updater on the build's feed; the host hears every state change and folds it into its status. */

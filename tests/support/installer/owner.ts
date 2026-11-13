@@ -86,6 +86,59 @@ exit 1
   });
 }
 
+/**
+ * A USB stick as the owner brings it: `files` (copied from `dir`), a bundle Shopper never signed, a note and a link
+ * named like a bundle, as an ext4 image attached in the machine as a loop device. Returns the kernel name udev would
+ * pass (`loop3`).
+ */
+export async function plugStick(machine: Machine, dir: string, files: string[]) {
+  const { execFileSync } = await import("node:child_process");
+  const { copyFile, mkdir, rm, stat, symlink } = await import("node:fs/promises");
+  const stick = join(dir, "stick");
+  await rm(stick, { recursive: true, force: true });
+  await mkdir(stick);
+  for (const file of files) await copyFile(join(dir, file), join(stick, file));
+  // A well-formed bundle signed with a key that is not Shopper's.
+  const forged = join(dir, "forged-slot");
+  await mkdir(forged, { recursive: true });
+  await writeFile(join(forged, "shopper-box"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+  const { generateKey } = await import("@shopper/core/licence");
+  await buildUpdate({
+    slot: forged,
+    out: join(stick, "update-forged.tgz"),
+    releaseKey: (await generateKey()).privateKey,
+    version: "9.9.11",
+  });
+  await writeFile(join(stick, "notes.txt"), "Shopper update, November\n");
+  await symlink("/etc/shopper/box.env", join(stick, "update-link.tgz"));
+  const bytes = (await Promise.all(files.map((file) => stat(join(stick, file))))).reduce(
+    (sum, file) => sum + file.size,
+    0,
+  );
+  const image = join(dir, "stick.img");
+  await rm(image, { force: true });
+  // Whole MiB: losetup warns (on the output the test reads) about a size that is not whole sectors.
+  execFileSync("truncate", ["-s", `${Math.ceil(bytes / 2 ** 20) + 64}M`, image]);
+  execFileSync("mkfs.ext4", ["-q", "-F", "-d", stick, image]);
+  machine.copyIn(image, "/stick.img");
+  // A container's /dev holds the loop nodes that existed when it started; make the free one if it is newer.
+  const attached = machine.run(
+    'dev=$(losetup -f) && { [ -e "$dev" ] || mknod "$dev" b 7 "${dev#/dev/loop}"; } && losetup "$dev" /stick.img && basename "$dev"',
+  );
+  const device = attached.output.trim();
+  if (attached.status !== 0 || !/^loop\d+$/.test(device))
+    throw new Error(`The stick could not be attached: ${attached.output}`);
+  return device;
+}
+
+/** A till feed (version 0.1.3) in the running slot, read through Caddy as a register on the LAN reads it. */
+export function tillFeed(machine: Machine, box: string) {
+  machine.run(
+    "d=/opt/shopper/current/till/stable; install -d $d && echo 'version: 0.1.3' > $d/latest.yml",
+  );
+  return machine.run(`${secure} https://${box}/till/updates/stable/latest.yml`).output;
+}
+
 /** What the installed box reports about itself, read on the machine. */
 export function boxState(machine: Machine) {
   return {

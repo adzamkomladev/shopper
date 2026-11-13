@@ -10,6 +10,8 @@ const install = {
   /** Development and tests only: keep the database unencrypted. A packaged register always has a key. */
   plaintext: v.optional(v.literal(true)),
   upstream: v.pipe(v.string(), v.url()),
+  /** The box CA pinned at first run. Electron hands it to the host as NODE_EXTRA_CA_CERTS; the host never reads it. */
+  ca: v.optional(v.pipe(v.string(), v.minLength(1))),
   origins: v.array(v.pipe(v.string(), v.url())),
   ui: v.optional(v.pipe(v.string(), v.minLength(1))),
   port: v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(65535)),
@@ -45,6 +47,12 @@ export type HostConfiguration = v.InferOutput<typeof hostConfiguration>;
 
 /** A till before enrolment: only its install. Enrolling adds the identity, device token and receipt codes. */
 export const enrolmentConfiguration = v.pipe(v.strictObject(install), reachable());
+
+/** Electron's answer to a box address typed on the enrol screen: refused with why, or pinned (it then restarts). */
+export const serverAnswer = v.variant("type", [
+  v.object({ type: v.literal("server-refused"), message: v.pipe(v.string(), v.maxLength(500)) }),
+  v.object({ type: v.literal("server-changed") }),
+]);
 
 /** The org lookup the API answers for a shop code. */
 export const shopLookup = v.object({ id: v.string(), name: v.pipe(v.string(), v.minLength(1)) });

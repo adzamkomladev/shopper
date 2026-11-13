@@ -16,6 +16,10 @@
       "types": "./src/types.ts",
       "default": "./src/types.ts"
     },
+    "./register": {
+      "types": "./src/register.ts",
+      "default": "./src/register.ts"
+    },
     "./trust": {
       "types": "./src/trust.ts",
       "default": "./src/trust.ts"

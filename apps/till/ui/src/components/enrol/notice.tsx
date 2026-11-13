@@ -17,7 +17,7 @@ const refusals = {
   },
   OFFLINE: {
     title: "The server did not answer",
-    detail: "Check this till's internet connection, then try again.",
+    detail: "Check this till's network connection, then try again.",
   },
 } as const;
 

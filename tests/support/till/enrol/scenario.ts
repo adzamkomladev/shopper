@@ -8,12 +8,14 @@ import { startUpstream } from "../upstream";
 
 export const SHOP = { slug: "kumasi-mart", id: v7(), name: "Kumasi Mart" };
 export const GOOD_CODE = "424242";
+/** The one typed box address the stand-in register accepts; any other is refused as unreachable. */
+export const BOX_ADDRESS = "192.168.1.20";
 
 /**
  * A register host fresh from the installer (no identity), behind the bridge proxy, and a stub server with one shop
  * and one good code. `state.mode` makes enrolment answer 429 (locked) or not at all (down).
  */
-export async function startEnrolScenario(appOrigin: string) {
+export async function startEnrolScenario(appOrigin: string, options: { box?: boolean } = {}) {
   const state = { mode: "ok" as "ok" | "locked" | "down", enrolled: 0 };
   const ids = { deviceId: v7(), storeId: v7(), branchId: v7() };
   const upstream = await startUpstream(async (request) => {
@@ -38,7 +40,7 @@ export async function startEnrolScenario(appOrigin: string) {
     return Response.json({ error: "Unavailable" }, { status: 503 });
   });
   try {
-    const till = await startFreshTill(upstream.url, appOrigin);
+    const till = await startFreshTill(upstream.url, appOrigin, options.box);
     return { url: till.url, state, stop: () => till.stop().finally(() => upstream.close()) };
   } catch (error) {
     await upstream.close();
@@ -50,7 +52,7 @@ export async function startEnrolScenario(appOrigin: string) {
  * A register host fresh from the installer (no identity) talking to `upstream`, behind the bridge proxy the till UI
  * dev server uses. Like Electron, it is started again with the registration once it enrols.
  */
-export async function startFreshTill(upstream: string, appOrigin: string) {
+export async function startFreshTill(upstream: string, appOrigin: string, box = false) {
   const directory = await mkdtemp(join(tmpdir(), "shopper-enrol-ui-"));
   const cleanups: (() => Promise<unknown>)[] = [
     () => rm(directory, { recursive: true, force: true }),
@@ -65,9 +67,22 @@ export async function startFreshTill(upstream: string, appOrigin: string) {
       upstream,
       origins: [appOrigin],
       port: 0,
+      ...(box && { ca: join(directory, "box-ca.pem") }),
     };
     const host = await startTillHost(config);
     cleanups.push(() => host.stop());
+    // Electron's part for a typed box address: pin it (here: accept BOX_ADDRESS) or say why not.
+    host.child.on("message", (message: { type?: string; address?: string }) => {
+      if (message?.type !== "server") return;
+      host.child.send(
+        message.address === BOX_ADDRESS
+          ? { type: "server-changed" }
+          : {
+              type: "server-refused",
+              message: `Nothing answered at ${message.address}. Check the box is on and on this network.`,
+            },
+      );
+    });
     void host
       .waitForMessage((message) => message.type === "enrolled", 600_000)
       .then((message) =>

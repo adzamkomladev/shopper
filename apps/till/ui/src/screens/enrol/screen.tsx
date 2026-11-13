@@ -4,9 +4,10 @@ import { Button } from "@shopper/ui/components/button";
 import { Kbd } from "@shopper/ui/components/kbd";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { EnrolForm } from "../../components/enrol/form";
+import { EnrolServerPanel } from "../../components/enrol/server";
 import { TitleBar } from "../../components/shell/titlebar";
-import type { HostConnection } from "../../connection/types";
-import type { EnrolOutcome } from "../../enrol/types";
+import type { EnrolServer, HostConnection } from "../../connection/types";
+import type { EnrolOutcome, ServerOutcome } from "../../enrol/types";
 import type { EnrolInput } from "../../schemas/enrol";
 
 /**
@@ -15,11 +16,15 @@ import type { EnrolInput } from "../../schemas/enrol";
  */
 export function EnrolScreen({
   host,
+  server,
   onSubmit,
+  onServer,
   onReconnect,
 }: {
   host: HostConnection;
+  server: EnrolServer;
   onSubmit: (input: EnrolInput) => Promise<EnrolOutcome>;
+  onServer: (address: string) => Promise<ServerOutcome>;
   onReconnect: () => void;
 }) {
   const register = useShortcuts({ "Alt+C": onReconnect });
@@ -54,6 +59,7 @@ export function EnrolScreen({
               </AlertDescription>
             </Alert>
           )}
+          <EnrolServerPanel disabled={host !== "connected"} onChange={onServer} server={server} />
           <EnrolForm disabled={host !== "connected"} onSubmit={onSubmit} />
         </div>
       </main>

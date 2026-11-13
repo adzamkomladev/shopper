@@ -22,6 +22,10 @@ install -d /opt/shopper/slots/a /opt/shopper/bin /etc/shopper
 # The box unpacks updates into the spare slot as itself; the helper that switches slots runs as root.
 install -d -o shopper -g shopper /opt/shopper/slots/b
 install -m 0755 deploy/bin/shopper-apply /opt/shopper/bin/shopper-apply
+# Air-gapped updates: a USB stick plugged into the box has its bundles copied into the updates folder.
+install -m 0755 deploy/bin/shopper-usb /opt/shopper/bin/shopper-usb
+install -d /etc/udev/rules.d
+cp deploy/udev/99-shopper-usb.rules /etc/udev/rules.d/99-shopper-usb.rules
 cp -a slot/. /opt/shopper/slots/a/
 printf '#!/bin/sh\nexec /opt/shopper/current/shopper-box backup "$@"\n' > /opt/shopper/bin/shopper-backup
 chmod 0755 /opt/shopper/bin/shopper-backup
@@ -76,6 +80,7 @@ cp deploy/avahi/shopper.service /etc/avahi/services/shopper.service
 cp deploy/Caddyfile /etc/caddy/Caddyfile
 cp deploy/systemd/shopper-box.service deploy/systemd/shopper-engine.service /etc/systemd/system/
 cp deploy/systemd/shopper-update.path deploy/systemd/shopper-update.service /etc/systemd/system/
+cp deploy/systemd/shopper-usb@.service /etc/systemd/system/
 cp deploy/systemd/backup.service /etc/systemd/system/shopper-backup.service
 cp deploy/systemd/backup.timer /etc/systemd/system/shopper-backup.timer
 ln -sfn /opt/shopper/slots/a /opt/shopper/current
@@ -90,6 +95,7 @@ fi
 if [ "$systemd" = 1 ]; then
   say "Starting the box"
   systemctl daemon-reload
+  udevadm control --reload-rules >/dev/null 2>&1 || true
   # mDNS needs a network interface; a box still works by address without it, so it never stops the install.
   systemctl enable --now avahi-daemon >/dev/null 2>&1 || echo "warning: the mDNS service (shopper.local) did not start; check the network cable"
   systemctl enable --now caddy shopper-engine shopper-box shopper-backup.timer shopper-update.path >/dev/null 2>&1

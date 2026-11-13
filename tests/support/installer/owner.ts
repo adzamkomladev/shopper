@@ -98,7 +98,17 @@ export async function plugStick(machine: Machine, dir: string, files: string[]) 
   await rm(stick, { recursive: true, force: true });
   await mkdir(stick);
   for (const file of files) await copyFile(join(dir, file), join(stick, file));
-  await writeFile(join(stick, "update-forged.tgz"), "not a bundle Shopper signed");
+  // A well-formed bundle signed with a key that is not Shopper's.
+  const forged = join(dir, "forged-slot");
+  await mkdir(forged, { recursive: true });
+  await writeFile(join(forged, "shopper-box"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+  const { generateKey } = await import("@shopper/core/licence");
+  await buildUpdate({
+    slot: forged,
+    out: join(stick, "update-forged.tgz"),
+    releaseKey: (await generateKey()).privateKey,
+    version: "9.9.11",
+  });
   await writeFile(join(stick, "notes.txt"), "Shopper update, November\n");
   await symlink("/etc/shopper/box.env", join(stick, "update-link.tgz"));
   const bytes = (await Promise.all(files.map((file) => stat(join(stick, file))))).reduce(
@@ -107,7 +117,8 @@ export async function plugStick(machine: Machine, dir: string, files: string[]) 
   );
   const image = join(dir, "stick.img");
   await rm(image, { force: true });
-  execFileSync("truncate", ["-s", String(bytes + 64 * 1024 * 1024), image]);
+  // Whole MiB: losetup warns (on the output the test reads) about a size that is not whole sectors.
+  execFileSync("truncate", ["-s", `${Math.ceil(bytes / 2 ** 20) + 64}M`, image]);
   execFileSync("mkfs.ext4", ["-q", "-F", "-d", stick, image]);
   machine.copyIn(image, "/stick.img");
   // A container's /dev holds the loop nodes that existed when it started; make the free one if it is newer.
@@ -118,6 +129,14 @@ export async function plugStick(machine: Machine, dir: string, files: string[]) 
   if (attached.status !== 0 || !/^loop\d+$/.test(device))
     throw new Error(`The stick could not be attached: ${attached.output}`);
   return device;
+}
+
+/** A till feed (version 0.1.3) in the running slot, read through Caddy as a register on the LAN reads it. */
+export function tillFeed(machine: Machine, box: string) {
+  machine.run(
+    "d=/opt/shopper/current/till/stable; install -d $d && echo 'version: 0.1.3' > $d/latest.yml",
+  );
+  return machine.run(`${secure} https://${box}/till/updates/stable/latest.yml`).output;
 }
 
 /** What the installed box reports about itself, read on the machine. */

@@ -15,6 +15,7 @@ import {
   plugStick,
   secure,
   setUpBackups,
+  tillFeed,
   until,
 } from "../../support/installer/owner";
 import { buildInstaller } from "../../../tooling/installer/build";
@@ -44,6 +45,7 @@ beforeAll(async () => {
   machine = bareMachine(`shopper-install-${process.pid}`, join(dir, "installer.run"));
 }, 900_000);
 afterAll(async () => {
+  machine?.run("losetup -n -O NAME -j /stick.img | xargs -r -n1 losetup -d"); // loop devices are the host's
   machine?.destroy();
   await rm(dir, { recursive: true, force: true });
 });
@@ -172,9 +174,8 @@ test("the owner installs an update from the box (backup first, slot switch), and
   expect(listed.running.slot).toBe("a");
   expect(listed.bundles.map((bundle) => [bundle.file, bundle.verdict.ok]).sort()).toEqual([
     ["update-broken.tgz", true],
-    ["update-forged.tgz", false],
     ["update-good.tgz", true],
-  ]);
+  ]); // the forged one is copied but never offered
   // The mandatory backup is not set up yet: the update is refused and nothing is switched.
   const refused = api.call("POST", "/updates/install", { file: "update-good.tgz" });
   expect(refused.status).toBe(409);
@@ -239,11 +240,8 @@ test("systemd brings a killed engine and a killed box back on their own", async 
     120,
     "the box to be ready again",
   );
-  // Registers on the LAN take their own updates from the slot the box runs, through Caddy.
-  machine.run(
-    "install -d /opt/shopper/current/till/stable && printf 'version: 0.1.3\\n' > /opt/shopper/current/till/stable/latest.yml",
-  );
-  expect(
-    machine.run(`${secure} https://shopper.local/till/updates/stable/latest.yml`).output,
-  ).toContain("version: 0.1.3");
+  // Registers take their updates from the slot the box runs, through Caddy: by name, or by address where the network
+  // blocks shopper.local (a certificate for the address, from the same CA the register pinned).
+  for (const box of ["shopper.local", "127.0.0.1"])
+    expect(tillFeed(machine, box)).toBe("version: 0.1.3\n");
 }, 1_800_000);

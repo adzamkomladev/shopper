@@ -51,7 +51,7 @@ a WAN cable pulled out, and a real USB stick in the box. Run this on the bench (
    `journalctl -u 'shopper-usb@*' -n 5`. **Record:** the line "copied 1 update bundle(s)".
 3. Pull the stick (it is already unmounted). Install now. **Record:** the box reports the new version, the till keeps
    selling during the restart (offline mode, then back online).
-4. A stick holding a bundle that is not Shopper's: listed with "not signed by Shopper" and Install refused. **Record.**
+4. A stick holding a bundle that is not Shopper's: it is copied but never listed, so it cannot be installed. **Record.**
 5. The till: Settings → Updates shows the new till version from the box (no internet). Restart now after the shift.
    **Record:** the till's version afterwards.
 

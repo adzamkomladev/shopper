@@ -227,6 +227,9 @@ The box is one sealed Bun executable plus the pinned Rivet engine, installed fro
   it uses the build's cloud upstream (`SHOPPER_TILL_UPSTREAM` at runtime overrides both, for development). The enrol
   screen names the server; when mDNS is blocked (a Windows network set to Public), **Change server** (Alt+S) takes the
   box's address (`192.168.1.20` or `shopper.local`), pins its CA and restarts the register on it. Only before enrolment.
+  Caddy answers by address too: a TLS connection with no name gets an on-demand certificate for the address it reached,
+  from the same internal CA (rate-limited to 5 a minute). Give the box a fixed or reserved LAN address: a register that
+  enrolled by address follows that address.
   Trust on first use, as for the pin itself: a rogue `shopper.local` on the shop LAN could take an enrolment code.
 - Not in the installer yet: RustFS (box imports need `SHOPPER_S3_*`; receipts and snapshots use local files), the OS egress
   firewall beyond inbound ufw rules, the Shopper Archive import step (Days 41–44).

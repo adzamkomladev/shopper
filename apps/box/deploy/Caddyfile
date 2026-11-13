@@ -4,10 +4,15 @@
 	# The box serves its own LAN: no ACME, no public CA.
 	local_certs
 	skip_install_trust
+	# Certificates for the box's addresses are made when first asked for (see below); bounded so a LAN client cannot
+	# make Caddy mint without end.
+	on_demand_tls {
+		interval 1m
+		burst 5
+	}
 }
 
-shopper.local {
-	tls internal
+(box) {
 	handle /ca.crt {
 		# The Debian package keeps Caddy's data in /var/lib/caddy; Caddy's Docker image needs
 		# SHOPPER_CADDY_PKI=/data/caddy/pki/authorities/local.
@@ -18,4 +23,18 @@ shopper.local {
 	handle {
 		reverse_proxy 127.0.0.1:3001
 	}
+}
+
+shopper.local {
+	tls internal
+	import box
+}
+
+# By address (https://192.168.1.20), for a till whose network blocks shopper.local: a connection with no name gets a
+# certificate for the address it reached, from the same internal CA the till pins.
+https:// {
+	tls internal {
+		on_demand
+	}
+	import box
 }

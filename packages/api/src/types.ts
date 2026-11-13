@@ -102,6 +102,8 @@ export interface ApiOptions {
   onboarding?: ReturnType<typeof createOnboarding>;
   invitations?: ReturnType<typeof createInvitations>;
   kyc?: WorkflowLauncher;
+  /** Runs a full copy of the business (the Shopper Archive); without it the Export screen offers spreadsheets only. */
+  archiveExports?: WorkflowLauncher;
   /** Starts a store's day; a new store's chain starts today rather than at the night's watchdog. */
   storeDays?: WorkflowLauncher;
   /** Business verification for payouts, cloud only: the Paystack banks a payout can settle to. */
@@ -183,6 +185,7 @@ export interface RuntimeOptions {
   /** A cloud shop's way from signup to its first sale; the box opens no signup and has none. */
   onboarding?: WorkflowLauncher;
   kyc?: WorkflowLauncher;
+  archiveExports?: WorkflowLauncher;
   storeDays?: WorkflowLauncher;
   kyb?: ApiOptions["kyb"];
   platform?: ApiOptions["platform"];

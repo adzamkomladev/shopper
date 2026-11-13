@@ -46,4 +46,5 @@ export const permissionNames = [
   "order.read",
   "order.fulfil",
   "review.moderate",
+  "export.run",
 ] as const;

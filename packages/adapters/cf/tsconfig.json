@@ -7,10 +7,13 @@
   "include": ["src", "worker-configuration.d.ts"],
   "references": [
     {
-      "path": "../../ports"
+      "path": "../../api"
     },
     {
-      "path": "../../hardware"
+      "path": "../../auth"
+    },
+    {
+      "path": "../../config"
     },
     {
       "path": "../../core"
@@ -22,13 +25,13 @@
       "path": "../../db/sqlite"
     },
     {
-      "path": "../../config"
+      "path": "../../export"
     },
     {
-      "path": "../../auth"
+      "path": "../../hardware"
     },
     {
-      "path": "../../api"
+      "path": "../../ports"
     }
   ]
 }

@@ -32,4 +32,20 @@ ALTER TABLE "archive_key" ADD CONSTRAINT "archive_key_org_id_org_id_fk" FOREIGN 
 ALTER TABLE "export_job" DROP CONSTRAINT IF EXISTS "export_job_org_id_org_id_fk";--> statement-breakpoint
 ALTER TABLE "export_job" ADD CONSTRAINT "export_job_org_id_org_id_fk" FOREIGN KEY ("org_id") REFERENCES "public"."org"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "export_job" DROP CONSTRAINT IF EXISTS "export_job_org_id_requested_by_user_org_id_id_fk";--> statement-breakpoint
-ALTER TABLE "export_job" ADD CONSTRAINT "export_job_org_id_requested_by_user_org_id_id_fk" FOREIGN KEY ("org_id","requested_by") REFERENCES "public"."user"("org_id","id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "export_job" ADD CONSTRAINT "export_job_org_id_requested_by_user_org_id_id_fk" FOREIGN KEY ("org_id","requested_by") REFERENCES "public"."user"("org_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+-- export.run: exporting the business's data. Not till-allowed. Granted to the owner and to every role that already
+-- manages roles (permissions are data, so never by role name); replayable.
+INSERT INTO permission (org_id, code, till_allowed)
+SELECT o.id, 'export.run', false FROM org o
+WHERE EXISTS (SELECT 1 FROM role r WHERE r.org_id = o.id)
+ON CONFLICT (org_id, code) DO NOTHING;
+--> statement-breakpoint
+INSERT INTO role_permission (org_id, role_id, permission_id)
+SELECT r.org_id, r.id, p.id FROM role r
+JOIN permission p ON p.org_id = r.org_id AND p.code = 'export.run'
+WHERE r.protected_owner OR EXISTS (
+  SELECT 1 FROM role_permission rp
+  JOIN permission held ON held.id = rp.permission_id AND held.org_id = rp.org_id
+  WHERE rp.org_id = r.org_id AND rp.role_id = r.id AND held.code = 'role.write'
+)
+ON CONFLICT (org_id, role_id, permission_id) DO NOTHING;

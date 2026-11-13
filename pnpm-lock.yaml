@@ -600,6 +600,9 @@ importers:
       '@shopper/db-sqlite':
         specifier: workspace:*
         version: link:../../db/sqlite
+      '@shopper/export':
+        specifier: workspace:*
+        version: link:../../export
       '@shopper/hardware':
         specifier: workspace:*
         version: link:../../hardware
@@ -673,6 +676,9 @@ importers:
       '@shopper/db-sqlite':
         specifier: workspace:*
         version: link:../../db/sqlite
+      '@shopper/export':
+        specifier: workspace:*
+        version: link:../../export
       '@shopper/hardware':
         specifier: workspace:*
         version: link:../../hardware
@@ -706,6 +712,9 @@ importers:
       '@shopper/db-pg':
         specifier: workspace:*
         version: link:../db/pg
+      '@shopper/export':
+        specifier: workspace:*
+        version: link:../export
       '@shopper/money':
         specifier: workspace:*
         version: link:../money
@@ -966,6 +975,9 @@ importers:
       drizzle-orm:
         specifier: 0.45.3
         version: 0.45.3(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.1)
+      uuid:
+        specifier: 14.0.2
+        version: 14.0.2
       valibot:
         specifier: 1.5.0
         version: 1.5.0(typescript@7.0.2)

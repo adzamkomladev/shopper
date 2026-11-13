@@ -99,6 +99,11 @@ export default defineConfig(({ mode }) => {
           worker: edge,
           exportName: "KybWorkflow",
         }),
+        ARCHIVE_EXPORT: bindings.workflow({
+          name: workflow("archive-export"),
+          worker: edge,
+          exportName: "ArchiveExportWorkflow",
+        }),
         KYC_FLOWS: bindings.workflow({
           name: workflow("kyc"),
           worker: edge,

@@ -1,6 +1,8 @@
 export { exportEntity } from "./entities/export";
 export { entityNames, MAX_WORKBOOK_ROWS, rangedEntities } from "./schemas/entities";
 export { archiveEntries, recordArchiveDownload } from "./archive/download";
+export { getArchiveExport, listArchiveExports } from "./archive/read";
+export { requestArchiveExport } from "./archive/request";
 export { removeArchiveExport } from "./archive/delete";
 export { ExportError } from "./archive/error";
 export { exportArchiveId, exportPrefix } from "./archive/ids";

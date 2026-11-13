@@ -1,8 +1,9 @@
+import { bootArchiveExport } from "./exports";
+import { bootFiscalLane } from "./fiscal";
 import { Hono } from "hono";
 import { buildInfo } from "@shopper/config";
 import { deliverNotification } from "@shopper/core/notifications";
 import { runWatchdog } from "@shopper/core/reports";
-import { createSdc } from "@shopper/core/fiscal";
 import type { BoxBindings, BoxOptions } from "./types";
 import { boxPayments } from "./payments";
 import { boxOrders } from "./orders";
@@ -27,8 +28,6 @@ import {
   boxAccountFlows,
   boxStatementFlows,
   boxRateLimiter,
-  boxLane,
-  boxFiscalArchive,
   boxAuditAnchors,
   boxStoreDays,
   boxWatchdog,
@@ -48,12 +47,13 @@ export function createBoxApp(
   let cache: ReturnType<typeof boxCache> | undefined;
   let authFlows: ReturnType<typeof boxAuthFlows> | undefined;
   let kycFlows: ReturnType<typeof boxKycFlows> | undefined;
+  let archiveExport: ReturnType<typeof bootArchiveExport> | undefined;
   let payments: ReturnType<typeof boxPayments> | undefined;
   let priceChange: ReturnType<typeof boxPriceChange> | undefined;
   let notifications: Queue | undefined;
   let accountFlows: ReturnType<typeof boxAccountFlows> | undefined;
   let statementFlows: ReturnType<typeof boxStatementFlows> | undefined;
-  let lane: ReturnType<typeof boxLane> | undefined;
+  let lane: Awaited<ReturnType<typeof bootFiscalLane>>;
   let watchdog: ReturnType<typeof boxWatchdog> | undefined;
   let storeDays: ReturnType<typeof boxStoreDays> | undefined;
   let orders: ReturnType<typeof boxOrders> | undefined;
@@ -155,6 +155,10 @@ export function createBoxApp(
         .relaunch()
         .catch((error: unknown) => console.error({ event: "store_day.relaunch_failed", error }));
     }
+    archiveExport ??= bootArchiveExport(
+      { database: workflowDatabase, blobs: await blobs() },
+      launch,
+    );
     if (!watchdog) {
       const anchors = boxAuditAnchors({ database: workflowDatabase, queue: notifications }, launch);
       const days = storeDays.launcher;
@@ -178,22 +182,7 @@ export function createBoxApp(
         console.error({ event: "watchdog.start_failed", error }),
       );
     }
-    if (!lane && environment.SHOPPER_SDC_URL && environment.SHOPPER_SDC_KEY) {
-      const archive = boxFiscalArchive(
-        { database: workflowDatabase, blobs: await blobs() },
-        launch,
-      );
-      lane = boxLane({
-        db: workflowDatabase,
-        sdc: createSdc({ url: environment.SHOPPER_SDC_URL, apiKey: environment.SHOPPER_SDC_KEY }),
-        appVersion: buildInfo.version,
-        archive: archive.launcher,
-      });
-      // On boot every store with documents still waiting for the SDC gets its lane back, and its bundle.
-      Promise.all([lane.relaunch(), archive.relaunch()]).catch((error: unknown) =>
-        console.error({ event: "fiscal.relaunch_failed", error }),
-      );
-    }
+    lane ??= await bootFiscalLane(environment, { database: workflowDatabase, blobs, launch });
     if (sms && environment.SHOPPER_LINK_SECRET)
       kycFlows ??= boxKycFlows(
         {
@@ -232,6 +221,7 @@ export function createBoxApp(
         paystackSecret: environment.PAYSTACK_SECRET_KEY,
         authFlows,
         kyc: kycFlows,
+        archiveExports: archiveExport.launcher,
         storeDays: storeDays.launcher,
         ...orders,
         linkSecret: environment.SHOPPER_LINK_SECRET,

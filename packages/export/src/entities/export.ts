@@ -4,6 +4,7 @@ import { defineCommand } from "@shopper/audit";
 import { reportCsv, reportCsvRows, reportWorkbook, type ReportCell } from "@shopper/core/reports";
 import { org } from "@shopper/db-pg";
 import { entityExport, entityRange, rangedEntities, type entityNames } from "../schemas/entities";
+import { ExportError } from "../archive/error";
 import { catalogueEntities } from "./catalogue";
 import type { DayRange } from "../types";
 import { countRows, entityPages } from "./read";
@@ -22,7 +23,10 @@ const audited = defineCommand({
   async run(tx, ctx, input: v.InferOutput<typeof entityExport> & { range?: DayRange }) {
     const rows = await countRows(tx, definitions[input.entity], ctx.orgId, input.range);
     if (input.format === "xlsx" && rows > input.maxWorkbookRows)
-      throw new RangeError("Too many rows for Excel. Use CSV, or the full archive.");
+      throw new ExportError(
+        "too_many_rows",
+        "Too many rows for Excel. Use CSV, or the full archive.",
+      );
     const [business] = await tx.select({ slug: org.slug }).from(org).where(eq(org.id, ctx.orgId));
     return {
       entity: input.entity,

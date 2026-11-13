@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import { defineCommand } from "@shopper/audit";
 import type { Blobs } from "@shopper/ports";
-import { archiveEntryList } from "../schemas/archive";
+import { archiveEntryList, dumpResult } from "../schemas/archive";
 import type { ZipEntry } from "../types";
 import { MAX_BLOB_BYTES } from "../dump/tables";
 import { ExportError } from "./error";
@@ -39,4 +39,10 @@ export async function readEntries(blobs: Blobs, orgId: string, jobId: string) {
   const listed = await blobs.get(orgId, `${exportPrefix(jobId)}/entries.json`);
   if (!listed) throw new ExportError("not_ready", "This archive is not ready.");
   return v.parse(archiveEntryList, JSON.parse(new TextDecoder().decode(listed))).entries;
+}
+
+/** The parts a dump finished writing, for an archive that failed after it; none when the dump never finished. */
+export async function readDumped(blobs: Blobs, orgId: string, jobId: string) {
+  const listed = await blobs.get(orgId, `${exportPrefix(jobId)}/files.json`);
+  return listed ? v.parse(dumpResult, JSON.parse(new TextDecoder().decode(listed))).files : [];
 }

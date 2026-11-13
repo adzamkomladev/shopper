@@ -186,6 +186,19 @@ test("Excel refuses more rows than its cap and says to use CSV, which has no cap
   expect((await read("products", "csv")).rows.length).toBeGreaterThan(1);
 });
 
+test("the file holds the rows the audit row counted, even the audit trail of today", async () => {
+  const today = new Date().toISOString().slice(0, 10);
+  const out = await exportEntity(f.db, owner(), {
+    entity: "audit",
+    format: "csv",
+    from: "2026-10-01",
+    to: today,
+  });
+  const sheet = XLSX.read(await new Response(out.body as BodyInit).text(), { type: "string" });
+  // The command writes its own audit row after counting; that row is not in the file the count describes.
+  expect(XLSX.utils.sheet_to_json(Object.values(sheet.Sheets)[0]!).length).toBe(out.rows);
+});
+
 test("every export is an audited command with its entity, format and row count", async () => {
   const rows = await f.db
     .select()

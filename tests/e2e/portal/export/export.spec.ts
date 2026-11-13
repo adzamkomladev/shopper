@@ -130,7 +130,9 @@ test("every state: none yet, preparing, ready, failed, the list unreachable, Exc
   ]);
   await expect(page.getByText("4.6 MB · 1,204 rows")).toHaveCount(2);
   await expect(page.getByText("R2 is unavailable")).toBeVisible();
-  await expect(page.getByText("2 uploaded files no longer in storage, left out.")).toBeVisible();
+  await expect(
+    page.getByText("2 uploaded files were missing or did not match its record, and are left out."),
+  ).toBeVisible();
   await shoot(page, info, "export-list", { sizes: SIZES });
 
   await page.unrouteAll();

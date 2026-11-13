@@ -70,6 +70,7 @@ export async function exportEntity(
       context.orgId,
       counted.from ? { from: counted.from, to: counted.to! } : undefined,
       input.pageRows,
+      counted.rows,
     );
   const filename = [counted.slug, input.entity, counted.from, counted.to].filter(Boolean).join("-");
   const body =

@@ -31,6 +31,8 @@ export async function* entityPages(
   orgId: string,
   range: DayRange | undefined,
   pageRows: number,
+  /** The rows the audit row counted: the export's own audit row arrives after the count and is cut by this. */
+  limit: number,
 ): AsyncGenerator<ReportCell[][]> {
   const select = sql.join(
     def.columns.map((column, i) => sql`${column.sql} AS ${sql.identifier(`c${i}`)}`),
@@ -47,16 +49,18 @@ export async function* entityPages(
     const { rows } = await db.execute(
       sql`SELECT ${select} FROM ${def.from} WHERE ${where(def, orgId, range)} ORDER BY ${def.order}`,
     );
-    yield rows.map(cells);
+    yield rows.slice(0, limit).map(cells);
     return;
   }
   let last = FIRST_ID;
+  let remaining = limit;
   for (;;) {
     const { rows } = await db.execute<Record<string, unknown> & { key: string }>(sql`
       SELECT ${select}, t.id::text AS key FROM ${def.from}
       WHERE ${where(def, orgId, range)} AND t.id > ${last}::uuid ORDER BY t.id LIMIT ${pageRows}`);
-    if (!rows.length) return;
-    yield rows.map(cells);
+    if (!rows.length || remaining <= 0) return;
+    yield rows.slice(0, remaining).map(cells);
+    remaining -= rows.length;
     if (rows.length < pageRows) return;
     last = rows.at(-1)!.key;
   }

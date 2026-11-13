@@ -4,7 +4,7 @@ import { exportJob } from "@shopper/db-pg";
 import type { Blobs } from "@shopper/ports";
 import { ExportError } from "./error";
 import { exportPrefix } from "./ids";
-import { readEntries } from "./download";
+import { readDumped, readEntries } from "./download";
 
 /** Removes an archive's parts (never the org's own files, which the archive only points at). */
 export const removeArchiveExport = defineCommand({
@@ -18,8 +18,11 @@ export const removeArchiveExport = defineCommand({
     if (job.status === "running")
       throw new ExportError("running", "This archive is still being prepared.");
     const prefix = exportPrefix(input.jobId);
+    // A ready archive lists its parts in entries.json; one that failed after its dump, in files.json.
     const listed =
-      job.status === "ready" ? await readEntries(input.blobs, ctx.orgId, input.jobId) : [];
+      job.status === "ready"
+        ? await readEntries(input.blobs, ctx.orgId, input.jobId)
+        : await readDumped(input.blobs, ctx.orgId, input.jobId);
     const keys = [
       ...listed.map((entry) => entry.key).filter((key) => key.startsWith(`${prefix}/`)),
       ...["files.json", "entries.json", "manifest.json", "manifest.sig"].map(

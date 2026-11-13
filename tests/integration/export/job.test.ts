@@ -28,10 +28,12 @@ let dir: string;
 let storage: Awaited<ReturnType<typeof boxBlobs>>["blobs"];
 const actor = () => ({ ...f.ctx, actorId: f.userId });
 let failPuts = 0;
+let failSeal = false;
 const blobs: Blobs = {
   put: async (orgId, key, value) => {
     if (failPuts > 0 && key.endsWith("/tables/sale/0001.ndjson") && failPuts-- > 0)
       throw new Error("R2 is unavailable");
+    if (failSeal && key.endsWith("/manifest.json")) throw new Error("R2 is unavailable");
     return storage.put(orgId, key, value);
   },
   get: (...args) => storage.get(...args),
@@ -210,6 +212,24 @@ test("a failed export says why and leaves a failed workflow, not a half archive"
     .where(and(eq(schema.workflowRun.instanceId, exportArchiveId(f.ctx.orgId, jobId))));
   expect(run!.status).toBe("failed");
   await expect(archiveEntries(blobs, f.ctx.orgId, jobId)).rejects.toThrow("not ready");
+  // The tables written before the failure are not left behind: the owner never sees this archive to delete it.
+  for (const table of ["org", "product", "branch"])
+    expect(
+      await storage.get(f.ctx.orgId, `exports/${jobId}/tables/${table}/0001.ndjson`),
+      table,
+    ).toBeNull();
+});
+
+test("a failure after a complete dump leaves parts that Delete still removes", async () => {
+  failSeal = true;
+  const { jobId, error } = await exportOrg();
+  failSeal = false;
+  expect(error?.message).toBe("R2 is unavailable");
+  const part = `exports/${jobId}/tables/org/0001.ndjson`;
+  expect(await storage.get(f.ctx.orgId, part)).not.toBeNull();
+  await removeArchiveExport(f.db, actor(), { jobId, blobs });
+  expect(await storage.get(f.ctx.orgId, part)).toBeNull();
+  expect(await storage.get(f.ctx.orgId, `exports/${jobId}/files.json`)).toBeNull();
 });
 
 test("deleting an archive removes its parts, never the org's own files, and a running one cannot be deleted", async () => {

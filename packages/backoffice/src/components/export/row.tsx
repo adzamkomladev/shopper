@@ -40,8 +40,9 @@ export function ArchiveRowItem({ archive }: { archive: ArchiveRow }) {
         </span>
         {archive.missingBlobs > 0 && (
           <span className="text-muted-foreground">
-            {archive.missingBlobs} uploaded file{archive.missingBlobs === 1 ? "" : "s"} no longer in
-            storage, left out.
+            {archive.missingBlobs} uploaded file{archive.missingBlobs === 1 ? " was" : "s were"}{" "}
+            missing or did not match its record, and {archive.missingBlobs === 1 ? "is" : "are"}{" "}
+            left out.
           </span>
         )}
       </div>

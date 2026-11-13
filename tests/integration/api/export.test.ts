@@ -1,7 +1,9 @@
 // The export routes over HTTP: who may take the business's data, that nothing of another shop comes with it, and that
 // a download is the verified archive the workflow made.
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
+import { eq } from "drizzle-orm";
 import * as XLSX from "xlsx";
+import * as schema from "@shopper/db-pg";
 import { boxArchiveExport } from "@shopper/adapters-box";
 import { memoryLaunch } from "@shopper/adapters-box";
 import { readZip, verifyArchive } from "@shopper/export";
@@ -147,4 +149,26 @@ test("the caller cannot choose the server's page size or Excel cap", async () =>
   // These are options of the function, not of the request: a query string naming them changes nothing.
   const response = await call(a, "/export/entities/products.xlsx?maxWorkbookRows=0&pageRows=1");
   expect(response.status).toBe(200);
+});
+
+test("a member limited to some branches cannot take the whole business's data, whatever their role", async () => {
+  const [member] = await db.select().from(schema.member).where(eq(schema.member.userId, a.userId));
+  const [row] = await db
+    .insert(schema.memberBranch)
+    .values({ orgId: a.orgId, memberId: member!.id, branchId: a.till.branchId })
+    .returning();
+  try {
+    for (const [method, path] of [
+      ["GET", "/export/entities/sales.csv?from=2026-10-01&to=2026-10-31"],
+      ["GET", "/export/archives"],
+      ["POST", "/export/archives"],
+    ] as const) {
+      const response = await call(a, path, { method });
+      expect(response.status, `${method} ${path}`).toBe(403);
+      expect(await json(response)).toMatchObject({ error: "That branch is outside your access" });
+    }
+  } finally {
+    await db.delete(schema.memberBranch).where(eq(schema.memberBranch.id, row!.id));
+  }
+  expect((await call(a, "/export/archives")).status).toBe(200);
 });

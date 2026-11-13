@@ -95,10 +95,17 @@ export async function storeAsset(
   db: schema.ShopperDatabase,
   blobs: Blobs,
   orgId: string,
-  asset: { key: string; purpose: "product_image" | "kyb_document"; stored?: boolean },
+  asset: {
+    key: string;
+    purpose: "product_image" | "kyb_document";
+    stored?: boolean;
+    /** Stores other bytes than the ones the row registered. */
+    swapped?: boolean;
+  },
 ) {
   const bytes = Uint8Array.from([137, 80, 78, 71, 1, 2, 3, 4]);
-  if (asset.stored !== false) await blobs.put(orgId, asset.key, bytes);
+  if (asset.stored !== false)
+    await blobs.put(orgId, asset.key, asset.swapped ? Uint8Array.from([0, 0, 0]) : bytes);
   await db.insert(schema.asset).values({
     orgId,
     purpose: asset.purpose,

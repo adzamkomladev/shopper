@@ -31,6 +31,11 @@ beforeAll(async () => {
     purpose: "product_image",
     stored: false,
   });
+  await storeAsset(f.db, blobs, f.ctx.orgId, {
+    key: "products/swapped.png",
+    purpose: "product_image",
+    swapped: true,
+  });
   await storeAsset(f.db, blobs, f.other.orgId, {
     key: "products/theirs.png",
     purpose: "product_image",
@@ -122,9 +127,10 @@ test("a 64-bit counter and money survive as the exact digits", async () => {
   );
 });
 
-test("blobs the rows point at come along, others do not, and a missing one is reported", async () => {
+test("blobs the rows point at come along, others do not, and a missing or swapped one is reported", async () => {
   expect(
     dump.files.filter((file) => file.path.startsWith("blobs/")).map((file) => file.path),
   ).toEqual(["blobs/kyb/licence.png", "blobs/products/rice.png"]);
-  expect(dump.missingBlobs).toEqual(["products/gone.png"]);
+  // A file whose bytes are not the ones its row registered is never signed as if it were: it is left out and named.
+  expect(dump.missingBlobs).toEqual(["products/gone.png", "products/swapped.png"]);
 });

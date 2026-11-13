@@ -16,6 +16,7 @@ import {
 import type { ShopperDatabase } from "@shopper/db-pg";
 import { commandContext } from "./stock/context";
 import { problem } from "../middleware/problem";
+import { requireOrgWide } from "../middleware/require/branches";
 import { requirePermission } from "../middleware/require/permission";
 import type { ApiAuthentication, ApiEnvironment, ApiOptions } from "../types";
 
@@ -29,7 +30,8 @@ export function exportRoutes(
   options: Pick<ApiOptions, "archiveExports" | "blobs">,
 ) {
   const app = new Hono<ApiEnvironment>();
-  app.use("/export/*", requirePermission(authentication, "export.run"));
+  // A copy of the whole business is for someone who works at every branch, whatever role they hold.
+  app.use("/export/*", requirePermission(authentication, "export.run"), requireOrgWide);
   const context = (c: Context<ApiEnvironment>) => commandContext(c.get("principal"));
   const org = (c: Context<ApiEnvironment>) => c.get("principal").orgId;
   const blobs = () => {

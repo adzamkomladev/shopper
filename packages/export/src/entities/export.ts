@@ -5,7 +5,8 @@ import { reportCsv, reportCsvRows, reportWorkbook, type ReportCell } from "@shop
 import { org } from "@shopper/db-pg";
 import { entityExport, entityRange, rangedEntities, type entityNames } from "../schemas/entities";
 import { catalogueEntities } from "./catalogue";
-import { countRows, entityPages, type DayRange } from "./read";
+import type { DayRange } from "../types";
+import { countRows, entityPages } from "./read";
 import { tradingEntities } from "./trading";
 
 const definitions = { ...catalogueEntities, ...tradingEntities };

@@ -55,3 +55,6 @@ export type EntityDefinition = {
   paged?: boolean;
   order?: SQL;
 };
+
+/** Accra calendar days, first to last, inclusive. */
+export type DayRange = { from: string; to: string };

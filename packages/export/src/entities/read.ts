@@ -1,12 +1,11 @@
 import { sql } from "drizzle-orm";
 import type { ReportCell } from "@shopper/core/reports";
 import type { ShopperDatabase, ShopperTransaction } from "@shopper/db-pg";
-import type { EntityDefinition } from "../types";
+import type { DayRange, EntityDefinition } from "../types";
 
 const FIRST_ID = "00000000-0000-0000-0000-000000000000";
 
 type Reader = Pick<ShopperDatabase | ShopperTransaction, "execute">;
-export type DayRange = { from: string; to: string };
 
 const where = (def: EntityDefinition, orgId: string, range?: DayRange) =>
   range && def.day

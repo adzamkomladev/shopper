@@ -1,3 +1,5 @@
+import type { SQL } from "drizzle-orm";
+import type { ReportCell } from "@shopper/core/reports";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import type { Blobs } from "@shopper/ports";
 
@@ -39,4 +41,17 @@ export type ArchiveExportDeps = {
   blobs: Blobs;
   appVersion: string;
   now?: () => Date;
+};
+
+/**
+ * One entity's spreadsheet as a query: `from` names the base table as `t` (its org and id are the paging key) and
+ * joins whatever the columns show. `day` is the Accra date a ranged entity is cut by.
+ */
+export type EntityDefinition = {
+  from: SQL;
+  columns: { header: string; kind: ReportCell["kind"]; sql: SQL }[];
+  day?: SQL;
+  /** False for a query that is not one row per `t.id` (a sum): it is read once, ordered by `order`. */
+  paged?: boolean;
+  order?: SQL;
 };

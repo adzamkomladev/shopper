@@ -111,3 +111,39 @@ export async function storeAsset(
     sha256: await sha256(bytes),
   });
 }
+
+const day = (iso: string) => new Date(`${iso}T12:00:00.000Z`);
+
+/** Another trading day: a copy of the org's first sale at a new time and total, paid by `tenders` (amounts in 1/10000). */
+export async function addSale(
+  db: schema.ShopperDatabase,
+  orgId: string,
+  sale: {
+    on: string;
+    receipt: string;
+    total: number;
+    tenders: { kind: "cash" | "card"; amount: number }[];
+  },
+) {
+  const [base] = await db.select().from(schema.sale).where(eq(schema.sale.orgId, orgId)).limit(1);
+  const [line] = await db
+    .select()
+    .from(schema.saleLine)
+    .where(eq(schema.saleLine.saleId, base!.id));
+  const id = crypto.randomUUID();
+  await db.insert(schema.sale).values({
+    ...base!,
+    id,
+    localId: id,
+    receiptNumber: sale.receipt,
+    occurredAt: day(sale.on),
+    total: sale.total as never,
+    storeSequence: null,
+  });
+  await db.insert(schema.saleLine).values({ ...line!, id: crypto.randomUUID(), saleId: id });
+  for (const [position, tender] of sale.tenders.entries())
+    await db
+      .insert(schema.saleTender)
+      .values({ orgId, saleId: id, position, kind: tender.kind, amount: tender.amount as never });
+  return id;
+}

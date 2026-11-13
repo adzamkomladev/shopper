@@ -1,3 +1,5 @@
+export { exportEntity } from "./entities/export";
+export { entityNames, MAX_WORKBOOK_ROWS, rangedEntities } from "./schemas/entities";
 export { archiveEntries, recordArchiveDownload } from "./archive/download";
 export { removeArchiveExport } from "./archive/delete";
 export { ExportError } from "./archive/error";

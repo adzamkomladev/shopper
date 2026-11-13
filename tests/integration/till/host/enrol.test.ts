@@ -122,6 +122,14 @@ describe("a till enrols itself", () => {
     const asked = host.waitForMessage((message) => message.type === "server");
     const refused = host.request({ type: "device.server", address: " 192.168.1.20 " });
     expect(await asked).toMatchObject({ address: "192.168.1.20" });
+    // While the register checks the box, a code is not spent on a server it may be about to leave.
+    expect(
+      await host.request({ type: "device.enrol", shopCode: "any", code: "123456", name: "Till" }),
+    ).toMatchObject({ type: "error", code: "ENROL_REFUSED" });
+    expect(await host.request({ type: "device.server", address: "10.0.0.2" })).toMatchObject({
+      type: "error",
+      code: "ENROL_REFUSED",
+    });
     host.child.send({ type: "server-refused", message: "Nothing answered at 192.168.1.20." });
     expect(await refused).toMatchObject({
       type: "error",

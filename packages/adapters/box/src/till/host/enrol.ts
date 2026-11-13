@@ -29,6 +29,8 @@ export async function startEnrolmentHost(raw: unknown, send: (message: unknown) 
       return { id: request.id, type: "result", kind: "unenrolled", server };
     if (request.type === "device.server") {
       if (busy) return error(request, "ENROL_REFUSED", "This till is already enrolling");
+      // Held while the register checks the box, and kept once it changed: the register is restarting on it.
+      busy = true;
       const answer = new Promise<ServerAnswer>((resolve) => {
         answerServer = resolve;
         setTimeout(resolve, 15_000, {
@@ -39,6 +41,7 @@ export async function startEnrolmentHost(raw: unknown, send: (message: unknown) 
       send({ type: "server", address: request.address });
       const reply = await answer;
       answerServer = undefined;
+      busy = reply.type === "server-changed";
       return reply.type === "server-changed"
         ? { id: request.id, type: "result", kind: "server-changed" }
         : error(request, "SERVER_REFUSED", reply.message);

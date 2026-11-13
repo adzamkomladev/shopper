@@ -11,7 +11,8 @@ import { openDisplay } from "./display";
 import { answerRender } from "./render";
 import { loadSecrets, writeAtomic } from "./secrets";
 import type { UpdatePolicy } from "./types";
-import { chainOf, pinBoxCa, trustsPinned } from "./trust";
+import { firstRun } from "./register";
+import { chainOf, trustsPinned } from "./trust";
 import { createUpdates } from "./updates";
 import { lockDown } from "./window";
 
@@ -60,7 +61,7 @@ async function startRegister() {
     join(userData, "register.json");
   const text = await readFile(configPath, "utf8").catch((error: NodeJS.ErrnoException) => {
     if (error.code !== "ENOENT") throw error;
-    return firstRun(configPath, userData);
+    return firstRun(configPath, userData, app.isPackaged ? undefined : new URL(tillUi).origin);
   });
   let stored: {
     ui?: string;
@@ -157,25 +158,6 @@ async function startRegister() {
     secrets.push(prepared.deviceToken, "databaseKey" in prepared && prepared.databaseKey);
     host.send({ type: "start", config: prepared, renderer: "parent" });
   }
-}
-
-/**
- * A fresh install has no register file: write the install half of one, and the host starts as an enrolment host
- * on the "Set up this till" screen. The packaged app serves its own UI, so it needs no other origin.
- */
-async function firstRun(configPath: string, userData: string) {
-  const upstream = process.env.SHOPPER_TILL_UPSTREAM ?? buildInfo.tillUpstream;
-  if (!upstream)
-    throw new Error("This build names no server to enrol with (SHOPPER_TILL_UPSTREAM)");
-  const origins = app.isPackaged ? [] : [new URL(tillUi).origin];
-  const ca = await pinBoxCa(upstream, userData);
-  const text = JSON.stringify(
-    { upstream, sqlitePath: join(userData, "register.sqlite"), origins, port: 0, ca },
-    null,
-    2,
-  );
-  await writeAtomic(configPath, text);
-  return text;
 }
 
 /** electron-updater on the build's feed; the host hears every state change and folds it into its status. */

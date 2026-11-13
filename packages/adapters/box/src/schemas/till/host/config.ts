@@ -10,6 +10,8 @@ const install = {
   /** Development and tests only: keep the database unencrypted. A packaged register always has a key. */
   plaintext: v.optional(v.literal(true)),
   upstream: v.pipe(v.string(), v.url()),
+  /** The box CA pinned at first run. Electron hands it to the host as NODE_EXTRA_CA_CERTS; the host never reads it. */
+  ca: v.optional(v.pipe(v.string(), v.minLength(1))),
   origins: v.array(v.pipe(v.string(), v.url())),
   ui: v.optional(v.pipe(v.string(), v.minLength(1))),
   port: v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(65535)),

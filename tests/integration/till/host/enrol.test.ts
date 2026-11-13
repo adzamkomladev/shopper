@@ -74,6 +74,26 @@ describe("a till enrols itself", () => {
     ).toMatchObject({ type: "error", code: "ENROL_REFUSED" });
   });
 
+  // First run on a box LAN pins the box's CA and records it in the register file; the host must start with it.
+  it("an install that pinned a box CA starts unenrolled, enrols and boots with it", async () => {
+    const config = { ...(await unenrolledConfig()), ca: "/register/box-ca.pem" };
+    const host = await startTillHost(config);
+    cleanup.push(() => host.stop());
+    expect(await host.request({ type: "status" })).toMatchObject({ kind: "unenrolled" });
+    const challenge = await devices.issueEnrollment(principal, { branchId: ids.branch });
+    const parent = host.waitForMessage((message) => message.type === "enrolled");
+    await host.request({
+      type: "device.enrol",
+      shopCode: await slug(),
+      code: challenge.code,
+      name: "Box till",
+    });
+    const registration = (await parent).registration as Record<string, unknown>;
+    const ready = host.waitForMessage((message) => message.type === "ready");
+    host.child.send({ type: "start", config: { ...config, ...registration, session: null } });
+    expect(await ready).toMatchObject({ identity: { registerName: "Box till" } });
+  });
+
   it("says the server cannot be reached and stays unenrolled", async () => {
     const host = await startTillHost({
       ...(await unenrolledConfig()),

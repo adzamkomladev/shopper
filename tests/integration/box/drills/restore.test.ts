@@ -13,19 +13,17 @@ import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { and, eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
-import { defineCommand } from "@shopper/audit";
-import { hashPassword } from "../../../support/auth/password";
 import { postgresFixture } from "../../../fixtures/postgres";
 import {
   context,
   databaseConnectionString,
-  databases,
   enrollAnotherTill,
   principal,
 } from "../../../support/till/server";
 import { createHostFixture } from "../../../support/till/host/fixture";
 import { sell, waitForDrained, waitForStatus } from "../../../support/till/host/chaos";
 import { drillBox, expectStillSelling } from "../../../support/box/drill";
+import { setCashierPassword } from "../../../support/box/lan";
 import { hostSession } from "@shopper/db-sqlite";
 
 const password = "restore drill password";
@@ -63,7 +61,7 @@ test("a spare box restored from last night's dump gets every later sale back fro
   const dump = join(folder, "nightly.dump");
   execFileSync("pg_dump", ["-Fc", "-f", dump, databaseConnectionString()]);
   // The first register's cashier signs in again: a session only the dead box recorded.
-  await setPassword(databases().db, context, { userId: principal.userId, password });
+  await setCashierPassword(principal.userId, password);
   expect(
     await hosts[0].request({
       type: "session.signIn",
@@ -143,18 +141,3 @@ test("a spare box restored from last night's dump gets every later sale back fro
     await pool.end();
   }
 }, 600_000);
-
-const setPassword = defineCommand({
-  name: "drill.test.cashier-password",
-  async run(tx, ctx, input: { userId: string; password: string }) {
-    await tx.insert(schema.account).values({
-      orgId: ctx.orgId,
-      userId: input.userId,
-      accountId: input.userId,
-      providerId: "credential",
-      password: await hashPassword(input.password),
-    });
-    return {};
-  },
-  audit: () => ({}),
-});

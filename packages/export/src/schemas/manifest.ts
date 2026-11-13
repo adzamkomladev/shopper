@@ -1,7 +1,8 @@
 import * as v from "valibot";
+import { buildInfo } from "@shopper/config";
 
 /** The archive format this build writes and reads. A higher number is refused; a lower one is upcast by the importer. */
-export const ARCHIVE_FORMAT = 1;
+export const ARCHIVE_FORMAT = buildInfo.archiveFormat;
 
 const hash = v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/));
 const count = v.pipe(v.number(), v.integer(), v.minValue(0));

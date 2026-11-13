@@ -945,12 +945,24 @@ importers:
 
   packages/export:
     dependencies:
+      '@shopper/config':
+        specifier: workspace:*
+        version: link:../config
       '@shopper/core':
         specifier: workspace:*
         version: link:../core
+      '@shopper/db-pg':
+        specifier: workspace:*
+        version: link:../db/pg
+      '@shopper/ports':
+        specifier: workspace:*
+        version: link:../ports
       '@shopper/utils':
         specifier: workspace:*
         version: link:../utils
+      drizzle-orm:
+        specifier: 0.45.3
+        version: 0.45.3(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.1)
       valibot:
         specifier: 1.5.0
         version: 1.5.0(typescript@7.0.2)

@@ -1,0 +1,32 @@
+/**
+ * What a Shopper Archive leaves out. Every table with an `org_id` is exported unless it is named here, so a new table
+ * is in the archive by default; the coverage test fails when a name below no longer exists.
+ */
+export const EXCLUDED_TABLES: Record<string, string> = {
+  session: "Back-office sign-in sessions are live credentials.",
+  verification: "One-time sign-in codes.",
+  session_key: "The secret that signs cashier sessions; it never leaves the database.",
+  cashier_session: "Live cashier sessions.",
+  cashier_pin: "PIN hashes. Cashiers set a new PIN after a move.",
+  device_credential: "Register credentials. Registers enrol again after a move.",
+  device_enrollment: "One-time register enrolment codes.",
+  enrollment_attempt: "Register enrolment lockout counters.",
+  shop_login: "One-time shopper sign-in links.",
+  shop_session: "Live shopper sessions.",
+  shopper_meta: "The deployment's own bookkeeping, not the business's.",
+};
+
+/** Columns dropped from tables that are otherwise exported: secrets and tokens, never business data. */
+export const HIDDEN_COLUMNS: Record<string, string[]> = {
+  account: ["password", "access_token", "refresh_token", "id_token"],
+  invitation: ["token_digest"],
+  online_order: ["view_token_digest"],
+  registration_request: ["verification_digest"],
+  kyc_case: ["otp_digest"],
+};
+
+/** Blobs an archive carries: files people uploaded. Receipt PDFs and sync snapshots are rebuilt from table rows. */
+export const ARCHIVED_ASSET_PURPOSES = ["product_image", "kyb_document"] as const;
+
+/** The largest blob an archive will hold in memory while it is measured. */
+export const MAX_BLOB_BYTES = 64 * 1024 * 1024;

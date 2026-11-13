@@ -13,8 +13,12 @@
     "build": "tsc -b"
   },
   "dependencies": {
+    "@shopper/config": "workspace:*",
     "@shopper/core": "workspace:*",
+    "@shopper/db-pg": "workspace:*",
+    "@shopper/ports": "workspace:*",
     "@shopper/utils": "workspace:*",
+    "drizzle-orm": "0.45.3",
     "valibot": "1.5.0"
   }
 }

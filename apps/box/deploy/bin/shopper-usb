@@ -1,0 +1,22 @@
+#!/bin/sh
+# Runs as root when a USB stick is plugged into the box (shopper-usb@<device>, started by the udev rule). Copies the
+# update bundles on it into the updates folder and lets the stick go. It never trusts or runs anything from the stick:
+# mounted read-only, no devices, no setuid, no executables; only regular files named like a bundle, at most 2 GB. The
+# box checks each bundle's signature, version and maintenance date when the owner installs it, as for any bundle.
+set -u
+device=/dev/${1:?usage: shopper-usb <device name, e.g. sdb1>}
+updates=${SHOPPER_UPDATES_DIR:-/var/lib/shopper/updates}
+user=${SHOPPER_USER:-shopper}
+stick=$(mktemp -d /run/shopper-usb.XXXXXX)
+trap 'umount "$stick" 2>/dev/null; rmdir "$stick"' EXIT
+mount -o ro,nosuid,nodev,noexec "$device" "$stick" || { echo "shopper-usb: $device could not be read"; exit 1; }
+copied=0
+for file in "$stick"/*.tgz; do
+  name=$(basename "$file")
+  [ -f "$file" ] && [ ! -L "$file" ] || continue
+  printf '%s' "$name" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]{0,120}\.tgz$' || continue
+  [ "$(stat -c %s "$file")" -le 2147483648 ] || continue
+  # A hidden part file first, so the box never lists a half-copied bundle.
+  install -m 0640 -o "$user" -g "$user" "$file" "$updates/.$name.part" && mv -f "$updates/.$name.part" "$updates/$name" && copied=$((copied + 1))
+done
+echo "shopper-usb: copied $copied update bundle(s) from $device"

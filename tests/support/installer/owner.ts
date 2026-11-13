@@ -86,6 +86,40 @@ exit 1
   });
 }
 
+/**
+ * A USB stick as the owner brings it: `files` (copied from `dir`), a bundle Shopper never signed, a note and a link
+ * named like a bundle, as an ext4 image attached in the machine as a loop device. Returns the kernel name udev would
+ * pass (`loop3`).
+ */
+export async function plugStick(machine: Machine, dir: string, files: string[]) {
+  const { execFileSync } = await import("node:child_process");
+  const { copyFile, mkdir, rm, stat, symlink } = await import("node:fs/promises");
+  const stick = join(dir, "stick");
+  await rm(stick, { recursive: true, force: true });
+  await mkdir(stick);
+  for (const file of files) await copyFile(join(dir, file), join(stick, file));
+  await writeFile(join(stick, "update-forged.tgz"), "not a bundle Shopper signed");
+  await writeFile(join(stick, "notes.txt"), "Shopper update, November\n");
+  await symlink("/etc/shopper/box.env", join(stick, "update-link.tgz"));
+  const bytes = (await Promise.all(files.map((file) => stat(join(stick, file))))).reduce(
+    (sum, file) => sum + file.size,
+    0,
+  );
+  const image = join(dir, "stick.img");
+  await rm(image, { force: true });
+  execFileSync("truncate", ["-s", String(bytes + 64 * 1024 * 1024), image]);
+  execFileSync("mkfs.ext4", ["-q", "-F", "-d", stick, image]);
+  machine.copyIn(image, "/stick.img");
+  // A container's /dev holds the loop nodes that existed when it started; make the free one if it is newer.
+  const attached = machine.run(
+    'dev=$(losetup -f) && { [ -e "$dev" ] || mknod "$dev" b 7 "${dev#/dev/loop}"; } && losetup "$dev" /stick.img && basename "$dev"',
+  );
+  const device = attached.output.trim();
+  if (attached.status !== 0 || !/^loop\d+$/.test(device))
+    throw new Error(`The stick could not be attached: ${attached.output}`);
+  return device;
+}
+
 /** What the installed box reports about itself, read on the machine. */
 export function boxState(machine: Machine) {
   return {

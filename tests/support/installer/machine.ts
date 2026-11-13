@@ -1,4 +1,8 @@
 import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { downloadDebs } from "../../../tooling/installer/build";
 
 const IMAGE = "shopper-installer-test:24.04-2";
 
@@ -58,4 +62,14 @@ STOPSIGNAL SIGRTMIN+3
 `,
     stdio: ["pipe", "ignore", "inherit"],
   });
+}
+
+/** The Ubuntu packages the installer carries, downloaded once per checkout; the machine under test never has a network. */
+export async function installerDebs() {
+  const debs = join(process.cwd(), ".shopper", "installer-debs");
+  if (existsSync(join(debs, "..", "installer-debs.done"))) return debs;
+  await rm(debs, { recursive: true, force: true });
+  downloadDebs(debs);
+  await writeFile(join(debs, "..", "installer-debs.done"), "");
+  return debs;
 }

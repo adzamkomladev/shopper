@@ -175,6 +175,7 @@ test("the last attempt's result, and an empty folder", async ({ page }, info) =>
   // The box says why, in its own words.
   await expect(page.getByText("division by zero", { exact: false })).toBeVisible();
   await expect(page.getByText("No update bundles yet")).toBeVisible();
+  await expect(page.getByText("Plug the USB stick with the update")).toBeVisible();
   await shoot(page, info, "updates-rolled-back", { sizes: SIZES });
 });
 

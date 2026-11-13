@@ -1,7 +1,6 @@
 // A store server installs from one file with no network, in well under 30 minutes, and a file that is not Shopper's is refused
 // before anything on the machine changes.
 import { generateKeyPairSync } from "node:crypto";
-import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -13,12 +12,13 @@ import {
   journal,
   licenceFor,
   ownerApi,
+  plugStick,
   secure,
   setUpBackups,
   until,
 } from "../../support/installer/owner";
-import { buildInstaller, downloadDebs } from "../../../tooling/installer/build";
-import { bareMachine } from "../../support/installer/machine";
+import { buildInstaller } from "../../../tooling/installer/build";
+import { bareMachine, installerDebs } from "../../support/installer/machine";
 
 let dir: string;
 let machine: ReturnType<typeof bareMachine>;
@@ -28,13 +28,7 @@ beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), "shopper-install-test-"));
   release = await generateKey();
   issuer = await generateKey();
-  // Packages are downloaded once per checkout; the machine under test never has a network.
-  const debs = join(process.cwd(), ".shopper", "installer-debs");
-  if (!existsSync(join(debs, "..", "installer-debs.done"))) {
-    await rm(debs, { recursive: true, force: true });
-    downloadDebs(debs);
-    await writeFile(join(debs, "..", "installer-debs.done"), "");
-  }
+  const debs = await installerDebs();
   const portal = join(dir, "portal");
   await mkdir(portal);
   await writeFile(join(portal, "index.html"), "<!doctype html><title>Shopper</title>");
@@ -158,10 +152,19 @@ const migrations = () => box().migrations();
 test("the owner installs an update from the box (backup first, slot switch), and a broken one is switched back with its database restored", async () => {
   const api = ownerApi(machine);
   expect(api.signIn().status).toBe(200);
-  // Bundles arrive by USB or scp, into the updates folder.
-  for (const file of ["update-good.tgz", "update-broken.tgz"])
-    machine.copyIn(join(dir, file), `/var/lib/shopper/updates/${file}`);
-  machine.run("chown shopper:shopper /var/lib/shopper/updates/*.tgz");
+  // Air-gapped: the bundles come on a USB stick. Plugging it in starts shopper-usb@<device> (the udev rule; Docker has
+  // no udev, so the test starts the unit). Only regular files named like a bundle are copied; the stick is let go.
+  const stick = await plugStick(machine, dir, ["update-good.tgz", "update-broken.tgz"]);
+  const copied = machine.run(`systemctl start shopper-usb@${stick}.service`);
+  expect(copied.status, copied.output).toBe(0);
+  expect(
+    machine.run("ls -A /var/lib/shopper/updates").output.split("\n").filter(Boolean).sort(),
+  ).toEqual(["update-broken.tgz", "update-forged.tgz", "update-good.tgz"]);
+  expect(
+    machine.run("stat -c '%U %a' /var/lib/shopper/updates/update-good.tgz").output.trim(),
+  ).toBe("shopper 640");
+  expect(machine.run(`findmnt -S /dev/${stick}`).status).not.toBe(0);
+  machine.run(`losetup -d /dev/${stick}`);
   const listed = JSON.parse(api.call("GET", "/updates").text) as {
     running: { slot: string };
     bundles: Array<{ file: string; verdict: { ok: boolean } }>;
@@ -169,6 +172,7 @@ test("the owner installs an update from the box (backup first, slot switch), and
   expect(listed.running.slot).toBe("a");
   expect(listed.bundles.map((bundle) => [bundle.file, bundle.verdict.ok]).sort()).toEqual([
     ["update-broken.tgz", true],
+    ["update-forged.tgz", false],
     ["update-good.tgz", true],
   ]);
   // The mandatory backup is not set up yet: the update is refused and nothing is switched.

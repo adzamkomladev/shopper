@@ -42,9 +42,10 @@ export async function exportFixture() {
     .update(schema.store)
     .set({ lastSeq: 9223372036854775000n })
     .where(eq(schema.store.id, store!.id));
-  await plantSecrets(db, ctx.orgId);
+  const userId = await plantSecrets(db, ctx.orgId);
   return {
     db,
+    userId,
     ctx,
     other,
     store: store!,
@@ -86,6 +87,7 @@ async function plantSecrets(db: schema.ShopperDatabase, orgId: string) {
   });
   await db.insert(schema.cashierPin).values({ orgId, userId: user!.id, pinHash: SECRETS.pin });
   await db.insert(schema.sessionKey).values({ orgId, key: SECRETS.sessionKey });
+  return user!.id;
 }
 
 /** A product image the org's `asset` row points at, stored for real. */

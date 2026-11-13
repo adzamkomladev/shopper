@@ -14,6 +14,8 @@ export const EXCLUDED_TABLES: Record<string, string> = {
   shop_login: "One-time shopper sign-in links.",
   shop_session: "Live shopper sessions.",
   shopper_meta: "The deployment's own bookkeeping, not the business's.",
+  archive_key: "The key archives are signed with; it never leaves the database.",
+  export_job: "The archives' own bookkeeping.",
 };
 
 /** Columns dropped from tables that are otherwise exported: secrets and tokens, never business data. */

@@ -1,3 +1,4 @@
+import type { ShopperDatabase } from "@shopper/db-pg";
 import type { Blobs } from "@shopper/ports";
 
 /** A file to write into a ZIP: `bytes` and `crc` were measured when it was made, `read` gives it back on demand. */
@@ -31,3 +32,11 @@ export type DumpOptions = {
 };
 
 export type DumpResult = { files: DumpFile[]; missingBlobs: string[] };
+
+/** What the export workflow needs from its runtime: a connection per step, the org's blobs, the build's version. */
+export type ArchiveExportDeps = {
+  withDatabase<T>(run: (db: ShopperDatabase) => Promise<T>): Promise<T>;
+  blobs: Blobs;
+  appVersion: string;
+  now?: () => Date;
+};

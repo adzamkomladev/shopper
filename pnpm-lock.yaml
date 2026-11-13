@@ -945,6 +945,9 @@ importers:
 
   packages/export:
     dependencies:
+      '@shopper/audit':
+        specifier: workspace:*
+        version: link:../audit
       '@shopper/config':
         specifier: workspace:*
         version: link:../config

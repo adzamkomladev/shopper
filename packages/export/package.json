@@ -12,5 +12,9 @@
   "scripts": {
     "build": "tsc -b"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@shopper/core": "workspace:*",
+    "@shopper/utils": "workspace:*",
+    "valibot": "1.5.0"
+  }
 }

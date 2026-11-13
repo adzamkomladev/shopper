@@ -943,7 +943,17 @@ importers:
         specifier: 0.45.3
         version: 0.45.3(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.1)
 
-  packages/export: {}
+  packages/export:
+    dependencies:
+      '@shopper/core':
+        specifier: workspace:*
+        version: link:../core
+      '@shopper/utils':
+        specifier: workspace:*
+        version: link:../utils
+      valibot:
+        specifier: 1.5.0
+        version: 1.5.0(typescript@7.0.2)
 
   packages/hardware:
     dependencies:
@@ -1150,6 +1160,9 @@ importers:
       '@shopper/db-sqlite':
         specifier: workspace:*
         version: link:../packages/db/sqlite
+      '@shopper/export':
+        specifier: workspace:*
+        version: link:../packages/export
       '@shopper/hardware':
         specifier: workspace:*
         version: link:../packages/hardware

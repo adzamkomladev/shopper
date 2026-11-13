@@ -49,7 +49,7 @@ export function SpreadsheetCard({
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {!entities ? (
-          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-24 w-full" />
         ) : (
           <>
             <div className="flex flex-wrap items-end gap-3 max-sm:flex-col max-sm:items-stretch">

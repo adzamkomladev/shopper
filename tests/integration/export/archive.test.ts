@@ -6,8 +6,9 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "vite-plus/test";
+import { buildInfo } from "@shopper/config";
 import { generateKey } from "@shopper/core/licence";
-import { readZip, verifyArchive, zipBytes } from "@shopper/export";
+import { ARCHIVE_FORMAT, readZip, verifyArchive, zipBytes } from "@shopper/export";
 import { sealedArchive } from "../../support/export/archive";
 
 const decoder = new TextDecoder();
@@ -150,3 +151,7 @@ function indexOfBytes(bytes: Uint8Array, needle: number[]) {
     if (needle.every((byte, offset) => bytes[i + offset] === byte)) return i;
   return undefined;
 }
+
+test("the format this code writes is the one the build records", () => {
+  expect(ARCHIVE_FORMAT).toBe(buildInfo.archiveFormat);
+});

@@ -1,8 +1,11 @@
 import * as v from "valibot";
-import { buildInfo } from "@shopper/config";
 
-/** The archive format this build writes and reads. A higher number is refused; a lower one is upcast by the importer. */
-export const ARCHIVE_FORMAT = buildInfo.archiveFormat;
+/**
+ * The archive format this code writes and reads. A higher number is refused; a lower one is upcast by the importer.
+ * It is a number in the code, not read from the build, so a verifier runs anywhere; a test holds it equal to the
+ * build's `ARCHIVE_FORMAT`, which records it for installers and orgs.
+ */
+export const ARCHIVE_FORMAT = 1;
 
 const hash = v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/));
 const count = v.pipe(v.number(), v.integer(), v.minValue(0));

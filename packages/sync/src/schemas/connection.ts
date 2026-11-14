@@ -18,4 +18,6 @@ export const handshake = v.object({
   updateFeed: v.optional(v.pipe(v.string(), v.startsWith("/"))),
   /** How many of this register's sales the server holds. */
   held: v.optional(v.pipe(v.number(), v.safeInteger(), v.minValue(0))),
+  /** The shop moved to the cloud: this register's signed `reloc/1`, which the till verifies before it follows it. */
+  relocation: v.optional(v.unknown()),
 });

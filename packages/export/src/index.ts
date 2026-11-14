@@ -29,5 +29,14 @@ export { ImportError } from "./import/error";
 export { tableOrder } from "./import/order";
 export { commitImport, archiveImportId } from "./move/commit";
 export { getImport, openImport, receiveFile } from "./move/uploads";
-export { archiveImportParams, commitImportBody, openImportBody } from "./schemas/move";
+export {
+  archiveImportParams,
+  cloudMoveBody,
+  cloudMoveParams,
+  commitImportBody,
+  openImportBody,
+} from "./schemas/move";
 export { runArchiveImport } from "./workflows/import";
+export { cloudMoveId, deliverRelocation, getCloudMove, requestCloudMove } from "./move/box";
+export { runCloudMove } from "./workflows/move";
+export type { CloudMoveDeps } from "./types";

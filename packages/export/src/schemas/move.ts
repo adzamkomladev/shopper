@@ -18,3 +18,10 @@ export const moveCredentials = v.object({
 export const commitImportBody = v.object({ credentials: v.optional(moveCredentials) });
 
 export const archiveImportParams = v.object({ orgId: id, importId: id });
+
+/** An owner starting the move: where the cloud's API is. */
+export const cloudMoveBody = v.object({
+  cloudUrl: v.pipe(v.string(), v.url(), v.startsWith("https://")),
+});
+
+export const cloudMoveParams = v.object({ orgId: id, moveId: id });

@@ -70,3 +70,8 @@ export type ImportInput = {
   /** The cloud import this run belongs to, named in its audit row (the org has no audit chain before it). */
   source?: { importId: string; licenceId: string };
 };
+
+/** A box moving to the cloud: the export's needs, plus a licence-signed request to the cloud. */
+export type CloudMoveDeps = ArchiveExportDeps & {
+  cloud(url: string, init: { method: string; body?: string | Uint8Array }): Promise<Response>;
+};

@@ -15,7 +15,7 @@ import { exportFixture } from "../export/org";
 
 type Fixture = Awaited<ReturnType<typeof exportFixture>>;
 
-async function diskBlobs() {
+export async function diskBlobs() {
   const dir = await mkdtemp(join(tmpdir(), "shopper-move-"));
   const { blobs } = await boxBlobs(dir, {
     baseUrl: "http://127.0.0.1",

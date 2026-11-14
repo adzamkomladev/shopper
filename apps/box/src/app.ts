@@ -1,4 +1,4 @@
-import { bootArchiveExport } from "./exports";
+import { bootArchiveExport, bootCloudMove } from "./exports";
 import { bootFiscalLane } from "./fiscal";
 import { Hono } from "hono";
 import { buildInfo } from "@shopper/config";
@@ -48,6 +48,7 @@ export function createBoxApp(
   let authFlows: ReturnType<typeof boxAuthFlows> | undefined;
   let kycFlows: ReturnType<typeof boxKycFlows> | undefined;
   let archiveExport: ReturnType<typeof bootArchiveExport> | undefined;
+  let cloudMove: ReturnType<typeof bootCloudMove> | undefined;
   let payments: ReturnType<typeof boxPayments> | undefined;
   let priceChange: ReturnType<typeof boxPriceChange> | undefined;
   let notifications: Queue | undefined;
@@ -159,6 +160,8 @@ export function createBoxApp(
       { database: workflowDatabase, blobs: await blobs() },
       launch,
     );
+    // Only a licensed box can move: the licence is what the cloud trusts.
+    if (licence) cloudMove ??= bootCloudMove(licence, workflowDatabase, await blobs(), launch);
     if (!watchdog) {
       const anchors = boxAuditAnchors({ database: workflowDatabase, queue: notifications }, launch);
       const days = storeDays.launcher;
@@ -222,6 +225,7 @@ export function createBoxApp(
         authFlows,
         kyc: kycFlows,
         archiveExports: archiveExport.launcher,
+        cloudMoves: cloudMove?.launcher,
         storeDays: storeDays.launcher,
         ...orders,
         linkSecret: environment.SHOPPER_LINK_SECRET,

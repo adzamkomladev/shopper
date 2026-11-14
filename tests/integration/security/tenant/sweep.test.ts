@@ -132,7 +132,7 @@ test("A's session naming B as the shop is refused everywhere, and B's own lists 
 // A box checks in, and moves into the cloud, by licence-signed requests with no session: the signature is the
 // credential, and the licence names the one shop it may act for.
 const PUBLIC =
-  /^\/($|about|health|version|tax-rules|orgs\/|public\/|licence\/confirmations$|migration\/)/;
+  /^\/($|about|health|version|tax-rules|orgs\/|public\/|licence\/confirmations$|migration\/imports)/;
 
 /** Every route the API can mount, with each optional family switched on. */
 function routes() {
@@ -150,6 +150,7 @@ function routes() {
     licenceSigningKey: "route-listing-only",
     blobs: stub,
     archiveImports: stub,
+    cloudMoves: stub,
     linkSecret: "route-listing-only",
   });
   const seen = new Set<string>();

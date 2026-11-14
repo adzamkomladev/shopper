@@ -6,6 +6,14 @@ export {
   licenceStatus,
   LOCK_AFTER_DAYS,
 } from "./licence";
+export { signRelocation, verifyRelocation } from "./relocation";
 export { signedRequest, verifySignedRequest } from "./requests";
-export { confirmation, licence, type Confirmation, type Licence } from "./schemas/base";
+export {
+  confirmation,
+  licence,
+  relocation,
+  type Confirmation,
+  type Licence,
+  type Relocation,
+} from "./schemas/base";
 export type { LicenceReason, LicenceStatus } from "./types";

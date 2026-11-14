@@ -28,7 +28,9 @@ export const registrationRequest = pgTable(
     name: text("name").notNull(),
     shopName: text("shop_name").notNull(),
     shopCode: text("shop_code").notNull(),
-    verificationDigest: text("verification_digest").notNull(),
+    verificationDigest: text("verification_digest")
+      .notNull()
+      .default(sql`('moved:' || uuidv7())`),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     verifiedAt: timestamp("verified_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),

@@ -104,6 +104,10 @@ export interface ApiOptions {
   kyc?: WorkflowLauncher;
   /** Runs a full copy of the business (the Shopper Archive); without it the Export screen offers spreadsheets only. */
   archiveExports?: WorkflowLauncher;
+  /** Cloud only: imports an archive a licensed box moves in (with `licenceSigningKey` and `blobs`). */
+  archiveImports?: WorkflowLauncher;
+  /** Box only: moves the shop into the cloud; once started the box takes no more changes. */
+  cloudMoves?: WorkflowLauncher;
   /** Starts a store's day; a new store's chain starts today rather than at the night's watchdog. */
   storeDays?: WorkflowLauncher;
   /** Business verification for payouts, cloud only: the Paystack banks a payout can settle to. */
@@ -154,6 +158,8 @@ export interface BoxLicence {
   status(): Promise<LicenceStatus & { request: string }>;
   /** A licence-signed check-in to the cloud; the confirmation it returns resets the 60-day ladder. */
   checkIn(): Promise<LicenceStatus & { request: string; error?: string }>;
+  /** A request to the cloud signed with this box's licence (moving to the cloud). */
+  send(url: string, init: { method: string; body?: string | Uint8Array }): Promise<Response>;
 }
 
 export interface RuntimeOptions {
@@ -186,6 +192,10 @@ export interface RuntimeOptions {
   onboarding?: WorkflowLauncher;
   kyc?: WorkflowLauncher;
   archiveExports?: WorkflowLauncher;
+  /** Cloud only: imports an archive a licensed box moves in (with `licenceSigningKey` and `blobs`). */
+  archiveImports?: WorkflowLauncher;
+  /** Box only: moves the shop into the cloud; once started the box takes no more changes. */
+  cloudMoves?: WorkflowLauncher;
   storeDays?: WorkflowLauncher;
   kyb?: ApiOptions["kyb"];
   platform?: ApiOptions["platform"];

@@ -25,6 +25,7 @@ import { createUpdates } from "./updates";
 import { mountDesktop } from "./http/desktop";
 import type { Host } from "./types";
 import { openHostTransport, error } from "./transport";
+import { withRelocation } from "./relocate";
 
 /** `handover` is the port and capability an enrolment host served, so the page that enrolled reconnects as it was. */
 export async function startTillHost(
@@ -73,7 +74,7 @@ export async function startTillHost(
     payments,
     () => receipts.refreshSigned(),
     (payload) => approvals.receive(payload),
-    updates.handshake,
+    withRelocation((release) => updates.handshake(release), identity, send),
   );
   const receipts = createHostReceipts({
     database,

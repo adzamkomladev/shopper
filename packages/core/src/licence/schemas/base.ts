@@ -26,3 +26,15 @@ export const confirmation = v.object({
   signature: v.string(),
 });
 export type Confirmation = v.InferOutput<typeof confirmation>;
+
+/** `reloc/1`: the cloud's word that a register now belongs at `upstream`, claimable once with `code`. */
+export const relocation = v.object({
+  format: v.literal("reloc/1"),
+  orgId: v.pipe(v.string(), v.uuid()),
+  deviceId: v.pipe(v.string(), v.uuid()),
+  upstream: v.pipe(v.string(), v.url()),
+  code: v.pipe(v.string(), v.minLength(16)),
+  expiresAt: iso,
+  signature: v.string(),
+});
+export type Relocation = v.InferOutput<typeof relocation>;

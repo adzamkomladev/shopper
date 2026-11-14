@@ -90,6 +90,7 @@ export async function cloudflareRuntime(
         ? cloudflareLauncher(env.KYC_FLOWS)
         : undefined,
     archiveExports: env.ARCHIVE_EXPORT ? cloudflareLauncher(env.ARCHIVE_EXPORT) : undefined,
+    archiveImports: env.ARCHIVE_IMPORT ? cloudflareLauncher(env.ARCHIVE_IMPORT) : undefined,
     storeDays: env.STORE_DAY ? cloudflareLauncher(env.STORE_DAY) : undefined,
     orderFlows: env.ORDER_FLOWS ? cloudflareLauncher(env.ORDER_FLOWS) : undefined,
     orderReviews: env.ORDER_REVIEWS ? cloudflareLauncher(env.ORDER_REVIEWS) : undefined,

@@ -1,4 +1,5 @@
 import * as v from "valibot";
+import { moveStatus } from "./migration";
 
 export const invoiceRow = v.object({
   id: v.string(),
@@ -54,4 +55,5 @@ export type BillingView = v.InferOutput<typeof billingView>;
 export const billingStatus = v.object({
   readOnly: v.boolean(),
   licence: v.nullish(v.object(licenceState)),
+  move: v.nullish(v.object({ status: moveStatus, cloudUrl: v.string() })),
 });

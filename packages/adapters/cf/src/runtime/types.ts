@@ -63,6 +63,7 @@ export interface CloudflareRuntimeEnvironment extends AuthEnvironment, RateLimit
   BROWSER?: Parameters<typeof cloudflareRenderer>[0];
   KYC_FLOWS?: Parameters<typeof cloudflareLauncher>[0];
   ARCHIVE_EXPORT?: Parameters<typeof cloudflareLauncher>[0];
+  ARCHIVE_IMPORT?: Parameters<typeof cloudflareLauncher>[0];
   ACCOUNT_FLOWS?: Parameters<typeof cloudflareLoopLauncher>[0];
   STATEMENT_FLOWS?: Parameters<typeof cloudflareLoopLauncher>[0];
   FISCAL_LANE?: Parameters<typeof cloudflareLane>[0];

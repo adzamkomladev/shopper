@@ -14,7 +14,8 @@ const FRESH_MS = 5 * 60_000;
 export async function signedRequest(
   identity: { key: string; licence: Licence },
   url: string,
-  init: { method: string; body?: string },
+  // A file (bytes) is signed by its SHA-256 like any JSON body, so a box can upload what it cannot send as text.
+  init: { method: string; body?: string | Uint8Array },
   now = new Date(),
 ) {
   const body = init.body ?? "";
@@ -22,14 +23,16 @@ export async function signedRequest(
   const target = new URL(url);
   return new Request(url, {
     method: init.method,
-    body: init.body,
+    body: init.body as BodyInit | undefined,
     headers: {
-      "content-type": "application/json",
+      "content-type":
+        typeof init.body === "object" ? "application/octet-stream" : "application/json",
       "shopper-licence": toBase64Url(new TextEncoder().encode(JSON.stringify(identity.licence))),
       "shopper-signed-at": signedAt,
+      "shopper-path": target.pathname + target.search,
       "shopper-signature": await sign(
         identity.key,
-        await requestMessage(init.method, target, signedAt, body),
+        await requestMessage(init.method, target.pathname + target.search, signedAt, body),
       ),
     },
   });
@@ -50,17 +53,25 @@ export async function verifySignedRequest(
   if (!parsed.success) return undefined;
   const licence = parsed.output;
   if (!(await verify(options.issuer, licenceMessage(licence), licence.signature))) return undefined;
+  // The signer's path: a host serving its API under a prefix (`/api`) strips it, so only that prefix may differ.
+  const url = new URL(request.url);
+  const path = request.headers.get("shopper-path") ?? url.pathname + url.search;
+  if (!path.endsWith(url.pathname + url.search)) return undefined;
   const message = await requestMessage(
     request.method,
-    new URL(request.url),
+    path,
     signedAt,
-    await request.clone().text(),
+    new Uint8Array(await request.clone().arrayBuffer()),
   );
   return (await verify(licence.key, message, signature)) ? licence : undefined;
 }
 
-const requestMessage = async (method: string, url: URL, signedAt: string, body: string) =>
-  JSON.stringify([method.toUpperCase(), url.pathname + url.search, signedAt, await sha256(body)]);
+const requestMessage = async (
+  method: string,
+  path: string,
+  signedAt: string,
+  body: string | Uint8Array,
+) => JSON.stringify([method.toUpperCase(), path, signedAt, await sha256(body)]);
 
 function parseJson(base64: string): unknown {
   try {

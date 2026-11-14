@@ -1,17 +1,34 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { KeyRoundIcon, LockIcon } from "lucide-react";
+import { CloudUploadIcon, KeyRoundIcon, LockIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@shopper/ui/components/alert";
 import { formatDay } from "@shopper/utils";
 import { billingStatusQuery } from "../../../queries/billing";
 
 /**
  * Every member sees why changes are refused while an overdue invoice or a box's unconfirmed licence keeps the back
- * office read-only, and a box's warning in the 30 days before its licence locks.
+ * office read-only, a box moving to the cloud, and a box's warning in the 30 days before its licence locks.
  */
 export function ReadOnlyBanner() {
   const { data } = useQuery(billingStatusQuery());
   const licence = data?.licence;
+  if (data?.move)
+    return (
+      <Alert role="status">
+        <CloudUploadIcon aria-hidden />
+        <AlertDescription>
+          <span>
+            {data.move.status === "moved"
+              ? `This shop has moved to the cloud at ${data.move.cloudUrl}, so this box only reads.`
+              : "This shop is moving to the cloud, so the back office is read-only."}{" "}
+            Tills keep selling.{" "}
+            <Link to="/migration/move" className="font-medium underline underline-offset-4">
+              See the move
+            </Link>
+          </span>
+        </AlertDescription>
+      </Alert>
+    );
   if (licence?.state === "locked")
     return (
       <Alert variant="destructive" role="status">

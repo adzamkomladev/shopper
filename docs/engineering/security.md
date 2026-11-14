@@ -209,3 +209,20 @@ One `RateLimiter` port (`packages/ports/src/limits.ts`) with a fixed policy tabl
 - **Audit.** `export.entity`, `export.archive.start|seal|fail|delete|download` name the entity, counts, size and job
   (never rows or keys). An archive is a copy of everything the org owns: it is as sensitive as a database dump, so the
   screen says so and Delete removes the parts.
+
+## Box → cloud move (Day 42)
+
+- **Credentials cross only the licence-signed move.** The archive never carries them. On Move to cloud, the box sends
+  password hashes, cashier PIN hashes and the session key in the commit body of a request signed with its licence key.
+  The cloud applies them inside the import transaction, then nulls them in `archive_import`, whether the import
+  succeeds or fails. They never reach a blob, a log or an audit payload, so people keep their passwords and PINs.
+- **Who may import.** `/migration/imports*` is public to sessions (it is in the sweep's `PUBLIC` list) but needs a
+  valid licence signature. The licence's `org` must be the archive's org (403), and an org that already exists in the
+  cloud is refused (409). The signed message covers the full path the box called (`shopper-path`), so a host that
+  strips `/api` still verifies, while a replay to another path does not.
+- **Registers.** A `reloc/1` message is signed by the issuer key and checked by the till against
+  `buildInfo.licenceIssuer` and its own device id. `/devices/relocate` redeems a hashed one-time code (single use,
+  7 days), is rate-limited with enrolment, and issues a new token for the existing device. The box's old token does
+  not work in the cloud.
+- **The moved box** refuses every write with 423 except sign-in, the move screen and the register handshake.
+  `migration.run` is the owner's, org-wide only (`requireOrgWide`).

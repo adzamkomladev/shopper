@@ -11,7 +11,7 @@ import { openDisplay } from "./display";
 import { answerRender } from "./render";
 import { loadSecrets, writeAtomic } from "./secrets";
 import type { UpdatePolicy } from "./types";
-import { firstRun, moveServer } from "./register";
+import { firstRun, moveServer, relocate } from "./register";
 import { chainOf, trustsPinned } from "./trust";
 import { createUpdates } from "./updates";
 import { lockDown } from "./window";
@@ -152,6 +152,10 @@ async function startRegister() {
         );
       else if (message?.type === "enrolled" && message.registration)
         void enrol(message.registration).catch((error: unknown) => fail("Register stopped", error));
+      else if (message?.type === "relocated" && message.registration)
+        void relocate(configPath, message.registration).catch((error: unknown) =>
+          fail("Register could not move to the cloud", error),
+        );
       else if (message?.type === "ready" && message.capability) {
         // After enrolment the host comes back on the same port and capability; the open window reconnects.
         if (ready) return;

@@ -62,6 +62,7 @@ export const BODIES: Record<string, Body> = {
   }),
   "POST /devices/enroll": (id) => ({ orgId: id, code: "123456", name: "Sweep" }),
   "POST /devices/enrollment": (id) => ({ branchId: id }),
+  "POST /devices/relocate": (id) => ({ orgId: id, deviceId: id, code: "x".repeat(32) }),
   "POST /devices/revoke": (id) => ({ deviceId: id }),
   "POST /ledger/accounts": () => ({ code: "9999", name: "Sweep", type: "expense" }),
   "POST /ledger/journal": (id) => ({

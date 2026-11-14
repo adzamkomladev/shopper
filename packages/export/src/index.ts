@@ -18,8 +18,25 @@ export type {
   DumpOptions,
   DumpResult,
   FileDescription,
+  ImportInput,
   ZipEntry,
 } from "./types";
 export { verifyArchive } from "./verify";
 export { runArchiveExport } from "./workflows/archive";
 export { crc32, readZip, zipBytes, zipLength, zipStream } from "./zip";
+export { importArchive } from "./import/run";
+export { ImportError } from "./import/error";
+export { tableOrder } from "./import/order";
+export { commitImport, archiveImportId } from "./move/commit";
+export { getImport, openImport, receiveFile } from "./move/uploads";
+export {
+  archiveImportParams,
+  cloudMoveBody,
+  cloudMoveParams,
+  commitImportBody,
+  openImportBody,
+} from "./schemas/move";
+export { runArchiveImport } from "./workflows/import";
+export { cloudMoveId, deliverRelocation, getCloudMove, requestCloudMove } from "./move/box";
+export { runCloudMove } from "./workflows/move";
+export type { CloudMoveDeps } from "./types";

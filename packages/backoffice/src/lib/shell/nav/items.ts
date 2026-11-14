@@ -6,6 +6,7 @@ import {
   Building2Icon,
   ChartNoAxesColumnIcon,
   ClockIcon,
+  CloudUploadIcon,
   CreditCardIcon,
   DatabaseIcon,
   GiftIcon,
@@ -54,6 +55,8 @@ type NavItem = {
   also?: readonly string[];
   /** An account page: listed in the user menu and the palette, not the sidebar. */
   account?: true;
+  /** Only on a box (its billing status names a licence). */
+  box?: true;
 };
 
 export const NAV_ITEMS: readonly NavItem[] = [
@@ -191,6 +194,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     icon: DatabaseIcon,
     section: "Organisation",
     permission: "export.run",
+  },
+  {
+    to: "/migration/move",
+    label: "Move to cloud",
+    icon: CloudUploadIcon,
+    section: "Organisation",
+    permission: "migration.run",
+    box: true,
   },
   {
     to: "/billing",

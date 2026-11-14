@@ -25,10 +25,11 @@ export type PushOptions = {
   onAcknowledgment?: () => void;
   /** A handshake measured the register clock against the server's: register minus server, in ms. */
   onClockMeasured?: (offsetMs: number) => void;
-  /** What the last handshake said about updates: the minimum till version and this org's channel. */
+  /** What the last handshake said: the minimum till version, this org's channel, and a move to the cloud. */
   onHandshake?: (release: {
     minTillVersion?: string | null;
     updateChannel?: "pilot" | "stable";
     updateFeed?: string;
+    relocation?: unknown;
   }) => void;
 };

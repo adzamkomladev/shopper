@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { app } from "electron";
 import { join } from "node:path";
 import { buildInfo } from "@shopper/config";
 import { writeAtomic } from "./secrets";
@@ -34,4 +35,21 @@ export async function moveServer(configPath: string, userData: string, address: 
   if (stored.identity !== undefined) throw new Error("This till is already enrolled");
   const server = await changeServer(address, userData);
   await writeAtomic(configPath, JSON.stringify({ ...stored, ...server }, null, 2));
+}
+
+/**
+ * The shop moved to the cloud: the register file names the cloud, drops the box's CA (the cloud chains to public CAs)
+ * and holds the new token until the restart seals it. The device id, database and outbox stay as they are.
+ */
+export async function relocate(configPath: string, registration: object) {
+  const { ca: _box, ...stored } = JSON.parse(await readFile(configPath, "utf8")) as {
+    ca?: unknown;
+  };
+  await writeAtomic(
+    configPath,
+    JSON.stringify({ ...stored, ...registration, session: null }, null, 2),
+  );
+  // A new server and no box CA: like a changed server, the register starts afresh on it.
+  app.relaunch();
+  app.exit(0);
 }

@@ -27,6 +27,8 @@ import { createStockRoutes } from "./stock";
 import { createLiveRoutes, type LiveUpgrade } from "./live";
 import { createPullRoutes } from "./pull";
 import { enqueueFiscal } from "./fiscal";
+import { relocationHandshake } from "./relocation";
+import { activeCloudMove, refuseWhenMoved } from "../middleware/moved";
 import { createSnapshotRoutes } from "./snapshot";
 
 const maxBytes = 1024 * 1024;
@@ -44,6 +46,8 @@ export function createSyncRoutes(options: {
   /** SHOPPER_MIN_TILL_VERSION: below it a till opens no new shift. Empty or unset means no minimum. */
   minTillVersion?: string;
   tillFeed?: string;
+  /** Box only: a box can move to the cloud, after which its registers are handed their relocation. */
+  movable?: boolean;
 }) {
   const protocol = options.protocol ?? buildInfo.syncProtocol;
   const app = new Hono();
@@ -54,6 +58,7 @@ export function createSyncRoutes(options: {
       onError: (c) => c.json({ error: "Upload exceeds byte limit" }, 413),
     }),
   );
+  if (options.movable) app.use("/sync/*", refuseWhenMoved(options.database, /^\/sync\/handshake$/));
   app.onError((error, c) => {
     if (error instanceof AssetError) return c.json({ error: error.message }, error.status);
     if (v.isValiError(error) || error instanceof SyntaxError)
@@ -78,6 +83,8 @@ export function createSyncRoutes(options: {
     const data = v.parse(handshake, await c.req.json());
     if (negotiateProtocol(protocol, data.protocol) === undefined)
       return c.json({ error: "Incompatible sync protocol" }, 409);
+    const moved = options.movable ? await activeCloudMove(options.database) : undefined;
+    if (moved) return c.json(await relocationHandshake(options.database, moved, principal, data));
     return c.json({
       requestId: data.requestId,
       appVersion: buildInfo.version,

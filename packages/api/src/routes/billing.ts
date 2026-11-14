@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import { isReadOnly, readBilling } from "@shopper/core/billing";
+import { activeCloudMove } from "../middleware/moved";
 import { problem } from "../middleware/problem";
 import { requirePermission } from "../middleware/require/permission";
+import type { ShopperDatabase } from "@shopper/db-pg";
 import type { ApiEnvironment, ApiOptions } from "../types";
 
 /**
@@ -22,6 +24,8 @@ export function billingRoutes(options: ApiOptions) {
       licence: licence
         ? { state: licence.state, reason: licence.reason, locksAt: licence.locksAt }
         : null,
+      // A box moving (or moved) to the cloud only reads: the banner says so to every member.
+      move: options.cloudMoves ? await movingTo(database) : null,
     });
   });
   app.use("/billing", requirePermission(options.authentication, "billing.manage"));
@@ -33,4 +37,9 @@ export function billingRoutes(options: ApiOptions) {
   );
   app.onError(problem);
   return app;
+}
+
+async function movingTo(database: ShopperDatabase) {
+  const move = await activeCloudMove(database);
+  return move ? { status: move.status, cloudUrl: move.cloudUrl } : null;
 }

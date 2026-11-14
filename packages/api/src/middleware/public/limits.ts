@@ -51,6 +51,8 @@ async function budgetOf(request: Request, ip: string, orgId?: string) {
     return budget("cashier", `${shop}:${ip}`);
   // Each shop also locks itself after five wrong codes; this budget stops one address spraying many shops.
   if (path === "/devices/enroll") return budget("enrol", ip);
+  // A relocation code is 24 random bytes; the budget only stops one address hammering the lookup.
+  if (path === "/devices/relocate") return budget("enrol", ip);
   // Each check-in verifies two signatures before it can be refused.
   if (path === "/licence/confirmations") return budget("public", `${ip}:licence`);
   const operation =

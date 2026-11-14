@@ -18,6 +18,7 @@ export function deviceRoutes(
   for (const [path, operation, permission] of [
     ["/devices/enrollment", "issueEnrollment", "device.enroll"],
     ["/devices/enroll", "enroll", null],
+    ["/devices/relocate", "relocate", null],
     ["/cashiers/pin", "assignPin", "cashier.pin.assign"],
     ["/cashiers/login", "login", null],
     ["/cashiers/unlock", "unlock", null],
@@ -46,18 +47,22 @@ export function deviceRoutes(
         const result =
           operation === "enroll"
             ? await devices.enroll(data)
-            : operation === "login"
-              ? await devices.login(data)
-              : operation === "unlock"
-                ? await devices.unlock(data)
-                : operation === "issueEnrollment"
-                  ? await devices.issueEnrollment(principal!, data)
-                  : operation === "assignPin"
-                    ? await devices.assignPin(principal!, data)
-                    : await devices.revoke(principal!, data);
+            : operation === "relocate"
+              ? await devices.relocate(data)
+              : operation === "login"
+                ? await devices.login(data)
+                : operation === "unlock"
+                  ? await devices.unlock(data)
+                  : operation === "issueEnrollment"
+                    ? await devices.issueEnrollment(principal!, data)
+                    : operation === "assignPin"
+                      ? await devices.assignPin(principal!, data)
+                      : await devices.revoke(principal!, data);
         return c.json(
           result,
-          operation === "enroll" || operation === "issueEnrollment" ? 201 : 200,
+          operation === "enroll" || operation === "relocate" || operation === "issueEnrollment"
+            ? 201
+            : 200,
         );
       } catch (error) {
         if (v.isValiError(error)) return c.json({ error: "Invalid request data" }, 400);

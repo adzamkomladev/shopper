@@ -18,8 +18,12 @@ export type {
   DumpOptions,
   DumpResult,
   FileDescription,
+  ImportInput,
   ZipEntry,
 } from "./types";
 export { verifyArchive } from "./verify";
 export { runArchiveExport } from "./workflows/archive";
 export { crc32, readZip, zipBytes, zipLength, zipStream } from "./zip";
+export { importArchive } from "./import/run";
+export { ImportError } from "./import/error";
+export { tableOrder } from "./import/order";

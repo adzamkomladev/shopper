@@ -112,8 +112,12 @@ test("no credential leaves: not a hash, a token, a session or the session key", 
   const all = [...bytes.values()].map((value) => new TextDecoder().decode(value)).join("\n");
   for (const secret of Object.values(SECRETS)) expect(all).not.toContain(secret);
   const paths = dump.files.map((file) => file.path).join("\n");
-  for (const table of ["session", "session_key", "cashier_pin", "cashier_session", "verification"])
+  for (const table of ["session", "session_key", "cashier_pin", "verification"])
     expect(paths).not.toContain(`tables/${table}/`);
+  // Sales name the cashier session they were made in, so sessions move - without the token that opens them.
+  for (const session of tableRows("cashier_session"))
+    expect(session).not.toHaveProperty("token_hash");
+  expect(tableRows("cashier_session").length).toBeGreaterThan(0);
   // The account is still there (so a person can be re-created), without its secrets.
   const account = tableRows("account")[0]!;
   expect(account.account_id).toBe("ama");

@@ -5,10 +5,11 @@ import { createContext, use, useState, type KeyboardEvent } from "react";
 /**
  * Combos look like "Mod+K", "Mod+Shift+K", "Mod+Enter", "N", "/" or "Escape". Mod is Ctrl or Cmd.
  * Keep combos unique per screen. When two registered maps share one, the most recently
- * registered map wins.
+ * mounted owner wins.
  */
 
-type Registry = Set<ShortcutMap>;
+type Entry = { map: ShortcutMap; attach: (node: HTMLElement | null) => (() => void) | undefined };
+type Registry = Set<Entry>;
 
 const ShortcutContext = createContext<Registry | null>(null);
 
@@ -18,8 +19,8 @@ export function ShortcutRoot({ children, ...props }: React.ComponentProps<"div">
   function onKeyDownCapture(event: KeyboardEvent<HTMLDivElement>) {
     const combo = describe(event);
     if (isPlainKey(combo) && isTyping(event.target)) return;
-    for (const map of [...registry].reverse()) {
-      const handler = map[combo];
+    for (const entry of [...registry].reverse()) {
+      const handler = entry.map[combo];
       if (!handler) continue;
       event.preventDefault();
       handler(event);
@@ -39,13 +40,23 @@ export function ShortcutRoot({ children, ...props }: React.ComponentProps<"div">
 export function useShortcuts(map: ShortcutMap) {
   const registry = use(ShortcutContext);
   if (!registry) throw new Error("useShortcuts needs a ShortcutRoot above it");
-  return (node: HTMLElement | null) => {
-    if (!node) return;
-    registry.add(map);
-    return () => {
-      registry.delete(map);
+  // One stable entry per owner, registered once: a re-render swaps in the new handlers but keeps the entry's place,
+  // so a shell part that re-renders late (the header, when a query lands) never takes a combo back from the page.
+  const [entry] = useState(() => {
+    const created: Entry = {
+      map,
+      attach: (node) => {
+        if (!node) return;
+        registry.add(created);
+        return () => {
+          registry.delete(created);
+        };
+      },
     };
-  };
+    return created;
+  });
+  entry.map = map;
+  return entry.attach;
 }
 
 function describe(event: KeyboardEvent) {

@@ -82,6 +82,7 @@ export const importArchive = defineCommand({
     files: output.files,
     passwords: input.credentials?.passwords.length ?? 0,
     pins: input.credentials?.pins.length ?? 0,
+    ...input.source,
   }),
 });
 

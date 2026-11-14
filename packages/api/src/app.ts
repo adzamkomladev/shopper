@@ -35,6 +35,7 @@ import type { ApiEnvironment, ApiOptions } from "./types";
 import { readOnlyGuard } from "./middleware/readonly";
 import { billingRoutes } from "./routes/billing";
 import { licenceRoutes } from "./routes/licence";
+import { migrationRoutes } from "./routes/migration";
 import { updateRoutes } from "./routes/updates";
 import { shopAccountRoutes } from "./routes/shop/account";
 import { shopSignInRoutes } from "./routes/shop/signin";
@@ -127,6 +128,16 @@ export function createApi(options: ApiOptions = {}) {
   if (options.database) app.route("/", approvalRoutes(options));
   if (options.database) app.route("/", billingRoutes(options));
   app.route("/", licenceRoutes(options));
+  if (options.database && options.blobs && options.archiveImports && options.licenceSigningKey)
+    app.route(
+      "/",
+      migrationRoutes({
+        database: options.database,
+        blobs: options.blobs,
+        archiveImports: options.archiveImports,
+        licenceSigningKey: options.licenceSigningKey,
+      }),
+    );
   app.route("/", updateRoutes(options));
   if (options.database && options.kyb) app.route("/", kybRoutes({ ...options, kyb: options.kyb }));
   if (options.database) app.route("/", setupRoutes(options));

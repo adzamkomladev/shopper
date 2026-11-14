@@ -57,6 +57,14 @@ async function route(request: Request, options: RuntimeOptions): Promise<Respons
   // A box checks in with its licence-signed request: no session, no shop selector.
   if (url.pathname === "/licence/confirmations")
     return createApi({ licenceSigningKey: options.licenceSigningKey }).fetch(request);
+  // A box moving in: every request is licence-signed, so like the check-in it needs no session or shop selector.
+  if (url.pathname.startsWith("/migration/"))
+    return createApi({
+      database: options.database,
+      blobs: options.blobs,
+      archiveImports: options.archiveImports,
+      licenceSigningKey: options.licenceSigningKey,
+    }).fetch(request);
   if (/^\/orgs(?:\/|$)/.test(url.pathname)) return orgRoutes(options).fetch(request);
   // The admin sign-in names the platform org before there is a session or a shop to select.
   if (url.pathname === "/platform/org")

@@ -104,6 +104,8 @@ export interface ApiOptions {
   kyc?: WorkflowLauncher;
   /** Runs a full copy of the business (the Shopper Archive); without it the Export screen offers spreadsheets only. */
   archiveExports?: WorkflowLauncher;
+  /** Cloud only: imports an archive a licensed box moves in (with `licenceSigningKey` and `blobs`). */
+  archiveImports?: WorkflowLauncher;
   /** Starts a store's day; a new store's chain starts today rather than at the night's watchdog. */
   storeDays?: WorkflowLauncher;
   /** Business verification for payouts, cloud only: the Paystack banks a payout can settle to. */
@@ -186,6 +188,8 @@ export interface RuntimeOptions {
   onboarding?: WorkflowLauncher;
   kyc?: WorkflowLauncher;
   archiveExports?: WorkflowLauncher;
+  /** Cloud only: imports an archive a licensed box moves in (with `licenceSigningKey` and `blobs`). */
+  archiveImports?: WorkflowLauncher;
   storeDays?: WorkflowLauncher;
   kyb?: ApiOptions["kyb"];
   platform?: ApiOptions["platform"];

@@ -67,4 +67,6 @@ export type ImportInput = {
   read: (path: string) => Promise<Uint8Array | undefined>;
   blobs: Blobs;
   credentials?: MoveCredentials | null;
+  /** The cloud import this run belongs to, named in its audit row (the org has no audit chain before it). */
+  source?: { importId: string; licenceId: string };
 };

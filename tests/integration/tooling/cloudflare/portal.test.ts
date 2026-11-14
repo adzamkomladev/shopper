@@ -69,7 +69,7 @@ test("the portal binds the edge's Durable Objects and Workflows by Worker name",
   const bound = Object.values(worker().env) as Array<{ type: string; worker?: string }>;
   const ofType = (type: string) => bound.filter((binding) => binding.type === type);
   expect(ofType("durable-object")).toHaveLength(2);
-  expect(ofType("workflow")).toHaveLength(14);
+  expect(ofType("workflow")).toHaveLength(15);
   // Decisions, settlement refreshes, invoice payments and MoMo refunds wake the edge's workflows from the portal.
   for (const [binding, exportName] of [
     ["MOMO_REFUND", "MomoRefundWorkflow"],
@@ -84,6 +84,8 @@ test("the portal binds the edge's Durable Objects and Workflows by Worker name",
     ["ORDER_PAYMENTS", "OrderPaymentWorkflow"],
     // A handed-over order starts its review; a shopper's review or a moderator's call wakes it.
     ["ORDER_REVIEWS", "OrderReviewWorkflow"],
+    // The owner's Data export starts a full archive of the business.
+    ["ARCHIVE_EXPORT", "ArchiveExportWorkflow"],
   ])
     expect(worker().env[binding]).toMatchObject({ type: "workflow", exportName });
   // A store added in the portal starts its store day at once, not at the next watchdog.

@@ -34,6 +34,7 @@
     "@shopper/config": "workspace:*",
     "@shopper/core": "workspace:*",
     "@shopper/db-pg": "workspace:*",
+    "@shopper/export": "workspace:*",
     "@shopper/money": "workspace:*",
     "@shopper/ports": "workspace:*",
     "@shopper/sync": "workspace:*",

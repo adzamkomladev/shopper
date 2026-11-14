@@ -7,6 +7,7 @@ export {
   KycWorkflow,
   AccountWorkflow,
   StatementWorkflow,
+  ArchiveExportWorkflow,
   FiscalArchiveWorkflow,
   AuditAnchorWorkflow,
   StoreDayWorkflow,

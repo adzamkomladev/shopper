@@ -89,6 +89,7 @@ export async function cloudflareRuntime(
       env.KYC_FLOWS && env.ARKESEL_API_KEY && env.ARKESEL_SENDER
         ? cloudflareLauncher(env.KYC_FLOWS)
         : undefined,
+    archiveExports: env.ARCHIVE_EXPORT ? cloudflareLauncher(env.ARCHIVE_EXPORT) : undefined,
     storeDays: env.STORE_DAY ? cloudflareLauncher(env.STORE_DAY) : undefined,
     orderFlows: env.ORDER_FLOWS ? cloudflareLauncher(env.ORDER_FLOWS) : undefined,
     orderReviews: env.ORDER_REVIEWS ? cloudflareLauncher(env.ORDER_REVIEWS) : undefined,

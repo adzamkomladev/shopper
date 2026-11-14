@@ -125,6 +125,11 @@ export default defineConfig(({ mode }) => {
           worker: name,
           exportName: "StatementWorkflow",
         }),
+        ARCHIVE_EXPORT: bindings.workflow({
+          name: workflow("archive-export"),
+          worker: name,
+          exportName: "ArchiveExportWorkflow",
+        }),
         FISCAL_ARCHIVE: bindings.workflow({
           name: workflow("fiscal-archive"),
           worker: name,
@@ -208,6 +213,7 @@ export default defineConfig(({ mode }) => {
         KycWorkflow: exports.workflow({ name: workflow("kyc") }),
         AccountWorkflow: exports.workflow({ name: workflow("account") }),
         StatementWorkflow: exports.workflow({ name: workflow("statements") }),
+        ArchiveExportWorkflow: exports.workflow({ name: workflow("archive-export") }),
         FiscalArchiveWorkflow: exports.workflow({ name: workflow("fiscal-archive") }),
         AuditAnchorWorkflow: exports.workflow({ name: workflow("audit-anchor") }),
         StoreDayWorkflow: exports.workflow({ name: workflow("store-day") }),

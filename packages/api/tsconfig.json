@@ -16,16 +16,19 @@
       "path": "../../packages/tax"
     },
     {
-      "path": "../core"
+      "path": "../assets"
     },
     {
       "path": "../auth"
     },
     {
-      "path": "../sync"
+      "path": "../core"
     },
     {
-      "path": "../assets"
+      "path": "../export"
+    },
+    {
+      "path": "../sync"
     }
   ]
 }

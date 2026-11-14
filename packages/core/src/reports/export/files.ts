@@ -11,6 +11,11 @@ export function reportCsv(table: ReportTable) {
   return `${toCsv([table.headers, ...table.rows.map((row) => row.map(text))])}\n`;
 }
 
+/** Only the rows, for a file written in pages: the header goes first, once, through `reportCsv` of an empty table. */
+export function reportCsvRows(rows: ReportCell[][]) {
+  return rows.length ? `${toCsv(rows.map((row) => row.map(text)))}\n` : "";
+}
+
 /** The table as an Excel workbook of one sheet, numbers as numbers with display formats. */
 export function reportWorkbook(table: ReportTable) {
   const book = XLSX.utils.book_new();

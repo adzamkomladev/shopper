@@ -439,3 +439,14 @@ engine, and has no subscription, so it is never read-only. Billing is cloud only
 - `SHOPPER_TILL_DOWNLOAD_URL` is read at build time for the wizard's installer link. Unset, the Till step says the
   installer is coming soon and still issues enrolment codes. Day 27 defaults it to the stable feed's alias.
 - KYB documents live in the receipts bucket under `receipts/kyb/`.
+
+## Data export on a box (Day 41)
+
+A box makes its own archives: the same workflow on Rivet, parts in the box's blobs (RustFS or disk), and no internet
+needed (`tests/integration/box/drills/export.test.ts` runs it on the sealed binary with the WAN refused). The owner
+downloads the file in the browser to a disk or a USB stick; a box-side write to a stick is not built. Migration
+`0043_exports.sql` adds `export_job`, `archive_key` and the `export.run` permission (the owner and every role that can
+manage roles get it). On a restart the box starts again any archive still marked running. Behind Caddy a streamed
+download may arrive without `Content-Length`; the file is complete either way. The cloud needs the `ARCHIVE_EXPORT`
+workflow binding (declared in the edge and portal configs) and the `RECEIPTS` bucket on the workflow's Worker so
+uploaded files can be read.

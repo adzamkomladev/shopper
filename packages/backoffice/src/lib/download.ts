@@ -12,11 +12,17 @@ export async function downloadFile(path: string, filename: string, messages: Mes
   }).catch(() => {
     throw new ApiError(0, messages.unreachable);
   });
-  if (!response.ok)
+  if (!response.ok) {
+    // A refusal that is the user's to act on (Excel too long) carries its reason; the rest read the same everywhere.
+    const reason =
+      response.status === 413
+        ? ((await response.json().catch(() => undefined)) as { error?: string } | undefined)?.error
+        : undefined;
     throw new ApiError(
       response.status,
-      response.status === 403 ? messages.denied : messages.failed,
+      response.status === 403 ? messages.denied : (reason ?? messages.failed),
     );
+  }
   const link = document.createElement("a");
   link.href = URL.createObjectURL(await response.blob());
   link.download = filename;

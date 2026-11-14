@@ -35,6 +35,9 @@ let options: RuntimeOptions;
 let blobDirectory: string;
 const cache = boxCache(":memory:");
 
+/** The runtime's options, for a test that swaps one in (a launcher that really runs its workflow). */
+export const runtimeOptions = () => options;
+
 /** Two shops on one cloud runtime: `a` attacks, `b` is the shop whose data must never show. */
 export async function startTenants() {
   fixture = await postgresFixture();
@@ -59,6 +62,7 @@ export async function startTenants() {
     authFlows: launcher,
     onboarding: launcher,
     kyc: launcher,
+    archiveExports: launcher,
     approvals: launcher,
     priceChange: launcher,
     kyb: { banks: async () => [] },

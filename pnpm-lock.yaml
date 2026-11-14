@@ -600,6 +600,9 @@ importers:
       '@shopper/db-sqlite':
         specifier: workspace:*
         version: link:../../db/sqlite
+      '@shopper/export':
+        specifier: workspace:*
+        version: link:../../export
       '@shopper/hardware':
         specifier: workspace:*
         version: link:../../hardware
@@ -673,6 +676,9 @@ importers:
       '@shopper/db-sqlite':
         specifier: workspace:*
         version: link:../../db/sqlite
+      '@shopper/export':
+        specifier: workspace:*
+        version: link:../../export
       '@shopper/hardware':
         specifier: workspace:*
         version: link:../../hardware
@@ -706,6 +712,9 @@ importers:
       '@shopper/db-pg':
         specifier: workspace:*
         version: link:../db/pg
+      '@shopper/export':
+        specifier: workspace:*
+        version: link:../export
       '@shopper/money':
         specifier: workspace:*
         version: link:../money
@@ -943,7 +952,35 @@ importers:
         specifier: 0.45.3
         version: 0.45.3(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.1)
 
-  packages/export: {}
+  packages/export:
+    dependencies:
+      '@shopper/audit':
+        specifier: workspace:*
+        version: link:../audit
+      '@shopper/config':
+        specifier: workspace:*
+        version: link:../config
+      '@shopper/core':
+        specifier: workspace:*
+        version: link:../core
+      '@shopper/db-pg':
+        specifier: workspace:*
+        version: link:../db/pg
+      '@shopper/ports':
+        specifier: workspace:*
+        version: link:../ports
+      '@shopper/utils':
+        specifier: workspace:*
+        version: link:../utils
+      drizzle-orm:
+        specifier: 0.45.3
+        version: 0.45.3(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.6)(pg@8.23.1)
+      uuid:
+        specifier: 14.0.2
+        version: 14.0.2
+      valibot:
+        specifier: 1.5.0
+        version: 1.5.0(typescript@7.0.2)
 
   packages/hardware:
     dependencies:
@@ -1150,6 +1187,9 @@ importers:
       '@shopper/db-sqlite':
         specifier: workspace:*
         version: link:../packages/db/sqlite
+      '@shopper/export':
+        specifier: workspace:*
+        version: link:../packages/export
       '@shopper/hardware':
         specifier: workspace:*
         version: link:../packages/hardware

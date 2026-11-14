@@ -31,6 +31,7 @@ import { publicStatementRoutes } from "./statements/public";
 import { shiftRoutes } from "./shifts";
 import { setupRoutes } from "./setup";
 import { setupQuery, startsInSetup } from "../queries/setup";
+import { billingStatusQuery } from "../queries/billing";
 import { currentOrgQuery, requireSession } from "../queries/session/session";
 import type { BackofficeContext } from "../types";
 
@@ -71,8 +72,12 @@ export function createBackofficeRoutes(
   const shopRoute = createRoute({
     getParentRoute: () => rootRoute,
     id: "_shop",
-    beforeLoad: ({ context }: { context: BackofficeContext }) =>
-      requireSession(context.queryClient),
+    beforeLoad: async ({ context }: { context: BackofficeContext }) => {
+      await requireSession(context.queryClient);
+      // The sidebar and header read it (box-only links). Loaded before the shell renders, so the header never
+      // re-renders after the page and takes its "/" back (the most recently registered shortcut map wins).
+      await context.queryClient.prefetchQuery(billingStatusQuery());
+    },
     component: lazyRouteComponent(() => import("../screens/shell/screen"), "ShellScreen"),
     ...routeStates,
     pendingComponent: ShellSkeleton,

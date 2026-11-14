@@ -106,6 +106,25 @@ export const failCloudMove = defineCommand({
   audit: (input) => ({ reason: input.reason }),
 });
 
+/**
+ * The commit went out but no answer came back: the cloud may hold the shop already. The box stays read-only (reopened,
+ * it would take sales the cloud never sees) and the owner reads why; a commit sent again is answered the same.
+ */
+export const stallCloudMove = defineCommand({
+  name: "migration.move.stall",
+  async run(tx, _ctx, input: { moveId: string; reason: string }) {
+    await tx
+      .update(cloudMove)
+      .set({
+        error: `The cloud did not confirm the move (${input.reason}). This box stays read-only; contact Shopper support before trying again.`,
+        updatedAt: sql`now()`,
+      })
+      .where(eq(cloudMove.id, input.moveId));
+    return { moveId: input.moveId };
+  },
+  audit: (input) => ({ reason: input.reason }),
+});
+
 /** A register's handshake handed it its relocation: recorded once, for the move screen. */
 export const deliverRelocation = defineCommand({
   name: "migration.move.deliver",

@@ -59,12 +59,15 @@ export function MoveCard({ data }: { data: MoveView }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5 text-sm">
-        {move?.status === "failed" && (
+        {move?.error && (
           <Alert variant="destructive" role="alert">
             <CircleAlertIcon aria-hidden />
-            <AlertTitle>The move stopped</AlertTitle>
+            <AlertTitle>
+              {idle ? "The move stopped" : "The move is waiting on the cloud"}
+            </AlertTitle>
             <AlertDescription>
-              {move.error ?? "Something went wrong."} The box takes changes again until you retry.
+              {move.error}
+              {idle && " The box takes changes again until you retry."}
             </AlertDescription>
           </Alert>
         )}

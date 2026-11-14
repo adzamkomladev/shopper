@@ -4,8 +4,8 @@
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { eq } from "drizzle-orm";
 import { v7 } from "uuid";
-import { boxArchiveImport } from "@shopper/adapters-box";
-import { createApi } from "@shopper/api";
+import { boxArchiveImport, boxCache, boxRateLimiter } from "@shopper/adapters-box";
+import { serveRuntime } from "@shopper/api/runtime";
 import {
   generateKey,
   issueLicence,
@@ -17,6 +17,7 @@ import * as schema from "@shopper/db-pg";
 import { signManifest } from "@shopper/export";
 import { SECRETS } from "../../support/export/org";
 import { emptyDatabase, movedArchive } from "../../support/migration/archive";
+import { baseURL, secret } from "../../support/api/portal";
 
 // The cloud serves its API under /api and strips it: a box signs the whole path it called.
 const CLOUD = "https://cloud.shopper.test/api";
@@ -25,7 +26,10 @@ let b: Awaited<ReturnType<typeof emptyDatabase>>;
 let issuer: Awaited<ReturnType<typeof generateKey>>;
 let box: { key: string; licence: Licence };
 let imports: ReturnType<typeof boxArchiveImport>;
-let api: ReturnType<typeof createApi>;
+// The runtime both shells serve, so its routing is under test too.
+let api: { fetch(request: Request): Promise<Response> };
+const cache = boxCache(":memory:");
+let refused = 0;
 let opening: string;
 
 beforeAll(async () => {
@@ -34,12 +38,26 @@ beforeAll(async () => {
   issuer = await generateKey();
   box = await licensed(a.context.orgId);
   imports = boxArchiveImport({ database: b.db, blobs: b.blobs });
-  api = createApi({
-    database: b.db,
-    blobs: b.blobs,
-    licenceSigningKey: issuer.privateKey,
-    archiveImports: imports.launcher,
-  });
+  api = {
+    fetch: (request) =>
+      serveRuntime(request, {
+        database: b.db,
+        cache: cache.cache,
+        rateLimiter: boxRateLimiter(),
+        secret,
+        baseURL,
+        blobs: b.blobs,
+        licenceSigningKey: issuer.privateKey,
+        // The engine refuses the first start: the box's retried commit must still start the import.
+        archiveImports: {
+          send: (id, type, payload) => imports.launcher.send(id, type, payload),
+          start: async (id, params) => {
+            if (!refused++) throw new Error("The workflow engine is busy");
+            return imports.launcher.start(id, params);
+          },
+        },
+      }),
+  };
   const signed = await signManifest(a.manifest, a.key.privateKey);
   opening = JSON.stringify({
     manifest: new TextDecoder().decode(signed.json),
@@ -47,6 +65,7 @@ beforeAll(async () => {
   });
 });
 afterAll(async () => {
+  cache.close();
   await a?.close();
   await b?.close();
 });
@@ -135,11 +154,10 @@ test("the commit imports the shop, applies then forgets the credentials, and rel
     pins: [{ userId: a.f.userId, pinHash: SECRETS.pin }],
     sessionKey: SECRETS.sessionKey,
   };
-  const committed = await call(
-    `/migration/imports/${id}/commit`,
-    "POST",
-    JSON.stringify({ credentials }),
-  );
+  const commit = () =>
+    call(`/migration/imports/${id}/commit`, "POST", JSON.stringify({ credentials }));
+  expect((await commit()).status).toBe(500);
+  const committed = await commit();
   expect(committed.status).toBe(202);
   const { relocations } = (await committed.json()) as { relocations: unknown[] };
   await imports.launcher.idle?.();

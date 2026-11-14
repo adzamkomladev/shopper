@@ -105,6 +105,18 @@ test("a failed move says why and can be tried again", async ({ page }, info) => 
   await shoot(page, info, "move-failed", { sizes: SIZES });
 });
 
+test("a move the cloud never confirmed keeps the box read-only and offers no retry", async ({
+  page,
+}) => {
+  await onBox(page, {
+    move: move("importing", { error: "The cloud did not confirm the move (reset)." }),
+    registers,
+  });
+  await page.goto("/migration/move");
+  await expect(page.getByRole("alert")).toContainText("The move is waiting on the cloud");
+  await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0);
+});
+
 test("once moving, every page says the box is read-only", async ({ page }, info) => {
   await replay(page, "/billing/status", { readOnly: false, licence, move: move("importing") });
   await page.goto("/products");

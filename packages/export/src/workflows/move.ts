@@ -12,7 +12,7 @@ import {
 import type { Workflow } from "@shopper/ports";
 import { exportArchiveId, exportPrefix } from "../archive/ids";
 import { startArchiveExport } from "../archive/start";
-import { cloudMoveId, failCloudMove, finishCloudMove } from "../move/box";
+import { cloudMoveId, failCloudMove, finishCloudMove, stallCloudMove } from "../move/box";
 import { dumpResult } from "../schemas/archive";
 import { cloudMoveParams } from "../schemas/move";
 import type { CloudMoveDeps } from "../types";
@@ -34,6 +34,8 @@ export async function runCloudMove(
   if (flow.instanceId !== cloudMoveId(input.moveId))
     throw new Error("Cloud move instance must be its move key");
   const context = { orgId: input.orgId, appVersion: deps.appVersion };
+  // Set before the commit step (never inside it), so a replay takes the same branch below.
+  let committing = false;
   try {
     const { jobId } = await flow.step("begin", policy, () =>
       deps.withDatabase(async (db) => {
@@ -57,6 +59,7 @@ export async function runCloudMove(
     const { importId } = await flow.step("upload", policy, () =>
       deps.withDatabase((db) => upload(db, deps, input, jobId)),
     );
+    committing = true;
     await flow.step("commit", policy, () =>
       deps.withDatabase(async (db) => {
         const move = await read(db, input.moveId);
@@ -74,11 +77,13 @@ export async function runCloudMove(
       }),
     );
   } catch (error) {
-    await flow.step("fail", policy, () =>
+    const reason = error instanceof Error ? error.message : String(error);
+    // Once the commit may have reached the cloud, reopening the box could split the shop in two.
+    await flow.step(committing ? "stall" : "fail", policy, () =>
       deps.withDatabase((db) =>
-        failCloudMove(db, context, {
+        (committing ? stallCloudMove : failCloudMove)(db, context, {
           moveId: input.moveId,
-          reason: error instanceof Error ? error.message : String(error),
+          reason,
         }),
       ),
     );

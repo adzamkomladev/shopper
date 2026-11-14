@@ -54,9 +54,17 @@ export const importArchive = defineCommand({
           columns.filter((column) => keys.has(column)).map((column) => sql.identifier(column)),
           sql`, `,
         );
+        const recordset = sql`jsonb_populate_recordset(null::${sql.identifier(table)}, ${withPasswords(`[${records.join(",")}]`, passwords)})`;
+        // A box signs its own manifest, so a crafted archive is self-consistent: every row must be this shop's.
+        const owner = sql.identifier(table === "org" ? "id" : "org_id");
+        const { rows: foreign } = await tx.execute(
+          sql`select 1 from ${recordset} where ${owner} is distinct from ${ctx.orgId} limit 1`,
+        );
+        if (foreign.length)
+          throw new ImportError("This archive holds records of another shop.", 403);
         await tx.execute(sql`
           insert into ${sql.identifier(table)} (${list}) overriding system value
-          select ${list} from jsonb_populate_recordset(null::${sql.identifier(table)}, ${withPasswords(`[${records.join(",")}]`, passwords)})`);
+          select ${list} from ${recordset}`);
         rows += records.length;
         files += 1;
       }

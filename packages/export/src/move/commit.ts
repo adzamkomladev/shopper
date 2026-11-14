@@ -72,13 +72,15 @@ export async function commitImport(
       updatedAt: sql`now()`,
     })
     .where(eq(archiveImport.id, row.id));
-  if (starting)
+  // Until the import is ready every commit starts it: a start that failed after the row moved on is made again, and
+  // starting a running instance is a no-op.
+  if (row.status !== "ready")
     await deps.launcher.start(archiveImportId(row.id), {
       orgId: input.orgId,
       importId: row.id,
     });
   return {
-    status: starting ? "importing" : row.status,
+    status: row.status === "ready" ? "ready" : "importing",
     relocations: issued.map((each) => each.relocation),
   };
 }

@@ -65,5 +65,12 @@ banner (from `/billing/status`, which now carries `move`).
 - `archive_import` rows are written before the org exists, so they cannot be audited per org. The import's own audit
   row records `importId` and `licenceId` instead.
 - A register that stays off for more than 7 days must be enrolled again by hand.
+- **A commit whose answer is lost stays locked.** Once the commit has gone out, a failure leaves the box read-only
+  with the reason on the move screen (`migration.move.stall`), and offers no Try again. The cloud may already hold
+  the shop, and a reopened box would take sales the cloud never sees. Support resolves it; a commit sent again is
+  answered the same.
+- **A relocation whose answer is lost spends the code.** If `/devices/relocate` commits but the register never
+  stores its new token, that register is enrolled again by hand. The code stays single-use on purpose: making it
+  re-redeemable would let the message alone take a device over.
 - The required test drives the relocation, the handshakes and both databases. It does not push a real outbox sale to
   the cloud: push acceptance is unchanged code, covered by the sync suites.

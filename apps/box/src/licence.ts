@@ -60,6 +60,14 @@ export function boxLicence(
       await writeFile(file("confirmation.json"), await response.text());
       return status();
     },
+    async send(url, init) {
+      const current = await status();
+      if (!current.licence || current.reason === "machine")
+        throw new Error("This box needs a genuine licence before it can move to the cloud.");
+      return send(
+        await signedRequest({ key: await key!, licence: current.licence as Licence }, url, init),
+      );
+    },
   };
 }
 

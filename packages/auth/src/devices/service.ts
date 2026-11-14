@@ -18,6 +18,7 @@ import { loginCommand } from "./login";
 import { registerUnlock } from "./unlock";
 import { hashPin } from "./pin";
 import { resolveUploadPrincipal } from "./upload";
+import { relocateDevice } from "./relocate";
 import { DeviceError, assign, consume, digest, issue } from "./commands";
 import {
   cashierLoginInput,
@@ -108,6 +109,7 @@ export function createDeviceService(
     },
     issueEnrollment: (p: DevicePrincipal, input: unknown) =>
       issue(db, ctx(p), v.parse(enrollmentIssueInput, input)),
+    relocate: (input: unknown) => relocateDevice(db, appVersion, input),
     async enroll(input: unknown) {
       const data = v.parse(enrollmentInput, input);
       data.orgId = data.orgId.toLowerCase();

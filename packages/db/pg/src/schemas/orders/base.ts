@@ -59,7 +59,9 @@ export const onlineOrder = pgTable(
      * SHA-256 of the browser's random checkout key. The key reads the order back, and a repeated submit with the same
      * key returns the same order instead of a second one.
      */
-    viewTokenDigest: text("view_token_digest").notNull(),
+    viewTokenDigest: text("view_token_digest")
+      .notNull()
+      .default(sql`('moved:' || uuidv7())`),
     base: moneyColumn("base").notNull(),
     vat: moneyColumn("vat").notNull(),
     nhil: moneyColumn("nhil").notNull(),

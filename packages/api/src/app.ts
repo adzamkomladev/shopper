@@ -35,6 +35,9 @@ import type { ApiEnvironment, ApiOptions } from "./types";
 import { readOnlyGuard } from "./middleware/readonly";
 import { billingRoutes } from "./routes/billing";
 import { licenceRoutes } from "./routes/licence";
+import { migrationRoutes } from "./routes/migration";
+import { moveRoutes } from "./routes/move";
+import { refuseWhenMoved } from "./middleware/moved";
 import { updateRoutes } from "./routes/updates";
 import { shopAccountRoutes } from "./routes/shop/account";
 import { shopSignInRoutes } from "./routes/shop/signin";
@@ -49,6 +52,14 @@ export function createApi(options: ApiOptions = {}) {
     c.header("Shopper-Version", buildInfo.version);
   });
   app.use("*", readOnlyGuard(options));
+  // Only a box moves: from the start of its move it takes no changes but sign-in, the move and the handshake.
+  if (options.database && options.cloudMoves) {
+    app.use(
+      "*",
+      refuseWhenMoved(options.database, /^\/(?:api\/auth|migration\/move|sync\/handshake)(?:\/|$)/),
+    );
+    app.route("/", moveRoutes(options.database, options.authentication, options.cloudMoves));
+  }
   app.route("/", systemRoutes());
   app.route("/", paymentRoutes(options));
   app.route("/", hubtelRoutes(options));
@@ -64,6 +75,7 @@ export function createApi(options: ApiOptions = {}) {
         lane: options.lane,
         minTillVersion: options.minTillVersion,
         tillFeed: options.tillFeed,
+        movable: !!options.cloudMoves,
       }),
     );
   if (options.onboarding) app.route("/", onboardingRoutes(options.onboarding));
@@ -127,6 +139,16 @@ export function createApi(options: ApiOptions = {}) {
   if (options.database) app.route("/", approvalRoutes(options));
   if (options.database) app.route("/", billingRoutes(options));
   app.route("/", licenceRoutes(options));
+  if (options.database && options.blobs && options.archiveImports && options.licenceSigningKey)
+    app.route(
+      "/",
+      migrationRoutes({
+        database: options.database,
+        blobs: options.blobs,
+        archiveImports: options.archiveImports,
+        licenceSigningKey: options.licenceSigningKey,
+      }),
+    );
   app.route("/", updateRoutes(options));
   if (options.database && options.kyb) app.route("/", kybRoutes({ ...options, kyb: options.kyb }));
   if (options.database) app.route("/", setupRoutes(options));

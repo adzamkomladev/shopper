@@ -6,7 +6,8 @@ export const rolePermissions: Record<string, readonly string[]> = {
       !code.startsWith("store.") &&
       !code.startsWith("branch.") &&
       code !== "tax.write" &&
-      code !== "billing.manage",
+      code !== "billing.manage" &&
+      code !== "migration.run",
   ),
   accountant: [
     "product.read",

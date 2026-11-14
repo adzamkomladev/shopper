@@ -57,3 +57,26 @@ test("a column that looks like a credential is hidden, its table excluded, or na
     .filter((name) => !NOT_CREDENTIALS.has(name));
   expect(unexplained).toEqual([]);
 });
+
+test("an archive can be restored: no exported table points at a table the archive leaves out", async () => {
+  const { rows } = await f.db.execute<{ child: string; parent: string }>(sql`
+    select child.relname as child, parent.relname as parent
+    from pg_constraint c
+    join pg_class child on child.oid = c.conrelid
+    join pg_class parent on parent.oid = c.confrelid
+    where c.contype = 'f' and c.connamespace = 'public'::regnamespace`);
+  const dangling = rows
+    .filter((row) => !(row.child in EXCLUDED_TABLES) && row.parent in EXCLUDED_TABLES)
+    .map((row) => `${row.child} → ${row.parent}`);
+  expect([...new Set(dangling)].sort()).toEqual([]);
+});
+
+test("a hidden column an import cannot leave empty has a default to take", async () => {
+  const { rows } = await f.db.execute<{ table: string; column: string }>(sql`
+    select table_name as "table", column_name as "column" from information_schema.columns
+    where table_schema = 'public' and is_nullable = 'NO' and column_default is null`);
+  const unfillable = rows
+    .filter((row) => HIDDEN_COLUMNS[row.table]?.includes(row.column))
+    .map((row) => `${row.table}.${row.column}`);
+  expect(unfillable).toEqual([]);
+});

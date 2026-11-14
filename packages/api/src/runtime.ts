@@ -20,7 +20,7 @@ export const publicApi = createApi();
 export function isPublicRequest(request: Request) {
   const path = new URL(request.url).pathname;
   // Readiness probes the database and cache, so it needs the runtime, unlike /health.
-  return !/^\/(?:health\/ready$|payments(?:\/|$)|webhooks\/(?:paystack|hubtel)$|api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|tax(?:\/|$)|devices(?:\/|$)|shifts(?:\/|$)|audit(?:\/|$)|stock(?:\/|$)|reports(?:\/|$)|ledger(?:\/|$)|customers(?:\/|$)|kyc(?:\/|$)|export(?:\/|$)|loyalty(?:\/|$)|settings(?:\/|$)|transactions(?:\/|$)|orders(?:\/|$)|reviews(?:\/|$)|reconciliation(?:\/|$)|approvals(?:\/|$)|billing(?:\/|$)|licence(?:\/|$)|updates(?:\/|$)|kyb(?:\/|$)|platform(?:\/|$)|setup(?:\/|$)|public\/statements(?:\/|$)|shop(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
+  return !/^\/(?:health\/ready$|payments(?:\/|$)|webhooks\/(?:paystack|hubtel)$|api\/auth(?:\/|$)|sync(?:\/|$)|stores(?:\/|$)|branches(?:\/|$)|tax-rules$|tax(?:\/|$)|devices(?:\/|$)|shifts(?:\/|$)|audit(?:\/|$)|stock(?:\/|$)|reports(?:\/|$)|ledger(?:\/|$)|customers(?:\/|$)|kyc(?:\/|$)|export(?:\/|$)|migration(?:\/|$)|loyalty(?:\/|$)|settings(?:\/|$)|transactions(?:\/|$)|orders(?:\/|$)|reviews(?:\/|$)|reconciliation(?:\/|$)|approvals(?:\/|$)|billing(?:\/|$)|licence(?:\/|$)|updates(?:\/|$)|kyb(?:\/|$)|platform(?:\/|$)|setup(?:\/|$)|public\/statements(?:\/|$)|shop(?:\/|$)|cashiers(?:\/|$)|(?:orgs|products|categories|suppliers|prices|barcodes|catalogue|users|roles|permissions|session|onboarding|invitations)(?:\/|$))/.test(
     path,
   );
 }
@@ -57,6 +57,14 @@ async function route(request: Request, options: RuntimeOptions): Promise<Respons
   // A box checks in with its licence-signed request: no session, no shop selector.
   if (url.pathname === "/licence/confirmations")
     return createApi({ licenceSigningKey: options.licenceSigningKey }).fetch(request);
+  // A box moving in: every request is licence-signed, so like the check-in it needs no session or shop selector.
+  if (url.pathname.startsWith("/migration/imports"))
+    return createApi({
+      database: options.database,
+      blobs: options.blobs,
+      archiveImports: options.archiveImports,
+      licenceSigningKey: options.licenceSigningKey,
+    }).fetch(request);
   if (/^\/orgs(?:\/|$)/.test(url.pathname)) return orgRoutes(options).fetch(request);
   // The admin sign-in names the platform org before there is a session or a shop to select.
   if (url.pathname === "/platform/org")
@@ -85,6 +93,7 @@ async function route(request: Request, options: RuntimeOptions): Promise<Respons
       lane: options.lane,
       minTillVersion: options.minTillVersion,
       tillFeed: options.tillFeed,
+      movable: !!options.cloudMoves,
     }).fetch(request);
   }
   const linkOptions =
@@ -195,6 +204,7 @@ async function route(request: Request, options: RuntimeOptions): Promise<Respons
     baseURL: options.baseURL,
     kyc: options.kyc,
     archiveExports: options.archiveExports,
+    cloudMoves: options.cloudMoves,
     storeDays: options.storeDays,
     kyb: options.kyb,
     platform: options.platform,

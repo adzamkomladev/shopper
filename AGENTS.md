@@ -20,6 +20,7 @@ Read the doc for the area you are touching **before** you change it:
 | [developer-experience.md](docs/engineering/developer-experience.md) | Setup, commands, tooling, git, MCP servers                   |
 | [ai-workflow.md](docs/engineering/ai-workflow.md)                   | Planning, subagents, models, the Codex review loop           |
 | [security.md](docs/engineering/security.md)                         | Auth, sessions, new routes, audit payloads, till storage     |
+| [migration.md](docs/engineering/migration.md)                       | Archive import, the box → cloud move, till relocation        |
 
 ## General Principles
 

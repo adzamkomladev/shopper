@@ -9,6 +9,12 @@ export const enrollmentInput = v.strictObject({
   code: v.pipe(v.string(), v.regex(/^\d{6}$/)),
   name: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(200)),
 });
+/** A moved register claiming its place in the cloud with the one-time code from its signed relocation. */
+export const relocationInput = v.strictObject({
+  orgId: id,
+  deviceId: id,
+  code: v.pipe(v.string(), v.minLength(16), v.maxLength(200)),
+});
 export const enrollmentResult = v.object({
   deviceId: id,
   branchId: id,

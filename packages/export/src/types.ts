@@ -1,7 +1,8 @@
 import type { SQL } from "drizzle-orm";
 import type { ReportCell } from "@shopper/core/reports";
-import type { ShopperDatabase } from "@shopper/db-pg";
+import type { MoveCredentials, ShopperDatabase } from "@shopper/db-pg";
 import type { Blobs } from "@shopper/ports";
+import type { Manifest } from "./schemas/manifest";
 
 /** A file to write into a ZIP: `bytes` and `crc` were measured when it was made, `read` gives it back on demand. */
 export type ZipEntry = {
@@ -58,3 +59,19 @@ export type EntityDefinition = {
 
 /** Accra calendar days, first to last, inclusive. */
 export type DayRange = { from: string; to: string };
+
+/** What an import reads: the manifest, each file by its path, where blobs go, and a move's credentials. */
+export type ImportInput = {
+  manifest: Manifest;
+  /** The bytes of one archive file by its path, or undefined when it never arrived. */
+  read: (path: string) => Promise<Uint8Array | undefined>;
+  blobs: Blobs;
+  credentials?: MoveCredentials | null;
+  /** The cloud import this run belongs to, named in its audit row (the org has no audit chain before it). */
+  source?: { importId: string; licenceId: string };
+};
+
+/** A box moving to the cloud: the export's needs, plus a licence-signed request to the cloud. */
+export type CloudMoveDeps = ArchiveExportDeps & {
+  cloud(url: string, init: { method: string; body?: string | Uint8Array }): Promise<Response>;
+};

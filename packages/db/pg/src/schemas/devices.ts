@@ -90,7 +90,10 @@ export const cashierSession = pgTable(
     branchId: uuid("branch_id").notNull(),
     userId: uuid("user_id").notNull(),
     roleId: uuid("role_id").notNull(),
-    tokenHash: text("token_hash").notNull(),
+    tokenHash: text("token_hash")
+      .notNull()
+      // An imported session's token never moves: what it takes instead matches no token anyone holds.
+      .default(sql`('moved:' || uuidv7())`),
     issuedAt: timestamp("issued_at", { withTimezone: true }).notNull().defaultNow(),
     permissions: jsonb("permissions").$type<string[]>().notNull().default([]),
     roleName: text("role_name").notNull().default(""),

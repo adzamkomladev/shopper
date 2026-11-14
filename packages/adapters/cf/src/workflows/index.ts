@@ -5,6 +5,7 @@ export { KycWorkflow } from "./kyc";
 export { AccountWorkflow } from "./account";
 export { StatementWorkflow } from "./statements";
 export { ArchiveExportWorkflow } from "./export";
+export { ArchiveImportWorkflow } from "./import";
 export { FiscalArchiveWorkflow } from "./fiscal";
 export { AuditAnchorWorkflow } from "./anchor";
 export { StoreDayWorkflow } from "./day";

@@ -55,8 +55,7 @@ async function signUpAndLeaveSetup(page: Page, request: Parameters<typeof verify
   await submitSignup(page, data);
   await verifyFromEmail(page, request, data);
   await submitPassword(page);
-  await expect(page.getByRole("heading", { name: "You're signed in" })).toBeVisible();
-  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/(products|setup)/);
   await page.getByRole("button", { name: "Finish later" }).click();
 }
 

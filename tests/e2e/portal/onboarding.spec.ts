@@ -46,8 +46,7 @@ test("a new owner signs up, verifies the emailed link and lands signed in", asyn
   await waitForPublicSlot();
   await waitForAuthSlot();
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("heading", { name: "You're signed in" })).toBeVisible();
-  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/(products|setup)/);
   // A new shop starts in the setup wizard.
   await expect(page).toHaveURL(/\/setup/);
 });
@@ -82,7 +81,7 @@ test("a taken shop code is reported on Shop code and can be corrected", async ({
   await waitForPublicSlot();
   await waitForAuthSlot();
   await page.getByRole("button", { name: "Create shop" }).click();
-  await expect(page.getByRole("heading", { name: "You're signed in" })).toBeVisible();
+  await expect(page).toHaveURL(/\/(products|setup)/);
 });
 
 test("the signup form names what is wrong and focuses the first field", async ({ page }) => {
@@ -142,8 +141,7 @@ test("milestone: an owner sets up a shop and a cashier they invite accepts and s
   await submitSignup(page, data);
   await verifyFromEmail(page, request, data);
   await submitPassword(page);
-  await expect(page.getByRole("heading", { name: "You're signed in" })).toBeVisible();
-  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page).toHaveURL(/\/(products|setup)/);
   // A new shop starts in the setup wizard; this owner sets it up from the screens themselves instead.
   await expect(page.getByRole("heading", { name: "Get your shop ready", level: 1 })).toBeVisible();
 
@@ -221,6 +219,6 @@ test("milestone: an owner sets up a shop and a cashier they invite accepts and s
   await waitForPublicSlot();
   await waitForAuthSlot();
   await joining.getByRole("button", { name: "Create account and join" }).click();
-  await expect(joining.getByRole("heading", { name: "You're signed in" })).toBeVisible();
+  await expect(joining).toHaveURL(/\/(products|setup)/);
   await invitee.close();
 });

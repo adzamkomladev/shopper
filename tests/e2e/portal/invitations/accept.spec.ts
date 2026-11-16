@@ -47,8 +47,7 @@ test("a new staff member names themselves, sets a password and is signed in", as
   await waitForPublicSlot();
   await waitForAuthSlot();
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("heading", { name: "You're signed in" })).toBeVisible();
-  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/(products|setup)/);
   await expect(page).toHaveURL(/\/products$/);
 });
 
@@ -78,7 +77,7 @@ test("a local link works with the internet blocked, sends no email and does not 
   await waitForPublicSlot();
   await waitForAuthSlot();
   await page.getByRole("button", { name: "Create account and join" }).click();
-  await expect(page.getByRole("heading", { name: "You're signed in" })).toBeVisible();
+  await expect(page).toHaveURL(/\/(products|setup)/);
   // A setup link needs no provider: nothing was sent, and the address was never verified by mail.
   expect(await mailCount(request, email)).toBe(0);
 });
@@ -95,7 +94,7 @@ test("an existing account signs in with its own password and keeps it", async ({
   await waitForPublicSlot();
   await waitForAuthSlot();
   await page.getByRole("button", { name: "Create account and join" }).click();
-  await expect(page.getByRole("heading", { name: "You're signed in" })).toBeVisible();
+  await expect(page).toHaveURL(/\/(products|setup)/);
 
   const second = await invite(owner, shop, { email, roleId: adminRole, channel: "local" });
   await page.context().clearCookies();
@@ -110,7 +109,7 @@ test("an existing account signs in with its own password and keeps it", async ({
   await waitForPublicSlot();
   await waitForAuthSlot();
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("heading", { name: "You're signed in" })).toBeVisible();
+  await expect(page).toHaveURL(/\/(products|setup)/);
 });
 
 test("a used link says it doesn't work", async ({ page }, info) => {
@@ -121,7 +120,7 @@ test("a used link says it doesn't work", async ({ page }, info) => {
   await waitForPublicSlot();
   await waitForAuthSlot();
   await page.getByRole("button", { name: "Create account and join" }).click();
-  await expect(page.getByRole("heading", { name: "You're signed in" })).toBeVisible();
+  await expect(page).toHaveURL(/\/(products|setup)/);
   await page.goto(relative(link.setupLink!));
   await expect(brokenHeading(page)).toBeVisible();
   await shoot(page, info, "invitation-consumed");

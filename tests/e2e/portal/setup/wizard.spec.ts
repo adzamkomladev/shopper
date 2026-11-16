@@ -15,8 +15,7 @@ test("a new owner sets the shop up step by step and finishes", async ({ page, re
   await submitSignup(page, data);
   await verifyFromEmail(page, request, data);
   await submitPassword(page);
-  await expect(page.getByRole("heading", { name: "You're signed in" })).toBeVisible();
-  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/(products|setup)/);
   await expect(page).toHaveURL(/\/setup/);
   await expect(page.getByRole("heading", { name: "Get your shop ready" })).toBeVisible();
   await expectStep(page, "Store");
@@ -73,8 +72,7 @@ test("leaving the wizard keeps a way back until the first sale", async ({ page, 
   await submitSignup(page, data);
   await verifyFromEmail(page, request, data);
   await submitPassword(page);
-  await expect(page.getByRole("heading", { name: "You're signed in" })).toBeVisible();
-  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/(products|setup)/);
   await expect(page).toHaveURL(/\/setup/);
   await page.getByRole("button", { name: "Finish later" }).click();
   await expect(page).toHaveURL(/\/products$/);

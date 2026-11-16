@@ -17,8 +17,7 @@ test("an owner fills in the business verification and sends it for review", asyn
   await submitSignup(page, data);
   await verifyFromEmail(page, request, data);
   await submitPassword(page);
-  await expect(page.getByRole("heading", { name: "You're signed in" })).toBeVisible();
-  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/(products|setup)/);
   await page.getByRole("button", { name: "Finish later" }).click();
   // The bank list fails at first: the page says so, and Try again recovers it.
   await page.route("**/api/kyb/banks", (route) => route.fulfill({ status: 503, json: {} }));

@@ -27,8 +27,7 @@ test("a new shop signs up, sets up, enrols a till and makes its first sale", asy
   await submitSignup(page, data);
   await verifyFromEmail(page, request, data);
   await submitPassword(page);
-  await expect(page.getByRole("heading", { name: "You're signed in" })).toBeVisible();
-  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/(products|setup)/);
   await expect(page.getByRole("heading", { name: "Get your shop ready" })).toBeVisible();
 
   await page.getByRole("button", { name: "Add store" }).click();

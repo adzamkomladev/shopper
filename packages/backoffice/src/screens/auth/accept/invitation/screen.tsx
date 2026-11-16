@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { AuthFrame } from "../../../../components/auth/frame";
-import { LoginSuccess } from "../../../../components/auth/login/success";
 import { brokenLink } from "../../../../api/auth/public/api";
 import { JoinForm } from "../../../../components/auth/accept/invitation/join/form";
 import { invitationQuery } from "../../../../queries/auth/accept/invitation";
@@ -12,10 +11,14 @@ export function AcceptInvitationScreen() {
   const [joined, setJoined] = useState(false);
   return (
     <AuthFrame>
-      {joined ? (
-        <LoginSuccess onContinue={() => void navigate({ to: "/" })} />
-      ) : (
-        <Invitation onJoined={() => setJoined(true)} />
+      {/* Unmounted at once: signing in clears cached data, and the used link must not be read again. */}
+      {!joined && (
+        <Invitation
+          onJoined={() => {
+            setJoined(true);
+            void navigate({ to: "/" });
+          }}
+        />
       )}
     </AuthFrame>
   );

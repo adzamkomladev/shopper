@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { AuthFrame } from "../../../../components/auth/frame";
-import { LoginSuccess } from "../../../../components/auth/login/success";
 import { CompleteForm } from "../../../../components/auth/verify/registration/complete/form";
 import { AlreadySetUp } from "../../../../components/auth/verify/registration/already/set/up";
 import { brokenLink } from "../../../../api/auth/public/api";
@@ -14,10 +13,14 @@ export function VerifyRegistrationScreen() {
   const [signedIn, setSignedIn] = useState(false);
   return (
     <AuthFrame>
-      {signedIn ? (
-        <LoginSuccess onContinue={() => void navigate({ to: "/" })} />
-      ) : (
-        <Steps onSignedIn={() => setSignedIn(true)} />
+      {/* Unmounted at once: signing in clears cached data, and the used link must not be read again. */}
+      {!signedIn && (
+        <Steps
+          onSignedIn={() => {
+            setSignedIn(true);
+            void navigate({ to: "/" });
+          }}
+        />
       )}
     </AuthFrame>
   );

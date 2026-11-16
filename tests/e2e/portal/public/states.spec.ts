@@ -42,7 +42,7 @@ test("a finished registration's link says the shop is already set up and offers 
   await submitSignup(page, data);
   const link = await verifyFromEmail(page, request, data);
   await submitPassword(page);
-  await expect(page.getByRole("heading", { name: "You're signed in" })).toBeVisible();
+  await expect(page).toHaveURL(/\/(products|setup)/);
   await page.goto(`${link.pathname}${link.search}`);
   await expect(page.getByRole("heading", { name: "Your shop is already set up" })).toBeVisible();
   await shoot(page, info, "verify-completed");

@@ -80,11 +80,8 @@ export async function typeCredentials(page: Page, shop: Shop, password = OWNER_P
   await page.keyboard.press("Enter");
 }
 
-/** Full keyboard sign-in: credentials, Enter, then Enter on the success card's Continue. */
+/** Full keyboard sign-in: credentials, then Enter goes straight into the back office. */
 export async function signInWithKeyboard(page: Page, shop: Shop, password = OWNER_PASSWORD) {
   await typeCredentials(page, shop, password);
-  await expect(page.getByRole("heading", { name: "You're signed in" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Continue" })).toBeFocused();
-  await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/products$/);
 }

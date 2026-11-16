@@ -12,10 +12,9 @@ const DESKTOP_ONLY = "hidden md:table-cell";
 type Props = {
   products: ProductSummary[];
   categories: CategoryView[];
-  onEndReached: () => void;
 };
 
-export function ProductTable({ products, categories, onEndReached }: Props) {
+export function ProductTable({ products, categories }: Props) {
   const categoryName = new Map(categories.map((category) => [category.id, category.name]));
   const columns: DataTableColumn<ProductSummary>[] = [
     {
@@ -91,8 +90,6 @@ export function ProductTable({ products, categories, onEndReached }: Props) {
       columns={columns}
       data={products}
       getRowId={(product) => product.id}
-      onEndReached={onEndReached}
-      className="min-h-0"
     />
   );
 }

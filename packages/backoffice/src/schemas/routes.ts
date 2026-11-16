@@ -5,6 +5,7 @@ export const shopSearch = v.object({ shop: v.optional(v.string()) });
 export const catalogueSearch = v.object({
   q: v.optional(v.string()),
   categoryId: v.optional(v.string()),
+  page: v.optional(v.pipe(v.number(), v.safeInteger(), v.minValue(1))),
 });
 
 export const stockSearch = v.object({

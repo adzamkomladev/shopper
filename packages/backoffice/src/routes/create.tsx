@@ -90,7 +90,7 @@ export function createBackofficeRoutes(
     loader: async ({ context, deps }: { context: BackofficeContext; deps: ProductSearch }) => {
       // Products are only started: the screen shows its own skeleton while they load, so the
       // heading and toolbar are there at once and a new search never replaces them.
-      void context.queryClient.prefetchInfiniteQuery(productsQuery(deps));
+      void context.queryClient.prefetchQuery(productsQuery(deps));
       await context.queryClient.ensureQueryData(categoriesQuery());
     },
     component: lazyRouteComponent(

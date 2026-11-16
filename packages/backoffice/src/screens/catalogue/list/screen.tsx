@@ -1,6 +1,6 @@
 import { Suspense, useRef, useState } from "react";
 import { useSearch } from "@tanstack/react-router";
-import { useInfiniteQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Button } from "@shopper/ui/components/button";
 import { NewProductSheet } from "../../../components/catalogue/list/create/sheet";
 import { TableSkeleton } from "../../../components/catalogue/list/states";
@@ -15,7 +15,7 @@ export function ProductsScreen() {
   const { data: categories } = useSuspenseQuery(categoriesQuery());
   // The same query ProductResults suspends on. Read here without suspending, so the heading and
   // the toolbar stay mounted (and keep focus) while a new search loads.
-  const { data: loaded } = useInfiniteQuery(productsQuery(search));
+  const { data: loaded } = useQuery(productsQuery(search));
   const [sheetOpen, setSheetOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const addRef = useRef<HTMLButtonElement>(null);
@@ -25,9 +25,9 @@ export function ProductsScreen() {
     focusSearch: () => searchRef.current?.focus(),
   });
   const isFiltered = Boolean(search.q || search.categoryId);
-  const isEmptyCatalogue = !isFiltered && loaded?.pages[0]?.items.length === 0;
+  const isEmptyCatalogue = !isFiltered && loaded?.total === 0;
   return (
-    <div ref={shortcuts} className="flex min-h-0 flex-1 flex-col gap-6">
+    <div ref={shortcuts} className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold tracking-tight">Products</h1>
         {!isEmptyCatalogue && (

@@ -12,4 +12,4 @@ export type ImportResult = v.InferOutput<typeof importResult>;
 
 export type CategoryView = v.InferOutput<typeof categoryView>;
 export type ProductSummary = v.InferOutput<typeof productSummary>;
-export type ProductSearch = { q?: string; categoryId?: string };
+export type ProductSearch = { q?: string; categoryId?: string; page?: number };

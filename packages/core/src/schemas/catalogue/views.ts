@@ -37,6 +37,7 @@ export const productSummary = v.object({ ...productFields, price: v.nullable(mon
 export const productPage = v.object({
   items: v.array(productSummary),
   nextCursor: v.nullable(id),
+  total: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
 });
 export const productDetail = v.object({
   ...productFields,

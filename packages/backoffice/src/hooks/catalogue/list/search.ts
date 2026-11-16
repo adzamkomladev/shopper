@@ -19,7 +19,8 @@ export function useProductSearch(search: ProductSearch) {
   const update = (patch: ProductSearch) =>
     navigate({
       to: "/products",
-      search: (previous: ProductSearch) => ({ ...previous, ...patch }),
+      // A new search or category starts again at the first page.
+      search: (previous: ProductSearch) => ({ ...previous, ...patch, page: undefined }),
       replace: true,
     });
   const setQuery = useDebouncedCallback((value: string) => {

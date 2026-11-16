@@ -29,6 +29,10 @@ export const listQuery = v.object({
   q: v.optional(text(100)),
   categoryId: v.optional(uuidV7Schema),
   cursor: v.optional(uuidV7Schema),
+  // A numbered page (1-based) for the back-office list; the cursor stays for scrolling callers.
+  page: v.optional(
+    v.pipe(v.string(), v.transform(Number), v.safeInteger(), v.minValue(1), v.maxValue(100_000)),
+  ),
   limit: v.optional(
     v.pipe(v.string(), v.transform(Number), v.safeInteger(), v.minValue(1), v.maxValue(200)),
     "50",

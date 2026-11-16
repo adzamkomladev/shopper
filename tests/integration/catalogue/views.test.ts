@@ -135,3 +135,19 @@ test("the list is newest first, across pages", async () => {
   expect(second.items.map((item) => item.id)).toEqual(ids.slice(2));
   expect(second.nextCursor).toBeNull();
 });
+
+test("a numbered page skips the pages before it and counts every match", async () => {
+  const tag = unique("PAGED");
+  const ids: string[] = [];
+  for (const n of [1, 2, 3, 4, 5]) ids.unshift((await createProduct({ name: `${tag} ${n}` })).id);
+  const pages = await Promise.all(
+    [1, 2, 3, 4].map((page) => listed(`q=${tag}&limit=2&page=${page}`)),
+  );
+  expect(pages.map((page) => page.items.map((item) => item.id))).toEqual([
+    ids.slice(0, 2),
+    ids.slice(2, 4),
+    ids.slice(4),
+    [],
+  ]);
+  expect(pages.map((page) => v.parse(productPage, page).total)).toEqual([5, 5, 5, 5]);
+});

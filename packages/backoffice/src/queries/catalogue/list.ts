@@ -1,12 +1,7 @@
 import { categoryList } from "../../schemas/catalogue/list";
 import type { CategoryView, ProductSearch } from "./types";
 export type { CategoryView, ProductSummary, ProductSearch } from "./types";
-import {
-  infiniteQueryOptions,
-  queryOptions,
-  useMutation,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { categoryView, productDetail, productPage } from "@shopper/core/schemas";
@@ -14,21 +9,18 @@ import { apiFetch } from "../../api/client";
 import { currentShop } from "../../stores/shops";
 import { toProductBody, type NewProductValues } from "../../schemas/catalogue";
 
-export const PAGE_SIZE = 100;
+export const PAGE_SIZE = 20;
 
-/** Newest first, a page at a time. Keyed by shop and search, so shops never share a list. */
-export function productsQuery({ q, categoryId }: ProductSearch, shop = currentShop()) {
-  return infiniteQueryOptions({
-    queryKey: ["products", shop?.id ?? "box", q ?? "", categoryId ?? ""],
-    queryFn: ({ pageParam }) => {
-      const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
+/** Newest first, one numbered page. Keyed by shop and search, so shops never share a list. */
+export function productsQuery({ q, categoryId, page = 1 }: ProductSearch, shop = currentShop()) {
+  return queryOptions({
+    queryKey: ["products", shop?.id ?? "box", q ?? "", categoryId ?? "", page],
+    queryFn: () => {
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE), page: String(page) });
       if (q) params.set("q", q);
       if (categoryId) params.set("categoryId", categoryId);
-      if (pageParam) params.set("cursor", pageParam);
       return apiFetch(`/products?${params}`, productPage, { shopId: shop?.id ?? null });
     },
-    initialPageParam: "",
-    getNextPageParam: (page) => page.nextCursor ?? undefined,
   });
 }
 

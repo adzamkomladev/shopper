@@ -72,7 +72,7 @@ export async function getProduct(db: Queryable, orgId: string, id: string) {
 
 /** Active products, newest first, keyset-paged by id. `q` matches a name fragment, an exact sku or an exact barcode. */
 export async function listProducts(db: Queryable, orgId: string, rawQuery: unknown) {
-  const { q, categoryId, cursor, limit } = v.parse(listQuery, rawQuery);
+  const { q, categoryId, cursor, page, limit } = v.parse(listQuery, rawQuery);
   const filters: (SQL | undefined)[] = [
     eq(product.orgId, orgId),
     isNull(product.archivedAt),
@@ -95,12 +95,23 @@ export async function listProducts(db: Queryable, orgId: string, rawQuery: unkno
     order by ${price.validFrom} desc, ${price.id} desc limit 1)`.mapWith((value) =>
     value === null ? null : Number(value),
   );
-  const rows = await selectProducts(db, { ...columns, price: current })
-    .where(and(...filters))
-    .orderBy(desc(product.id))
-    .limit(limit + 1);
+  const [rows, [counted]] = await Promise.all([
+    selectProducts(db, { ...columns, price: current })
+      .where(and(...filters))
+      .orderBy(desc(product.id))
+      .limit(limit + 1)
+      .offset(page ? (page - 1) * limit : 0),
+    db
+      .select({ total: sql<number>`count(*)`.mapWith(Number) })
+      .from(product)
+      .where(and(...filters)),
+  ]);
   const items = managementJson(rows.slice(0, limit));
-  return { items, nextCursor: rows.length > limit ? items[limit - 1]!.id : null };
+  return {
+    items,
+    nextCursor: rows.length > limit ? items[limit - 1]!.id : null,
+    total: counted?.total ?? 0,
+  };
 }
 
 /** A scan: the active product behind a barcode, its pack quantity and the price in force. */

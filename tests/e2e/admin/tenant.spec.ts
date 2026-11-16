@@ -36,6 +36,7 @@ test("an admin opens a shop and reads every tab", async ({ page }) => {
   await expect(page.getByRole("tab", { name: "Activity", selected: true })).toBeVisible();
   await page.getByRole("tab", { name: "Activity" }).focus();
   await page.keyboard.press("ArrowLeft");
+  await expect(page.getByRole("tab", { name: "Billing" })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/tab=billing/);
 });

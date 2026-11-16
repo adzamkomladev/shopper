@@ -1,137 +1,70 @@
 # Shopper
 
-Offline-first supermarket POS for Ghana, sharing business code between
-Cloudflare Workers and a Bun/Hono on-premise host.
+Offline-first supermarket point of sale for Ghana. One codebase runs in two places:
 
-The current implementation includes integer money, dated tax rules, audited commands,
-shared adapter conformance, session and device authentication, catalogue import,
-versioned prices and scheduled price changes. The portal provides sign-in, shop
-switching, catalogue browsing, product editing and import screens. Till sales,
-sync and the remaining business workflows follow on their scheduled days.
+- **Cloud**: Cloudflare Workers, Neon PostgreSQL through Hyperdrive, D1, R2, Durable Objects, Workflows and Queues.
+- **On-prem**: the sealed **box**, a Bun binary that runs on the store's LAN with PostgreSQL, Rivet and RustFS.
+
+Tills keep selling with no internet and sync when they reconnect. Money is integer (1 GHS = 10,000 units), tax is
+read by date and snapshotted onto every sale line, every mutation writes an audit row, and every money event posts a
+balanced journal entry.
+
+## Apps
+
+| App           | What it is                                                                                | Dev URL                  | Cloud (production / staging)                                    |
+| ------------- | ----------------------------------------------------------------------------------------- | ------------------------ | --------------------------------------------------------------- |
+| `apps/edge`   | The API Worker (Hono), Durable Objects, Workflows, queue consumer and the daily watchdog  | http://localhost:8787    | `shopper-api.temtem.dev` / `shopper-api-staging.temtem.dev`     |
+| `apps/portal` | The back office (`@shopper/backoffice`) as a TanStack Start SPA                           | http://localhost:5173    | `shopper.temtem.dev` / `shopper-staging.temtem.dev`             |
+| `apps/admin`  | The platform operator's console: tenants, KYB, billing, support                           | http://localhost:5187    | `shopper-admin.temtem.dev` / `shopper-admin-staging.temtem.dev` |
+| `apps/shop`   | The customers' online store (TanStack Start SSR): browse, cart, pickup checkout, receipts | http://localhost:5175    | `shopper-shop.temtem.dev` / `shopper-shop-staging.temtem.dev`   |
+| `apps/till`   | The till: `ui` (React), `host` (offline engine, SQLite) and `electron` (Windows shell)    | http://localhost:5174    | Windows installer (`release-till.yml`)                          |
+| `apps/box`    | The on-prem server: the same API, back office SPA and sync on the store's LAN             | `vp -C apps/box run dev` | Sealed binary and `shopper-box-installer.run`                   |
+
+`packages/*` holds the shared business code (`core`, `api`, `money`, `tax`, `audit`, `sync`, `db`, `ui`, `backoffice`,
+`hardware`, `ports` and the two `adapters`). [layout.md](docs/engineering/layout.md) lists every package.
 
 ## Develop
 
-Node 24.21.0 and pnpm 12.9.1 are pinned through Vite+. Install Vite+ 1.0.0, then:
+Node 24 and pnpm are pinned through [Vite+](https://viteplus.dev) (`vp`). Docker runs the local services.
 
 ```sh
-vp install --frozen-lockfile
-vp run services:up
-vp check
-vp test --run
-vp run build
-vp run typecheck
-vp run dev
+vp install
+vp run services:up   # PostgreSQL 18, Rivet, RustFS and a virtual receipt printer
+vp run db:reset      # migrate, then seed stores, one user per role and a catalogue; prints the sign-ins
+vp run dev           # every app at the URLs above
 ```
 
-Portal: http://localhost:5173 · till UI: http://localhost:5174 · customer app:
-http://localhost:5175. The portal provides the back office; the till currently shows the shared About screen.
-The box source can run with `vp -C apps/box run dev` (Bun required).
+`vp run dev` reaches the dev R2 buckets, so it needs `CLOUDFLARE_API_TOKEN` (or a `cf auth login` session). The local
+database is `postgresql://shopper:shopper_dev_only@127.0.0.1:5432/shopper`; `vp run services:down` stops the services
+and keeps their data.
 
-The local database is `postgresql://shopper:shopper_dev_only@127.0.0.1:5432/shopper`.
-Tests use a **new database per suite**, then drop it; override with
-`TEST_DATABASE_URL` pointing to a test server whose role can create databases.
-Rivet runs on localhost:6420 with the local-only token
-`shopper_local_development_only`. The virtual printer listens on TCP 9100 and
-saves raw bytes under `tooling/printer/captures/` (ignored by Git).
-`vp run services:down` stops services and preserves their volumes.
-
-## Money, tax and database
-
-`@shopper/money` owns amount arithmetic: 1 GHS = 10,000 integer units, quantities
-use thousandths and rates use basis points. BigInt intermediates preserve exact
-products; values outside JavaScript's safe integer range are rejected. Half-up
-rounding acts on the magnitude, so negative ties round away from zero. Gateway
-conversions use `toPesewas()` or `toDecimal(amount, 2)`; never pass a floating
-amount to a gateway. `toDecimal(amount, 4)` preserves storage precision.
-
-`@shopper/tax` takes a dated database rule and produces an immutable line
-snapshot. The initial seed starts on 1 January 2026: VAT 15%, NHIL 2.5%, GETFund
-2.5% and COVID 0%, all on the same base, per the
-[GRA notice](https://gra.gov.gh/news/portfolio/notice-to-all-vat-registered-taxpayers/).
-Inclusive prices divide by 1.20 using integer ratios. Any residual from rounding
-components to four decimals is recorded separately, keeping the gross exact.
-Zero-rated and exempt lines retain their distinct class with zero tax. No
-historical rate is inferred for dates before the first rule.
+## Check and test
 
 ```sh
-vp run db:migrate
-vp run db:seed
+vp check            # format, lint, type check
+vp run guard        # imports, file sizes, no effects, layout rules
+vp test --run       # integration tests against a fresh PostgreSQL 18 database per suite
+vp run e2e          # Playwright end to end
 ```
 
-These commands default to local PG18. For Neon dev, provide its direct connection
-URL through `DATABASE_URL` in your shell's secret environment. Do not commit it.
-The development seed provisions the dev shop and tax rules, then imports 20,000
-catalogue products through the audited import command. It can be rerun.
+Tests come first and are integration or end to end only. See [testing.md](docs/engineering/testing.md).
 
-To wipe everything and repopulate (stores, branches, one user per role, catalogue), run
-`vp run db:reset [--products N]`; the credentials print at the end. See
-`docs/engineering/developer-experience.md`.
+## Release
 
-Drizzle migrations live in `packages/db/pg/migrations`; generate the next forward
-migration with `vp exec drizzle-kit generate --config packages/db/pg/drizzle.config.ts`.
-Never edit an applied migration. The migration journal makes reruns a no-op;
-its infrastructure table lives outside the tenant schema and uses UUIDv7 rather
-than Drizzle's default serial key. Domain tables have `org_id`, UUIDv7 key
-defaults and timestamps. Composite foreign keys prevent cross-tenant links.
-Database triggers maintain `updated_at` and protect audit/version history from
-updates and deletes. Every application mutation uses `defineCommand()` to append
-an audit row in its transaction; the wrapper now lives in `@shopper/audit`, with trusted context, redacted JSON
-snapshots and a per-organization SHA-256 chain. `@shopper/core` re-exports it.
-Legacy Day 2 audit rows are preserved and explicitly reported as unhashed by the
-verifier. Workflow checkpoints and committed results live in PostgreSQL.
+- **Staging**: a push to `main` deploys edge, portal, admin and shop through Cloudflare Workers Builds. It does not wait
+  for CI, so merge only when CI is green.
+- **Production**: run the **Release cloud** GitHub workflow (approval on `cloud-production`). It runs twice: first it
+  uploads versions that serve nothing, then with `promote` it migrates, sends all traffic and smoke tests each Worker.
+- **Till and box**: `release-till.yml`, `vp run box:seal` and `vp run box:installer`.
 
-`GET /tax-rules?on=YYYY-MM-DD` selects the latest effective rule for the trusted
-session organization. The cloud and box hosts wire session and device authentication
-through the shared runtime and fail closed with 503 when it is not configured.
-Tenant IDs from request parameters cannot grant access. This boundary is exercised
-against real PostgreSQL in CI.
+[deployment.md](docs/engineering/deployment.md) has the details, rollback and secrets. Cloudflare is driven with the
+`cf` CLI.
 
-## Boundaries
+## Read next
 
-- `apps/edge`: Worker entry and Cloudflare Vite build.
-- `apps/box`: Bun serves the same `@shopper/api` Hono app.
-- `apps/portal`: TanStack Start back-office in SPA mode. A prerendered static shell is served by
-  Workers Static Assets; one Worker runs only for `/api/*` (the shared Hono API through native
-  Hyperdrive, D1, R2, Durable Object and Workflow bindings) and `/_serverFn/*` (host-only server
-  functions).
-- `apps/shop`: TanStack Start SSR shell with the Cloudflare Vite plugin.
-- `apps/till/ui`: React browser shell; no device access.
-- `apps/till/host`, `apps/till/electron`: engine and Windows shell boundaries.
-- `packages/*`: handbook package boundaries, with strict TypeScript references.
-
-Read `AGENTS.md` and `docs/engineering/` for every rule: boundaries, code quality,
-testing, frontend, platforms, deployment and the AI workflow. `vp run guard` enforces
-the import, file-size and no-effect rules.
-Hardware, sync and export package implementations follow on their scheduled days.
-
-## Tests and compatibility
-
-`vp test --run` exercises PostgreSQL 18 migration reruns, audited transactions,
-exact money storage and dated tax rules through the API, audit tamper/rollback/
-concurrent-chain checks, and shared Cache/Blobs/Sequencer conformance on both
-Cloudflare and Node development adapters, the cloud/Bun Hono boundary, a real TCP
-printer capture, and the Hono Worker in workerd. Cloudflare's test plugin currently
-requires a separate Vitest 4 runner; see `tooling/worker/tests/README.md`.
-TanStack Start and the Cloudflare plugin build successfully on Vite+ / Vite 8.
-
-## Versions
-
-`package.json` owns the product version. `tooling/build/info.ts` injects
-`SHOPPER_VERSION`, `GIT_SHA`, `BUILD_DATE`, `SCHEMA_VERSION`, `SYNC_PROTOCOL`, and
-`ARCHIVE_FORMAT` into app builds. CI can supply `BUILD_DATE` and `GITHUB_SHA`.
-App build tasks fingerprint the Git revision and explicit version environment
-variables, so cached builds cannot keep metadata from an earlier commit.
-The API sends `Shopper-Version` on every response and exposes `/about` and
-`/health`. UI shells render the same metadata through `@shopper/ui`.
-
-## Staging
-
-Build with `vp -C apps/edge run build:staging`, then use
-`vp -C apps/edge run deploy:staging`. The Cloudflare environment is selected at
-build time, and deployment uses the generated staging configuration.
-Staging API: https://shopper-api-staging.temtem.dev.
-
-Infrastructure identifiers are recorded in `apps/edge/cloudflare.config.ts`.
-
-The [workspace source layout](docs/engineering/layout.md) inventories every app and package.
-Shared layout rules apply across the whole workspace; the guard enforces re-export-only indexes.
+[AGENTS.md](AGENTS.md) has the rules every change follows. The `docs/engineering/` guides cover
+[architecture](docs/engineering/architecture.md), [code quality](docs/engineering/code-quality.md),
+[frontend](docs/engineering/frontend.md), [platforms](docs/engineering/platforms.md),
+[security](docs/engineering/security.md) and [migration](docs/engineering/migration.md). The `docs/pilot/` guides are
+for [cashiers](docs/pilot/cashier.md), [managers](docs/pilot/manager.md), [cutover](docs/pilot/cutover.md) and
+[rollback](docs/pilot/rollback.md).

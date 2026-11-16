@@ -40,3 +40,6 @@ export { runArchiveImport } from "./workflows/import";
 export { cloudMoveId, deliverRelocation, getCloudMove, requestCloudMove } from "./move/box";
 export { runCloudMove } from "./workflows/move";
 export type { CloudMoveDeps } from "./types";
+export { reconciliationReport } from "./reconcile/report";
+export { compareReports } from "./reconcile/compare";
+export type { DayTotals, ReconciliationReport } from "./types";

@@ -2,16 +2,24 @@ import { createRoute, lazyRouteComponent, redirect, type AnyRoute } from "@tanst
 import { LoginSkeleton, routeStates, ShellSkeleton } from "@shopper/backoffice/kit";
 import { KybQueueSkeleton } from "../components/kyb/queue/states";
 import { KybReviewSkeleton } from "../components/kyb/review/states";
+import { TenantSkeleton } from "../components/tenants/detail/states";
 import { TenantsSkeleton } from "../components/tenants/list/states";
-import { kybCaseQuery, kybQueueQuery, platformOrgQuery, tenantsQuery } from "../queries/platform";
+import {
+  kybCaseQuery,
+  kybQueueQuery,
+  platformOrgQuery,
+  tenantQuery,
+  tenantsQuery,
+} from "../queries/platform";
 import { requireStaff } from "../queries/session";
 import { queueSearch } from "../schemas/platform";
+import { tenantSearch } from "../schemas/tenant";
 import type { QueueTab } from "../schemas/types";
 import type { PlatformContext } from "../types";
 
 type Context = { context: PlatformContext };
 
-/** Staff sign-in and the signed-in pages: the verification queue, one case, and every shop. */
+/** Staff sign-in and the signed-in pages: the verification queue, one case, every shop, and one shop. */
 export function createPlatformRoutes(rootRoute: AnyRoute) {
   const indexRoute = createRoute({
     getParentRoute: () => rootRoute,
@@ -64,9 +72,19 @@ export function createPlatformRoutes(rootRoute: AnyRoute) {
     ...routeStates,
     pendingComponent: TenantsSkeleton,
   });
+  const tenantRoute = createRoute({
+    getParentRoute: () => staffRoute,
+    path: "/tenants/$orgId",
+    validateSearch: tenantSearch,
+    loader: ({ context, params }: Context & { params: { orgId: string } }) =>
+      context.queryClient.ensureQueryData(tenantQuery(params.orgId)),
+    component: lazyRouteComponent(() => import("../screens/tenants/detail/screen"), "TenantScreen"),
+    ...routeStates,
+    pendingComponent: TenantSkeleton,
+  });
   return rootRoute.addChildren([
     indexRoute,
     loginRoute,
-    staffRoute.addChildren([queueRoute, caseRoute, tenantsRoute]),
+    staffRoute.addChildren([queueRoute, caseRoute, tenantsRoute, tenantRoute]),
   ]);
 }

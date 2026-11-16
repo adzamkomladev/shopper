@@ -1,7 +1,9 @@
 # @shopper/admin
 
 The platform admin app for Shopper staff: the business verification (KYB) queue, one case with its checks, scans
-and the decision, and every shop with its onboarding and verification. Screens live in `@shopper/platform`; this
+and the decision, and every shop with its onboarding and verification, each opening to its full picture (owner and counts, stores
+with their registers and when each was last seen, products, staff, verification and workflows, billing, and recent
+audit rows) for debugging a customer's problem. Screens live in `@shopper/platform`; this
 app is wiring only, the same shape as `apps/portal`: TanStack Start in SPA mode, a prerendered shell served by
 Workers Static Assets, and one Worker that runs only for `/api/*` (the shared Hono API).
 

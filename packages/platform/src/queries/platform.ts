@@ -1,6 +1,7 @@
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch, currentShop } from "@shopper/backoffice/kit";
 import { kybCase, platformOrg, queue, tenantChannel, tenants } from "../schemas/platform";
+import { tenantDetail } from "../schemas/tenant";
 import type { KybStatus } from "../schemas/types";
 
 // Keys carry the signed-in org, so a different sign-in never reads another's answers.
@@ -27,6 +28,13 @@ export const kybCaseQuery = (orgId: string) =>
 
 export const tenantsQuery = () =>
   queryOptions({ queryKey: key("tenants"), queryFn: () => apiFetch("/platform/tenants", tenants) });
+
+/** One shop's full picture for staff debugging it; read-only. */
+export const tenantQuery = (orgId: string) =>
+  queryOptions({
+    queryKey: key("tenants", orgId),
+    queryFn: () => apiFetch(`/platform/tenants/${encodeURIComponent(orgId)}`, tenantDetail),
+  });
 
 /** Approves or rejects one submission; every queue and the case are read again after. */
 export function useDecide(orgId: string) {

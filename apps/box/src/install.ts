@@ -1,16 +1,20 @@
 import { timingSafeEqual } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { sql } from "drizzle-orm";
 import { Hono } from "hono";
 import * as v from "valibot";
 import { v7 } from "uuid";
 import { installBox } from "@shopper/auth";
-import { installSchema } from "@shopper/auth/schemas";
+import { installImportSchema, installSchema } from "@shopper/auth/schemas";
 import { buildInfo } from "@shopper/config";
-import { org, type ShopperDatabase } from "@shopper/db-pg";
+import type { Licence } from "@shopper/core/licence";
+import { archiveImport, org, type ShopperDatabase } from "@shopper/db-pg";
+import { arriveFromCloud, ImportError, readZip } from "@shopper/export";
 import type { BoxLicence } from "@shopper/api";
 import { sha256 } from "@shopper/utils";
 import { boxDatabase } from "@shopper/adapters-box";
 import { acceptLicence } from "./licence";
+import { boxStorage } from "./storage";
 import type { BoxBindings } from "./types";
 
 const REASONS = {
@@ -28,6 +32,8 @@ const MAX_WRONG = 5;
 /**
  * The first-boot wizard's API (`GET /install` state, `POST /install`). A box with no shop creates its shop, first store,
  * owner and licence from the setup code the installer printed; once a shop exists both answer as if the route were not there.
+ * A box installed with `--import` (`SHOPPER_IMPORT`) instead takes over the cloud shop in that archive
+ * (`POST /install/import`), and stays installable until the cloud has its verification report.
  */
 export function boxInstall(
   env: Record<string, string | undefined>,
@@ -50,34 +56,30 @@ export function boxInstall(
       ? next()
       : c.json({ error: "This box has no setup code" }, 503),
   );
+  let shop: Promise<string> | undefined;
+  const importing = () => env.SHOPPER_IMPORT && (shop ??= shopIn(env.SHOPPER_IMPORT));
+  const pending = () => withDb(env.SHOPPER_IMPORT ? importPending : needsInstall);
   app.get("/install", async (c) => {
-    if (!(await withDb(needsInstall))) return c.json({ error: "Not found" }, 404);
+    if (!(await pending())) return c.json({ error: "Not found" }, 404);
+    const archived = importing();
     return c.json({
       needsInstall: true,
       licence: {
         enforced: Boolean(options.issuer),
         request: options.licence && (await options.licence.status()).request,
       },
+      ...(archived && { import: { shop: await archived } }),
     });
   });
   app.post("/install", async (c) => {
     const parsed = v.safeParse(installSchema, await c.req.json().catch(() => undefined));
     if (!parsed.success) return c.json({ error: "Invalid request data" }, 400);
     const input = parsed.output;
+    if (env.SHOPPER_IMPORT)
+      return c.json({ error: "This box was installed to take over a shop from the cloud." }, 409);
     if (!(await withDb(needsInstall))) return c.json({ error: "Not found" }, 404);
-    const recent = wrong.filter((at) => Date.now() - at < WINDOW_MS);
-    wrong.splice(0, wrong.length, ...recent);
-    if (recent.length >= MAX_WRONG)
-      return c.json({ error: "Too many wrong codes. Wait a few minutes." }, 429);
-    if (!(await codeMatches(input.code, env.SHOPPER_SETUP_CODE_HASH!))) {
-      wrong.push(Date.now());
-      return c.json({ error: "That setup code is not right" }, 403);
-    }
-    if (options.issuer) {
-      const refused = await acceptLicence(env, options.issuer, input.licence);
-      if (refused)
-        return c.json({ error: REASONS[refused as keyof typeof REASONS] ?? REASONS.forged }, 422);
-    }
+    const refused = await admit(input.code, input.licence);
+    if (refused) return c.json(refused.body, refused.status);
     const created = await withDb((db) =>
       db.transaction(async (tx) => {
         // Two people pressing the button at once make one shop: the second finds the first's.
@@ -90,7 +92,68 @@ export function boxInstall(
     );
     return created ? c.json(created, 201) : c.json({ error: "Not found" }, 404);
   });
+  app.post("/install/import", async (c) => {
+    const parsed = v.safeParse(installImportSchema, await c.req.json().catch(() => undefined));
+    if (!parsed.success) return c.json({ error: "Invalid request data" }, 400);
+    if (!env.SHOPPER_IMPORT || !(await pending())) return c.json({ error: "Not found" }, 404);
+    const licence = options.licence;
+    if (!licence || !env.SHOPPER_LICENCE_URL || !env.SHOPPER_AUTH_URL || !env.SHOPPER_AUTH_SECRET)
+      return c.json({ error: "This box cannot reach Shopper to take over a shop" }, 503);
+    const refused = await admit(parsed.output.code, parsed.output.licence);
+    if (refused) return c.json(refused.body, refused.status);
+    const cloud = env.SHOPPER_LICENCE_URL;
+    const blobs = await boxStorage(env, {
+      baseUrl: env.SHOPPER_AUTH_URL,
+      secret: env.SHOPPER_AUTH_SECRET,
+    });
+    const arrived = await withDb(async (db) =>
+      arriveFromCloud(
+        db,
+        {
+          blobs,
+          appVersion: buildInfo.version,
+          cloud: (path, body) =>
+            licence
+              .send(new URL(path, cloud).toString(), {
+                method: "POST",
+                body: JSON.stringify(body),
+              })
+              .catch(() => new Response(null, { status: 502 })),
+        },
+        {
+          archive: await readFile(env.SHOPPER_IMPORT!),
+          licence: parsed.output.licence as Licence,
+          // The registers find the box where its owner reaches it.
+          upstream: new URL(env.SHOPPER_AUTH_URL!).origin,
+        },
+      ),
+    );
+    return c.json(arrived);
+  });
+  app.onError((error, c) => {
+    if (error instanceof ImportError) return c.json({ error: error.message }, error.status);
+    throw error;
+  });
   return app;
+
+  /** The setup code (wrong ones counted) and, where an issuer is enforced, a licence genuine for this machine. */
+  async function admit(code: string, value: unknown) {
+    const recent = wrong.filter((at) => Date.now() - at < WINDOW_MS);
+    wrong.splice(0, wrong.length, ...recent);
+    if (recent.length >= MAX_WRONG)
+      return { body: { error: "Too many wrong codes. Wait a few minutes." }, status: 429 as const };
+    if (!(await codeMatches(code, env.SHOPPER_SETUP_CODE_HASH!))) {
+      wrong.push(Date.now());
+      return { body: { error: "That setup code is not right" }, status: 403 as const };
+    }
+    if (!options.issuer) return undefined;
+    const refused = await acceptLicence(env, options.issuer, value);
+    if (!refused) return undefined;
+    return {
+      body: { error: REASONS[refused as keyof typeof REASONS] ?? REASONS.forged },
+      status: 422 as const,
+    };
+  }
 }
 
 /**
@@ -133,6 +196,18 @@ export async function boxNeedsInstall(env: Record<string, string | undefined>) {
 
 async function needsInstall(db: Pick<ShopperDatabase, "select">) {
   return (await db.select({ id: org.id }).from(org).limit(1)).length === 0;
+}
+
+/** An import is pending until the cloud has agreed with the box's report: a box cut off mid-way runs it again. */
+async function importPending(db: Pick<ShopperDatabase, "select">) {
+  if (await needsInstall(db)) return true;
+  const [arrival] = await db.select({ status: archiveImport.status }).from(archiveImport).limit(1);
+  return arrival?.status === "importing";
+}
+
+async function shopIn(path: string) {
+  const manifest = readZip(new Uint8Array(await readFile(path))).get("manifest.json");
+  return (JSON.parse(new TextDecoder().decode(manifest)) as { org: { name: string } }).org.name;
 }
 
 async function codeMatches(code: string, expectedHash: string) {

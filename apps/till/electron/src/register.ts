@@ -3,7 +3,7 @@ import { app } from "electron";
 import { join } from "node:path";
 import { buildInfo } from "@shopper/config";
 import { writeAtomic } from "./secrets";
-import { changeServer, findServer } from "./trust";
+import { changeServer, findServer, onLan, pinBoxCa } from "./trust";
 
 /**
  * A fresh install has no register file: write the install half of one, and the host starts as an enrolment host
@@ -38,18 +38,36 @@ export async function moveServer(configPath: string, userData: string, address: 
 }
 
 /**
- * The shop moved to the cloud: the register file names the cloud, drops the box's CA (the cloud chains to public CAs)
- * and holds the new token until the restart seals it. The device id, database and outbox stay as they are.
+ * The shop moved: the register file names its new server and holds the new token until the restart seals it. Moving
+ * to the cloud drops the box's CA (the cloud chains to public CAs); moving onto a box keeps the CA pinned for it. The
+ * device id, database and outbox stay as they are.
  */
-export async function relocate(configPath: string, registration: object) {
-  const { ca: _box, ...stored } = JSON.parse(await readFile(configPath, "utf8")) as {
-    ca?: unknown;
-  };
+export async function relocate(
+  configPath: string,
+  userData: string,
+  registration: { upstream: string } | { pin: string },
+) {
+  if ("pin" in registration) return pinRelocation(configPath, userData, registration.pin);
+  const { ca, ...stored } = JSON.parse(await readFile(configPath, "utf8")) as { ca?: unknown };
+  const box = onLan(new URL(registration.upstream).hostname);
   await writeAtomic(
     configPath,
-    JSON.stringify({ ...stored, ...registration, session: null }, null, 2),
+    JSON.stringify({ ...stored, ...(box && { ca }), ...registration, session: null }, null, 2),
   );
-  // A new server and no box CA: like a changed server, the register starts afresh on it.
+  // A new server: like a changed server, the register starts afresh on it.
+  app.relaunch();
+  app.exit(0);
+}
+
+/**
+ * The shop is moving onto a box on this LAN: its CA is pinned first (trust on first use, as at enrolment; the signed
+ * relocation names the box), and the register restarts trusting it; the next handshake hands the relocation again.
+ */
+async function pinRelocation(configPath: string, userData: string, upstream: string) {
+  const ca = await pinBoxCa(upstream, userData);
+  if (!ca) throw new Error(`${upstream} is not a box on this network`);
+  const stored = JSON.parse(await readFile(configPath, "utf8")) as object;
+  await writeAtomic(configPath, JSON.stringify({ ...stored, ca }, null, 2));
   app.relaunch();
   app.exit(0);
 }

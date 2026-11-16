@@ -322,6 +322,9 @@ importers:
       '@shopper/db-pg':
         specifier: workspace:*
         version: link:../../packages/db/pg
+      '@shopper/export':
+        specifier: workspace:*
+        version: link:../../packages/export
       '@shopper/ports':
         specifier: workspace:*
         version: link:../../packages/ports

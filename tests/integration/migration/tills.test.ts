@@ -49,14 +49,15 @@ test("Box → cloud: tills relocate, next receipt numbers continue, fiscal seque
       handed.body.relocation,
       { issuer: h.issuer.publicKey, fetch: async (request) => h.cloud.fetch(request) },
     );
+    if (!registration || "pin" in registration) throw new Error("expected a registration");
     expect(registration).toMatchObject({ upstream: CLOUD });
     // Same branch and register codes: the receipt and fiscal invoice numbers stay one series.
-    expect(registration!.receiptCodes).toEqual({
+    expect(registration.receiptCodes).toEqual({
       branchCode: before[index]!.branchCode,
       deviceCode: before[index]!.deviceCode,
     });
 
-    const onCloud = tillCall(h.cloud, register, registration!.deviceToken);
+    const onCloud = tillCall(h.cloud, register, registration.deviceToken);
     const resumed = await handshake(onCloud, sold[index]!);
     expect(resumed.status).toBe(200);
     // The cloud hands back exactly the blocks the register holds: it sells on from sold + 1, no reuse, no gap.

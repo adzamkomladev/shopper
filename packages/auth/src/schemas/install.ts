@@ -14,6 +14,13 @@ export const installSchema = v.strictObject({
 export const installStateResponse = v.strictObject({
   needsInstall: v.boolean(),
   licence: v.strictObject({ enforced: v.boolean(), request: v.optional(v.string()) }),
+  // Installed with `--import`: the shop the archive holds, which this box takes over instead of creating one.
+  import: v.optional(v.strictObject({ shop: v.string() })),
+});
+/** A box installed with `--import` takes over its shop: the setup code and the licence the cloud issued for the move. */
+export const installImportSchema = v.strictObject({
+  code: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(40)),
+  licence: v.unknown(),
 });
 export const installResultResponse = v.strictObject({
   orgId: uuidV7Schema,

@@ -9,9 +9,9 @@ test("the shop's link signs a new phone in and opens an empty account", async ({
   const { phone } = await startShopper(page);
   // The shop's link opens the store; its account button asks a new phone to sign in.
   await page.goto(`/${SHOP}`);
-  await page.getByRole("link", { name: "Your account" }).click();
+  await page.getByRole("banner").getByRole("link", { name: "Your account" }).click();
   await expect(page).toHaveURL(new RegExp(`/${SHOP}/signin$`), { timeout: 30_000 });
-  await expect(page).toHaveTitle("E2E Mart · Your receipts");
+  await expect(page).toHaveTitle("E2E Mart · Shop online");
   await expect(page.getByRole("heading", { name: "See your receipts and points" })).toBeVisible();
   await expectNoSeriousAxe(page);
 

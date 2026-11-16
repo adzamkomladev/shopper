@@ -241,18 +241,23 @@
    tinted page and a glow of the primary behind the points card. Figma has no shop frames; this follows the
    Componets page and the New Login states with a bolder consumer treatment. */
 [data-surface="shop"] {
-  --radius: 1rem;
-  /* Secondary text sits on the tinted page as well as on cards: slate-600 keeps it at AA on both. */
-  --muted-foreground: light-dark(oklch(0.4455 0.0374 257.28), oklch(0.7107 0.0351 256.79));
-  --shop-page: light-dark(oklch(0.975 0.012 205), oklch(0.15 0.03 245));
-  --shop-glow: light-dark(oklch(0.9 0.06 195), oklch(0.32 0.07 205));
-  --shop-ink: light-dark(oklch(0.3 0.06 210), oklch(0.2 0.04 230));
+  --radius: 0.75rem;
+  /* Secondary text sits on the warm page as well as on cards: it keeps AA on both. */
+  --muted-foreground: light-dark(oklch(0.47 0.012 60), oklch(0.72 0.01 70));
+  /* A warm, quiet page like a well-kept shop floor; photos and prices carry the colour. */
+  --shop-page: light-dark(oklch(0.985 0.005 85), oklch(0.165 0.006 60));
+  /* The box behind a product photo, and soft fills. */
+  --shop-glow: light-dark(oklch(0.955 0.01 85), oklch(0.23 0.008 60));
+  /* The announcement bar and other deep accents. */
+  --shop-ink: light-dark(oklch(0.27 0.04 190), oklch(0.27 0.04 190));
+  --shop-on-ink: oklch(0.97 0.01 85);
 }
 
 @theme inline {
   --color-shop-page: var(--shop-page);
   --color-shop-glow: var(--shop-glow);
   --color-shop-ink: var(--shop-ink);
+  --color-shop-on-ink: var(--shop-on-ink);
 }
 
 @theme {

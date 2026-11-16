@@ -28,7 +28,7 @@ export function CheckoutFrame({
   return (
     <div ref={pageRef(shortcuts)} tabIndex={-1} className="min-h-dvh outline-none">
       <StoreHeader shop={shop} info={info} branchId={branchId} />
-      <main className="mx-auto max-w-6xl space-y-5 px-4 pt-6 pb-16 sm:px-6">
+      <main className="mx-auto max-w-7xl space-y-5 px-4 pt-6 pb-16 sm:px-6 lg:px-8">
         <Link
           to={back.to}
           params={{ shop }}

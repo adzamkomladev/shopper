@@ -5,6 +5,7 @@ import { pageRef } from "../shop/focus";
 import type { StoreInfo, StorePage } from "../../schemas/store";
 import { CategoryChips } from "./categories";
 import { ProductGrid } from "./grid";
+import { StoreFooter } from "./footer";
 import { StoreHeader } from "./header";
 import { StoreReviews } from "./reviews";
 import { StoreSearch } from "./search";
@@ -33,10 +34,17 @@ export function StoreBrowse({
   return (
     <div ref={pageRef(shortcuts)} tabIndex={-1} className="min-h-dvh outline-none">
       <StoreHeader shop={shop} info={info} branchId={branchId} />
-      <main className="mx-auto max-w-6xl space-y-5 px-4 pt-6 pb-16 sm:px-6">
-        <h1 className={category ? "text-3xl font-black tracking-tight" : "sr-only"}>
-          {category ? category.name : `${info.name} online`}
-        </h1>
+      <main className="mx-auto max-w-7xl space-y-6 px-4 pt-8 sm:px-6 lg:px-8">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+            {category ? category.name : `Shop ${info.name}`}
+          </h1>
+          {category ? null : (
+            <p className="text-pretty text-muted-foreground">
+              Everyday groceries from {result.branch.name}, at the same prices as in store.
+            </p>
+          )}
+        </div>
         <StoreSearch q={q} branchId={branchId} inputRef={search} />
         <CategoryChips
           shop={shop}
@@ -52,6 +60,7 @@ export function StoreBrowse({
         />
         {q || category ? null : <StoreReviews shop={shop} />}
       </main>
+      <StoreFooter shop={shop} name={info.name} branchId={branchId} />
     </div>
   );
 }

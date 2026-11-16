@@ -47,6 +47,13 @@ test("a shopper fills a cart, checks out for pickup and the order awaits payment
   await page.goto(`/${SHOP}?branch=${osu}&q=${tag}`);
   await page.getByRole("button", { name: `Add Frytol oil ${tag} to cart` }).click();
   await expect(cartButton(page)).toHaveAccessibleName("Cart, 2 items");
+  // The tile shows it is in the cart: a stepper takes the Add button's place, and a toast leads to the cart.
+  const stepper = page.getByRole("group", { name: `Quantity of Frytol oil ${tag}` });
+  await expect(stepper).toContainText("1");
+  // Focus moves to the stepper, so the keyboard and the store's shortcuts keep working.
+  await expect(stepper.getByRole("button", { name: `One more Frytol oil ${tag}` })).toBeFocused();
+  await expect(page.getByRole("button", { name: `Add Frytol oil ${tag} to cart` })).toBeHidden();
+  await expect(page.getByRole("button", { name: "View cart" })).toBeVisible();
   await page.keyboard.press("c");
   await expect(page).toHaveURL(new RegExp(`/${SHOP}/cart`));
   const items = page.getByRole("region", { name: "Items" });

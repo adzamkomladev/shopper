@@ -33,7 +33,7 @@ export function StoreSearch({
       <input type="hidden" name="branch" value={branchId} />
       <Search
         aria-hidden
-        className="pointer-events-none absolute top-1/2 left-5 size-5 -translate-y-1/2 text-muted-foreground"
+        className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground"
       />
       <input
         ref={inputRef}
@@ -45,7 +45,7 @@ export function StoreSearch({
         aria-keyshortcuts="/"
         placeholder="Search for rice, oil, milk…"
         maxLength={100}
-        className="h-14 w-full rounded-2xl border bg-card pr-14 pl-13 text-base shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className="h-12 w-full rounded-full border bg-card pr-14 pl-12 text-base outline-none placeholder:text-muted-foreground focus-visible:border-foreground"
       />
       <Kbd className="absolute top-1/2 right-5 hidden -translate-y-1/2 sm:inline-flex">/</Kbd>
     </form>

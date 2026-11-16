@@ -1,38 +1,42 @@
 import { Skeleton } from "@shopper/ui/components/skeleton";
 
-/** The store while a page loads: the bar, search, chips and a grid of tiles at their loaded sizes. */
+/** The store while a page loads: the bars, heading, search, chips and a grid of tiles at their loaded sizes. */
 export function StoreSkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading the store" className="min-h-dvh">
-      <div className="border-b bg-card">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
+      <div className="h-8 bg-shop-ink" />
+      <div className="border-b">
+        <div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 sm:px-6 lg:px-8">
           <Skeleton className="h-7 w-36" />
-          <Skeleton className="ml-auto h-11 w-32 rounded-full" />
-          <Skeleton className="h-11 w-11 rounded-full sm:w-24" />
-          <Skeleton className="h-11 w-11 rounded-full sm:w-28" />
+          <Skeleton className="ml-auto h-10 w-32 rounded-full" />
+          <Skeleton className="size-10 rounded-full" />
+          <Skeleton className="size-10 rounded-full" />
         </div>
       </div>
-      <div className="mx-auto max-w-6xl space-y-5 px-4 pt-6 pb-16 sm:px-6">
-        <Skeleton className="h-14 rounded-2xl" />
+      <div className="mx-auto max-w-7xl space-y-6 px-4 pt-8 sm:px-6 lg:px-8">
+        <div className="space-y-2">
+          <Skeleton className="h-9 w-64 sm:h-10" />
+          <Skeleton className="h-6 w-80 max-w-full" />
+        </div>
+        <Skeleton className="h-12 rounded-full" />
         <div className="flex gap-2 overflow-hidden">
-          {[16, 24, 20, 28].map((width) => (
+          {[16, 24, 20, 28, 22].map((width) => (
             <Skeleton
               key={width}
-              className="h-10 shrink-0 rounded-full"
+              className="h-9 shrink-0 rounded-full"
               style={{ width: `${width * 4}px` }}
             />
           ))}
         </div>
         <Skeleton className="h-5 w-40" />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
-          {Array.from({ length: 8 }, (_, tile) => (
-            <div key={tile} className="overflow-hidden rounded-2xl border bg-card">
-              <Skeleton className="aspect-square rounded-none" />
-              <div className="space-y-2 p-3 sm:p-4">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {Array.from({ length: 10 }, (_, tile) => (
+            <div key={tile} className="flex flex-col gap-3">
+              <Skeleton className="aspect-square rounded-xl" />
+              <div className="space-y-1">
                 <Skeleton className="h-5 w-4/5" />
                 <Skeleton className="h-6 w-20" />
               </div>
-              <Skeleton className="m-3 mt-0 h-8 w-18 rounded-full sm:m-4 sm:mt-0" />
             </div>
           ))}
         </div>

@@ -25,7 +25,7 @@ export function ProductPhoto({
   className?: string;
 }) {
   return (
-    <div className={`relative aspect-square overflow-hidden bg-shop-glow/50 ${className}`}>
+    <div className={`relative aspect-square overflow-hidden bg-shop-glow ${className}`}>
       {assetId ? (
         <img
           src={`/api/shop/${shop}/images/${assetId}`}
@@ -35,13 +35,16 @@ export function ProductPhoto({
           className="size-full object-cover"
         />
       ) : (
-        <ShoppingBasket aria-hidden className="absolute inset-0 m-auto size-1/3 text-primary/40" />
+        <ShoppingBasket
+          aria-hidden
+          className="absolute inset-0 m-auto size-1/4 text-muted-foreground/40"
+        />
       )}
     </div>
   );
 }
 
-/** One product in the grid: photo, name, and the price the till charges at this branch now. */
+/** One product in the grid: photo with the add button on it, then name and the till's price at this branch now. */
 export function ProductTile({
   shop,
   branchId,
@@ -54,35 +57,51 @@ export function ProductTile({
   index: number;
 }) {
   const unit = perUnit(product.baseUnit);
+  const link = {
+    to: "/$shop/products/$id",
+    params: { shop, id: product.id },
+    search: { branch: branchId },
+  } as const;
   return (
     <li
-      className="flex flex-col overflow-hidden rounded-2xl border bg-card shadow-xs animate-in fade-in slide-in-from-bottom-2 fill-mode-both motion-reduce:animate-none"
+      className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 fill-mode-both motion-reduce:animate-none"
       style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
     >
-      <Link
-        to="/$shop/products/$id"
-        params={{ shop, id: product.id }}
-        search={{ branch: branchId }}
-        className="group flex flex-1 flex-col outline-none transition hover:bg-shop-glow/30 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset motion-reduce:transition-none"
-      >
-        <ProductPhoto
-          shop={shop}
-          assetId={product.imageAssetId}
-          name={product.name}
-          eager={index < 4}
-          decorative
-        />
-        <div className="flex flex-1 flex-col gap-1 p-3 sm:p-4">
-          <h3 className="line-clamp-2 font-semibold text-pretty">{product.name}</h3>
-          <p className="mt-auto pt-1 text-lg font-extrabold tabular-nums">
-            {formatGHS(product.price)}
-            {unit ? (
-              <span className="ml-1 text-sm font-medium text-muted-foreground">{unit}</span>
-            ) : null}
-          </p>
+      <div className="relative">
+        {/* The name below is the link a screen reader hears; the photo is the same link for a tap. */}
+        <Link
+          {...link}
+          tabIndex={-1}
+          aria-hidden
+          className="group block overflow-hidden rounded-xl"
+        >
+          <ProductPhoto
+            shop={shop}
+            assetId={product.imageAssetId}
+            name={product.name}
+            eager={index < 4}
+            decorative
+            className="transition duration-300 group-hover:scale-103 motion-reduce:transition-none"
+          />
+        </Link>
+        <div className="absolute right-2 bottom-2">
+          <QuickAdd shop={shop} branchId={branchId} product={product} />
         </div>
+      </div>
+      <Link
+        {...link}
+        className="flex flex-col gap-1 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      >
+        <h3 className="line-clamp-2 text-sm font-medium text-pretty sm:text-base">
+          {product.name}
+        </h3>
+        <p className="font-semibold tabular-nums">
+          {formatGHS(product.price)}
+          {unit ? (
+            <span className="ml-1 text-sm font-normal text-muted-foreground">{unit}</span>
+          ) : null}
+        </p>
       </Link>
-      <QuickAdd shop={shop} product={product} />
     </li>
   );
 }

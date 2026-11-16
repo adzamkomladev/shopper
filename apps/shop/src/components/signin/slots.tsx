@@ -26,8 +26,7 @@ export function CodeSlots({
               key={index}
               className={cn(
                 "flex aspect-square items-center justify-center rounded-2xl border-2 bg-background text-3xl font-extrabold tabular-nums transition duration-150",
-                active &&
-                  "group-focus-within:border-primary group-focus-within:ring-4 group-focus-within:ring-primary/15",
+                active && "group-focus-within:border-primary",
                 digit && "border-foreground/20",
                 invalid && "border-destructive ring-destructive/15",
                 disabled && "opacity-60",

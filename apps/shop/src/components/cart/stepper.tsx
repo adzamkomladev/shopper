@@ -1,3 +1,4 @@
+import type { Ref } from "react";
 import { Minus, Plus } from "lucide-react";
 import { Button } from "@shopper/ui/components/button";
 import { quantityLabel } from "./quantity";
@@ -10,6 +11,8 @@ export function QuantityStepper({
   step,
   max,
   onChange,
+  className = "",
+  moreRef,
 }: {
   name: string;
   quantityThousandths: number;
@@ -17,12 +20,14 @@ export function QuantityStepper({
   step: number;
   max?: number;
   onChange: (quantityThousandths: number) => void;
+  className?: string;
+  moreRef?: Ref<HTMLButtonElement>;
 }) {
   return (
     <div
       role="group"
       aria-label={`Quantity of ${name}`}
-      className="flex items-center gap-1 rounded-full border bg-card p-1"
+      className={`flex items-center gap-1 rounded-full border bg-card p-1 ${className}`}
     >
       <Button
         type="button"
@@ -42,6 +47,7 @@ export function QuantityStepper({
         variant="ghost"
         size="icon"
         className="size-9 rounded-full"
+        ref={moreRef}
         aria-label={`One more ${name}`}
         disabled={max !== undefined && quantityThousandths + step > max}
         onClick={() => onChange(quantityThousandths + step)}

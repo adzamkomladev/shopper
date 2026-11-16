@@ -4,6 +4,7 @@ import { formatGHS } from "@shopper/money";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { pageRef } from "../shop/focus";
 import type { StoreInfo, StoreItem } from "../../schemas/store";
+import { StoreFooter } from "./footer";
 import { StoreHeader } from "./header";
 import { perUnit, ProductPhoto } from "./tile";
 import { AddToCart } from "../cart/add";
@@ -29,7 +30,7 @@ export function ProductPage({
   return (
     <div ref={pageRef(shortcuts)} tabIndex={-1} className="min-h-dvh outline-none">
       <StoreHeader shop={shop} info={info} branchId={branchId} />
-      <main className="mx-auto max-w-6xl px-4 pt-6 pb-16 sm:px-6">
+      <main className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
         <Link
           to="/$shop"
           params={{ shop }}
@@ -46,7 +47,7 @@ export function ProductPage({
             assetId={product.imageAssetId}
             name={product.name}
             eager
-            className="rounded-panel border"
+            className="rounded-2xl"
           />
           <div className="flex flex-col gap-5 md:py-4">
             {product.categoryId && product.categoryName ? (
@@ -54,16 +55,16 @@ export function ProductPage({
                 to="/$shop/categories/$id"
                 params={{ shop, id: product.categoryId }}
                 search={{ branch: branchId }}
-                className="w-fit text-sm font-bold tracking-wide text-primary uppercase hover:underline"
+                className="w-fit text-xs font-semibold tracking-wider text-muted-foreground uppercase hover:text-foreground"
               >
                 {product.categoryName}
               </Link>
             ) : null}
-            <h1 className="text-3xl font-black tracking-tight text-balance sm:text-4xl">
+            <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
               {product.name}
             </h1>
             {product.price === null ? null : (
-              <p className="text-3xl font-extrabold tabular-nums">
+              <p className="text-2xl font-semibold tabular-nums">
                 {formatGHS(product.price)}
                 {unit ? (
                   <span className="ml-2 text-base font-medium text-muted-foreground">{unit}</span>
@@ -98,6 +99,7 @@ export function ProductPage({
           </div>
         </article>
       </main>
+      <StoreFooter shop={shop} name={info.name} branchId={branchId} />
     </div>
   );
 }

@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { Link } from "@tanstack/react-router";
-import { ShoppingCart } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Plus, ShoppingCart } from "lucide-react";
 import { toast } from "@shopper/ui/components/sonner";
 import { Button } from "@shopper/ui/components/button";
-import { addToCart, useCart } from "../../stores/cart";
+import { addToCart, setQuantity, useCart } from "../../stores/cart";
 import { stepOf } from "./quantity";
 import { QuantityStepper } from "./stepper";
 
@@ -20,6 +20,7 @@ export function AddToCart({
   const step = stepOf(product.baseUnit);
   const [quantity, setQuantity] = useState(step);
   const inCart = useCart(shop).find((line) => line.productId === product.id);
+  const added = useAddedToast(shop, branchId);
   return (
     <div className="flex flex-wrap items-center gap-3">
       <QuantityStepper
@@ -35,7 +36,7 @@ export function AddToCart({
         className="h-12 rounded-full px-6 text-base font-bold"
         onClick={() => {
           addToCart(shop, product.id, quantity);
-          toast.success(`${product.name} is in your cart`);
+          added(product.name);
         }}
       >
         <ShoppingCart aria-hidden />
@@ -55,28 +56,68 @@ export function AddToCart({
   );
 }
 
-/** A tile's one-tap add of a single step. */
+/** A tile's one-tap add of a single step; once the product is in the cart, a stepper takes its place. */
 export function QuickAdd({
   shop,
+  branchId,
   product,
 }: {
   shop: string;
+  branchId: string;
   product: { id: string; name: string; baseUnit: string };
 }) {
+  const step = stepOf(product.baseUnit);
+  const line = useCart(shop).find((each) => each.productId === product.id);
+  const added = useAddedToast(shop, branchId);
+  // Add and the stepper swap places; the one that appears takes focus so the keyboard (and C, /) keeps working.
+  const swapped = useRef(false);
+  const takeFocus = useCallback((node: HTMLButtonElement | null) => {
+    if (!node || !swapped.current) return;
+    swapped.current = false;
+    node.focus();
+  }, []);
+  if (line)
+    return (
+      <QuantityStepper
+        name={product.name}
+        quantityThousandths={line.quantityThousandths}
+        baseUnit={product.baseUnit}
+        step={step}
+        onChange={(next) => {
+          swapped.current = next <= 0;
+          setQuantity(shop, product.id, next);
+        }}
+        className="shadow-md motion-safe:animate-pop"
+        moreRef={takeFocus}
+      />
+    );
   return (
     <Button
+      ref={takeFocus}
       type="button"
-      variant="outline"
-      size="sm"
-      className="m-3 mt-0 rounded-full font-semibold sm:m-4 sm:mt-0"
+      size="icon"
+      className="size-10 rounded-full shadow-md"
       aria-label={`Add ${product.name} to cart`}
       onClick={() => {
-        addToCart(shop, product.id, stepOf(product.baseUnit));
-        toast.success(`${product.name} is in your cart`);
+        swapped.current = true;
+        addToCart(shop, product.id, step);
+        added(product.name);
       }}
     >
-      <ShoppingCart aria-hidden />
-      Add
+      <Plus aria-hidden className="size-5" />
     </Button>
   );
+}
+
+/** Says what was added, with a way to the cart. */
+function useAddedToast(shop: string, branchId: string) {
+  const navigate = useNavigate();
+  return (name: string) =>
+    toast.success(`${name} added to your cart`, {
+      action: {
+        label: "View cart",
+        onClick: () =>
+          void navigate({ to: "/$shop/cart", params: { shop }, search: { branch: branchId } }),
+      },
+    });
 }

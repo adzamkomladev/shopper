@@ -10,7 +10,7 @@ export const Route = createFileRoute("/$shop")({
     return shop;
   },
   head: ({ loaderData }) => ({
-    meta: [{ title: loaderData ? `${loaderData.name} · Your receipts` : "Shop not found" }],
+    meta: [{ title: loaderData ? `${loaderData.name} · Shop online` : "Shop not found" }],
   }),
   component: Outlet,
   notFoundComponent: () => (

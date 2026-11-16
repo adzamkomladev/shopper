@@ -42,10 +42,10 @@ export function ProductGrid({
     );
   return (
     <section aria-label="Products" className="space-y-6">
-      <p className="text-sm font-medium text-muted-foreground" aria-live="polite">
+      <p className="text-sm text-muted-foreground" aria-live="polite">
         {result.total === 1 ? "1 product" : `${result.total} products`} at {result.branch.name}
       </p>
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+      <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {result.products.map((product, index) => (
           <ProductTile
             key={product.id}

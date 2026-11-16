@@ -20,7 +20,7 @@ async function signOut(page: Page) {
 test("keyboard-only sign-in lands on products", async ({ page }) => {
   await signInWithKeyboard(page, MART);
   await expect(page.getByRole("heading", { name: "Products", level: 1 })).toBeVisible();
-  await expect(page.getByRole("navigation")).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
 });
 
 test("an unknown shop code is reported on the Shop code field", async ({ page }, info) => {
@@ -59,7 +59,7 @@ test("the shop switcher lists remembered shops and opens login for the other one
   await signInWithKeyboard(page, MART);
   await signOut(page);
   await signInWithKeyboard(page, ANNEX);
-  await page.getByRole("navigation").getByRole("combobox").click();
+  await page.getByRole("navigation", { name: "Main" }).getByRole("combobox").click();
   await expect(page.getByRole("option", { name: MART.name })).toBeVisible();
   await expect(page.getByRole("option", { name: ANNEX.name })).toBeVisible();
   await page.getByRole("option", { name: MART.name }).click();

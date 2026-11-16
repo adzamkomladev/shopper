@@ -18,7 +18,13 @@ export function TenantsTable({ tenants }: { tenants: Tenant[] }) {
       meta: { className: "whitespace-normal" },
       cell: ({ row }) => (
         <div className="flex flex-col">
-          <span className="font-medium">{row.original.name}</span>
+          <Link
+            to="/tenants/$orgId"
+            params={{ orgId: row.original.id }}
+            className="w-fit font-medium underline-offset-4 hover:underline"
+          >
+            {row.original.name}
+          </Link>
           <span className="text-xs text-muted-foreground">{row.original.code ?? "No code"}</span>
         </div>
       ),

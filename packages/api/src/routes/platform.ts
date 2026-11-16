@@ -7,6 +7,7 @@ import { decideKyb } from "@shopper/core/kyb";
 import {
   kybCaseFor,
   kybQueue,
+  platformTenant,
   platformTenants,
   recordPlatformDecision,
   setTenantChannel,
@@ -57,6 +58,9 @@ export function platformRoutes(options: PlatformOptions) {
 
   app.get("/platform/tenants", async (c) =>
     c.json(await platformTenants(database, c.get("principal").orgId)),
+  );
+  app.get("/platform/tenants/:orgId", staff("platform.tenant.read"), async (c) =>
+    c.json(await platformTenant(database, tenant(c))),
   );
   app.post("/platform/tenants/:orgId/channel", async (c) => {
     const orgId = tenant(c);

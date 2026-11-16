@@ -24,7 +24,7 @@ test("an admin opens a shop and reads every tab", async ({ page }) => {
     ["Staff", MART.email],
     ["Verification", /workflows/i],
     ["Billing", /invoices/i],
-    ["Activity", /org\.provision|auth\./],
+    ["Activity", /newest \d+ audit rows/],
   ] as const) {
     await page.getByRole("tab", { name: tab }).click();
     await expect(page).toHaveURL(new RegExp(`tab=${tab.toLowerCase()}`));

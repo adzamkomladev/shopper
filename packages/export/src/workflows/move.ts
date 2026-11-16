@@ -1,17 +1,12 @@
-import { and, eq, isNotNull, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import * as v from "valibot";
 import { v7 } from "uuid";
-import {
-  account,
-  cashierPin,
-  cloudMove,
-  sessionKey,
-  type MoveCredentials,
-  type ShopperDatabase,
-} from "@shopper/db-pg";
+import { cloudMove, type ShopperDatabase } from "@shopper/db-pg";
 import type { Workflow } from "@shopper/ports";
 import { exportArchiveId, exportPrefix } from "../archive/ids";
 import { startArchiveExport } from "../archive/start";
+import { answer } from "../move/answer";
+import { credentials } from "../move/credentials";
 import { cloudMoveId, failCloudMove, finishCloudMove, stallCloudMove } from "../move/box";
 import { dumpResult } from "../schemas/archive";
 import { cloudMoveParams } from "../schemas/move";
@@ -134,38 +129,4 @@ async function read(db: ShopperDatabase, moveId: string) {
   const [move] = await db.select().from(cloudMove).where(eq(cloudMove.id, moveId));
   if (!move) throw new Error("The move is gone");
   return move;
-}
-
-/** What the archive leaves out so that people can sign in, unlock and prove sessions in the cloud as before. */
-async function credentials(db: ShopperDatabase, orgId: string): Promise<MoveCredentials> {
-  const passwords = await db
-    .select({ userId: account.userId, password: account.password })
-    .from(account)
-    .where(
-      and(
-        eq(account.orgId, orgId),
-        eq(account.providerId, "credential"),
-        isNotNull(account.password),
-      ),
-    );
-  const pins = await db
-    .select({ userId: cashierPin.userId, pinHash: cashierPin.pinHash })
-    .from(cashierPin)
-    .where(eq(cashierPin.orgId, orgId));
-  const [key] = await db.select().from(sessionKey).where(eq(sessionKey.orgId, orgId));
-  return {
-    passwords: passwords.map((row) => ({ userId: row.userId, password: row.password! })),
-    pins,
-    sessionKey: key?.key ?? null,
-  };
-}
-
-/** The cloud's answer, or its own words as the failure the owner reads. */
-async function answer<T>(response: Response) {
-  const text = await response.text();
-  if (!response.ok) {
-    const message = (JSON.parse(text || "{}") as { error?: string }).error;
-    throw new Error(message ?? `The cloud answered ${response.status}.`);
-  }
-  return (text ? JSON.parse(text) : undefined) as T;
 }

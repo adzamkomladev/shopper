@@ -2,7 +2,7 @@
 export class ImportError extends Error {
   constructor(
     message: string,
-    public status: 403 | 404 | 409 | 422 = 422,
+    public status: 403 | 404 | 409 | 422 | 502 = 422,
     /** The archive files the cloud still lacks, when that is why. */
     public missing?: string[],
   ) {

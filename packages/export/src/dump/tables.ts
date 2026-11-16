@@ -19,6 +19,7 @@ export const EXCLUDED_TABLES: Record<string, string> = {
   export_job: "The archives' own bookkeeping.",
   archive_import: "The cloud's record of a box moving in, with credentials in transit.",
   cloud_move: "The box's record of moving to the cloud.",
+  box_move: "The cloud's record of a shop moving onto its own box, with the licence it issued.",
 };
 
 /** Columns dropped from tables that are otherwise exported: secrets and tokens, never business data. */

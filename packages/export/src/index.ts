@@ -43,3 +43,18 @@ export type { CloudMoveDeps } from "./types";
 export { reconciliationReport } from "./reconcile/report";
 export { compareReports } from "./reconcile/compare";
 export type { DayTotals, ReconciliationReport } from "./types";
+export {
+  cancelOnPremMove,
+  getOnPremMove,
+  leavingMove,
+  LEAVING,
+  startOnPremMove,
+} from "./onprem/start";
+export { issueMoveLicence } from "./onprem/licence";
+export { claimOnPremMove, deliverBoxRelocation } from "./onprem/claim";
+export { verifyOnPremMove } from "./onprem/verify";
+export { claimBody, moveLicenceBody, reconciliationReportSchema, reportBody } from "./schemas/move";
+export { credentials as moveCredentials } from "./move/credentials";
+export { issueRelocations } from "./move/commit";
+export { arriveFromCloud } from "./onprem/arrive";
+export type { ArrivalDeps } from "./types";

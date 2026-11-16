@@ -1,6 +1,9 @@
 import type { MiddlewareHandler } from "hono";
 import { ne } from "drizzle-orm";
+import type { createDeviceService } from "@shopper/auth/devices";
 import { cloudMove, type ShopperDatabase } from "@shopper/db-pg";
+import { leavingMove } from "@shopper/export";
+import type { ApiAuthentication } from "../types";
 
 /**
  * The box's move to the cloud once it has started (and not failed). Only a box holds `cloud_move`, and a box holds one
@@ -27,3 +30,39 @@ export function refuseWhenMoved(db: ShopperDatabase, open: RegExp): MiddlewareHa
     return next();
   };
 }
+
+/**
+ * The cloud's side: a shop moving onto its own box only reads from the start of its move (its archive's snapshot is
+ * taken next) and for good once it is archived. Members' changes are refused, except signing in, the move itself and
+ * the archive it downloads; registers are refused in the sync routes (`refuseRegistersWhileLeaving`).
+ */
+export function refuseWhileLeaving(
+  db: ShopperDatabase,
+  authentication: ApiAuthentication | undefined,
+): MiddlewareHandler {
+  const open = /^\/(?:api\/auth|migration|export\/archives|sync)(?:\/|$)/;
+  return async (c, next) => {
+    if (["GET", "HEAD", "OPTIONS"].includes(c.req.method) || open.test(c.req.path)) return next();
+    const principal = await authentication?.resolvePrincipal(c.req.raw);
+    const leaving = principal && (await leavingMove(db, principal.orgId));
+    return leaving ? c.json({ error: leftFor(leaving.status) }, 423) : next();
+  };
+}
+
+/** A register's uploads to a leaving shop stay in its outbox and go to the box once it has relocated there. */
+export function refuseRegistersWhileLeaving(
+  db: ShopperDatabase,
+  devices: Pick<ReturnType<typeof createDeviceService>, "resolveUploadPrincipal">,
+): MiddlewareHandler {
+  return async (c, next) => {
+    if (c.req.method === "GET" || c.req.path === "/sync/handshake") return next();
+    const principal = await devices.resolveUploadPrincipal(c.req.raw);
+    const leaving = principal && (await leavingMove(db, principal.orgId));
+    return leaving ? c.json({ error: leftFor(leaving.status) }, 423) : next();
+  };
+}
+
+const leftFor = (status: string) =>
+  status === "archived"
+    ? "This shop now runs on its own box. Make changes there."
+    : "This shop is moving to its own box. Changes wait until the move is done or called off.";

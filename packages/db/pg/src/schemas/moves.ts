@@ -4,6 +4,7 @@ import { tenant } from "./base";
 
 export const importStatuses = ["uploading", "importing", "ready", "failed"] as const;
 export const moveStatuses = ["sealing", "uploading", "importing", "moved", "failed"] as const;
+export const boxMoveStatuses = ["open", "claimed", "archived", "cancelled"] as const;
 
 /** A relocation code a till redeems once with the cloud, stored hashed. */
 export type RelocationCode = { codeHash: string; expiresAt: string; usedAt: string | null };
@@ -42,6 +43,8 @@ export const archiveImport = pgTable(
     credentials: jsonb("credentials").$type<MoveCredentials>(),
     relocations: jsonb("relocations").$type<Record<string, RelocationCode>>().notNull().default({}),
     error: text("error"),
+    /** The box's verification report on arrival (a box's own record of moving in from the cloud). */
+    report: jsonb("report"),
     completedAt: timestamp("completed_at", { withTimezone: true }),
   },
   (t) => [unique().on(t.orgId)],
@@ -62,6 +65,34 @@ export const cloudMove = pgTable(
       .$type<Record<string, { message: string; deliveredAt: string | null }>>()
       .notNull()
       .default({}),
+    error: text("error"),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (t) => [unique().on(t.orgId)],
+);
+
+/**
+ * The cloud's side of a shop moving onto its own box. While a row is open, claimed or archived the cloud org only
+ * reads; archived is for good. The licence it issued, the codes its registers redeem on the box and the verification
+ * report live here. Never archived.
+ */
+export const boxMove = pgTable(
+  "box_move",
+  {
+    ...tenant(),
+    status: text("status", { enum: boxMoveStatuses }).notNull().default("open"),
+    requestedBy: uuid("requested_by"),
+    exportJobId: uuid("export_job_id").notNull(),
+    licenceId: uuid("licence_id"),
+    /** The lic/1 issued for the box: public, signed by the issuer. */
+    licence: jsonb("licence"),
+    boxUpstream: text("box_upstream"),
+    /** Per device: the signed relocation to the box and when a handshake handed it over. */
+    relocations: jsonb("relocations")
+      .$type<Record<string, { message: string; deliveredAt: string | null }>>()
+      .notNull()
+      .default({}),
+    report: jsonb("report"),
     error: text("error"),
     completedAt: timestamp("completed_at", { withTimezone: true }),
   },

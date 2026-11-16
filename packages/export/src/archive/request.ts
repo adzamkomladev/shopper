@@ -11,8 +11,8 @@ export async function requestArchiveExport(
   db: ShopperDatabase,
   context: CommandContext,
   launcher: WorkflowLauncher,
+  jobId = v7(),
 ) {
-  const jobId = v7();
   const instanceId = exportArchiveId(context.orgId, jobId);
   await startArchiveExport(
     db,

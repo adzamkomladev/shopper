@@ -85,3 +85,10 @@ export type ReconciliationReport = {
   tables: Record<string, { rows: number; checksum: string }>;
   days: Record<string, DayTotals>;
 };
+
+/** What a box taking over a cloud shop needs from its runtime: its blobs, its version, a licence-signed POST. */
+export type ArrivalDeps = {
+  blobs: Blobs;
+  appVersion: string;
+  cloud(path: string, body: unknown): Promise<Response>;
+};

@@ -7,6 +7,7 @@ export {
   LOCK_AFTER_DAYS,
 } from "./licence";
 export { signRelocation, verifyRelocation } from "./relocation";
+export { licenceFromRequest } from "./request";
 export { signedRequest, verifySignedRequest } from "./requests";
 export {
   confirmation,

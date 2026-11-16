@@ -52,12 +52,11 @@ export function taxRows(receipt: ReceiptDocument) {
 }
 
 /**
- * The E-VAT block: the SDC's QR and reference once signed, a provisional notice until then, nothing on a receipt that
- * is not a VAT invoice.
+ * The E-VAT block: the SDC's QR and reference once signed. An unsigned VAT invoice prints none: a shop GRA has not
+ * onboarded to E-VAT issues ordinary VAT invoices, and its TIN and tax rows are already on the receipt.
  */
 export function fiscalMark(receipt: ReceiptDocument) {
-  if (!receipt.header.vatInvoice) return null;
-  if (!receipt.fiscal) return { qr: null, caption: "PROVISIONAL - E-VAT signature pending" };
+  if (!receipt.header.vatInvoice || !receipt.fiscal) return null;
   return {
     qr: receipt.fiscal.qr,
     caption: `E-VAT ${receipt.fiscal.sdcId} #${receipt.fiscal.counter}`,

@@ -85,10 +85,12 @@ describe("Epson 80 mm receipt", () => {
   });
 });
 
-test("a provisional VAT invoice prints the pending notice and no QR; a plain receipt prints neither", () => {
-  const provisional = decodeEscPos(encode("epson", { doc: goldenReceipt() }));
-  expect(provisional.text.join("\n")).toContain("PROVISIONAL - E-VAT signature pending");
-  expect(provisional.commands.some((command) => command.name === "qrStore")).toBe(false);
+// Until GRA onboards a shop to E-VAT, an unsigned VAT invoice is a plain VAT invoice: TIN and tax, no E-VAT line.
+test("an unsigned VAT invoice prints its TIN and tax but no E-VAT line or QR; a plain receipt prints neither", () => {
+  const unsigned = decodeEscPos(encode("epson", { doc: goldenReceipt() }));
+  expect(unsigned.text.join("\n")).toMatch(/TIN [\s\S]*VAT INVOICE[\s\S]*NHIL/);
+  expect(unsigned.text.join("\n")).not.toMatch(/E-VAT|PROVISIONAL/);
+  expect(unsigned.commands.some((command) => command.name === "qrStore")).toBe(false);
   const plain = decodeEscPos(encode("epson", { doc: goldenReceipt(undefined, false) }));
   expect(plain.text.join("\n")).not.toMatch(/E-VAT|PROVISIONAL/);
   expect(plain.commands.some((command) => command.name === "qrStore")).toBe(false);

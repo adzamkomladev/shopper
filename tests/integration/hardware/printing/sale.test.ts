@@ -67,10 +67,11 @@ test("a split cash and card sale prints the full receipt with the store name ove
   expect(hasRow(text, "Change", receipt.change)).toBe(true);
 });
 
-test("a sale prints at once as a provisional VAT invoice, with no QR, and the drawer kicks exactly once", async () => {
+test("a sale prints at once as an unsigned VAT invoice, with no E-VAT line or QR, and the drawer kicks exactly once", async () => {
   const { receipt, job } = await splitSale();
   expect(receipt).toMatchObject({ header: { vatInvoice: true }, fiscal: null });
-  expect(job.page).toContain("PROVISIONAL - E-VAT signature pending");
+  expect(job.page).toContain("VAT INVOICE");
+  expect(job.page).not.toMatch(/E-VAT|PROVISIONAL/);
   expect(job.commands.some((command) => command.name === "qrStore")).toBe(false);
   expect(job.commands.filter((command) => command.name === "drawer")).toEqual([DRAWER_KICK]);
   expect(job.page).not.toContain("REPRINT");

@@ -373,8 +373,9 @@ Fiscalisation never blocks a sale. The till prints at once; the server sends the
   (queue in its SQLite, an alarm drains it, a drain mutex keeps a forced alarm from racing a real one). Box: the
   in-process `boxLane`, rebuilt from PostgreSQL by `relaunch` at boot (Rivet actors replace it on Day 36). Both pass
   `laneConformance`. Without `SHOPPER_SDC_URL` and `SHOPPER_SDC_KEY` no lane is wired and documents wait as pending.
-- **Receipts.** Receipt v5 adds `fiscal` (null until signed). A VAT invoice prints at once as PROVISIONAL with no QR;
-  a signed one prints the SDC's QR and `E-VAT <sdcId> #<counter>`; a plain receipt prints neither. The till applies
+- **Receipts.** Receipt v5 adds `fiscal` (null until signed). An unsigned VAT invoice prints its TIN and tax rows and no
+  E-VAT line (a shop GRA has not onboarded to E-VAT issues ordinary VAT invoices); a signed one adds the SDC's QR and
+  `E-VAT <sdcId> #<counter>`; a plain receipt prints neither. The till applies
   the `fiscal-doc` change to the receipt it holds (`signLocalReceipt`), so a reprint is the definitive receipt, and
   marks a rendered PDF stale. A till that catches up through a snapshot skips those feed rows, so before applying it
   the till posts its provisional receipts to `POST /sync/snapshot/signatures` (pages of 500) and applies the

@@ -56,7 +56,7 @@ test("once the SDC signs a sale, a reprint carries its E-VAT QR and the digital 
   fake.down();
   const sale = await register.sell([{ kind: "cash", amount: 36_000 }], 3_000);
   const [first] = await printer.waitForJobs(1);
-  expect(first!.page).toContain("PROVISIONAL - E-VAT signature pending");
+  expect(first!.page).not.toMatch(/E-VAT|PROVISIONAL/);
   await register.ask({ type: "retry" });
   await expect
     .poll(async () => (await docOf(sale.saleId))?.status, { timeout: 20_000 })

@@ -68,8 +68,14 @@ export default defineConfig(({ mode }) => {
       env: {
         // Tills below it update before their next shift; empty is no minimum. Raise it per environment.
         SHOPPER_MIN_TILL_VERSION: bindings.text(""),
-        // The shop's public origin, for review links in texts. Empty until a stage's shop has its domain: no link.
-        SHOPPER_SHOP_URL: bindings.text(stage === "dev" ? "http://localhost:5175" : ""),
+        // The online store's public origin (apps/shop/cloudflare.config.ts), for review links in texts.
+        SHOPPER_SHOP_URL: bindings.text(
+          {
+            dev: "http://localhost:5175",
+            staging: "https://shopper-shop-staging.temtem.dev",
+            production: "https://shopper-shop.temtem.dev",
+          }[stage],
+        ),
         CACHE_DB: bindings.d1({ name: `shopper-cache-${stage}`, id: ids[stage].d1 }),
         HYPERDRIVE: bindings.hyperdrive({
           id: ids[stage].hyperdrive,

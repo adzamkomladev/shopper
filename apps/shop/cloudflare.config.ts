@@ -1,6 +1,11 @@
 import { bindings, defineConfig } from "cf/config";
 
 const accountId = "bd9ef997b398c9aeeee8ac3d3618efdc";
+// The online store's public origins. The edge's SHOPPER_SHOP_URL names the same ones for links in texts.
+const origins = {
+  staging: "https://shopper-shop-staging.temtem.dev",
+  production: "https://shopper-shop.temtem.dev",
+} as const;
 
 export default defineConfig(({ mode }) => {
   // A plain `vite build` already runs in mode "production", so the production release builds as "prod".
@@ -13,6 +18,7 @@ export default defineConfig(({ mode }) => {
       compatibilityDate: "2026-10-05",
       compatibilityFlags: ["nodejs_compat"],
       observability: { enabled: true, traces: { enabled: true } },
+      ...(stage === "dev" ? {} : { domains: [origins[stage].slice("https://".length)] }),
       env: {
         ASSETS: bindings.assets(),
         // The edge Worker runs the API; shopper routes reach it at the shop's own origin, so the cookie is first-party.

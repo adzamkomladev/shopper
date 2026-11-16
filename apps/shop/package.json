@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vp dev",
     "build:staging": "vp build --mode staging",
-    "build:production": "vp build --mode prod"
+    "deploy:staging": "vp build --mode staging && vpx ../../tooling/cloudflare/deploy.ts shop --stage staging",
+    "build:production": "vp build --mode prod",
+    "deploy:production": "vp build --mode prod && vpx ../../tooling/cloudflare/deploy.ts shop --stage production"
   },
   "dependencies": {
     "@fontsource/geist": "5.2.9",

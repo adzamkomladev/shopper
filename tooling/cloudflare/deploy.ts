@@ -30,9 +30,9 @@ interface BuiltConfig {
 
 const [target, ...flags] = process.argv.slice(2);
 const stage = flags[flags.indexOf("--stage") + 1];
-if (!["edge", "portal", "admin"].includes(target ?? "") || !flags.includes("--stage"))
+if (!["edge", "portal", "admin", "shop"].includes(target ?? "") || !flags.includes("--stage"))
   throw new Error(
-    "Usage: tsx tooling/cloudflare/deploy.ts <edge|portal|admin> --stage staging|production [--promote] [--dry-run|--plan]",
+    "Usage: tsx tooling/cloudflare/deploy.ts <edge|portal|admin|shop> --stage staging|production [--promote] [--dry-run|--plan]",
   );
 if (stage !== "staging" && stage !== "production")
   throw new Error("--stage staging|production is required");

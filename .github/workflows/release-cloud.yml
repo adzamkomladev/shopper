@@ -1,5 +1,5 @@
 name: Release cloud
-# Production Workers, edge then portal then admin. Without "promote" each Worker uploads a version that serves
+# Production Workers, edge then portal, admin and the online store. Without "promote" each Worker uploads a version that serves
 # nothing; with it, the edge migrates, every Worker goes to all traffic and is smoke tested
 # (tooling/cloudflare/deploy.ts, docs/pilot/cutover.md). Staging stays on Workers Builds.
 on:
@@ -35,3 +35,5 @@ jobs:
         working-directory: apps/portal
       - run: vp run deploy:production -- $FLAGS
         working-directory: apps/admin
+      - run: vp run deploy:production -- $FLAGS
+        working-directory: apps/shop

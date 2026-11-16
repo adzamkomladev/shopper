@@ -94,3 +94,25 @@ test("a check that recovers on a later attempt passes", async () => {
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   expect(await smoke("edge", url, "1.2.3", options)).toEqual([]);
 });
+
+const storePage =
+  '<!doctype html><html data-surface="shop"><body><h1>Open your shop</h1></body></html>';
+
+test("shop passes when / is the server-rendered store page", async () => {
+  const url = await serve({ "/": [200, html, storePage] });
+  expect(await smoke("shop", url, "1.2.3", options)).toEqual([]);
+});
+
+test("shop fails on an error page and on a page rendered by a dev build", async () => {
+  const url = await serve({ "/": [500, html, "<html>Internal error</html>"] });
+  expect(await smoke("shop", url, "1.2.3", options)).toEqual(["GET /: status 500"]);
+  server?.close();
+  const dev = storePage.replace(
+    "<body>",
+    '<link rel="modulepreload" href="/@id/virtual:entry"><body>',
+  );
+  const devUrl = await serve({ "/": [200, html, dev] });
+  expect(await smoke("shop", devUrl, "1.2.3", options)).toEqual([
+    "GET /: page loads dev-server modules",
+  ]);
+});

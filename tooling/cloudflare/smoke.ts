@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-export type SmokeTarget = "edge" | "portal" | "admin";
+export type SmokeTarget = "edge" | "portal" | "admin" | "shop";
 export interface SmokeOptions {
   attempts?: number;
   delayMs?: number;
@@ -48,6 +48,16 @@ async function check(target: SmokeTarget, baseUrl: string, version: string) {
     });
     return failures;
   }
+  // The online store renders on the server: its pages are HTML from the Worker, not a prerendered shell.
+  if (target === "shop") {
+    await get("/", (response, body) => {
+      if (response.status !== 200) return `status ${response.status}`;
+      if (!response.headers.get("content-type")?.includes("text/html")) return "not HTML";
+      if (!body.includes('data-surface="shop"')) return "not the store page";
+      if (body.includes('"/@id/')) return "page loads dev-server modules";
+    });
+    return failures;
+  }
   const shell = (response: Response, body: string) => {
     if (response.status !== 200) return `status ${response.status}`;
     if (!response.headers.get("content-type")?.includes("text/html")) return "not HTML";
@@ -71,8 +81,8 @@ async function check(target: SmokeTarget, baseUrl: string, version: string) {
 
 if (import.meta.main) {
   const [target, baseUrl] = process.argv.slice(2);
-  if (!["edge", "portal", "admin"].includes(target ?? "") || !baseUrl)
-    throw new Error("Usage: tsx tooling/cloudflare/smoke.ts <edge|portal|admin> <base-url>");
+  if (!["edge", "portal", "admin", "shop"].includes(target ?? "") || !baseUrl)
+    throw new Error("Usage: tsx tooling/cloudflare/smoke.ts <edge|portal|admin|shop> <base-url>");
   const manifest = JSON.parse(
     readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
   ) as { version: string };

@@ -104,3 +104,17 @@ test("a build for another stage, or a production build without its resource ids,
     /--promote is for production/,
   );
 });
+
+test("the online store deploys to staging and smoke tests its own domain", () => {
+  const result = deploy(
+    built("shopper-shop-staging", "staging"),
+    "shop",
+    "--stage",
+    "staging",
+    "--plan",
+  );
+  expect(result.status).toBe(0);
+  expect(result.out).toMatch(/^cf deploy --prebuilt --mode staging/m);
+  expect(result.out).not.toContain("database/cli.ts migrate");
+  expect(result.out).toContain("smoke shop https://shopper-api.temtem.dev");
+});

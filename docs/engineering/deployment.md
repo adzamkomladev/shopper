@@ -23,7 +23,8 @@ names with `vp exec cf workers secrets list --script-name <worker>`.
 ## Cloud release
 
 `main` deploys to **staging only**, through Cloudflare Workers Builds (the dashboard git integration)
-on `shopper-edge-staging`, `shopper-portal-staging` and `shopper-admin-staging`. Production goes through the `release` skill.
+on `shopper-edge-staging`, `shopper-portal-staging`, `shopper-admin-staging` and `shopper-shop-staging` (the online
+store, https://shopper-shop-staging.temtem.dev). Production goes through the `release` skill.
 Workers Builds does not wait for GitHub CI, so merge to `main` only when CI is green.
 
 Both Workers run from the repo root. Each app owns two scripts, invoked as `pnpm --filter <app> run
@@ -58,7 +59,9 @@ Both Workers run from the repo root. Each app owns two scripts, invoked as `pnpm
 
 ### Workers Builds settings
 
-Set under each Worker, **Settings > Build**. Connect `adzamkomladev/shopper` to all three.
+Set under each Worker, **Settings > Build** (or `cf builds triggers create`). Connect `adzamkomladev/shopper` to all
+four. `shopper-shop-staging` copies the admin column with `shop` for `admin`; a trigger needs the Worker to exist,
+so its first deploy is `vp run deploy:staging` in `apps/shop`.
 
 | Setting                      | `shopper-edge-staging`                                                                      | `shopper-portal-staging`                                                | `shopper-admin-staging`                                                |
 | ---------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------- |
@@ -96,8 +99,8 @@ Set under each Worker, **Settings > Build**. Connect `adzamkomladev/shopper` to 
 
 ### Production (Day 28)
 
-Production is `shopper-{edge,portal,admin}-production` on `shopper-api.temtem.dev`, `shopper.temtem.dev`
-and `shopper-admin.temtem.dev`, with its own Neon branch, Hyperdrive, D1, three R2 buckets, queue and
+Production is `shopper-{edge,portal,admin,shop}-production` on `shopper-api.temtem.dev`, `shopper.temtem.dev`,
+`shopper-admin.temtem.dev` and `shopper-shop.temtem.dev`, with its own Neon branch, Hyperdrive, D1, three R2 buckets, queue and
 dead-letter queue. It builds with `--mode prod`, never `production`: Vite's default build mode is already
 `production`, and that must stay a dev build.
 

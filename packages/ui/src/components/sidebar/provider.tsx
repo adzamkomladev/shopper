@@ -52,7 +52,10 @@ export function SidebarProvider({
         <div
           ref={register}
           data-sidebar={open ? "expanded" : "collapsed"}
-          className={cn("group/sidebar flex h-svh min-h-0 w-full bg-background", className)}
+          className={cn(
+            "group/sidebar flex h-svh min-h-0 w-full overflow-hidden bg-background",
+            className,
+          )}
         >
           {children}
         </div>

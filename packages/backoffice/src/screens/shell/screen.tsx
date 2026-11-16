@@ -46,10 +46,10 @@ export function ShellScreen() {
             <ReadOnlyBanner />
             <SetupBanner />
           </div>
-          {/* The page scrolls here, not the window: focusable, so the keyboard can scroll a page with no controls yet. */}
+          {/* The page scrolls here, not the window: focusable for keyboard scrolling, and positioned so an absolute child (an sr-only input) cannot stretch the window. */}
           <main
             tabIndex={0}
-            className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-5 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:px-8 md:py-6"
+            className="no-scrollbar relative flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-5 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:px-8 md:py-6"
           >
             <Outlet />
           </main>

@@ -79,7 +79,9 @@ If none of these fit, stop and ask. Do not work around the guard with a custom w
 - **`src/styles/theme.css` is the only token file.** Light and dark values, `@theme inline`, Geist,
   and the shared utilities live there. Use `--kbd-foreground` for key hints, `--success` for
   positive states, and the `focus-ring` utility (2px background + 4px ring) for custom focusable
-  surfaces. Never define tokens in an app.
+  surfaces. Text fields (input, textarea, select, input group) show focus by their border colour
+  alone, never a ring: a click into a field should not light it up. Buttons, checkboxes and switches
+  keep their keyboard-only `focus-visible` ring. Never define tokens in an app.
 
 - **The Figma file is the source of truth** for color, type scale, spacing, radius, shadows and
   components. Read it through the Figma MCP before building a screen. Map values to Tailwind v4

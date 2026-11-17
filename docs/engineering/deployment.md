@@ -297,6 +297,7 @@ prebuild) and updates itself with electron-updater from an R2 feed.
 4. Gradual production rollout watched in Workers Logs/Traces. Rollback version noted.
 5. Box binary built, signed and smoke-tested on a staging box before any site install.
 6. Release notes written for owners: what changed, in plain language.
+7. After merge, tag the merge commit `v<version>` and publish `docs/releases/<version>.md` as its GitHub release.
 
 The `release` skill walks through this list.
 

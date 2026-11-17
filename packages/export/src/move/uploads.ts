@@ -38,10 +38,12 @@ export async function openImport(
     .values({ orgId: licence.org, licenceId: licence.id, manifest, signature: body.signature })
     .onConflictDoUpdate({
       target: archiveImport.orgId,
-      // A resealed archive is another set of files: what arrived for the old one no longer counts.
+      // A resealed archive is another set of files: what arrived for the old one no longer counts. A failed attempt,
+      // or one that finished long ago (a shop that came from a box before, left, and is coming back), starts afresh.
       set: {
-        id: sql`case when ${archiveImport.status} = 'failed' then uuidv7() else ${archiveImport.id} end`,
-        status: sql`case when ${archiveImport.status} = 'failed' then 'uploading' else ${archiveImport.status} end`,
+        id: sql`case when ${archiveImport.status} in ('failed', 'ready') then uuidv7() else ${archiveImport.id} end`,
+        status: sql`case when ${archiveImport.status} in ('failed', 'ready') then 'uploading' else ${archiveImport.status} end`,
+        completedAt: sql`case when ${archiveImport.status} = 'ready' then null else ${archiveImport.completedAt} end`,
         received: sql`case when ${archiveImport.signature} = excluded.signature then ${archiveImport.received} else '[]'::jsonb end`,
         manifest: sql`excluded.manifest`,
         signature: sql`excluded.signature`,

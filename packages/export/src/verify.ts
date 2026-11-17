@@ -18,10 +18,21 @@ type Refusal = {
  */
 export async function verifyArchive(bytes: Uint8Array) {
   const files = readOrNothing(bytes);
-  const manifestBytes = files?.get("manifest.json");
-  const signature = files?.get("manifest.sig");
-  if (!files || !manifestBytes || !signature)
-    return refuse("unreadable", "This is not a Shopper Archive.");
+  if (!files) return refuse("unreadable", "This is not a Shopper Archive.");
+  return verifyParts([...files.keys()], async (path) => files.get(path));
+}
+
+/**
+ * The same checks over an archive's parts read one at a time (`paths` is every part it holds), so a check of a sealed
+ * archive never holds more than one part in memory.
+ */
+export async function verifyParts(
+  paths: string[],
+  read: (path: string) => Promise<Uint8Array | undefined>,
+) {
+  const manifestBytes = await read("manifest.json");
+  const signature = await read("manifest.sig");
+  if (!manifestBytes || !signature) return refuse("unreadable", "This is not a Shopper Archive.");
   const text = new TextDecoder().decode(manifestBytes);
   const raw = parseJson(text);
   if (typeof raw?.archive_format !== "number")
@@ -42,7 +53,7 @@ export async function verifyArchive(bytes: Uint8Array) {
     ...manifest.blobs,
   ];
   for (const file of listed) {
-    const content = files.get(file.path);
+    const content = await read(file.path);
     if (!content) return refuse("missing", `${file.path} is missing.`, file.path);
     const rows = "rows" in file ? file.rows : undefined;
     if (
@@ -53,7 +64,7 @@ export async function verifyArchive(bytes: Uint8Array) {
       return refuse("changed", `${file.path} was changed after it was signed.`, file.path);
   }
   const known = new Set([...listed.map((file) => file.path), "manifest.json", "manifest.sig"]);
-  const extra = [...files.keys()].find((path) => !known.has(path));
+  const extra = paths.find((path) => !known.has(path));
   if (extra)
     return refuse("unlisted", `${extra} is in the archive but not in its manifest.`, extra);
   return { ok: true, manifest, publicKey: manifest.public_key } as const;

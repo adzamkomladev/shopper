@@ -37,6 +37,15 @@ const chain = (db: schema.ShopperDatabase) =>
 
 beforeAll(async () => {
   h = await cloudAndBox();
+  // This shop first came to the cloud from a box: its finished import is still on record.
+  await h.f.db.insert(schema.archiveImport).values({
+    orgId: orgId(),
+    status: "ready",
+    licenceId: v7(),
+    manifest: {},
+    signature: "an earlier move in",
+    completedAt: new Date("2026-11-01T20:00:00Z"),
+  });
   // There: the cloud shop moves onto its box.
   const box = await toBox(h);
   remove = box.remove;

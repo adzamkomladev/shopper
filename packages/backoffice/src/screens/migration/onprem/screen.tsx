@@ -9,6 +9,7 @@ import {
 } from "@shopper/ui/components/empty";
 import { Skeleton } from "@shopper/ui/components/skeleton";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
+import { DRY_RUN_ID } from "../../../components/migration/preflight";
 import { ApiError } from "../../../api/client";
 import { OnPremCard, START_ID } from "../../../components/migration/onprem/card";
 import { Gate, LoadError } from "../../../components/register/states";
@@ -18,7 +19,10 @@ import { onPremQuery } from "../../../queries/migration/onprem";
 
 /** A cloud shop moves onto its own box: the owner starts it here and follows it to the last till. */
 export function OnPremScreen() {
-  const shortcuts = useShortcuts({ M: () => document.getElementById(START_ID)?.click() });
+  const shortcuts = useShortcuts({
+    M: () => document.getElementById(START_ID)?.click(),
+    D: () => document.getElementById(DRY_RUN_ID)?.click(),
+  });
   return (
     <div ref={shortcuts} className="flex max-w-3xl flex-col gap-6">
       <h1

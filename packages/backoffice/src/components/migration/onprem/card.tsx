@@ -13,6 +13,7 @@ import {
 import { formatDay } from "@shopper/utils";
 import { useOnPremArchive } from "../../../queries/migration/onprem";
 import type { OnPremView } from "../../../schemas/migration";
+import { Preflight } from "../preflight";
 import { CancelDialog, StartDialog } from "./dialog";
 import { LicencePanel } from "./licence";
 import { Mismatches } from "./report";
@@ -43,7 +44,7 @@ export function OnPremCard({ data }: { data: OnPremView }) {
         </CardTitle>
         <CardDescription>
           {move?.status === "archived"
-            ? `This shop now runs on its box at ${move.boxUpstream}. The cloud copy is kept read-only.`
+            ? `This shop now runs on its box at ${move.boxUpstream}. The cloud copy is kept read-only. To bring the shop back, press Move to cloud on the box: its copy replaces this one.`
             : "Everything in the cloud, from products and prices to sales, stock, the ledger and the audit trail, moves onto a Shopper box in your shop in one evening."}
         </CardDescription>
       </CardHeader>
@@ -55,6 +56,7 @@ export function OnPremCard({ data }: { data: OnPremView }) {
             ))}
           </ul>
         )}
+        {idle && <Preflight checks={data.checks} />}
         {move?.status === "open" && move.archive === "running" && (
           <Waiting>Sealing a signed copy of the shop, taken at one moment.</Waiting>
         )}
@@ -106,6 +108,12 @@ export function OnPremCard({ data }: { data: OnPremView }) {
           </Mismatches>
         )}
         {(live || move?.status === "archived") && <Registers data={data} />}
+        {live && (
+          <p className="text-muted-foreground">
+            Changed your mind? Call the move off and the cloud takes changes again at once. Tills
+            that kept selling send their sales here.
+          </p>
+        )}
         {(idle || live) && (
           <div className="flex flex-wrap gap-2">
             {idle && (

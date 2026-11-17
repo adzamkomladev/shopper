@@ -75,3 +75,20 @@ export type ImportInput = {
 export type CloudMoveDeps = ArchiveExportDeps & {
   cloud(url: string, init: { method: string; body?: string | Uint8Array }): Promise<Response>;
 };
+
+/** One Accra day's sales and tax as decimal text (bigints never pass through JS numbers). */
+export type DayTotals = Record<(typeof import("./reconcile/report").DAY_FIGURES)[number], string>;
+
+/** A database's account of one org, compared after a move: per table rows and checksum, per day the totals. */
+export type ReconciliationReport = {
+  auditUpTo: number | null;
+  tables: Record<string, { rows: number; checksum: string }>;
+  days: Record<string, DayTotals>;
+};
+
+/** What a box taking over a cloud shop needs from its runtime: its blobs, its version, a licence-signed POST. */
+export type ArrivalDeps = {
+  blobs: Blobs;
+  appVersion: string;
+  cloud(path: string, body: unknown): Promise<Response>;
+};

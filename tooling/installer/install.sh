@@ -1,10 +1,26 @@
 #!/bin/sh
 # Runs from the verified payload. Installs PostgreSQL 18, the Rivet engine, Caddy, Avahi and the sealed box, then starts them.
 # SHOPPER_INSTALL_NO_START=1 installs without starting services (for machines without systemd as PID 1).
+# --import archive.shopper: the box takes over that cloud shop at first boot instead of creating a new one.
 set -eu
 fail() { echo "shopper-box-installer: $*" >&2; exit 1; }
 say() { echo "==> $*"; }
 started=$(date +%s)
+
+archive=
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --import) [ $# -ge 2 ] || fail "--import needs the archive the cloud sealed (archive.shopper)"; archive=$2; shift 2 ;;
+    --import=*) archive=${1#--import=}; shift ;;
+    *) fail "unknown option: $1 (the only option is --import archive.shopper)" ;;
+  esac
+done
+if [ -n "$archive" ]; then
+  case "$archive" in /*) ;; *) archive="${SHOPPER_INSTALL_CWD:-$PWD}/$archive" ;; esac
+  [ -r "$archive" ] || fail "cannot read $archive; nothing was installed"
+  # A Shopper archive is a zip; the box checks its signature before anything is imported.
+  [ "$(head -c 2 "$archive")" = "PK" ] || fail "$archive is not a Shopper archive; nothing was installed"
+fi
 
 [ -r /etc/os-release ] && . /etc/os-release
 [ "${VERSION_ID:-}" = "24.04" ] && [ "$(uname -m)" = "x86_64" ] || fail "Ubuntu 24.04 on x86-64 is required"
@@ -68,6 +84,10 @@ RIVET_POOL=shopper-box
 TMPDIR=/var/lib/shopper/tmp
 PORT=3001
 ENV
+if [ -n "$archive" ]; then
+  install -o shopper -g shopper -m 0600 "$archive" /var/lib/shopper/import.shopper
+  echo "SHOPPER_IMPORT=/var/lib/shopper/import.shopper" >> /etc/shopper/box.env
+fi
 printf 'RIVET__AUTH__ADMIN_TOKEN=%s\n' "$enginetoken" > /etc/shopper/engine.env
 chown root:shopper /etc/shopper/box.env /etc/shopper/engine.env
 chmod 0640 /etc/shopper/box.env /etc/shopper/engine.env
@@ -114,5 +134,5 @@ fi
 elapsed=$(( $(date +%s) - started ))
 echo
 echo "Shopper box installed in $((elapsed / 60)) min $((elapsed % 60)) s."
-echo "Open https://shopper.local/setup from a computer on the shop network."
+echo "Open https://shopper.local/setup from a computer on the shop network.${archive:+ It moves your cloud shop onto this box.}"
 echo "Setup code (shown once, keep it safe): $(echo "$code" | sed 's/\(....\)\(....\)\(....\)/\1-\2-\3/')"

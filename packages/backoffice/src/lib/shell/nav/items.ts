@@ -7,6 +7,7 @@ import {
   ChartNoAxesColumnIcon,
   ClockIcon,
   CloudUploadIcon,
+  ServerIcon,
   CreditCardIcon,
   DatabaseIcon,
   GiftIcon,
@@ -57,6 +58,8 @@ type NavItem = {
   account?: true;
   /** Only on a box (its billing status names a licence). */
   box?: true;
+  /** Only in the cloud (its billing status names no licence). */
+  cloud?: true;
 };
 
 export const NAV_ITEMS: readonly NavItem[] = [
@@ -202,6 +205,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     section: "Organisation",
     permission: "migration.run",
     box: true,
+  },
+  {
+    to: "/migration/onprem",
+    label: "Move on-prem",
+    icon: ServerIcon,
+    section: "Organisation",
+    permission: "migration.run",
+    cloud: true,
   },
   {
     to: "/billing",

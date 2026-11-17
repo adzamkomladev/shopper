@@ -1,8 +1,11 @@
 import { Hono, type Context } from "hono";
 import * as v from "valibot";
 import { publicKeyOf, verifySignedRequest, type Licence } from "@shopper/core/licence";
+import { buildInfo } from "@shopper/config";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import {
+  claimBody,
+  claimOnPremMove,
   commitImport,
   commitImportBody,
   getImport,
@@ -10,31 +13,61 @@ import {
   openImport,
   openImportBody,
   receiveFile,
+  reportBody,
+  verifyOnPremMove,
 } from "@shopper/export";
 import type { Blobs, WorkflowLauncher } from "@shopper/ports";
 
 type MigrationEnvironment = { Variables: { licence: Licence } };
 
 /**
- * A box moving into the cloud (public on purpose: every request is signed by a licence the issuer signed, and the
- * licence names the one shop it may move). Open, send each file, then commit; the status says what is missing.
+ * A box moving into the cloud, or a cloud shop's box taking it over (public on purpose: every request is signed by a
+ * licence the issuer signed, and the licence names the one shop it may move). Into the cloud: open, send each file,
+ * then commit; the status says what is missing. Onto a box: claim, then report what arrived.
  */
 export function migrationRoutes(options: {
   database: ShopperDatabase;
   blobs: Blobs;
-  archiveImports: WorkflowLauncher;
+  archiveImports?: WorkflowLauncher;
   licenceSigningKey: string;
 }) {
   const app = new Hono<MigrationEnvironment>();
   const db = options.database;
-  app.use("/migration/*", async (c, next) => {
+  const signed = async (c: Context<MigrationEnvironment>, next: () => Promise<void>) => {
     const licence = await verifySignedRequest(c.req.raw, {
       issuer: publicKeyOf(options.licenceSigningKey),
     });
     if (!licence) return c.json({ error: "Not a genuine licensed box" }, 401);
     c.set("licence", licence);
     await next();
+  };
+  app.use("/migration/handover/*", signed);
+  app.post("/migration/handover/claim", async (c) => {
+    const body = v.parse(claimBody, await c.req.json());
+    return c.json(
+      await claimOnPremMove(
+        db,
+        {
+          blobs: options.blobs,
+          issuerKey: options.licenceSigningKey,
+          appVersion: buildInfo.version,
+        },
+        { licence: c.get("licence"), ...body },
+      ),
+    );
   });
+  app.post("/migration/handover/report", async (c) => {
+    const body = v.parse(reportBody, await c.req.json());
+    return c.json(
+      await verifyOnPremMove(db, buildInfo.version, {
+        licence: c.get("licence"),
+        report: body.report,
+      }),
+    );
+  });
+  const launcher = options.archiveImports;
+  if (!launcher) return withErrors(app);
+  app.use("/migration/imports", signed).use("/migration/imports/*", signed);
   const imported = (c: Context<MigrationEnvironment>) => ({
     orgId: c.get("licence").org,
     importId: c.req.param("id")!,
@@ -64,17 +97,22 @@ export function migrationRoutes(options: {
       db,
       {
         blobs: options.blobs,
-        launcher: options.archiveImports,
+        launcher,
         issuerKey: options.licenceSigningKey,
       },
       { ...imported(c), credentials: body.credentials, upstream: upstream(c) },
     );
     return c.json(result, 202);
   });
+  return withErrors(app);
+}
+
+function withErrors(app: Hono<MigrationEnvironment>) {
   app.onError((error, c) => {
     if (error instanceof ImportError)
       return c.json({ error: error.message, missing: error.missing }, error.status);
-    if (error instanceof v.ValiError) return c.json({ error: "Invalid request" }, 400);
+    if (error instanceof v.ValiError || error instanceof SyntaxError)
+      return c.json({ error: "Invalid request" }, 400);
     throw error;
   });
   return app;

@@ -2,6 +2,7 @@ export { rollStoreDays, touchStoreDay } from "./rollup";
 export { inSnapshot, reportSource } from "./read";
 export type { ReportCell, ReportRange, ReportTable, StoreDays } from "./types";
 export { salesReport } from "./sales";
+export { foldSales } from "./fold/sales";
 export { productReport } from "./products";
 export { dashboard } from "./dashboard";
 export { branchComparison } from "./branches";

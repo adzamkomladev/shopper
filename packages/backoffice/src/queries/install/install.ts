@@ -1,5 +1,6 @@
 import { queryOptions, useMutation } from "@tanstack/react-query";
 import { installResultResponse, installStateResponse } from "@shopper/auth/schemas";
+import { arrival } from "../../schemas/migration";
 import { publicFetch } from "../../api/auth/public/api";
 import { ApiError } from "../../api/client";
 import type { InstallValues } from "../../schemas/install/form";
@@ -34,6 +35,18 @@ export function useInstall() {
           owner: { name: values.name, email: values.email, password: values.password },
           licence: values.licence ? JSON.parse(values.licence) : undefined,
         },
+      }),
+  });
+}
+
+/** A box installed with a cloud shop's archive takes it over: the setup code and the licence the cloud issued. */
+export function useInstallImport() {
+  return useMutation({
+    gcTime: 0,
+    mutationFn: (values: { code: string; licence?: string }) =>
+      publicFetch("/install/import", arrival, {
+        method: "POST",
+        body: { code: values.code, licence: values.licence && JSON.parse(values.licence) },
       }),
   });
 }

@@ -3,7 +3,7 @@ import { captureSizes } from "../../../../support/admin";
 import { expectNoSeriousAxe } from "../../../../support/e2e";
 
 // Every page the owner may open, one link each in the sidebar.
-const PAGES = 22;
+const PAGES = 23;
 
 test("main navigation stays on screen and keyboard reachable at phone and tablet widths", async ({
   page,

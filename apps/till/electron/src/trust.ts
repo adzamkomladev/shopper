@@ -56,7 +56,7 @@ export async function changeServer(address: string, userData: string) {
 }
 
 /** A box is reached by its `.local` name or an address; a public name is the cloud. */
-const onLan = (hostname: string) => /\.local$|^[\d.]+$|^\[[\d:a-f]+\]$/i.test(hostname);
+export const onLan = (hostname: string) => /\.local$|^[\d.]+$|^\[[\d:a-f]+\]$/i.test(hostname);
 
 /**
  * Whether a TLS chain (leaf first, PEM) is the box's: each certificate signed by the next (a CA), the last by the

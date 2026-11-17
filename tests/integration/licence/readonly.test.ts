@@ -81,6 +81,7 @@ test("an unlicensed box shows the request code Shopper issues a licence from", a
     readOnly: false,
     licence: { state: "locked", reason: "missing" },
     move: null,
+    onPrem: null,
   });
   expect((await box.request("/licence/checks", { method: "POST" })).status).toBe(401);
 });

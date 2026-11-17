@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { v7 } from "uuid";
-import { issueLicence } from "../../packages/core/src/licence/index";
+import { licenceFromRequest } from "../../packages/core/src/licence/index";
 
 /**
  * Turns a box's request code (Settings → Licence) into its signed `licence.json`. The issuer's private JWK comes from
@@ -13,17 +13,13 @@ export async function issueFromRequest(
   fields: { org: string; site: string; terminals: number; maintenanceUntil: string },
   now = new Date(),
 ) {
-  const code = JSON.parse(Buffer.from(request, "base64url").toString("utf8")) as {
-    machine: string;
-    key: string;
-  };
-  return issueLicence(issuerKey, {
+  const licence = await licenceFromRequest(issuerKey, request, {
     id: v7(),
     ...fields,
-    machine: code.machine,
-    key: code.key,
     issuedAt: now.toISOString(),
   });
+  if (!licence) throw new Error("That is not a box's request code");
+  return licence;
 }
 
 if (import.meta.main) {

@@ -226,3 +226,15 @@ One `RateLimiter` port (`packages/ports/src/limits.ts`) with a fixed policy tabl
   not work in the cloud.
 - **The moved box** refuses every write with 423 except sign-in, the move screen and the register handshake.
   `migration.run` is the owner's, org-wide only (`requireOrgWide`).
+
+## Cloud → box move (Day 43)
+
+- **Who may claim.** `/migration/handover/*` is in the sweep's `PUBLIC` list but needs a licence signature. Only the
+  licence the move issued (from the box's request code, `migration.onprem.licence`) is accepted (403), and only with
+  the sealed archive's manifest hash (409). The claim's answer is the only place credentials cross.
+- **The setup code guards the box.** `POST /install/import` checks the installer's code (wrong codes limited, as for
+  `POST /install`) and that the licence is genuine for this machine and key, before anything is claimed.
+- **Registers move only after verification.** The cloud keeps each `reloc/1` message until the box's report agrees.
+  A till pins a LAN box's CA (trust on first use) before it spends its one-time code.
+- **The leaving cloud org** refuses member writes and register pushes with 423 while the move is open, claimed or
+  archived. Only the owner can call it off, and only before it is archived.

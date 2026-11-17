@@ -3,6 +3,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { AuthFrame, AuthPanel } from "../../components/auth/frame";
 import { InstallDone } from "../../components/install/done";
+import { ImportInstall } from "../../components/install/import";
 import { InstallProgress } from "../../components/install/progress";
 import { CodeStep, LicenceStep, OwnerStep, ShopStep } from "../../components/install/steps";
 import { ApiError } from "../../api/client";
@@ -22,7 +23,10 @@ const LEADS = {
   licence: "This box checks a licence from Shopper. The code below lets support issue yours.",
 } as const;
 
-/** First boot: a box with no shop is set up in four short steps, or three where no licence is checked. */
+/**
+ * First boot: a box with no shop is set up in four short steps, or three where no licence is checked; a box installed
+ * with a cloud shop's archive takes that shop over instead.
+ */
 export function InstallScreen() {
   const { data: state } = useSuspenseQuery(installStateQuery());
   const navigate = useNavigate();
@@ -34,6 +38,12 @@ export function InstallScreen() {
     void navigate({ to: "/login" });
     return null;
   }
+  if (state.import)
+    return (
+      <AuthFrame>
+        <ImportInstall shop={state.import.shop} request={state.licence.request} />
+      </AuthFrame>
+    );
   const steps: Array<keyof typeof TITLES> = state.licence.enforced
     ? ["code", "shop", "owner", "licence"]
     : ["code", "shop", "owner"];

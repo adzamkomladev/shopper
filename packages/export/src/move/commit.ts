@@ -45,24 +45,12 @@ export async function commitImport(
   }
   if (row.status === "failed")
     throw new ImportError("This import failed. Open it again to retry.", 409);
-  const now = input.now ?? new Date();
-  const expiresAt = new Date(now.getTime() + RELOCATION_DAYS * 86_400_000).toISOString();
-  const issued = await Promise.all(
-    (await registers(deps.blobs, input.orgId, manifest)).map(async (deviceId) => {
-      const code = toBase64Url(crypto.getRandomValues(new Uint8Array(24)));
-      return {
-        deviceId,
-        stored: { codeHash: await sha256(code), expiresAt, usedAt: null } as RelocationCode,
-        relocation: await signRelocation(deps.issuerKey, {
-          orgId: input.orgId,
-          deviceId,
-          upstream: input.upstream,
-          code,
-          expiresAt,
-        }),
-      };
-    }),
-  );
+  const issued = await issueRelocations(deps.issuerKey, {
+    orgId: input.orgId,
+    upstream: input.upstream,
+    deviceIds: await registers(deps.blobs, input.orgId, manifest),
+    now: input.now,
+  });
   const starting = row.status === "uploading";
   await db
     .update(archiveImport)
@@ -83,6 +71,34 @@ export async function commitImport(
     status: row.status === "ready" ? "ready" : "importing",
     relocations: issued.map((each) => each.relocation),
   };
+}
+
+/**
+ * One relocation per register, signed by the issuer, each with a fresh one-time code that is kept only as its hash:
+ * the message goes to the register, the hash to whoever redeems it.
+ */
+export async function issueRelocations(
+  issuerKey: string,
+  input: { orgId: string; upstream: string; deviceIds: string[]; now?: Date },
+) {
+  const now = input.now ?? new Date();
+  const expiresAt = new Date(now.getTime() + RELOCATION_DAYS * 86_400_000).toISOString();
+  return Promise.all(
+    input.deviceIds.map(async (deviceId) => {
+      const code = toBase64Url(crypto.getRandomValues(new Uint8Array(24)));
+      return {
+        deviceId,
+        stored: { codeHash: await sha256(code), expiresAt, usedAt: null } as RelocationCode,
+        relocation: await signRelocation(issuerKey, {
+          orgId: input.orgId,
+          deviceId,
+          upstream: input.upstream,
+          code,
+          expiresAt,
+        }),
+      };
+    }),
+  );
 }
 
 /** The shop's registers, read from the archive's own device rows. */

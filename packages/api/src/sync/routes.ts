@@ -27,8 +27,8 @@ import { createStockRoutes } from "./stock";
 import { createLiveRoutes, type LiveUpgrade } from "./live";
 import { createPullRoutes } from "./pull";
 import { enqueueFiscal } from "./fiscal";
-import { relocationHandshake } from "./relocation";
-import { activeCloudMove, refuseWhenMoved } from "../middleware/moved";
+import { leavingHandshake } from "./relocation";
+import { refuseRegistersWhileLeaving, refuseWhenMoved } from "../middleware/moved";
 import { createSnapshotRoutes } from "./snapshot";
 
 const maxBytes = 1024 * 1024;
@@ -48,6 +48,8 @@ export function createSyncRoutes(options: {
   tillFeed?: string;
   /** Box only: a box can move to the cloud, after which its registers are handed their relocation. */
   movable?: boolean;
+  /** Cloud only: a shop can move onto its own box; while it does its registers only read, then follow it there. */
+  onPrem?: boolean;
 }) {
   const protocol = options.protocol ?? buildInfo.syncProtocol;
   const app = new Hono();
@@ -59,6 +61,8 @@ export function createSyncRoutes(options: {
     }),
   );
   if (options.movable) app.use("/sync/*", refuseWhenMoved(options.database, /^\/sync\/handshake$/));
+  if (options.onPrem)
+    app.use("/sync/*", refuseRegistersWhileLeaving(options.database, options.devices));
   app.onError((error, c) => {
     if (error instanceof AssetError) return c.json({ error: error.message }, error.status);
     if (v.isValiError(error) || error instanceof SyntaxError)
@@ -83,8 +87,8 @@ export function createSyncRoutes(options: {
     const data = v.parse(handshake, await c.req.json());
     if (negotiateProtocol(protocol, data.protocol) === undefined)
       return c.json({ error: "Incompatible sync protocol" }, 409);
-    const moved = options.movable ? await activeCloudMove(options.database) : undefined;
-    if (moved) return c.json(await relocationHandshake(options.database, moved, principal, data));
+    const leaving = await leavingHandshake(options, principal, data);
+    if (leaving) return c.json(leaving);
     return c.json({
       requestId: data.requestId,
       appVersion: buildInfo.version,

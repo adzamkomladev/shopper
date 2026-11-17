@@ -10,9 +10,15 @@ import { NAV_ITEMS, NAV_SECTIONS } from "../../../lib/shell/nav/items";
 /** The links this member may use. Gated links wait for the permission list rather than flash and vanish. */
 export function useNavItems() {
   const granted = usePermissions();
-  const onBox = !!useQuery(billingStatusQuery()).data?.licence;
+  const status = useQuery(billingStatusQuery()).data;
+  // Neither kind shows until the status says where this back office runs.
+  const onBox = !!status?.licence;
+  const inCloud = !!status && !status.licence;
   return NAV_ITEMS.filter(
-    (item) => (!item.permission || holds(granted, item.permission)) && (!item.box || onBox),
+    (item) =>
+      (!item.permission || holds(granted, item.permission)) &&
+      (!item.box || onBox) &&
+      (!item.cloud || inCloud),
   );
 }
 

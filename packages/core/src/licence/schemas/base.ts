@@ -38,3 +38,9 @@ export const relocation = v.object({
   signature: v.string(),
 });
 export type Relocation = v.InferOutput<typeof relocation>;
+
+/** What a box's request code holds: the SHA-256 of its machine id and its own Ed25519 public key (base64url). */
+export const requestCode = v.object({
+  machine: v.pipe(v.string(), v.regex(/^[0-9a-f]{64}$/)),
+  key: v.pipe(v.string(), v.regex(/^[A-Za-z0-9_-]{43}$/)),
+});

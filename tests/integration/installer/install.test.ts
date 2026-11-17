@@ -79,6 +79,9 @@ test("an installer that is altered, or not signed by Shopper, is refused before 
     expect(result.status).not.toBe(0);
     expect(result.output).toMatch(message);
   }
+  // Day 43: `--import` takes a cloud shop's archive (a path from where it is run); any other file is refused.
+  const notArchive = machine.run("cd /var/tmp && sh /installer.run --import damaged.run");
+  expect(notArchive.output).toMatch(/tmp\/damaged\.run is not a Shopper archive/);
   // Nothing was installed: no PostgreSQL, no Shopper folder, no user.
   expect(machine.run("test ! -e /opt/shopper && ! command -v psql && ! id shopper").status).toBe(0);
 }, 300_000);

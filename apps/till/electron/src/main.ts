@@ -127,7 +127,7 @@ async function startRegister() {
             port?: number;
             message?: string;
             address?: string;
-            registration?: object;
+            registration?: { upstream: string } | { pin: string };
           } & Partial<UpdatePolicy>)
         | null,
     ) => {
@@ -153,8 +153,8 @@ async function startRegister() {
       else if (message?.type === "enrolled" && message.registration)
         void enrol(message.registration).catch((error: unknown) => fail("Register stopped", error));
       else if (message?.type === "relocated" && message.registration)
-        void relocate(configPath, message.registration).catch((error: unknown) =>
-          fail("Register could not move to the cloud", error),
+        void relocate(configPath, userData, message.registration).catch((error: unknown) =>
+          fail("Register could not move", error),
         );
       else if (message?.type === "ready" && message.capability) {
         // After enrolment the host comes back on the same port and capability; the open window reconnects.

@@ -37,7 +37,12 @@ import { billingRoutes } from "./routes/billing";
 import { licenceRoutes } from "./routes/licence";
 import { migrationRoutes } from "./routes/migration";
 import { moveRoutes } from "./routes/move";
-import { refuseWhenMoved } from "./middleware/moved";
+import {
+  refuseShoppersWhileLeaving,
+  refuseWhenMoved,
+  refuseWhileLeaving,
+} from "./middleware/moved";
+import { onPremRoutes } from "./routes/onprem";
 import { updateRoutes } from "./routes/updates";
 import { shopAccountRoutes } from "./routes/shop/account";
 import { shopSignInRoutes } from "./routes/shop/signin";
@@ -60,6 +65,20 @@ export function createApi(options: ApiOptions = {}) {
     );
     app.route("/", moveRoutes(options.database, options.authentication, options.cloudMoves));
   }
+  // Only the cloud (the issuer) moves a shop onto its box: from the start of a move the org takes no changes.
+  if (options.database && options.licenceSigningKey) {
+    app.use("*", refuseWhileLeaving(options.database, options.authentication));
+    if (options.archiveExports)
+      app.route(
+        "/",
+        onPremRoutes({
+          database: options.database,
+          authentication: options.authentication,
+          archiveExports: options.archiveExports,
+          licenceSigningKey: options.licenceSigningKey,
+        }),
+      );
+  }
   app.route("/", systemRoutes());
   app.route("/", paymentRoutes(options));
   app.route("/", hubtelRoutes(options));
@@ -76,6 +95,7 @@ export function createApi(options: ApiOptions = {}) {
         minTillVersion: options.minTillVersion,
         tillFeed: options.tillFeed,
         movable: !!options.cloudMoves,
+        onPrem: !!options.licenceSigningKey,
       }),
     );
   if (options.onboarding) app.route("/", onboardingRoutes(options.onboarding));
@@ -139,7 +159,7 @@ export function createApi(options: ApiOptions = {}) {
   if (options.database) app.route("/", approvalRoutes(options));
   if (options.database) app.route("/", billingRoutes(options));
   app.route("/", licenceRoutes(options));
-  if (options.database && options.blobs && options.archiveImports && options.licenceSigningKey)
+  if (options.database && options.blobs && options.licenceSigningKey)
     app.route(
       "/",
       migrationRoutes({
@@ -170,6 +190,7 @@ export function createApi(options: ApiOptions = {}) {
       }),
     );
   if (options.database && options.shop) {
+    app.use("/shop/:code/*", refuseShoppersWhileLeaving(options.database));
     // Before `/shop/:code`, which would otherwise take "account" for a shop code.
     app.route("/", shopAccountRoutes({ ...options.shop, database: options.database }));
     app.route("/", shopSignInRoutes({ ...options.shop, database: options.database }));

@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { isReadOnly, readBilling } from "@shopper/core/billing";
+import { leavingMove } from "@shopper/export";
 import { activeCloudMove } from "../middleware/moved";
 import { problem } from "../middleware/problem";
 import { requirePermission } from "../middleware/require/permission";
@@ -26,6 +27,10 @@ export function billingRoutes(options: ApiOptions) {
         : null,
       // A box moving (or moved) to the cloud only reads: the banner says so to every member.
       move: options.cloudMoves ? await movingTo(database) : null,
+      // A cloud shop moving onto its own box only reads here, and for good once it has moved.
+      onPrem: options.licenceSigningKey
+        ? ((await leavingMove(database, principal.orgId))?.status ?? null)
+        : null,
     });
   });
   app.use("/billing", requirePermission(options.authentication, "billing.manage"));

@@ -74,7 +74,7 @@ export async function startTillHost(
     payments,
     () => receipts.refreshSigned(),
     (payload) => approvals.receive(payload),
-    withRelocation((release) => updates.handshake(release), identity, send),
+    withRelocation((release) => updates.handshake(release), identity, send, !!config.ca),
   );
   const receipts = createHostReceipts({
     database,

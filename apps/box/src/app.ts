@@ -65,7 +65,7 @@ export function createBoxApp(
   const updatesFor = boxUpdatesFor(environment, licence, options.releaseKey);
   const api = new Hono<{ Bindings: BoxBindings }>().all("*", async (context) => {
     const request = context.req.raw;
-    if (new URL(request.url).pathname === "/install") return install.fetch(request);
+    if (/^\/install(?:\/|$)/.test(new URL(request.url).pathname)) return install.fetch(request);
     if (isPublicRequest(request)) return publicApi.fetch(request);
     const { DATABASE_URL, SHOPPER_AUTH_SECRET, SHOPPER_AUTH_URL, SHOPPER_BOOTSTRAP_TOKEN } =
       environment;

@@ -6,6 +6,8 @@ import { v7 } from "uuid";
 import { buildInfo } from "@shopper/config";
 import { licence as licenceSchema, publicKeyOf, verify } from "@shopper/core/licence";
 import * as v from "valibot";
+import { eq } from "drizzle-orm";
+import * as schema from "@shopper/db-pg";
 import { handshake, tillCall } from "../../support/migration/move";
 import { boxIdentity, cloudAndBox } from "../../support/migration/onprem";
 
@@ -28,6 +30,18 @@ const push = () =>
     proofs: [],
   });
 const category = () => h.member("owner", "POST", "/categories", { name: "Grains" });
+// A shopper's sign-in on the storefront: a write the shop's archive would miss.
+const shopper = async () => {
+  const [org] = await h.f.db
+    .select({ slug: schema.org.slug })
+    .from(schema.org)
+    .where(eq(schema.org.id, h.f.ctx.orgId));
+  return h.cloud.request(`/shop/${org!.slug}/signin`, {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: "https://shop.test" },
+    body: JSON.stringify({ phone: "0243001000" }),
+  });
+};
 
 test("only an owner with migration.run starts the move, and nothing is frozen before", async () => {
   expect((await h.member("cashier", "POST", "/migration/onprem")).status).toBe(403);
@@ -65,6 +79,7 @@ test("starting the move seals an archive and freezes the cloud org", async () =>
 
   expect((await category()).status).toBe(423);
   expect((await push()).status).toBe(423);
+  expect((await shopper()).status).toBe(423);
   // Every member's banner says why.
   expect(await (await h.member("cashier", "GET", "/billing/status")).json()).toMatchObject({
     onPrem: "open",
@@ -132,6 +147,7 @@ test("calling the move off lets the shop trade in the cloud again", async () => 
   });
   expect((await category()).status).toBe(201);
   expect((await push()).status).not.toBe(423);
+  expect((await shopper()).status).not.toBe(423);
   expect(await (await h.member("cashier", "GET", "/billing/status")).json()).toMatchObject({
     onPrem: null,
   });

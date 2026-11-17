@@ -84,6 +84,7 @@ test("the move's box claims it through the cloud's own routing: credentials and 
       baseURL,
       blobs: h.blobs,
       licenceSigningKey: h.issuer.privateKey,
+      archiveExports: h.archiveExports,
     });
   const { signedRequest } = await import("@shopper/core/licence");
   const response = await runtime(
@@ -93,6 +94,14 @@ test("the move's box claims it through the cloud's own routing: credentials and 
     }),
   );
   expect(response.status).toBe(200);
+  // The owner's screen is routed too: asked without a session it wants one, rather than not existing.
+  expect(
+    (
+      await runtime(
+        new Request(`${CLOUD}/migration/onprem`, { headers: { "x-shopper-org": h.f.ctx.orgId } }),
+      )
+    ).status,
+  ).toBe(401);
   const claimed = (await response.json()) as {
     credentials: { passwords: unknown[]; pins: unknown[]; sessionKey: string | null };
     codes: Record<string, { codeHash: string; usedAt: null }>;
@@ -169,8 +178,18 @@ test("a report that disagrees is kept and archives nothing; one that agrees arch
     .from(schema.boxMove)
     .where(eq(schema.boxMove.orgId, h.f.ctx.orgId));
   expect(archived!.status).toBe("archived");
-  // Archived for good: a later report is refused, writes stay refused.
-  expect((await h.signed(identity, "/migration/handover/report", { report })).status).toBe(409);
+  // Archived for good. A box that never heard the answer asks again and gets the agreed report; claiming again
+  // hands it the credentials and no new codes (its registers hold theirs). Writes stay refused.
+  const again = await h.signed(identity, "/migration/handover/report", { report: wrong });
+  expect(await again.json()).toMatchObject({ ok: true });
+  const resumed = (await (await claim()).json()) as { credentials: unknown; codes?: unknown };
+  expect(resumed.credentials).toBeDefined();
+  expect(resumed).not.toHaveProperty("codes");
+  const [still] = await h.f.db
+    .select()
+    .from(schema.boxMove)
+    .where(eq(schema.boxMove.orgId, h.f.ctx.orgId));
+  expect(still!.status).toBe("archived");
   expect((await h.member("owner", "POST", "/categories", { name: "Late" })).status).toBe(423);
 
   for (const register of h.registers) {

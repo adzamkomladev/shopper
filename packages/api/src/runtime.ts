@@ -211,6 +211,7 @@ async function route(request: Request, options: RuntimeOptions): Promise<Respons
     platform: options.platform,
     licence: options.licence,
     updates: options.updates,
+    licenceSigningKey: options.licenceSigningKey,
   }).fetch(request);
 }
 

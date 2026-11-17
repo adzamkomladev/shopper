@@ -37,7 +37,7 @@ export async function arriveFromCloud(
   const files = readZip(input.archive);
   const claimed = await ask<{
     credentials: MoveCredentials;
-    codes: Record<string, RelocationCode>;
+    codes?: Record<string, RelocationCode>;
   }>(
     await deps.cloud("/migration/handover/claim", {
       upstream: input.upstream,
@@ -53,11 +53,12 @@ export async function arriveFromCloud(
       licenceId: input.licence.id,
       manifest,
       signature: new TextDecoder().decode(files.get("manifest.sig")),
-      relocations: claimed.codes,
+      relocations: claimed.codes ?? {},
     })
     .onConflictDoUpdate({
       target: archiveImport.orgId,
-      set: { relocations: claimed.codes, updatedAt: sql`now()` },
+      // A move the cloud already verified hands no new codes: the ones recorded first stand.
+      set: { ...(claimed.codes && { relocations: claimed.codes }), updatedAt: sql`now()` },
     })
     .returning({ id: archiveImport.id });
   await importArchive(
@@ -79,9 +80,14 @@ export async function arriveFromCloud(
   const result = await ask<ReturnType<typeof compareReports>>(
     await deps.cloud("/migration/handover/report", { report }),
   );
+  // A report that disagrees is kept, and the import stays pending: the owner can run it again.
   await db
     .update(archiveImport)
-    .set({ status: "ready", report: result, completedAt: sql`now()`, updatedAt: sql`now()` })
+    .set({
+      report: result,
+      ...(result.ok && { status: "ready" as const, completedAt: sql`now()` }),
+      updatedAt: sql`now()`,
+    })
     .where(eq(archiveImport.id, arrival!.id));
   return { shop: manifest.org.name, ...result };
 }

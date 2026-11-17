@@ -1,6 +1,7 @@
 import type { MiddlewareHandler } from "hono";
 import { ne } from "drizzle-orm";
 import type { createDeviceService } from "@shopper/auth/devices";
+import { findOrgBySlug } from "@shopper/core/orgs";
 import { cloudMove, type ShopperDatabase } from "@shopper/db-pg";
 import { leavingMove } from "@shopper/export";
 import type { ApiAuthentication } from "../types";
@@ -59,6 +60,18 @@ export function refuseRegistersWhileLeaving(
     const principal = await devices.resolveUploadPrincipal(c.req.raw);
     const leaving = principal && (await leavingMove(db, principal.orgId));
     return leaving ? c.json({ error: leftFor(leaving.status) }, 423) : next();
+  };
+}
+
+/** Shoppers too: a leaving shop's storefront takes no orders, sign-ins or changes; it would split the shop. */
+export function refuseShoppersWhileLeaving(db: ShopperDatabase): MiddlewareHandler {
+  return async (c, next) => {
+    if (["GET", "HEAD", "OPTIONS"].includes(c.req.method)) return next();
+    const found = await findOrgBySlug(db, c.req.param("code") ?? "");
+    const leaving = found && (await leavingMove(db, found.id));
+    return leaving
+      ? c.json({ error: "This shop is not taking online orders right now." }, 423)
+      : next();
   };
 }
 

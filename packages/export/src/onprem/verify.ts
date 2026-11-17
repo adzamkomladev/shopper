@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
 import type { Licence } from "@shopper/core/licence";
 import { boxMove, type ShopperDatabase } from "@shopper/db-pg";
@@ -18,10 +18,13 @@ export async function verifyOnPremMove(
 ) {
   const orgId = input.licence.org;
   const [move] = await db.select().from(boxMove).where(eq(boxMove.orgId, orgId));
+  if (move && move.licenceId !== input.licence.id)
+    throw new ImportError("This licence was not issued for this move.", 403);
+  // Already verified: the box never heard the answer and asks again; the agreed report is the answer.
+  const agreed = move?.report as ReturnType<typeof compareReports> | null | undefined;
+  if (move?.status === "archived" && agreed?.ok) return agreed;
   if (move?.status !== "claimed")
     throw new ImportError("This shop has no move waiting for its report.", 409);
-  if (move.licenceId !== input.licence.id)
-    throw new ImportError("This licence was not issued for this move.", 403);
   const cloud = await reconciliationReport(db, orgId, {
     auditUpTo: input.report.auditUpTo ?? undefined,
   });
@@ -33,14 +36,17 @@ export async function verifyOnPremMove(
 const recordReport = defineCommand({
   name: "migration.onprem.verify",
   async run(tx, _ctx, input: { moveId: string; result: ReturnType<typeof compareReports> }) {
-    await tx
+    const updated = await tx
       .update(boxMove)
       .set({
         report: input.result,
         ...(input.result.ok ? { status: "archived" as const, completedAt: sql`now()` } : {}),
         updatedAt: sql`now()`,
       })
-      .where(eq(boxMove.id, input.moveId));
+      // Called off while the cloud was counting: the report describes a move that is no longer on.
+      .where(and(eq(boxMove.id, input.moveId), eq(boxMove.status, "claimed")))
+      .returning({ id: boxMove.id });
+    if (!updated.length) throw new ImportError("This move was called off.", 409);
     return { ok: input.result.ok };
   },
   audit: (input) => ({

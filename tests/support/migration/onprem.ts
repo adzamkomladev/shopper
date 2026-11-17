@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { boxArchiveExport, boxCache, boxSequencer } from "@shopper/adapters-box";
 import { createApi, type ApiAuthentication } from "@shopper/api";
 import { createDeviceService } from "@shopper/auth/devices";
+import { createShopAccess } from "@shopper/core/shop";
 import { generateKey, issueLicence, signedRequest, type Licence } from "@shopper/core/licence";
 import * as schema from "@shopper/db-pg";
 import { sha256 } from "@shopper/utils";
@@ -11,6 +12,7 @@ import { diskBlobs, emptyDatabase } from "./archive";
 /** The cloud's API origin, and the box's address on the shop's LAN as its registers will reach it. */
 export const CLOUD = "https://cloud.shopper.test";
 export const BOX = "https://shopper.local";
+const LINK = "onprem-test-link-secret-0123456789abcdef";
 
 /**
  * A trading cloud shop (the export fixture's org with two enrolled registers) and an empty box database, in-process.
@@ -41,6 +43,12 @@ export async function cloudAndBox() {
     archiveExports: exports.launcher,
     devices: createDeviceService(f.db, caches[0]!.cache, f.ctx.appVersion),
     sequencer: boxSequencer(f.db),
+    // A storefront too: shoppers' writes freeze with the rest.
+    shop: {
+      access: createShopAccess({ database: f.db, linkSecret: LINK, appVersion: f.ctx.appVersion }),
+      appVersion: f.ctx.appVersion,
+      linkSecret: LINK,
+    },
   });
   const box = createApi({
     database: b.db,
@@ -75,6 +83,7 @@ export async function cloudAndBox() {
     cloud,
     box,
     blobs: storage.blobs,
+    archiveExports: exports.launcher,
     registers,
     /** A member's call to the cloud portal API. */
     member: (as: "owner" | "cashier", method: string, path: string, body?: unknown) =>

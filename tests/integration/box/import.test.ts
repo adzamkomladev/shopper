@@ -18,8 +18,8 @@ let h: Awaited<ReturnType<typeof cloudAndBox>>;
 let dir: string;
 let box: ReturnType<typeof createBoxApp>;
 let shop: string;
-// The cloud as the box reaches it; `drop` loses the next call to a path, as a dropped connection would.
-const drop = new Set<string>();
+// The cloud as the box reaches it; `lose` loses the answer to the next call to a path, after the cloud acted on it.
+const lose = new Set<string>();
 
 const call = (path: string, data?: unknown) =>
   box.fetch(
@@ -75,9 +75,9 @@ beforeAll(async () => {
     {
       licenceIssuer: h.issuer.publicKey,
       fetch: async (request) => {
-        const path = new URL(request.url).pathname;
-        if (drop.delete(path)) throw new TypeError("fetch failed");
-        return h.cloud.fetch(request);
+        const answer = await h.cloud.fetch(request);
+        if (lose.delete(new URL(request.url).pathname)) throw new TypeError("fetch failed");
+        return answer;
       },
     },
   );
@@ -122,19 +122,20 @@ test("a wrong code or a licence for another box imports nothing", async () => {
   expect((await h.b.db.select().from(schema.org)).length).toBe(0);
 });
 
-test("the box claims, imports and reports; cut off before its report, it runs again and the cloud archives", async () => {
+test("the box claims, imports and reports; cut off before it hears the answer, it runs again and completes", async () => {
   const issued = await h.member("owner", "POST", "/migration/onprem/licence", {
     request: (await state()).licence.request,
   });
   const licence = await issued.json();
 
-  drop.add("/migration/handover/report");
+  lose.add("/migration/handover/report");
   const cut = await call("/install/import", { code: CODE, licence });
   expect(cut.status).toBe(502);
-  // The shop landed, the cloud is still waiting for the report: the wizard stays.
+  // The shop landed and the cloud agreed, but the box never heard: the wizard stays, with its codes.
   expect((await h.b.db.select().from(schema.org)).map((row) => row.id)).toEqual([h.f.ctx.orgId]);
-  expect(await moveStatus()).toBe("claimed");
+  expect(await moveStatus()).toBe("archived");
   expect((await state()).import).toEqual({ shop });
+  const [first] = await h.b.db.select().from(schema.archiveImport);
 
   const done = await call("/install/import", { code: CODE, licence });
   expect(done.status).toBe(200);
@@ -144,6 +145,8 @@ test("the box claims, imports and reports; cut off before its report, it runs ag
   expect(await moveStatus()).toBe("archived");
   const [arrival] = await h.b.db.select().from(schema.archiveImport);
   expect(arrival).toMatchObject({ status: "ready", report: { ok: true } });
+  expect(arrival!.relocations).toEqual(first!.relocations);
+  expect(Object.keys(arrival!.relocations).length).toBeGreaterThan(0);
   // Installed: the wizard is gone.
   expect((await call("/install")).status).toBe(404);
   expect((await call("/install/import", { code: CODE, licence })).status).toBe(404);

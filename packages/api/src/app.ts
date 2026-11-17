@@ -37,7 +37,11 @@ import { billingRoutes } from "./routes/billing";
 import { licenceRoutes } from "./routes/licence";
 import { migrationRoutes } from "./routes/migration";
 import { moveRoutes } from "./routes/move";
-import { refuseWhenMoved, refuseWhileLeaving } from "./middleware/moved";
+import {
+  refuseShoppersWhileLeaving,
+  refuseWhenMoved,
+  refuseWhileLeaving,
+} from "./middleware/moved";
 import { onPremRoutes } from "./routes/onprem";
 import { updateRoutes } from "./routes/updates";
 import { shopAccountRoutes } from "./routes/shop/account";
@@ -186,6 +190,7 @@ export function createApi(options: ApiOptions = {}) {
       }),
     );
   if (options.database && options.shop) {
+    app.use("/shop/:code/*", refuseShoppersWhileLeaving(options.database));
     // Before `/shop/:code`, which would otherwise take "account" for a shop code.
     app.route("/", shopAccountRoutes({ ...options.shop, database: options.database }));
     app.route("/", shopSignInRoutes({ ...options.shop, database: options.database }));

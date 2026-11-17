@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
 import type { Licence } from "@shopper/core/licence";
 import { boxMove, device, exportJob, type ShopperDatabase } from "@shopper/db-pg";
@@ -27,10 +27,13 @@ export async function claimOnPremMove(
     .innerJoin(exportJob, and(eq(exportJob.orgId, orgId), eq(exportJob.id, boxMove.exportJobId)))
     .where(eq(boxMove.orgId, orgId));
   const move = found?.move;
+  if (move && move.licenceId !== input.licence.id)
+    throw new ImportError("This licence was not issued for this move.", 403);
+  // Verified, but the box never heard: it resumes with what it holds (no new codes, the registers have theirs).
+  if (move?.status === "archived")
+    return { credentials: await credentials(db, orgId), codes: undefined };
   if (!move || !["open", "claimed"].includes(move.status))
     throw new ImportError("This shop has no move waiting for a box.", 409);
-  if (move.licenceId !== input.licence.id)
-    throw new ImportError("This licence was not issued for this move.", 403);
   if (found.archive !== "ready") throw new ImportError("The archive is not sealed yet.", 409);
   const sealed = await deps.blobs.get(orgId, `${exportPrefix(move.exportJobId)}/manifest.json`);
   if (!sealed || (await sha256(sealed)) !== input.manifestSha256)
@@ -80,7 +83,7 @@ const markClaimed = defineCommand({
       relocations: Record<string, { message: string; deliveredAt: null }>;
     },
   ) {
-    await tx
+    const updated = await tx
       .update(boxMove)
       .set({
         status: "claimed",
@@ -88,7 +91,10 @@ const markClaimed = defineCommand({
         relocations: input.relocations,
         updatedAt: sql`now()`,
       })
-      .where(eq(boxMove.id, input.moveId));
+      // Called off while the codes were being made: nothing is claimed.
+      .where(and(eq(boxMove.id, input.moveId), inArray(boxMove.status, ["open", "claimed"])))
+      .returning({ id: boxMove.id });
+    if (!updated.length) throw new ImportError("This move was called off.", 409);
     return { registers: Object.keys(input.relocations).length };
   },
   audit: (input, output) => ({

@@ -182,6 +182,10 @@ test("a report that disagrees is kept and archives nothing; one that agrees arch
   // hands it the credentials and no new codes (its registers hold theirs). Writes stay refused.
   const again = await h.signed(identity, "/migration/handover/report", { report: wrong });
   expect(await again.json()).toMatchObject({ ok: true });
+  // Only with this move's archive: another one is not resumed.
+  expect((await claim(identity, { upstream: BOX, manifestSha256: "0".repeat(64) })).status).toBe(
+    409,
+  );
   const resumed = (await (await claim()).json()) as { credentials: unknown; codes?: unknown };
   expect(resumed.credentials).toBeDefined();
   expect(resumed).not.toHaveProperty("codes");

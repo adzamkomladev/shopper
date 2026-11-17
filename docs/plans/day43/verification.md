@@ -38,6 +38,8 @@ Six findings. I checked each against the code, fixed five with a test that fails
   move's own box with the agreed comparison, and a repeated claim with the credentials and no new codes. The box keeps
   the codes it recorded first. `box/import.test.ts` now loses the answer after the cloud has archived, then
   completes.
+- **Second pass (the fix commit), P2 fixed:** the archived resume skipped the manifest check. It now checks it first,
+  so a box installed from another archive is not resumed (`handover.test.ts`, 409).
 - **P2 fixed: a mismatch marked the box's import ready.** The report is kept, and the import stays pending so the
   wizard can run again.
 - **P2 fixed: a move called off mid-claim or mid-report could be claimed or archived.** Both transitions now update

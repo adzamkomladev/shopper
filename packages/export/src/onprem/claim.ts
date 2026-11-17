@@ -29,10 +29,7 @@ export async function claimOnPremMove(
   const move = found?.move;
   if (move && move.licenceId !== input.licence.id)
     throw new ImportError("This licence was not issued for this move.", 403);
-  // Verified, but the box never heard: it resumes with what it holds (no new codes, the registers have theirs).
-  if (move?.status === "archived")
-    return { credentials: await credentials(db, orgId), codes: undefined };
-  if (!move || !["open", "claimed"].includes(move.status))
+  if (!move || !["open", "claimed", "archived"].includes(move.status))
     throw new ImportError("This shop has no move waiting for a box.", 409);
   if (found.archive !== "ready") throw new ImportError("The archive is not sealed yet.", 409);
   const sealed = await deps.blobs.get(orgId, `${exportPrefix(move.exportJobId)}/manifest.json`);
@@ -41,6 +38,9 @@ export async function claimOnPremMove(
       "This is not the archive this move sealed. Download it again from the cloud.",
       409,
     );
+  // Verified, but the box never heard: it resumes with what it holds (no new codes, the registers have theirs).
+  if (move.status === "archived")
+    return { credentials: await credentials(db, orgId), codes: undefined };
   const registers = await db
     .select({ id: device.id })
     .from(device)

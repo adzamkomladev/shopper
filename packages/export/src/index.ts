@@ -52,3 +52,5 @@ export { credentials as moveCredentials } from "./move/credentials";
 export { issueRelocations } from "./move/commit";
 export { arriveFromCloud } from "./onprem/arrive";
 export type { ArrivalDeps } from "./types";
+export { preflight, cutoverMinutes } from "./wizard/preflight";
+export { dryRunResult } from "./wizard/dryrun";

@@ -43,6 +43,7 @@ import {
   refuseWhileLeaving,
 } from "./middleware/moved";
 import { onPremRoutes } from "./routes/onprem";
+import { dryRunRoutes } from "./routes/dryrun";
 import { updateRoutes } from "./routes/updates";
 import { shopAccountRoutes } from "./routes/shop/account";
 import { shopSignInRoutes } from "./routes/shop/signin";
@@ -79,6 +80,22 @@ export function createApi(options: ApiOptions = {}) {
         }),
       );
   }
+  // Either side of a move can rehearse it: seal and verify the archive with nothing frozen.
+  if (
+    options.database &&
+    options.archiveExports &&
+    options.blobs &&
+    (options.cloudMoves || options.licenceSigningKey)
+  )
+    app.route(
+      "/",
+      dryRunRoutes({
+        database: options.database,
+        authentication: options.authentication,
+        archiveExports: options.archiveExports,
+        blobs: options.blobs,
+      }),
+    );
   app.route("/", systemRoutes());
   app.route("/", paymentRoutes(options));
   app.route("/", hubtelRoutes(options));

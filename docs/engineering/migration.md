@@ -1,4 +1,4 @@
-# Moving a shop: box → cloud (Day 42), cloud → box (Day 43)
+# Moving a shop: box → cloud (Day 42), cloud → box (Day 43), the round trip and the wizards (Day 44)
 
 An on-prem shop moves to the cloud in one evening. The owner presses **Move to cloud** on the box. The box seals a
 Shopper Archive (Day 41) and sends it to the cloud. The cloud imports it into an empty org with the same ids. Each
@@ -117,3 +117,33 @@ Till  next cloud handshake → {relocation} → unpinned LAN box: Electron pins 
 - **Named limits.** The box's import runs in one request. If the report disagrees, the cloud stays frozen until the
   owner calls the move off; nothing repairs a mismatch. The box CA is trusted on first use, as at enrolment. A box with
   no `SHOPPER_LICENCE_URL` reaches the cloud its registers sync to (`buildInfo.tillUpstream`).
+
+## The round trip (Day 44)
+
+A shop can go cloud → box → cloud. After a move on-prem the cloud holds the shop only as an archived departure
+(`box_move.status = 'archived'`). When that box moves to the cloud, `openImport` accepts it (any other existing org is
+still 409), and `importArchive` replaces the archived copy in its one transaction: it deletes every row of the org,
+children before parents (`tableOrder` reversed), then writes the box's archive. The `box_move` row goes too, so the
+org is no longer frozen and the watchdog takes it up again.
+
+- **History guards.** `0046_replace.sql` lets `shopper_reject_history_change` and `shopper_preserve_sale` pass a
+  `DELETE` only when the transaction-local `shopper.replace` equals the row's `org_id`. Updates, truncates and every
+  other org's rows are still refused.
+- **The audit chain** is the cloud's own up to the archive it left with, then the box's continuation, then the
+  import. The cloud's rows about the move after sealing (licence, claim, verdict) forked from the box's and are
+  deleted; the import's audit row keeps their head as `replaced: {chainSeq, hash}`.
+- **Proof:** `tests/integration/migration/roundtrip.test.ts`: every table and day agrees with the box at departure,
+  every blob is the box's, the chain verifies from its first entry, and the org takes changes again.
+
+## The wizards (Day 44)
+
+Both move screens open with the same pre-flight panel (`components/migration/preflight.tsx`), fed by `checks` on
+`GET /migration/onprem` and `GET /migration/move` (`preflight()` in `@shopper/export`):
+
+- **The shop looks closed:** no sale in the last 15 minutes. Advice only.
+- **Dry run:** `POST /migration/dryrun` (either runtime, `migration.run`) seals a Day 41 archive with nothing frozen;
+  `GET /migration/dryrun/:id` reads it back through `verifyArchive` (a part that changed size or vanished is a failed
+  dry run, not an error). The check passes for a sealed archive under a day old.
+- **Cutover window:** `cutoverMinutes(bytes)`, a fixed guess (2 minutes + 1 per 10 MB, `shortcut:`) until a pilot
+  move is measured. Scheduling a move for later is not built.
+- **Rollback** copy at each stage says what is still possible; the runbooks are in `docs/runbooks/migration/`.

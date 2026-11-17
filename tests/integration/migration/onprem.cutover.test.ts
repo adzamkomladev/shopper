@@ -4,29 +4,22 @@
 // agrees on every table and every day, the cloud archives itself, and each register follows the relocation its next
 // cloud handshake hands it to the box: the same device and receipt series, the next number, the same credentials.
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { asc, eq, inArray } from "drizzle-orm";
 import { v7 } from "uuid";
-import { createBoxApp } from "@shopper/box";
 import { buildInfo } from "@shopper/config";
 import { allocateStoreSequence } from "@shopper/core";
 import { relocateRegister } from "@shopper/adapters-box/till";
 import * as schema from "@shopper/db-pg";
-import { archiveEntries, zipBytes } from "@shopper/export";
-import { sha256 } from "@shopper/utils";
 import { handshake, tillCall } from "../../support/migration/move";
-import { BOX, CLOUD, cloudAndBox } from "../../support/migration/onprem";
+import { BOX, cloudAndBox, toBox } from "../../support/migration/onprem";
 
 type Receipts = {
   branchCode: string;
   deviceCode: string;
   blocks: { start: number; end: number }[];
 };
-const CODE = "K7M2-Q9XP-4HWR";
 let h: Awaited<ReturnType<typeof cloudAndBox>>;
-let dir: string;
+let remove: (() => Promise<void>) | undefined;
 const sold = [1500, 40];
 const before: Receipts[] = [];
 let cloudStoreSeq: bigint;
@@ -42,55 +35,15 @@ beforeAll(async () => {
   const [store] = await h.f.db.select().from(schema.store).where(eq(schema.store.id, h.f.store.id));
   cloudStoreSeq = store!.lastSeq;
 
-  // The evening: the owner starts the move and downloads the sealed archive; the box is installed with it.
-  expect((await h.member("owner", "POST", "/migration/onprem")).status).toBe(202);
-  await h.sealed();
-  const [move] = await h.f.db
-    .select()
-    .from(schema.boxMove)
-    .where(eq(schema.boxMove.orgId, h.f.ctx.orgId));
-  dir = await mkdtemp(join(tmpdir(), "onprem-cutover-"));
-  await writeFile(
-    join(dir, "import.shopper"),
-    await zipBytes(await archiveEntries(h.blobs, h.f.ctx.orgId, move!.exportJobId)),
-  );
-  await writeFile(join(dir, "machine-id"), "00112233445566778899aabbccddeeff\n");
-  const box = createBoxApp(
-    {
-      DATABASE_URL: h.b.connectionString,
-      SHOPPER_AUTH_SECRET: "cutover-test-secret-0123456789abcdef",
-      SHOPPER_AUTH_URL: BOX,
-      SHOPPER_SINGLE_SHOP: "1",
-      SHOPPER_SETUP_CODE_HASH: await sha256(CODE.replaceAll("-", "")),
-      SHOPPER_LICENCE_DIR: join(dir, "licence"),
-      SHOPPER_MACHINE_ID_FILE: join(dir, "machine-id"),
-      SHOPPER_BLOBS_PATH: join(dir, "blobs"),
-      SHOPPER_LICENCE_URL: CLOUD,
-      SHOPPER_IMPORT: join(dir, "import.shopper"),
-    },
-    { licenceIssuer: h.issuer.publicKey, fetch: async (request) => h.cloud.fetch(request) },
-  );
-  const wizard = (await (await box.fetch(new Request(`${BOX}/install`))).json()) as {
-    licence: { request: string };
-  };
-  const licence = await (
-    await h.member("owner", "POST", "/migration/onprem/licence", {
-      request: wizard.licence.request,
-    })
-  ).json();
-  const imported = await box.fetch(
-    new Request(`${BOX}/install/import`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ code: CODE, licence }),
-    }),
-  );
-  expect(imported.status).toBe(200);
-  report = (await imported.json()) as typeof report;
+  // The evening: the owner starts the move, and the box installed with the archive takes the shop over.
+  const box = await toBox(h);
+  remove = box.remove;
+  expect(box.status).toBe(200);
+  report = box.report;
 }, 300_000);
 afterAll(async () => {
   await h?.close();
-  if (dir) await rm(dir, { recursive: true, force: true });
+  await remove?.();
 });
 
 test("Cloud → box full cutover; verification report all green", async () => {

@@ -6,6 +6,7 @@ import {
   cancelOnPremMove,
   getOnPremMove,
   ImportError,
+  preflight,
   issueMoveLicence,
   moveLicenceBody,
   startOnPremMove,
@@ -55,6 +56,7 @@ export function onPremRoutes(options: {
             completedAt: move.completedAt?.toISOString() ?? null,
           }
         : null,
+      checks: await preflight(db, orgId),
       registers: registers.map((register) => ({
         ...register,
         deliveredAt: move?.relocations[register.id]?.deliveredAt ?? null,

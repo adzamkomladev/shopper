@@ -1,5 +1,33 @@
 import * as v from "valibot";
 
+/** What an owner checks before a move in either direction; both only advise. */
+export const preflightChecks = v.object({
+  quiet: v.object({ ok: v.boolean(), lastSaleAt: v.nullable(v.string()) }),
+  dryRun: v.object({
+    ok: v.boolean(),
+    exportJobId: v.nullable(v.string()),
+    sealedAt: v.nullable(v.string()),
+    minutes: v.nullable(v.number()),
+  }),
+});
+export type PreflightChecks = v.InferOutput<typeof preflightChecks>;
+
+/** A dry run: the archive sealed with nothing frozen, then read back as the other side will read it. */
+export const dryRun = v.union([
+  v.object({ status: v.picklist(["running", "failed", "deleted"]) }),
+  v.object({
+    status: v.literal("ready"),
+    verified: v.boolean(),
+    message: v.nullable(v.string()),
+    tables: v.number(),
+    rows: v.number(),
+    files: v.number(),
+    bytes: v.number(),
+    minutes: v.number(),
+  }),
+]);
+export const dryRunStarted = v.object({ exportJobId: v.string() });
+
 export const moveStatus = v.picklist(["sealing", "uploading", "importing", "moved", "failed"]);
 
 /** The box's move to the cloud, and each register with when its next connection handed it the new address. */
@@ -14,6 +42,7 @@ export const moveView = v.object({
       completedAt: v.nullable(v.string()),
     }),
   ),
+  checks: preflightChecks,
   registers: v.array(
     v.object({ id: v.string(), name: v.string(), deliveredAt: v.nullable(v.string()) }),
   ),
@@ -54,6 +83,7 @@ export const onPremView = v.object({
       completedAt: v.nullable(v.string()),
     }),
   ),
+  checks: preflightChecks,
   registers: v.array(
     v.object({ id: v.string(), name: v.string(), deliveredAt: v.nullable(v.string()) }),
   ),

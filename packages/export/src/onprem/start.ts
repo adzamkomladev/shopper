@@ -44,6 +44,18 @@ export async function leavingMove(db: Pick<ShopperDatabase, "select">, orgId: st
   return row;
 }
 
+/**
+ * The move that left the cloud org behind for good: the cloud holds the shop only as an archived departure, which a box
+ * moving back in replaces.
+ */
+export async function archivedDeparture(db: Pick<ShopperDatabase, "select">, orgId: string) {
+  const [row] = await db
+    .select({ id: boxMove.id })
+    .from(boxMove)
+    .where(and(eq(boxMove.orgId, orgId), eq(boxMove.status, "archived")));
+  return row;
+}
+
 const openOnPremMove = defineCommand({
   name: "migration.onprem.start",
   async run(tx, ctx, input: { jobId: string }) {

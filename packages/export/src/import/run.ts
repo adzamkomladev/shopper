@@ -1,23 +1,32 @@
-import { eq, sql } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
 import { buildInfo } from "@shopper/config";
-import { org, shopperMeta, type MoveCredentials, type ShopperTransaction } from "@shopper/db-pg";
+import {
+  auditLog,
+  org,
+  shopperMeta,
+  type MoveCredentials,
+  type ShopperTransaction,
+} from "@shopper/db-pg";
 import type { ImportInput } from "../types";
 import { sha256 } from "@shopper/utils";
 import { ARCHIVE_FORMAT } from "../schemas/manifest";
 import { ImportError } from "./error";
+import { archivedDeparture } from "../onprem/start";
 import { tableOrder } from "./order";
 
 /**
  * Writes a whole archive into this database as the org it came from: every row with its own ids, codes and counters,
  * every file checked against the manifest as it is read. One transaction: a file that is not the signed one leaves
- * nothing behind, and once the org exists a second run is a no-op.
+ * nothing behind, and once the org exists a second run is a no-op. The one exception is a shop coming back from its
+ * box: the cloud's archived copy is deleted first, in the same transaction, and the box's rows take its place.
  */
 export const importArchive = defineCommand({
   name: "migration.import",
   async replay(tx, ctx) {
     const [found] = await tx.select({ id: org.id }).from(org).where(eq(org.id, ctx.orgId));
-    return found ? { output: { imported: false, rows: 0, files: 0 } } : undefined;
+    if (!found || (await archivedDeparture(tx, ctx.orgId))) return undefined;
+    return { output: { imported: false, rows: 0, files: 0 } };
   },
   async run(tx, ctx, input: ImportInput) {
     const manifest = input.manifest;
@@ -28,6 +37,9 @@ export const importArchive = defineCommand({
         `This archive was made by a newer Shopper (${manifest.product_version}). Update this Shopper before importing it.`,
         409,
       );
+    const replaced = (await archivedDeparture(tx, ctx.orgId))
+      ? await replaceOrg(tx, ctx.orgId)
+      : undefined;
     for (const blob of manifest.blobs)
       await input.blobs.put(
         ctx.orgId,
@@ -80,7 +92,7 @@ export const importArchive = defineCommand({
       syncProtocol: buildInfo.syncProtocol,
       archiveFormat: ARCHIVE_FORMAT,
     });
-    return { imported: true, rows, files };
+    return { imported: true, rows, files, ...(replaced && { replaced }) };
   },
   audit: (input, output) => ({
     archiveCreatedAt: input.manifest.created_at,
@@ -91,8 +103,38 @@ export const importArchive = defineCommand({
     passwords: input.credentials?.passwords.length ?? 0,
     pins: input.credentials?.pins.length ?? 0,
     ...input.source,
+    // The archived copy's chain head: the history the cloud wrote after the shop left ends here.
+    ...("replaced" in output && { replaced: output.replaced }),
   }),
 });
+
+/**
+ * Deletes every row of an org the cloud holds only as an archived departure, children before parents, with the
+ * history guards standing aside for this org alone. Its departure's own bookkeeping goes too, so the shop is no longer
+ * frozen; the import that follows writes the box's continuation of the same history. Answers the deleted chain's
+ * head, which the import's audit row keeps.
+ */
+async function replaceOrg(tx: ShopperTransaction, orgId: string) {
+  const [head] = await tx
+    .select({ chainSeq: auditLog.chainSeq, hash: auditLog.hash })
+    .from(auditLog)
+    .where(eq(auditLog.orgId, orgId))
+    .orderBy(desc(auditLog.chainSeq))
+    .limit(1);
+  await tx.execute(sql`select set_config('shopper.replace', ${orgId}, true)`);
+  const { rows } = await tx.execute<{ table_name: string }>(sql`
+    select c.table_name from information_schema.columns c
+    join information_schema.tables t using (table_schema, table_name)
+    where c.table_schema = 'public' and c.column_name = 'org_id' and t.table_type = 'BASE TABLE'
+      and c.table_name <> 'archive_import'`);
+  const tables = await tableOrder(tx, [...rows.map((row) => row.table_name), "org"]);
+  for (const table of tables.reverse())
+    await tx.execute(
+      sql`delete from ${sql.identifier(table)} where ${sql.identifier(table === "org" ? "id" : "org_id")} = ${orgId}`,
+    );
+  await tx.execute(sql`select set_config('shopper.replace', '', true)`);
+  return head ?? null;
+}
 
 /** A file's bytes, refused unless they are exactly the ones the manifest signed. */
 async function checked(input: ImportInput, file: { path: string; bytes: number; sha256: string }) {

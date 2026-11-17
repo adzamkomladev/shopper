@@ -1,6 +1,7 @@
 import { expect, test, type Page, type Request } from "@playwright/test";
 import { shoot } from "../../../support/customers/shots";
 import { SIZES, heading, replay } from "../../../support/payments/screens";
+import { checks, dryRun, passed } from "../../../support/migration/wizard";
 
 // Day 42: Move to cloud on a box, as E2E Mart's owner. The portal under test is the cloud, so the box is played by
 // replaying its answers: a licence on /billing/status says "box", and /migration/move walks the move's states.
@@ -31,7 +32,7 @@ async function onBox(page: Page, state: unknown, seen: Request[] = []) {
         seen.push(route.request());
         return route.fulfill({ status: 202, json: { id: move("sealing").id } });
       }
-      return route.fulfill({ json: state });
+      return route.fulfill({ json: { checks, ...(state as object) } });
     },
   );
 }
@@ -62,6 +63,17 @@ test("an owner on a box starts the move from the keyboard, after typing MOVE", a
   expect(seen).toHaveLength(1);
   expect(seen[0]!.postDataJSON()).toEqual({ cloudUrl: CLOUD });
   await shoot(page, info, "move-ready", { sizes: SIZES });
+});
+
+test("a box owner rehearses the move with a dry run first", async ({ page }, info) => {
+  await onBox(page, { move: null, registers });
+  await dryRun(page, passed);
+  await page.goto("/migration/move");
+  const list = page.getByRole("list", { name: "Pre-flight checks" });
+  await expect(list.getByText("The shop looks closed")).toBeVisible();
+  await page.keyboard.press("d");
+  await expect(list.getByText("Dry run passed")).toBeVisible();
+  await shoot(page, info, "move-dryrun", { sizes: SIZES });
 });
 
 test("the move shows where it is, then which registers have followed it", async ({

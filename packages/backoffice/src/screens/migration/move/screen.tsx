@@ -9,6 +9,7 @@ import {
 } from "@shopper/ui/components/empty";
 import { Skeleton } from "@shopper/ui/components/skeleton";
 import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
+import { DRY_RUN_ID } from "../../../components/migration/preflight";
 import { ApiError } from "../../../api/client";
 import { MOVE_ID, MoveCard } from "../../../components/migration/move/card";
 import { Gate, LoadError } from "../../../components/register/states";
@@ -18,7 +19,10 @@ import { moveQuery } from "../../../queries/migration/move";
 
 /** A box hands its shop to the cloud: the owner starts it here and watches every till follow. */
 export function MoveScreen() {
-  const shortcuts = useShortcuts({ M: () => document.getElementById(MOVE_ID)?.click() });
+  const shortcuts = useShortcuts({
+    M: () => document.getElementById(MOVE_ID)?.click(),
+    D: () => document.getElementById(DRY_RUN_ID)?.click(),
+  });
   return (
     <div ref={shortcuts} className="flex max-w-3xl flex-col gap-6">
       <h1

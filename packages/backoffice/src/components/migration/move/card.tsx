@@ -12,6 +12,7 @@ import {
 } from "@shopper/ui/components/card";
 import { formatDay } from "@shopper/utils";
 import type { MoveView } from "../../../schemas/migration";
+import { Preflight } from "../preflight";
 import { MoveDialog } from "./dialog";
 
 export const MOVE_ID = "migration-move";
@@ -78,7 +79,16 @@ export function MoveCard({ data }: { data: MoveView }) {
             ))}
           </ul>
         )}
-        {move && !idle && move.status !== "moved" && <Steps current={move.status} />}
+        {idle && <Preflight checks={data.checks} />}
+        {move && !idle && move.status !== "moved" && (
+          <>
+            <Steps current={move.status} />
+            <p className="text-muted-foreground">
+              Until the cloud has every file, a failure reopens this box as it was. Once the cloud
+              takes the shop, the move can't be called off here.
+            </p>
+          </>
+        )}
         <Registers data={data} />
         {idle && (
           <div>

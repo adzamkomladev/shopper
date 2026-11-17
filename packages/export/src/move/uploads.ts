@@ -5,6 +5,7 @@ import { archiveImport, org, type ShopperDatabase } from "@shopper/db-pg";
 import type { Blobs } from "@shopper/ports";
 import { sha256 } from "@shopper/utils";
 import { ImportError } from "../import/error";
+import { archivedDeparture } from "../onprem/start";
 import { manifest as manifestSchema, type Manifest } from "../schemas/manifest";
 
 /** Where an import's files wait in the org's blobs: one import per org at a time, so no id in the key. */
@@ -29,16 +30,20 @@ export async function openImport(
   if (manifest.org.id !== licence.org)
     throw new ImportError("This archive is another shop's.", 403);
   const [existing] = await db.select({ id: org.id }).from(org).where(eq(org.id, licence.org));
-  if (existing) throw new ImportError("This shop is already in the cloud.", 409);
+  // A shop that left for its box and comes back replaces the archived copy; a live one is never overwritten.
+  if (existing && !(await archivedDeparture(db, licence.org)))
+    throw new ImportError("This shop is already in the cloud.", 409);
   const [row] = await db
     .insert(archiveImport)
     .values({ orgId: licence.org, licenceId: licence.id, manifest, signature: body.signature })
     .onConflictDoUpdate({
       target: archiveImport.orgId,
-      // A resealed archive is another set of files: what arrived for the old one no longer counts.
+      // A resealed archive is another set of files: what arrived for the old one no longer counts. A failed attempt,
+      // or one that finished long ago (a shop that came from a box before, left, and is coming back), starts afresh.
       set: {
-        id: sql`case when ${archiveImport.status} = 'failed' then uuidv7() else ${archiveImport.id} end`,
-        status: sql`case when ${archiveImport.status} = 'failed' then 'uploading' else ${archiveImport.status} end`,
+        id: sql`case when ${archiveImport.status} in ('failed', 'ready') then uuidv7() else ${archiveImport.id} end`,
+        status: sql`case when ${archiveImport.status} in ('failed', 'ready') then 'uploading' else ${archiveImport.status} end`,
+        completedAt: sql`case when ${archiveImport.status} = 'ready' then null else ${archiveImport.completedAt} end`,
         received: sql`case when ${archiveImport.signature} = excluded.signature then ${archiveImport.received} else '[]'::jsonb end`,
         manifest: sql`excluded.manifest`,
         signature: sql`excluded.signature`,

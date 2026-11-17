@@ -2,7 +2,13 @@ import { Hono } from "hono";
 import * as v from "valibot";
 import { eq } from "drizzle-orm";
 import { device, type ShopperDatabase } from "@shopper/db-pg";
-import { cloudMoveBody, getCloudMove, ImportError, requestCloudMove } from "@shopper/export";
+import {
+  cloudMoveBody,
+  getCloudMove,
+  ImportError,
+  preflight,
+  requestCloudMove,
+} from "@shopper/export";
 import type { WorkflowLauncher } from "@shopper/ports";
 import { commandContext } from "./stock/context";
 import { requireOrgWide } from "../middleware/require/branches";
@@ -39,6 +45,7 @@ export function moveRoutes(
             completedAt: move.completedAt?.toISOString() ?? null,
           }
         : null,
+      checks: await preflight(database, orgId),
       registers: registers.map((register) => ({
         ...register,
         deliveredAt: move?.relocations[register.id]?.deliveredAt ?? null,

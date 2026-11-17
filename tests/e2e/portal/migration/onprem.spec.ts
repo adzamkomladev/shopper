@@ -1,6 +1,7 @@
 import { expect, test, type Page, type Request } from "@playwright/test";
 import { shoot } from "../../../support/customers/shots";
 import { SIZES, heading, replay } from "../../../support/payments/screens";
+import { checks, dryRun, passed } from "../../../support/migration/wizard";
 
 // Day 43: Move on-prem in the cloud, as E2E Mart's owner. /migration/onprem is replayed through the move's states;
 // the integration tests drive the real routes.
@@ -37,7 +38,8 @@ async function inCloud(page: Page, state: unknown, seen: Request[] = []) {
   await page.route(
     (url) => url.pathname.endsWith("/api/migration/onprem"),
     (route) => {
-      if (route.request().method() === "GET") return route.fulfill({ json: state });
+      if (route.request().method() === "GET")
+        return route.fulfill({ json: { checks, ...(state as object) } });
       seen.push(route.request());
       return route.request().method() === "POST"
         ? route.fulfill({ status: 202, json: { exportJobId: move("open").exportJobId } })
@@ -73,6 +75,44 @@ test("an owner in the cloud starts the move from the keyboard, after typing MOVE
   await expect(dialog).toBeHidden();
   expect(seen.map((request) => request.method())).toEqual(["POST"]);
   await shoot(page, info, "onprem-start", { sizes: SIZES });
+});
+
+test("before starting, the owner sees the checks and runs a dry run from the keyboard", async ({
+  page,
+}, info) => {
+  const seen: Request[] = [];
+  await inCloud(page, {
+    move: null,
+    registers,
+    checks: { ...checks, quiet: { ok: false, lastSaleAt: "2026-11-17T20:41:00.000Z" } },
+  });
+  await dryRun(page, passed, seen);
+  await page.goto("/migration/onprem");
+  const list = page.getByRole("list", { name: "Pre-flight checks" });
+  await expect(list.getByText("The shop looks open")).toBeVisible();
+  await expect(list.getByText("Run a dry run")).toBeVisible();
+  await shoot(page, info, "onprem-preflight", { sizes: SIZES });
+  await page.keyboard.press("d");
+  await expect(list.getByText("Dry run passed")).toBeVisible();
+  await expect(list.getByText("91 tables and 48,213 records")).toBeVisible();
+  await expect(list.getByText("About 6 minutes")).toBeVisible();
+  expect(seen.map((request) => request.method())).toEqual(["POST"]);
+  await shoot(page, info, "onprem-dryrun", { sizes: SIZES });
+});
+
+test("a dry run that finds damage says what, and can run again", async ({ page }) => {
+  await inCloud(page, { move: null, registers });
+  await dryRun(page, {
+    ...passed,
+    verified: false,
+    message: "tables/sale/0001.ndjson was changed after it was signed.",
+  });
+  await page.goto("/migration/onprem");
+  await page.getByRole("button", { name: "Dry run" }).click();
+  const list = page.getByRole("list", { name: "Pre-flight checks" });
+  await expect(list.getByText("Dry run failed")).toBeVisible();
+  await expect(list.getByText(/tables\/sale\/0001.ndjson was changed/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Run again" })).toBeEnabled();
 });
 
 test("the sealed archive is downloaded, and the box's licence issued from its request code", async ({

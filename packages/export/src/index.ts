@@ -43,13 +43,7 @@ export type { CloudMoveDeps } from "./types";
 export { reconciliationReport } from "./reconcile/report";
 export { compareReports } from "./reconcile/compare";
 export type { DayTotals, ReconciliationReport } from "./types";
-export {
-  cancelOnPremMove,
-  getOnPremMove,
-  leavingMove,
-  LEAVING,
-  startOnPremMove,
-} from "./onprem/start";
+export { cancelOnPremMove, getOnPremMove, leavingMove, startOnPremMove } from "./onprem/start";
 export { issueMoveLicence } from "./onprem/licence";
 export { claimOnPremMove, deliverBoxRelocation } from "./onprem/claim";
 export { verifyOnPremMove } from "./onprem/verify";

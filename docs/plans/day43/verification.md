@@ -44,7 +44,7 @@ Six findings. I checked each against the code, fixed five with a test that fails
   wizard can run again.
 - **P2 fixed: a move called off mid-claim or mid-report could be claimed or archived.** Both transitions now update
   only from the expected status, and answer 409 otherwise.
-- **P1 named, not fixed: background workflows still write during the window.** A store-day close or a billing run
-  that wakes between the snapshot and the report makes the report disagree. The owner then sees which tables differ,
-  calls the move off and starts again. Pausing those workflows for a leaving org is a cross-workflow change; I'm
-  leaving that decision to you. After archiving, they keep updating the read-only cloud copy, which no one trades on.
+- **P1 fixed afterwards: background workflows wrote during the window.** At your call, they now pause:
+  `migration/paused.test.ts` covers the watchdog starting nothing for a moving or moved shop (and everything again
+  once the move is called off), a running store day writing nothing, and a billing period raising no invoice. The
+  billing wait is a daily check for as long as the move lasts, because a cancelled move is not announced to the workflow.

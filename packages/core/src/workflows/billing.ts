@@ -8,6 +8,7 @@ import { orgOwners } from "../audit/anchor";
 import { billingId, READ_ONLY_AFTER_DAYS } from "../billing/access";
 import { dunInvoice, issueInvoice, publishInvoice, settleInvoice } from "../billing/commands";
 import { billingParams } from "../billing/schemas/base";
+import { movingOnPrem } from "../orgs";
 import type { BillingDeps } from "../billing/types";
 
 const policy = { maxAttempts: 5, delayMs: 1000, backoff: "exponential" } as const;
@@ -22,7 +23,9 @@ const DUNNING = [
 /**
  * One billing period: on its first day raise the invoice and its Paystack checkout and email the owners, then until
  * the "invoice.paid" event remind at +3 and +7 days and turn the back office read-only at +14. Paying restores
- * access through the webhook at once; this workflow only stops dunning. The watchdog starts each period.
+ * access through the webhook at once; this workflow only stops dunning. The watchdog starts each period. A shop moving
+ * onto its own box is not invoiced or dunned while the move lasts (the invoice waits, checked again daily for up to
+ * two weeks), and never once it has moved.
  */
 export async function runBilling(
   flow: Pick<Workflow, "instanceId" | "step" | "sleepUntil" | "waitFor">,
@@ -42,6 +45,15 @@ export async function runBilling(
   });
   const start = Date.parse(`${params.periodStart}T00:00:00.000Z`);
   await flow.sleepUntil("due", new Date(start));
+  const away = () => deps.withDatabase((db) => movingOnPrem(db, params.orgId));
+  // shortcut: a move called off is not announced to this workflow, so it looks daily for as long as the move lasts;
+  // send it an event from the cancel route if moves start lasting weeks.
+  for (let wait = 1; ; wait++) {
+    const moving = await away();
+    if (!moving) break;
+    if (moving === "archived") return;
+    await flow.sleepUntil(`moving-${wait}`, new Date(start + wait * DAY_MS));
+  }
   const raised = await flow.step("issue", policy, () =>
     deps.withDatabase((db) =>
       issueInvoice(db, context, { periodStart: params.periodStart }, checkpoint("issue")),
@@ -74,6 +86,9 @@ export async function runBilling(
           settleInvoice(db, context, { id: raised.id }, checkpoint("settled", "completed")),
         ),
       );
+    const moving = await away();
+    if (moving === "archived") return;
+    if (moving) continue;
     await flow.step(`${due.step}-${due.days}`, policy, () =>
       deps.withDatabase((db) =>
         dunInvoice(

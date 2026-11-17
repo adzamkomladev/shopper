@@ -107,6 +107,10 @@ Till  next cloud handshake → {relocation} → unpinned LAN box: Electron pins 
   (403 otherwise), the move must be open or claimed (409), and the manifest's SHA-256 must be the sealed archive's
   (409). Credentials go only in the claim's answer. Claiming again (a box cut off mid-way) issues fresh codes. On the
   box, the import is a no-op once the org exists, so `/install/import` stays open until the cloud has agreed.
+- **The cloud's own workflows pause.** While a move is open or claimed, and for good once archived, the watchdog
+  starts no store day, billing period, audit anchor or settlement for the shop. A store day already running stops at
+  its next wake (the rollup catches up the missed days later). A billing period that falls due holds its invoice and
+  skips dunning, checking again daily until the move ends. A move called off is picked up by the next nightly watchdog.
 - **The cloud after the move** is archived read-only for good. Sign-in, reads, the move screen, archive downloads and
   the register handshake stay open. Calling the move off (open or claimed) unfreezes it. A box that imported a
   cancelled move must be reinstalled.

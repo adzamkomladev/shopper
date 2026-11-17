@@ -46,14 +46,14 @@ export async function runBilling(
   const start = Date.parse(`${params.periodStart}T00:00:00.000Z`);
   await flow.sleepUntil("due", new Date(start));
   const away = () => deps.withDatabase((db) => movingOnPrem(db, params.orgId));
-  // shortcut: a move is one evening, so a daily look is enough; a move called off is not announced to this workflow.
-  for (let wait = 1; wait <= READ_ONLY_AFTER_DAYS; wait++) {
+  // shortcut: a move called off is not announced to this workflow, so it looks daily for as long as the move lasts;
+  // send it an event from the cancel route if moves start lasting weeks.
+  for (let wait = 1; ; wait++) {
     const moving = await away();
     if (!moving) break;
     if (moving === "archived") return;
     await flow.sleepUntil(`moving-${wait}`, new Date(start + wait * DAY_MS));
   }
-  if (await away()) return;
   const raised = await flow.step("issue", policy, () =>
     deps.withDatabase((db) =>
       issueInvoice(db, context, { periodStart: params.periodStart }, checkpoint("issue")),

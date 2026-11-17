@@ -47,4 +47,4 @@ Six findings. I checked each against the code, fixed five with a test that fails
 - **P1 fixed afterwards: background workflows wrote during the window.** At your call, they now pause:
   `migration/paused.test.ts` covers the watchdog starting nothing for a moving or moved shop (and everything again
   once the move is called off), a running store day writing nothing, and a billing period raising no invoice. The
-  billing wait is a daily check for up to two weeks, because a cancelled move is not announced to the workflow.
+  billing wait is a daily check for as long as the move lasts, because a cancelled move is not announced to the workflow.

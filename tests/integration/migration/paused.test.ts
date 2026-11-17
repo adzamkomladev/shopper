@@ -84,9 +84,13 @@ test("a store day already running stops writing once its shop is moving", async 
 });
 
 test("a billing period that falls due mid-move raises no invoice while it lasts, and none once the shop has moved", async () => {
-  const run = async (periodStart: string) => {
+  const run = async (periodStart: string, onSleep = (_name: string) => Promise.resolve()) => {
+    const flow = memoryWorkflow(billingId(ids.org, periodStart));
     await runBilling(
-      memoryWorkflow(billingId(ids.org, periodStart)),
+      {
+        ...flow,
+        sleepUntil: (name, at) => onSleep(name).then(() => flow.sleepUntil(name, at)),
+      },
       {
         withDatabase: db,
         appVersion: "test",
@@ -100,10 +104,18 @@ test("a billing period that falls due mid-move raises no invoice while it lasts,
       .where(and(eq(schema.invoice.orgId, ids.org), eq(schema.invoice.periodStart, periodStart)));
   };
   await moving("open");
-  expect(await run(new Date(Date.now() - 20 * DAY).toISOString().slice(0, 10))).toEqual([]);
-  await moving("archived");
+  const moved = (name: string) =>
+    name === "moving-3" ? moving("archived").then(() => {}) : Promise.resolve();
+  expect(await run(new Date(Date.now() - 20 * DAY).toISOString().slice(0, 10), moved)).toEqual([]);
   expect(await run(new Date(Date.now() - 40 * DAY).toISOString().slice(0, 10))).toEqual([]);
   // Called off: the period is raised as usual.
   await moving("cancelled");
   expect(await run(new Date(Date.now() - 60 * DAY).toISOString().slice(0, 10))).toHaveLength(1);
+  // A move left open for weeks still bills once it is called off, so the next period can follow.
+  await moving("open");
+  const late = (name: string) =>
+    name === "moving-20" ? moving("cancelled").then(() => {}) : Promise.resolve();
+  expect(await run(new Date(Date.now() - 80 * DAY).toISOString().slice(0, 10), late)).toHaveLength(
+    1,
+  );
 });

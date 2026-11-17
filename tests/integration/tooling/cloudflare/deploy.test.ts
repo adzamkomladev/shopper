@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, expect, test } from "vite-plus/test";
@@ -33,6 +33,10 @@ function built(name: string, mode: string, d1 = "d1-id", hyperdrive = "hd-id") {
 }
 
 function deploy(app: string, ...args: string[]) {
+  return deployWith({}, app, ...args);
+}
+
+function deployWith(env: Record<string, string>, app: string, ...args: string[]) {
   // Resolved here: the throwaway app folder has no node_modules to find tsx in.
   const result = spawnSync(
     process.execPath,
@@ -40,7 +44,12 @@ function deploy(app: string, ...args: string[]) {
     {
       cwd: app,
       encoding: "utf8",
-      env: { ...process.env, DATABASE_URL: "postgresql://direct/db", SHOPPER_AUTH_SECRET: "x" },
+      env: {
+        ...process.env,
+        DATABASE_URL: "postgresql://direct/db",
+        SHOPPER_AUTH_SECRET: "x",
+        ...env,
+      },
     },
   );
   return { status: result.status, out: result.stdout, err: result.stderr };
@@ -117,4 +126,65 @@ test("the online store deploys to staging and smoke tests its own domain", () =>
   expect(result.out).toMatch(/^cf deploy --prebuilt --mode staging/m);
   expect(result.out).not.toContain("database/cli.ts migrate");
   expect(result.out).toContain("smoke shop https://shopper-api.temtem.dev");
+});
+
+/** A `cf` on PATH that logs each call and answers `workers get` as if the Worker does or does not exist. */
+function fakeCf(exists: boolean | "unreachable") {
+  const answer: Record<string, string> = {
+    true: "exit 0",
+    false: 'echo "[10007] This Worker does not exist on your account." >&2; exit 1',
+    unreachable: 'echo "fetch failed" >&2; exit 1',
+  };
+  const bin = mkdtempSync(join(tmpdir(), "shopper-cf-"));
+  folders.push(bin);
+  const log = join(bin, "calls.log");
+  writeFileSync(
+    join(bin, "cf"),
+    `#!/bin/sh\necho "cf $*" >> "${log}"\n[ "$1 $2" = "workers get" ] && ${answer[String(exists)]}\nexit 0\n`,
+    { mode: 0o755 },
+  );
+  return { env: { PATH: `${bin}:${process.env.PATH}` }, calls: () => readFileSync(log, "utf8") };
+}
+
+// Cloudflare refuses a version upload for a Worker that was never deployed; promote's `cf deploy` creates it.
+test("a production Worker that does not exist yet skips the upload and is created on promote", () => {
+  const cf = fakeCf(false);
+  const result = deployWith(
+    cf.env,
+    built("shopper-shop-production", "prod"),
+    "shop",
+    "--stage",
+    "production",
+  );
+  expect(result.status).toBe(0);
+  expect(cf.calls()).toContain("cf workers get shopper-shop-production");
+  expect(cf.calls()).not.toContain("versions create");
+  expect(result.out).toContain("shopper-shop-production does not exist yet");
+});
+
+test("a production Worker that exists gets its version uploaded", () => {
+  const cf = fakeCf(true);
+  const result = deployWith(
+    cf.env,
+    built("shopper-shop-production", "prod"),
+    "shop",
+    "--stage",
+    "production",
+  );
+  expect(result.status).toBe(0);
+  expect(cf.calls()).toMatch(/^cf workers versions create --prebuilt --mode prod/m);
+});
+
+test("a failed existence check stops the release instead of skipping the upload", () => {
+  const cf = fakeCf("unreachable");
+  const result = deployWith(
+    cf.env,
+    built("shopper-shop-production", "prod"),
+    "shop",
+    "--stage",
+    "production",
+  );
+  expect(result.status).not.toBe(0);
+  expect(result.err).toContain("Could not check whether shopper-shop-production exists");
+  expect(cf.calls()).not.toContain("versions create");
 });

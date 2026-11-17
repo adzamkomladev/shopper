@@ -105,7 +105,9 @@ dead-letter queue. It builds with `--mode prod`, never `production`: Vite's defa
 `production`, and that must stay a dev build.
 
 - `deploy:production` builds, then uploads a version (`cf workers versions create`, tagged
-  `v<version>`) that serves nothing: the bindings and secrets resolve, traffic does not move.
+  `v<version>`) that serves nothing: the bindings and secrets resolve, traffic does not move. A Worker
+  that was never deployed (Cloudflare error 10007) cannot take a version, so it is skipped here and the
+  promote's `cf deploy` creates it; any other failure to check stops the release.
 - `deploy:production -- --promote` migrates (edge: Neon over `DATABASE_URL`, then D1), runs `cf deploy`
   to all traffic and smoke tests, including `/health/ready`. Order: edge, portal, admin.
 - `.github/workflows/release-cloud.yml` runs both (input `promote`) on the `cloud-production` environment,

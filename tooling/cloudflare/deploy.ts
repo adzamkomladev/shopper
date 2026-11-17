@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -57,10 +57,16 @@ if (target === "edge" && live && !dryRun) migrate();
 const upload = live
   ? ["deploy", ...prebuilt(), "--no-provision"]
   : ["workers", "versions", "create", ...prebuilt()];
+// Cloudflare refuses a version for a Worker that was never deployed; the promote's `cf deploy` creates it.
+const firstDeploy = !live && !dryRun && !plan && !workerExists();
 if (dryRun) run("cf", [...upload, "--dry-run"]);
-else await withSecrets((secrets) => run("cf", [...upload, ...secrets]));
+else if (!firstDeploy) await withSecrets((secrets) => run("cf", [...upload, ...secrets]));
 if (live && !dryRun) await verify();
-if (!live && !dryRun && !plan)
+if (firstDeploy)
+  console.log(
+    `${config.name} does not exist yet: nothing uploaded. deploy:production --promote creates it.`,
+  );
+else if (!live && !dryRun && !plan)
   console.log(
     `${config.name}: version uploaded, serving nothing. Promote with deploy:production --promote.`,
   );
@@ -71,6 +77,19 @@ function readBuiltConfig(): BuiltConfig {
   const read = (path: string) => JSON.parse(readFileSync(resolve(output, path), "utf8"));
   const worker = read("workers/default/worker.config.json") as Omit<BuiltConfig, "mode">;
   return { ...worker, mode: read("config.json").buildContext.mode };
+}
+
+/** Only Cloudflare's "does not exist" (10007) means a first deploy; any other failure stops the release. */
+function workerExists() {
+  const shell = process.platform === "win32";
+  const result = spawnSync("cf", ["workers", "get", config.name], {
+    cwd: app,
+    encoding: "utf8",
+    shell,
+  });
+  if (result.status === 0) return true;
+  if (`${result.stdout}${result.stderr}`.includes("[10007]")) return false;
+  throw new Error(`Could not check whether ${config.name} exists: ${result.stderr}`);
 }
 
 function prebuilt() {

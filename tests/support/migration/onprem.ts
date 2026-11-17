@@ -1,10 +1,15 @@
 import { eq } from "drizzle-orm";
-import { boxArchiveExport, boxCache, boxSequencer } from "@shopper/adapters-box";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { boxArchiveExport, boxArchiveImport, boxCache, boxSequencer } from "@shopper/adapters-box";
+import { createBoxApp } from "@shopper/box";
 import { createApi, type ApiAuthentication } from "@shopper/api";
 import { createDeviceService } from "@shopper/auth/devices";
 import { createShopAccess } from "@shopper/core/shop";
 import { generateKey, issueLicence, signedRequest, type Licence } from "@shopper/core/licence";
 import * as schema from "@shopper/db-pg";
+import { archiveEntries, zipBytes } from "@shopper/export";
 import { sha256 } from "@shopper/utils";
 import { exportFixture } from "../export/org";
 import { diskBlobs, emptyDatabase } from "./archive";
@@ -25,6 +30,8 @@ export async function cloudAndBox() {
   const issuer = await generateKey();
   const caches = [boxCache(":memory:"), boxCache(":memory:")];
   const exports = boxArchiveExport({ database: f.db, blobs: storage.blobs });
+  // The way back: a box moving (back) into this cloud.
+  const imports = boxArchiveImport({ database: f.db, blobs: storage.blobs });
   const [owner] = await f.db.select().from(schema.user).where(eq(schema.user.id, f.userId));
   const people = {
     owner: { orgId: f.ctx.orgId, userId: owner!.id, roleId: owner!.id, roleName: "owner" },
@@ -41,6 +48,7 @@ export async function cloudAndBox() {
     authentication,
     licenceSigningKey: issuer.privateKey,
     archiveExports: exports.launcher,
+    archiveImports: imports.launcher,
     devices: createDeviceService(f.db, caches[0]!.cache, f.ctx.appVersion),
     sequencer: boxSequencer(f.db),
     // A storefront too: shoppers' writes freeze with the rest.
@@ -94,6 +102,8 @@ export async function cloudAndBox() {
       }),
     /** The cloud's archive workflow runs to the end. */
     sealed: () => exports.launcher.idle?.(),
+    /** The cloud's import of a box moving in runs to the end. */
+    imported: () => imports.launcher.idle?.(),
     /** A box's licence-signed call to the cloud. */
     signed: async (identity: { key: string; licence: Licence }, path: string, body: unknown) =>
       cloud.fetch(
@@ -132,4 +142,68 @@ export async function strayLicence(issuerKey: string, org: string, publicKey: st
     issuedAt: new Date().toISOString(),
     maintenanceUntil: "2027-11-17",
   });
+}
+
+const SETUP_CODE = "K7M2-Q9XP-4HWR";
+
+/**
+ * The evening of a move on-prem, end to end: the owner starts it and downloads the sealed archive, the box is installed
+ * with it, the owner licenses the box from its request code, and the box takes the shop over at first boot. Answers
+ * the box's own report and the box app, whose files live under `dir`.
+ */
+export async function toBox(h: Awaited<ReturnType<typeof cloudAndBox>>) {
+  const owner = await h.member("owner", "POST", "/migration/onprem");
+  if (owner.status !== 202) throw new Error(`move on-prem: ${owner.status}`);
+  await h.sealed();
+  const [move] = await h.f.db
+    .select()
+    .from(schema.boxMove)
+    .where(eq(schema.boxMove.orgId, h.f.ctx.orgId));
+  const dir = await mkdtemp(join(tmpdir(), "onprem-cutover-"));
+  await writeFile(
+    join(dir, "import.shopper"),
+    await zipBytes(await archiveEntries(h.blobs, h.f.ctx.orgId, move!.exportJobId)),
+  );
+  await writeFile(join(dir, "machine-id"), "00112233445566778899aabbccddeeff\n");
+  const app = createBoxApp(
+    {
+      DATABASE_URL: h.b.connectionString,
+      SHOPPER_AUTH_SECRET: "cutover-test-secret-0123456789abcdef",
+      SHOPPER_AUTH_URL: BOX,
+      SHOPPER_SINGLE_SHOP: "1",
+      SHOPPER_SETUP_CODE_HASH: await sha256(SETUP_CODE.replaceAll("-", "")),
+      SHOPPER_LICENCE_DIR: join(dir, "licence"),
+      SHOPPER_MACHINE_ID_FILE: join(dir, "machine-id"),
+      SHOPPER_BLOBS_PATH: join(dir, "blobs"),
+      SHOPPER_LICENCE_URL: CLOUD,
+      SHOPPER_IMPORT: join(dir, "import.shopper"),
+    },
+    { licenceIssuer: h.issuer.publicKey, fetch: async (request) => h.cloud.fetch(request) },
+  );
+  const wizard = (await (await app.fetch(new Request(`${BOX}/install`))).json()) as {
+    licence: { request: string };
+  };
+  const licence = await (
+    await h.member("owner", "POST", "/migration/onprem/licence", {
+      request: wizard.licence.request,
+    })
+  ).json();
+  const imported = await app.fetch(
+    new Request(`${BOX}/install/import`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code: SETUP_CODE, licence }),
+    }),
+  );
+  return {
+    app,
+    dir,
+    status: imported.status,
+    report: (await imported.json()) as {
+      ok: boolean;
+      tables: { table: string; ok: boolean }[];
+      days: { ok: boolean }[];
+    },
+    remove: () => rm(dir, { recursive: true, force: true }),
+  };
 }

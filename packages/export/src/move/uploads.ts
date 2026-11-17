@@ -5,6 +5,7 @@ import { archiveImport, org, type ShopperDatabase } from "@shopper/db-pg";
 import type { Blobs } from "@shopper/ports";
 import { sha256 } from "@shopper/utils";
 import { ImportError } from "../import/error";
+import { archivedDeparture } from "../onprem/start";
 import { manifest as manifestSchema, type Manifest } from "../schemas/manifest";
 
 /** Where an import's files wait in the org's blobs: one import per org at a time, so no id in the key. */
@@ -29,7 +30,9 @@ export async function openImport(
   if (manifest.org.id !== licence.org)
     throw new ImportError("This archive is another shop's.", 403);
   const [existing] = await db.select({ id: org.id }).from(org).where(eq(org.id, licence.org));
-  if (existing) throw new ImportError("This shop is already in the cloud.", 409);
+  // A shop that left for its box and comes back replaces the archived copy; a live one is never overwritten.
+  if (existing && !(await archivedDeparture(db, licence.org)))
+    throw new ImportError("This shop is already in the cloud.", 409);
   const [row] = await db
     .insert(archiveImport)
     .values({ orgId: licence.org, licenceId: licence.id, manifest, signature: body.signature })

@@ -65,6 +65,10 @@ test("starting the move seals an archive and freezes the cloud org", async () =>
 
   expect((await category()).status).toBe(423);
   expect((await push()).status).toBe(423);
+  // Every member's banner says why.
+  expect(await (await h.member("cashier", "GET", "/billing/status")).json()).toMatchObject({
+    onPrem: "open",
+  });
   // Reads still work, and the handshake hands out no new numbers: the box would not know them.
   expect((await h.member("owner", "GET", "/categories")).status).toBe(200);
   const frozen = await handshake(tillCall(h.cloud, h.registers[0]!, h.registers[0]!.token), 0);
@@ -128,6 +132,9 @@ test("calling the move off lets the shop trade in the cloud again", async () => 
   });
   expect((await category()).status).toBe(201);
   expect((await push()).status).not.toBe(423);
+  expect(await (await h.member("cashier", "GET", "/billing/status")).json()).toMatchObject({
+    onPrem: null,
+  });
   const open = await handshake(tillCall(h.cloud, h.registers[0]!, h.registers[0]!.token), 0);
   expect(open.body).toHaveProperty("receipts");
   // A cancelled move has nothing to cancel, and a new one can start.

@@ -97,11 +97,12 @@ export function boxInstall(
     if (!parsed.success) return c.json({ error: "Invalid request data" }, 400);
     if (!env.SHOPPER_IMPORT || !(await pending())) return c.json({ error: "Not found" }, 404);
     const licence = options.licence;
-    if (!licence || !env.SHOPPER_LICENCE_URL || !env.SHOPPER_AUTH_URL || !env.SHOPPER_AUTH_SECRET)
+    // The cloud the shop leaves: the licence server when one is named, else the cloud this build's registers sync to.
+    const cloud = env.SHOPPER_LICENCE_URL || buildInfo.tillUpstream;
+    if (!licence || !cloud || !env.SHOPPER_AUTH_URL || !env.SHOPPER_AUTH_SECRET)
       return c.json({ error: "This box cannot reach Shopper to take over a shop" }, 503);
     const refused = await admit(parsed.output.code, parsed.output.licence);
     if (refused) return c.json(refused.body, refused.status);
-    const cloud = env.SHOPPER_LICENCE_URL;
     const blobs = await boxStorage(env, {
       baseUrl: env.SHOPPER_AUTH_URL,
       secret: env.SHOPPER_AUTH_SECRET,

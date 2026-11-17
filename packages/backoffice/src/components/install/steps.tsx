@@ -179,7 +179,9 @@ export function LicenceStep({
   request,
   pending,
   error,
-}: Step<"licence"> & { request?: string }) {
+  action = "Install",
+  help = "Send the request code to Shopper support. Paste the licence.json they return.",
+}: Step<"licence"> & { request?: string; help?: string }) {
   const form = useForm({
     defaultValues: { licence: values.licence ?? "" },
     validators: { onSubmit: licenceStep },
@@ -190,7 +192,7 @@ export function LicenceStep({
     <InstallStep
       onSubmit={() => void form.handleSubmit()}
       onBack={onBack && (() => onBack(form.state.values))}
-      action="Install"
+      action={action}
       pending={pending}
       error={error}
     >
@@ -201,7 +203,7 @@ export function LicenceStep({
             <AreaField
               field={field}
               label="Licence"
-              description="Send the request code to Shopper support. Paste the licence.json they return."
+              description={help}
               autoFocus
               rows={6}
               spellCheck={false}

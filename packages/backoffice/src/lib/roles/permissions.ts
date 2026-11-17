@@ -52,7 +52,7 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
   "order.fulfil": "Accept, pick and hand over online orders",
   "review.moderate": "Moderate flagged shop reviews",
   "export.run": "Export the business's data",
-  "migration.run": "Move this shop to the cloud",
+  "migration.run": "Move this shop between the cloud and its own box",
 };
 
 /** The matrix reads top to bottom in these groups. */

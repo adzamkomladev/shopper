@@ -5,6 +5,8 @@ set -eu
 fail() { echo "shopper-box-installer: $*" >&2; exit 1; }
 [ "$(id -u)" = 0 ] || fail "run as root (sudo sh $0)"
 command -v openssl >/dev/null || fail "openssl is required to check the signature"
+# Paths the caller passes (--import) are relative to where they ran it, not to the unpacked payload.
+caller=$PWD
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 cat > "$work/shopper-release.pem" <<'KEY'
@@ -17,5 +19,5 @@ openssl pkeyutl -verify -pubin -inkey "$work/shopper-release.pem" -rawin -in SHA
   || fail "this installer is not signed by Shopper; nothing was installed"
 sha256sum --check --quiet SHA256SUMS >/dev/null 2>&1 || fail "the installer is damaged or altered; nothing was installed"
 echo "Signature verified: $(openssl pkey -pubin -in "$work/shopper-release.pem" -outform DER | sha256sum | cut -c1-16)"
-sh ./install.sh "$@"
+SHOPPER_INSTALL_CWD=$caller sh ./install.sh "$@"
 exit $?

@@ -1,10 +1,11 @@
-import { lte } from "drizzle-orm";
-import { org, store, subscription, type ShopperDatabase } from "@shopper/db-pg";
+import { inArray, lte } from "drizzle-orm";
+import { boxMove, org, store, subscription, type ShopperDatabase } from "@shopper/db-pg";
 import type { WorkflowLauncher } from "@shopper/ports";
 import { auditAnchorId } from "../audit/anchor";
 import { storeDayId } from "../reports/day/steps";
 import { settlementId } from "../payments/settlements/record";
 import { billingId } from "../billing/access";
+import { MOVING } from "../orgs";
 
 const DAY_MS = 86_400_000;
 
@@ -13,6 +14,7 @@ const DAY_MS = 86_400_000;
  * every org, and today's and tomorrow's store day for every store, so a store-day chain that died picks up again
  * tomorrow, (where Paystack is set up) the day's settlement fetch for every org, and each subscription's billing
  * period falling due by tomorrow. Starting an id that already exists does nothing, so a second firing the same day is harmless.
+ * A shop moving onto its own box (or moved) gets none of them: they would write rows its archive does not hold.
  */
 export async function runWatchdog(
   deps: {
@@ -26,12 +28,19 @@ export async function runWatchdog(
 ) {
   const today = at.toISOString().slice(0, 10);
   const tomorrow = new Date(at.getTime() + DAY_MS).toISOString().slice(0, 10);
-  const [orgs, stores] = await deps.withDatabase((db) =>
+  const [all, everyStore, leaving] = await deps.withDatabase((db) =>
     Promise.all([
       db.select({ id: org.id }).from(org),
       db.select({ orgId: store.orgId, id: store.id }).from(store),
+      db
+        .select({ orgId: boxMove.orgId })
+        .from(boxMove)
+        .where(inArray(boxMove.status, [...MOVING])),
     ]),
   );
+  const away = new Set(leaving.map((row) => row.orgId));
+  const orgs = all.filter((row) => !away.has(row.id));
+  const stores = everyStore.filter((row) => !away.has(row.orgId));
   for (const row of orgs) {
     await deps.anchors.start(auditAnchorId(row.id, today), { orgId: row.id, day: today });
     await deps.settlements?.start(settlementId(row.id, today), { orgId: row.id, day: today });
@@ -45,7 +54,7 @@ export async function runWatchdog(
           .where(lte(subscription.nextInvoiceOn, tomorrow)),
       )
     : [];
-  for (const row of due)
+  for (const row of due.filter((each) => !away.has(each.orgId)))
     await deps.billing!.start(billingId(row.orgId, row.periodStart), {
       orgId: row.orgId,
       periodStart: row.periodStart,

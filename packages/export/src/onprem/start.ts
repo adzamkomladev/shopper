@@ -1,13 +1,11 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { v7 } from "uuid";
 import { defineCommand, type CommandContext } from "@shopper/audit";
+import { MOVING } from "@shopper/core/orgs";
 import { boxMove, exportJob, type ShopperDatabase } from "@shopper/db-pg";
 import type { WorkflowLauncher } from "@shopper/ports";
 import { requestArchiveExport } from "../archive/request";
 import { ImportError } from "../import/error";
-
-/** The statuses in which the cloud org only reads: from the start of a move, and for good once it is archived. */
-export const LEAVING = ["open", "claimed", "archived"] as const;
 
 /**
  * An owner moves the shop onto its own box. From this row on the cloud org only reads (the archive's snapshot is
@@ -42,7 +40,7 @@ export async function leavingMove(db: Pick<ShopperDatabase, "select">, orgId: st
   const [row] = await db
     .select()
     .from(boxMove)
-    .where(and(eq(boxMove.orgId, orgId), inArray(boxMove.status, [...LEAVING])));
+    .where(and(eq(boxMove.orgId, orgId), inArray(boxMove.status, [...MOVING])));
   return row;
 }
 

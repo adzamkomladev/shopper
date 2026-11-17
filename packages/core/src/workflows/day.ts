@@ -3,6 +3,7 @@ import * as v from "valibot";
 import type { WorkflowCheckpoint } from "@shopper/audit";
 import { branch } from "@shopper/db-pg";
 import type { Workflow } from "@shopper/ports";
+import { movingOnPrem } from "../orgs";
 import { dashboard } from "../reports/dashboard";
 import {
   closeStoreDay,
@@ -23,7 +24,9 @@ const NIGHT_MS = 24 * 3_600_000 + 5 * 60_000;
 /**
  * One store's trading day: open its record and fix its hours, wake at opening, at closing remind the owners of
  * registers still without a Z and send them the day's figures, roll the day up after midnight, close the record and
- * start tomorrow. Every step is a checkpointed command, so a rerun sends and writes nothing twice.
+ * start tomorrow. Every step is a checkpointed command, so a rerun sends and writes nothing twice. A shop moving onto
+ * its own box stops its day at the next wake: the watchdog starts the next one once the move is called off, and the
+ * rollup catches up the days it missed.
  */
 export async function runStoreDay(
   flow: Pick<Workflow, "instanceId" | "step" | "sleepUntil">,
@@ -43,15 +46,20 @@ export async function runStoreDay(
     status,
   });
 
+  // Read outside a step on purpose: a replay that finds the shop moving should stop too.
+  const away = () => deps.withDatabase((db) => movingOnPrem(db, params.orgId));
+  if (await away()) return;
   const hours = await flow.step("open", policy, () =>
     deps.withDatabase((db) => openStoreDay(db, context, day, checkpoint("open"))),
   );
   if (!hours) return;
   await flow.sleepUntil("opening", new Date(hours.opensAt));
+  if (await away()) return;
   await flow.step("opened", policy, () =>
     deps.withDatabase((db) => markStoreDayOpen(db, context, day, checkpoint("opened"))),
   );
   await flow.sleepUntil("closing", new Date(hours.closesAt));
+  if (await away()) return;
   await flow.step("reminder", policy, () =>
     deps.withDatabase((db) => remindStoreDay(db, context, day, checkpoint("reminder"))),
   );
@@ -72,6 +80,7 @@ export async function runStoreDay(
     }),
   );
   await flow.sleepUntil("night", new Date(Date.parse(`${params.day}T00:00:00.000Z`) + NIGHT_MS));
+  if (await away()) return;
   await flow.step("rollup", policy, () =>
     deps.withDatabase((db) =>
       rollStoreDays(

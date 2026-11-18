@@ -189,6 +189,7 @@ async function route(request: Request, options: RuntimeOptions): Promise<Respons
     authentication: { ...authentication, resolvePrincipal },
     devices,
     priceChange: options.priceChange,
+    relayPublisher: options.relayPublisher,
     momoPayment: options.momoPayment,
     momoRefund: options.momoRefund,
     paystackSecret: options.paystackSecret,

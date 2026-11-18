@@ -46,3 +46,9 @@ export const relayBatch = v.strictObject({
   ),
 });
 export type RelayBatch = v.InferOutput<typeof relayBatch>;
+
+/** The Publisher's run: one loop per box org, its instance id the org id. */
+export const relayPublisherParams = v.object({ orgId: uuidV7Schema });
+
+/** The box's Online Orders switch, as the settings page saves it. */
+export const onlineSettingsInput = v.strictObject({ onlineOrders: v.boolean() });

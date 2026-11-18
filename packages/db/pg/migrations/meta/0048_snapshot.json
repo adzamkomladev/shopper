@@ -223,6 +223,18 @@
           "notNull": true,
           "default": false
         },
+        "relay_published_at": {
+          "name": "relay_published_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "relay_error": {
+          "name": "relay_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "loyalty_enabled": {
           "name": "loyalty_enabled",
           "type": "boolean",

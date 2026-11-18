@@ -129,6 +129,7 @@ export function createApi(options: ApiOptions = {}) {
         database: options.database,
         authentication: options.authentication,
         priceChange: options.priceChange,
+        relayPublisher: options.relayPublisher,
         blobs: options.blobs,
         realtime: options.realtime,
         notifications: options.notifications,
@@ -163,10 +164,16 @@ export function createApi(options: ApiOptions = {}) {
   if (options.database)
     app.route(
       "/",
-      settingsRoutes(options.database, options.authentication, options.notifications, {
-        paystack: !!options.momoPayment,
-        hubtel: !!options.hubtel,
-      }),
+      settingsRoutes(
+        options.database,
+        options.authentication,
+        options.notifications,
+        {
+          paystack: !!options.momoPayment,
+          hubtel: !!options.hubtel,
+        },
+        options.relayPublisher,
+      ),
     );
   if (options.database) app.route("/", kycRoutes(options));
   if (options.database) app.route("/", reportRoutes(options.database, options.authentication));

@@ -1,4 +1,5 @@
 import { type ShopperDatabase } from "@shopper/db-pg";
+import type { RelaySend } from "../relay/types";
 import { type Blobs, type Queue, type Realtime, type WorkflowLauncher } from "@shopper/ports";
 
 export interface PriceChangeDeps {
@@ -73,4 +74,11 @@ export interface KybFlowDeps {
     }): Promise<{ code: string }>;
   };
   now?: () => number;
+}
+
+export interface RelayPublisherDeps {
+  withDatabase<T>(run: (db: ShopperDatabase) => Promise<T>): Promise<T>;
+  appVersion: string;
+  /** A licence-signed request to the cloud's relay. */
+  send: RelaySend;
 }

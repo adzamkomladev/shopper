@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS "relay_published" (
 );
 --> statement-breakpoint
 ALTER TABLE "org" ADD COLUMN IF NOT EXISTS "online_orders" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "org" ADD COLUMN IF NOT EXISTS "relay_published_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "org" ADD COLUMN IF NOT EXISTS "relay_error" text;--> statement-breakpoint
 ALTER TABLE "category" ADD COLUMN IF NOT EXISTS "online_visible" boolean DEFAULT true NOT NULL;--> statement-breakpoint
 ALTER TABLE "relay_published" DROP CONSTRAINT IF EXISTS "relay_published_org_id_org_id_fk";--> statement-breakpoint
 ALTER TABLE "relay_published" ADD CONSTRAINT "relay_published_org_id_org_id_fk" FOREIGN KEY ("org_id") REFERENCES "public"."org"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

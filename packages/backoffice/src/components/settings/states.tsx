@@ -18,6 +18,11 @@ export const SETTINGS_COPY = {
     title: "Statements",
     description: "Send each customer who owes money their statement on the same day every month.",
   },
+  online: {
+    title: "Online store",
+    description:
+      "Choose which categories shoppers see online. A product shows only when it, its category and its department are all on.",
+  },
   kyc: {
     title: "Identity check settings",
     description:
@@ -118,5 +123,22 @@ export function LoyaltySkeleton() {
         </section>
       </SettingsPage>
     </CustomersPage>
+  );
+}
+
+/** The online store page while it loads: the real heading, then the switch card and the categories card. */
+export function OnlineSkeleton() {
+  return (
+    <SettingsPage {...SETTINGS_COPY.online}>
+      <div
+        role="status"
+        aria-busy="true"
+        aria-label="Loading online store settings"
+        className="flex flex-col gap-6"
+      >
+        <Skeleton className="h-36 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-xl" />
+      </div>
+    </SettingsPage>
   );
 }

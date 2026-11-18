@@ -49,6 +49,7 @@ export const categoryView = v.object({
   id,
   name: v.string(),
   parentId: v.nullable(id),
+  onlineVisible: v.boolean(),
   createdAt: iso,
   updatedAt: iso,
 });

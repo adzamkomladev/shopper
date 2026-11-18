@@ -122,6 +122,7 @@ export const BODIES: Record<string, Body> = {
     expiryDays: 0,
     tierNoticeDays: 0,
   }),
+  "PUT /settings/online": () => ({ onlineOrders: false }),
   "PUT /settings/payments": () => ({ momoProvider: "paystack" }),
   "PUT /settings/statements": () => ({ schedule: "off", day: 1, channels: [], minBalance: 0 }),
   "PUT /settings/tax": () => ({

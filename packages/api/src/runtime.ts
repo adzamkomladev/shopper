@@ -175,8 +175,7 @@ async function route(request: Request, options: RuntimeOptions): Promise<Respons
   );
   const resolvePrincipal = async (request: Request) => {
     const device = await devices.resolveDevicePrincipal(request);
-    // An offline session reaches only MoMo and approvals, whose checks honour its own permissions; commands
-    // elsewhere authorise by role alone.
+    // An offline session reaches only MoMo and approvals (they honour its permissions); elsewhere role alone.
     if (device)
       return device.orgId.toLowerCase() === parsed.output.toLowerCase() &&
         !device.sessionPermissions

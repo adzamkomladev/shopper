@@ -1,13 +1,15 @@
 import { createRoute, lazyRouteComponent, type AnyRoute } from "@tanstack/react-router";
 import { routeStates } from "../components/route/states";
-import { LoyaltySkeleton, SettingsSkeleton } from "../components/settings/states";
+import { LoyaltySkeleton, OnlineSkeleton, SettingsSkeleton } from "../components/settings/states";
+import { categoriesQuery } from "../queries/catalogue/list";
+import { onlineSettingsQuery } from "../queries/settings/online";
 import { settingsQuery } from "../queries/settings/resource";
 import { tiersQuery } from "../queries/settings/tiers";
 import type { BackofficeContext } from "../types";
 
 type Context = { context: BackofficeContext };
 
-/** The org's customer settings: loyalty and its tiers, credit terms, statements, and identity checks. Each needs `customer.manage`. */
+/** The org's customer settings (loyalty and its tiers, credit terms, statements, identity checks; `customer.manage`) and the online store (`product.read`). */
 export function settingsRoutes(shopRoute: AnyRoute) {
   const loyaltyRoute = createRoute({
     getParentRoute: () => shopRoute,
@@ -58,5 +60,20 @@ export function settingsRoutes(shopRoute: AnyRoute) {
     ...routeStates,
     pendingComponent: () => <SettingsSkeleton page="statements" />,
   });
-  return [loyaltyRoute, creditRoute, statementsRoute, kycRoute];
+  const onlineRoute = createRoute({
+    getParentRoute: () => shopRoute,
+    path: "/settings/online",
+    loader: ({ context }: Context) =>
+      Promise.all([
+        context.queryClient.ensureQueryData(onlineSettingsQuery()),
+        context.queryClient.ensureQueryData(categoriesQuery()),
+      ]),
+    component: lazyRouteComponent(
+      () => import("../screens/settings/online/screen"),
+      "OnlineSettingsScreen",
+    ),
+    ...routeStates,
+    pendingComponent: () => <OnlineSkeleton />,
+  });
+  return [loyaltyRoute, creditRoute, statementsRoute, kycRoute, onlineRoute];
 }

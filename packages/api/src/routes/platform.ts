@@ -4,6 +4,8 @@ import { eq } from "drizzle-orm";
 import { buildInfo } from "@shopper/config";
 import { AssetError, kybDocumentLink } from "@shopper/assets";
 import { decideKyb } from "@shopper/core/kyb";
+import { licenceStatus, publicKeyOf } from "@shopper/core/licence";
+import { enrolRelay, revokeRelay, setRelayOnlineOrders } from "@shopper/core/relay";
 import {
   kybCaseFor,
   kybQueue,
@@ -15,6 +17,7 @@ import {
 import { org } from "@shopper/db-pg";
 import { BlobUploadUnavailable, uuidV7Schema } from "@shopper/ports";
 import { queueStatus, tenantChannel } from "../schemas/platform";
+import { relayEnrolment, relayOnlineOrders } from "../schemas/relay";
 import { commandContext } from "./stock/context";
 import { problem } from "../middleware/problem";
 import { requirePermission } from "../middleware/require/permission";
@@ -119,6 +122,43 @@ export function platformRoutes(options: PlatformOptions) {
     });
     return c.json(await kybCaseFor(database, orgId));
   });
+  // The cloud (the licence issuer) enrols on-prem boxes with their relay orgs (v1.5).
+  const signingKey = options.licenceSigningKey;
+  if (signingKey) {
+    const licenceId = (c: Context<ApiEnvironment>) =>
+      v.parse(uuidV7Schema, c.req.param("licenceId"));
+    app.use("/platform/relays", staff("platform.tenant.update"));
+    app.use("/platform/relays/*", staff("platform.tenant.update"));
+    app.post("/platform/relays", async (c) => {
+      const body = v.parse(relayEnrolment, await c.req.json());
+      const status = await licenceStatus({
+        issuer: publicKeyOf(signingKey),
+        machine: body.licence.machine,
+        licence: body.licence,
+        now: new Date(),
+      });
+      if (status.reason === "forged")
+        return c.json({ error: "Shopper did not issue this licence" }, 422);
+      const context = commandContext(c.get("principal"));
+      return c.json(await enrolRelay(database, context, { ...body, metadata: buildInfo }), 201);
+    });
+    app.patch("/platform/relays/:licenceId", async (c) => {
+      const body = v.parse(relayOnlineOrders, await c.req.json());
+      return c.json(
+        await setRelayOnlineOrders(database, commandContext(c.get("principal")), {
+          licenceId: licenceId(c),
+          onlineOrders: body.onlineOrders,
+        }),
+      );
+    });
+    app.post("/platform/relays/:licenceId/revoke", async (c) =>
+      c.json(
+        await revokeRelay(database, commandContext(c.get("principal")), {
+          licenceId: licenceId(c),
+        }),
+      ),
+    );
+  }
   app.onError(problem);
   return app;
 }

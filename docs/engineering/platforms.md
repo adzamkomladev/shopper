@@ -212,6 +212,16 @@ Each failure the box must survive has a test that causes it for real:
 
 The drills run in the `heavy` test project; the machine test in `machine`.
 
+### The relay (v1.5 Day 46)
+
+An on-prem shop sells online through a cloud **relay org** (`org.mode = 'relay'`, id = the box licence's `org`). The
+box never serves the store: it calls the cloud's `/relay/*` routes (mounted where `licenceSigningKey` is set) over its
+own outbound connection, licence-signed like its check-in. `@shopper/core/relay` owns the access check
+(`relayAccess`), the heartbeat, the order-inbox read over `online_order.inbox_cursor` and `relay.publish`; platform
+staff enrol, switch the add-on and revoke through `/platform/relays`. Business code only; no adapter or port is
+involved, and the box side (Publisher and Order-inbox actors) arrives on Days 47 and 50. See `security.md` for the
+lock and refusals.
+
 ## Rules that keep both sides honest
 
 - **PostgreSQL is the record.** Every workflow step and every DO/actor write also writes its table

@@ -19,6 +19,9 @@ import { notifications, sentMessages } from "../../support/stock/queue";
 import { devices } from "../../support/till/server";
 import { signWebhook, startPaystackFake } from "../../../tooling/paystack/server";
 
+// A cloud shop that is not moving, not a box and not a relay: only `readOnly` changes here.
+const cloudShop = { licence: null, move: null, onPrem: null, relay: false };
+
 const DAY = 86_400_000;
 let world: Awaited<ReturnType<typeof goldenWorld>>;
 let owner: Portal;
@@ -163,7 +166,7 @@ test("an unpaid invoice is reminded at +3 and +7 days and turns the back office 
   ).toBe(200);
   // Every member's shell reads the state for its banner, without the billing permission.
   const status = await api.request("/billing/status", { headers: { cookie: owner.cookie } });
-  expect(await status.json()).toEqual({ readOnly: true, licence: null, move: null, onPrem: null });
+  expect(await status.json()).toEqual({ readOnly: true, ...cloudShop });
   expect((await api.request("/billing/status")).status).toBe(401);
   const billing = await api.request("/billing", { headers: { cookie: owner.cookie } });
   expect(billing.status).toBe(200);
@@ -187,7 +190,7 @@ test("an unpaid invoice is reminded at +3 and +7 days and turns the back office 
   expect(await manage(sale.id)).toBe(202);
   expect(
     await (await api.request("/billing/status", { headers: { cookie: owner.cookie } })).json(),
-  ).toEqual({ readOnly: false, licence: null, move: null, onPrem: null });
+  ).toEqual({ readOnly: false, ...cloudShop });
 });
 
 test("an invoice paid before its first reminder ends the period's dunning", async () => {

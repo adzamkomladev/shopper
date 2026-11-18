@@ -27,3 +27,4 @@ export * from "./storefront";
 export * from "./orders";
 export * from "./exports";
 export * from "./moves";
+export * from "./relay";

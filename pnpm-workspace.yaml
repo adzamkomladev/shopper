@@ -52,3 +52,9 @@ minimumReleaseAgeExclude:
   - "@voidzero-dev/vite-plus-win32-arm64-msvc@1.5.0"
   - "@voidzero-dev/vite-plus-win32-x64-msvc@1.5.0"
   - vite-plus@1.5.0
+
+auditConfig:
+  ignoreGhsas:
+    # picomatch ReDoS, no patched release yet (2026-11-18). It only matches globs we write, never user input.
+    # Remove once picomatch ships a fix.
+    - GHSA-fc5q-39xc-vjpf

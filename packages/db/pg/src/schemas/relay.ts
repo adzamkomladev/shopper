@@ -27,3 +27,21 @@ export const relayNonce = pgTable(
   },
   (t) => [primaryKey({ columns: [t.licenceId, t.digest] })],
 );
+
+/**
+ * On a box: the hash of each row its relay org has acknowledged, so the Publisher sends only what changed. Empty means
+ * the next publish is a full snapshot.
+ */
+export const relayPublished = pgTable(
+  "relay_published",
+  {
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => org.id),
+    entity: text("entity", { enum: ["store", "branch", "category", "product", "price"] }).notNull(),
+    entityId: uuid("entity_id").notNull(),
+    hash: text("hash").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.orgId, t.entity, t.entityId] })],
+);

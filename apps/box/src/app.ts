@@ -15,6 +15,7 @@ import { boxUpdatesFor } from "./updates/box";
 import { boxInstall, boxNeedsInstall, boxTenant, withInstallRedirect } from "./install";
 import { boxLicence } from "./licence";
 import { boxChannels } from "./channels";
+import { bootRelayPublisher } from "./relay";
 import {
   boxLive,
   boxCache,
@@ -59,6 +60,7 @@ export function createBoxApp(
   let storeDays: ReturnType<typeof boxStoreDays> | undefined;
   let orders: ReturnType<typeof boxOrders> | undefined;
   let engine: ReturnType<typeof boxEngine> | undefined;
+  let relayPublisher: ReturnType<typeof bootRelayPublisher>;
   const renderer = boxRenderer({ wasm: options.wasm });
   const install = boxInstall(environment, { issuer, licence });
   const tenant = boxTenant(environment);
@@ -82,6 +84,7 @@ export function createBoxApp(
     const workflowDatabase = workflowPool.db;
     const { mail, sms } = boxChannels(environment);
     priceChange ??= boxPriceChange({ database: workflowDatabase, realtime }, launch);
+    relayPublisher ??= bootRelayPublisher(environment, licence, workflowDatabase, launch);
     if (environment.SHOPPER_LINK_SECRET)
       authFlows ??= boxAuthFlows(
         {
@@ -216,6 +219,7 @@ export function createBoxApp(
         bootstrapToken: SHOPPER_BOOTSTRAP_TOKEN,
         clientIP: context.env?.requestIP?.(request)?.address ?? "127.0.0.1",
         priceChange: priceChange.launcher,
+        relayPublisher,
         momoPayment: payments.momoPayment,
         momoRefund: payments.momoRefund,
         hubtel: payments.hubtel,

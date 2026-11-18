@@ -60,6 +60,11 @@ export const org = pgTable(
     vatRegisteredFrom: date("vat_registered_from"),
     /** Whether shelf prices include tax (the default) or tax is added on top. */
     priceMode: text("price_mode", { enum: priceModes }).notNull().default("inclusive"),
+    /** On a box: publish the online catalogue to the shop's relay org (v1.5). */
+    onlineOrders: boolean("online_orders").notNull().default(false),
+    /** When the relay last acknowledged everything, and why the last publish failed (cleared on success). */
+    relayPublishedAt: timestamp("relay_published_at", { withTimezone: true }),
+    relayError: text("relay_error"),
     loyaltyEnabled: boolean("loyalty_enabled").notNull().default(false),
     /** Points earned per 10 000 bps of a sale's value, and what one point is worth. */
     loyaltyEarnBps: integer("loyalty_earn_bps").notNull().default(0),

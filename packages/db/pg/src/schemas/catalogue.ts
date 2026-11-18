@@ -61,6 +61,8 @@ export const category = pgTable(
     ...tenant(),
     name: text("name").notNull(),
     parentId: uuid("parent_id"),
+    /** Hidden online hides its products, and a department hides its categories' products too. */
+    onlineVisible: boolean("online_visible").notNull().default(true),
   },
   (t) => [
     unique().on(t.orgId, t.id),

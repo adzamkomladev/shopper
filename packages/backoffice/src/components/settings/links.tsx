@@ -5,6 +5,7 @@ const PAGES = [
   { to: "/settings/credit", label: "Credit" },
   { to: "/settings/statements", label: "Statements" },
   { to: "/settings/kyc", label: "Identity checks" },
+  { to: "/settings/online", label: "Online store" },
 ] as const;
 
 /** The customer settings pages, so each is one click from the others. */

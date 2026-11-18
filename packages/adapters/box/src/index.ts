@@ -17,6 +17,7 @@ export { boxKycFlows } from "./workflows/kyc";
 export { boxOnboardingFlows } from "./workflows/onboarding";
 export { boxKybFlows } from "./workflows/kyb";
 export { boxAccountFlows } from "./workflows/account";
+export { boxRelayPublisher } from "./workflows/relay";
 export { boxStatementFlows } from "./workflows/statements";
 export { boxLane } from "./lane";
 export { rivetHost } from "./rivet/host";

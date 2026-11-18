@@ -49,6 +49,8 @@ export function catalogueRoutes(options: {
   database: ShopperDatabase;
   authentication?: ApiAuthentication;
   priceChange?: WorkflowLauncher;
+  /** On a box: the Publisher, woken once a catalogue write commits so the online store follows within seconds. */
+  relayPublisher?: WorkflowLauncher;
   realtime?: Realtime;
   blobs?: Blobs;
   /** Carries what a catalogue write wakes once it commits, such as the shop's onboarding. */
@@ -63,8 +65,17 @@ export function catalogueRoutes(options: {
         ? "stock.write"
         : "product.write",
   );
+  const publisher = options.relayPublisher;
+  const wake = async (c: Ctx, next: () => Promise<void>) => {
+    await next();
+    if (!publisher || c.req.method === "GET" || !c.res.ok) return;
+    const orgId = c.get("principal").orgId;
+    await publisher
+      .start(orgId, { orgId })
+      .catch((error: unknown) => console.error({ event: "relay.wake_failed", orgId, error }));
+  };
   for (const root of ["products", "barcodes", "prices", "categories", "suppliers", "catalogue"])
-    app.use(`/${root}`, guard).use(`/${root}/*`, guard);
+    app.use(`/${root}`, guard, wake).use(`/${root}/*`, guard, wake);
 
   const org = (c: Ctx) => c.get("principal").orgId;
   const context = (c: Ctx, reason?: string) => {

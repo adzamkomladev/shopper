@@ -1,25 +1,50 @@
 import { eq, sql } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
-import { category, product, taxClass } from "@shopper/db-pg";
+import { branch, category, price, product, store, taxClass } from "@shopper/db-pg";
+import { money } from "@shopper/money";
 import type { RelayBatch } from "../schemas/relay";
 
 /**
  * A box publishes catalogue rows to its relay org: the only writer the relay lock lets through (it sets
  * `shopper.relay` for this transaction). Rows are upserted by the box's ids, so a retried batch changes nothing, and an
- * id that is another org's row is left alone. The relay org's chain records each batch.
+ * id that is another org's row is left alone. Prices are append-only versions, so one already here is kept as is.
+ * The relay org's chain records each batch.
  */
 export const publishRelay = defineCommand({
   name: "relay.publish",
   async run(tx, context, batch: RelayBatch) {
     const orgId = context.orgId;
     await tx.execute(sql`SELECT set_config('shopper.relay', ${orgId}, true)`);
+    for (const row of batch.stores)
+      await tx
+        .insert(store)
+        .values({ orgId, ...row })
+        .onConflictDoUpdate({
+          target: store.id,
+          set: { name: row.name, updatedAt: sql`now()` },
+          setWhere: eq(store.orgId, orgId),
+        });
+    for (const row of batch.branches)
+      await tx
+        .insert(branch)
+        .values({ orgId, ...row })
+        .onConflictDoUpdate({
+          target: branch.id,
+          set: { name: row.name, updatedAt: sql`now()` },
+          setWhere: eq(branch.orgId, orgId),
+        });
     for (const row of batch.categories)
       await tx
         .insert(category)
         .values({ orgId, ...row })
         .onConflictDoUpdate({
           target: category.id,
-          set: { name: row.name, parentId: row.parentId, updatedAt: sql`now()` },
+          set: {
+            name: row.name,
+            parentId: row.parentId,
+            onlineVisible: row.onlineVisible,
+            updatedAt: sql`now()`,
+          },
           setWhere: eq(category.orgId, orgId),
         });
     const classes = new Map(
@@ -48,7 +73,18 @@ export const publishRelay = defineCommand({
           setWhere: eq(product.orgId, orgId),
         });
     }
-    return { categories: batch.categories.length, products: batch.products.length };
+    if (batch.prices.length)
+      await tx
+        .insert(price)
+        .values(batch.prices.map((row) => ({ orgId, ...row, amount: money(row.amount) })))
+        .onConflictDoNothing({ target: price.id });
+    return {
+      stores: batch.stores.length,
+      branches: batch.branches.length,
+      categories: batch.categories.length,
+      products: batch.products.length,
+      prices: batch.prices.length,
+    };
   },
   audit: (_input, output) => output,
 });

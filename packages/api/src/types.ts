@@ -99,6 +99,8 @@ export interface ApiOptions {
   /** Runs each billing period's dunning; a paid invoice wakes it to stop. */
   billing?: WorkflowLauncher;
   priceChange?: WorkflowLauncher;
+  /** On a box: the Publisher to its relay org, woken by every catalogue write and the Online Orders switch. */
+  relayPublisher?: WorkflowLauncher;
   onboarding?: ReturnType<typeof createOnboarding>;
   invitations?: ReturnType<typeof createInvitations>;
   kyc?: WorkflowLauncher;
@@ -187,6 +189,8 @@ export interface RuntimeOptions {
   approvals?: WorkflowLauncher;
   billing?: WorkflowLauncher;
   priceChange?: WorkflowLauncher;
+  /** On a box: the Publisher to its relay org, woken by every catalogue write and the Online Orders switch. */
+  relayPublisher?: WorkflowLauncher;
   authFlows?: WorkflowLauncher;
   /** A cloud shop's way from signup to its first sale; the box opens no signup and has none. */
   onboarding?: WorkflowLauncher;

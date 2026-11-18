@@ -219,8 +219,31 @@ box never serves the store: it calls the cloud's `/relay/*` routes (mounted wher
 own outbound connection, licence-signed like its check-in. `@shopper/core/relay` owns the access check
 (`relayAccess`), the heartbeat, the order-inbox read over `online_order.inbox_cursor` and `relay.publish`; platform
 staff enrol, switch the add-on and revoke through `/platform/relays`. Business code only; no adapter or port is
-involved, and the box side (Publisher and Order-inbox actors) arrives on Days 47 and 50. See `security.md` for the
-lock and refusals.
+involved. See `security.md` for the lock and refusals.
+
+**The Publisher (Day 47)** is the box side of `relay.publish`. It is a loop Workflow, not a sixth coordination
+class: `runRelayPublisher` (`@shopper/core/relay`), started by `boxRelayPublisher` (`@shopper/adapters-box`) with
+`{ loop: true }`, instance id = the org id. `apps/box/src/relay.ts` boots it only for a licensed box with
+`SHOPPER_LICENCE_URL`, and every request goes out through `BoxLicence.send`, so it is signed.
+
+- **What goes up** is `relayProjection`, field by field: stores and branches (id, name), categories (with
+  `online_visible`), products visible online and not archived, and their prices in force or starting later. The
+  relay reads its copy with the same function, which is how the tests prove the two are equal.
+- **What changed** comes from a diff, not the till feed (`store_change` is per store and carries no categories or
+  visibility). `relay_published` keeps the hash of every row the relay acknowledged. A run sends rows whose hash
+  differs, re-sends a product that left the projection as `onlineVisible: false`, and records each batch's hashes
+  once the relay answers 200. An empty table means a full snapshot.
+- **Batches** hold at most 500 rows of a kind, parents first (stores, branches, categories, products, prices). A
+  retried batch changes nothing on the relay.
+- **When it runs:** after any successful catalogue write (the catalogue router's `relayPublisher` hook), when the
+  Online Orders switch goes on (`PUT /settings/online`), and on boot. Scheduled prices need no wake: future prices
+  are already published, and the store prices by the time of the request.
+- **Failures:** 401, 402 or 403 records the reason in `org.relay_error` and ends the run. A network error or 5xx
+  records it and retries after 1 minute, doubling to 15 minutes; any wake cuts the wait short.
+- **The switch:** `org.online_orders`. Switching it on forgets `relay_published`, which forces a fresh snapshot.
+  This is also how to repair a relay that lost its copy.
+
+Category visibility applies everywhere: `catalogue_public` hides a product whose category or department is hidden.
 
 ## Rules that keep both sides honest
 

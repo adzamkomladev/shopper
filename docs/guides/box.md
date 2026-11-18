@@ -61,6 +61,23 @@ Install a spare from the same installer, restore the last nightly backup (the co
 in [deployment.md](../engineering/deployment.md)), and give the spare the old box's name and address. Registers
 reconnect and send again any sales the backup missed.
 
+## 7. Selling online
+
+With the Online Orders add-on, Shopper keeps an online store for the shop, and the box keeps that store's catalogue
+up to date.
+
+1. Shopper staff enrol the box's licence and switch on the add-on.
+2. The owner opens Settings → **Online store** and turns on **Sell online from this box**. The box sends the whole
+   catalogue once. After that it sends only what changes, within seconds of each change.
+3. Choose what shoppers see:
+   - A product appears online only when its own **Show online** is on, and its category and department are switched
+     on on the same page.
+   - Hiding a department hides every category under it.
+
+Only names, SKUs, categories, prices and branches leave the box. Cost prices, suppliers, stock and customers never
+do. If the page says the last update did not reach Shopper, the box keeps trying by itself. Turning the switch off and
+on again sends the whole catalogue afresh.
+
 ## When something is wrong
 
 - The installer stops and names what failed. If the engine or receipt renderer did not run, read

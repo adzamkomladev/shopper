@@ -53,6 +53,7 @@ const contact = v.optional(v.nullable(v.pipe(v.string(), v.trim(), v.maxLength(2
 export const categoryInput = v.strictObject({
   name,
   parentId: v.optional(v.nullable(uuidV7Schema)),
+  onlineVisible: v.optional(v.boolean()),
 });
 export const supplierInput = v.strictObject({ name, phone: contact, email: contact, tin: contact });
 

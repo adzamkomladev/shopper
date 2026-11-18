@@ -35,9 +35,11 @@ test("an enrolled box reads its relay status, beats its heartbeat and reads its 
   expect(beat.status).toBe(200);
   expect((await relayRow(shop))!.lastSeenAt).toBeInstanceOf(Date);
 
-  const inbox = await cloud.send(shop, "/relay/orders?after=0");
+  // Each store numbers its own orders, so the box reads its inbox store by store.
+  const inbox = await cloud.send(shop, `/relay/orders?store=${shop.licence.id}&after=0`);
   expect(inbox.status).toBe(200);
   expect(await inbox.json()).toEqual({ orders: [], cursor: "0" });
+  expect((await cloud.send(shop, "/relay/orders?after=0")).status).toBe(400);
 });
 
 test("unsigned, forged, stale and tampered requests are refused", async () => {
@@ -72,9 +74,17 @@ test("a signed request is used once: the replay is refused", async () => {
     body: "{}",
   });
   expect((await cloud.api.fetch(request.clone())).status).toBe(200);
-  const replay = await cloud.api.fetch(request);
+  const replay = await cloud.api.fetch(request.clone());
   expect(replay.status).toBe(401);
   expect((await replay.json()).error).toMatch(/already/i);
+  // The same signature spelled differently (padding, whitespace) decodes to the same bytes: still a replay.
+  const signature = request.headers.get("shopper-signature")!;
+  for (const respelled of [`${signature}==`, `${signature.slice(0, 10)}\t${signature.slice(10)}`]) {
+    const headers = new Headers(request.headers);
+    headers.set("shopper-signature", respelled);
+    const again = await cloud.api.fetch(new Request(request.clone(), { headers }));
+    expect(again.status, JSON.stringify(respelled)).toBe(401);
+  }
 });
 
 test("revoked, unenrolled and add-on-less boxes are refused 403; lapsed maintenance 402", async () => {

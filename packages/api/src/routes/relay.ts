@@ -12,7 +12,7 @@ import {
 } from "@shopper/core/relay";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import { problem } from "../middleware/problem";
-import { relayCursor } from "../schemas/relay";
+import { relayInboxQuery } from "../schemas/relay";
 
 type RelayEnvironment = { Variables: { relay: { licence: Licence; box: RelayBox } } };
 
@@ -50,11 +50,12 @@ export function relayRoutes(options: { database: ShopperDatabase; licenceSigning
       await publishRelay(db, { orgId, role: "relay", appVersion: buildInfo.version }, batch),
     );
   });
-  app.get("/relay/orders", async (c) =>
-    c.json(
-      await relayInbox(db, c.get("relay").box.orgId, v.parse(relayCursor, c.req.query("after"))),
-    ),
-  );
+  app.get("/relay/orders", async (c) => {
+    const query = v.parse(relayInboxQuery, c.req.query());
+    return c.json(
+      await relayInbox(db, c.get("relay").box.orgId, { storeId: query.store, after: query.after }),
+    );
+  });
   app.onError(problem);
   return app;
 }

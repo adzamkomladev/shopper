@@ -2,6 +2,7 @@ import { and, asc, eq, gt, lt } from "drizzle-orm";
 import { onlineOrder, org, relayBox, relayNonce, type ShopperDatabase } from "@shopper/db-pg";
 import { sha256 } from "@shopper/utils";
 import { verifySignedRequest, type Licence } from "../licence";
+import { fromBase64Url, toBase64Url } from "../licence/keys";
 import type { RelayBox } from "./types";
 
 /** How long a used signature is remembered: a request is fresh for 5 minutes either side of its signing time. */
@@ -51,8 +52,15 @@ export async function relayHeartbeat(db: ShopperDatabase, box: RelayBox, now = n
   return { seenAt: now.toISOString() };
 }
 
-/** The relay org's orders after the box's cursor, oldest first; the box acknowledges by asking from the last one. */
-export async function relayInbox(db: ShopperDatabase, orgId: string, after: bigint) {
+/**
+ * One store's orders after the box's cursor for it, oldest first; the box acknowledges by asking from the last one.
+ * `inbox_cursor` is numbered per store, so a cursor only means something within its store.
+ */
+export async function relayInbox(
+  db: ShopperDatabase,
+  orgId: string,
+  input: { storeId: string; after: bigint },
+) {
   const rows = await db
     .select({
       id: onlineOrder.id,
@@ -63,16 +71,25 @@ export async function relayInbox(db: ShopperDatabase, orgId: string, after: bigi
       placedAt: onlineOrder.createdAt,
     })
     .from(onlineOrder)
-    .where(and(eq(onlineOrder.orgId, orgId), gt(onlineOrder.inboxCursor, after)))
+    .where(
+      and(
+        eq(onlineOrder.orgId, orgId),
+        eq(onlineOrder.storeId, input.storeId),
+        gt(onlineOrder.inboxCursor, input.after),
+      ),
+    )
     .orderBy(asc(onlineOrder.inboxCursor))
     .limit(INBOX_PAGE);
   return {
     orders: rows.map((row) => ({ ...row, inboxCursor: String(row.inboxCursor) })),
-    cursor: String(rows.at(-1)?.inboxCursor ?? after),
+    cursor: String(rows.at(-1)?.inboxCursor ?? input.after),
   };
 }
 
-/** Records the signature as used, or false when it already was. Forgets signatures too old to be fresh again. */
+/**
+ * Records the signature as used, or false when it already was. Forgets signatures too old to be fresh again. The
+ * decoded bytes are what count: the decoder accepts padding and whitespace, so another spelling is the same signature.
+ */
 async function spend(db: ShopperDatabase, box: RelayBox, signature: string, now: Date) {
   await db
     .delete(relayNonce)
@@ -87,7 +104,7 @@ async function spend(db: ShopperDatabase, box: RelayBox, signature: string, now:
     .values({
       orgId: box.orgId,
       licenceId: box.licenceId,
-      digest: await sha256(signature),
+      digest: await sha256(toBase64Url(fromBase64Url(signature))),
       seenAt: now,
     })
     .onConflictDoNothing()

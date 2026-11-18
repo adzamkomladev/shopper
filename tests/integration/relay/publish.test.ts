@@ -1,16 +1,21 @@
 // v1.5 Day 46: the box's publish is the one writer of its relay org's catalogue. A batch lands as one audited command
-// in the relay org's chain, and sending it again changes nothing.
+// in the relay org's chain, and sending it again changes nothing. Day 47: stores, branches and prices travel too, and
+// the relay's store prices a published product from them.
 import { beforeAll, expect, test } from "vite-plus/test";
 import { and, eq } from "drizzle-orm";
 import { v7 } from "uuid";
 import * as schema from "@shopper/db-pg";
 import { context, db } from "../auth/setup";
+import { readStoreProduct } from "@shopper/core/storefront";
 import { enrol, relayCloud, type Box } from "./support";
 
 let cloud: Awaited<ReturnType<typeof relayCloud>>;
 let shop: Box;
 const drinks = v7();
 const milo = v7();
+const osu = v7();
+const osuBranch = v7();
+const shelf = v7();
 
 beforeAll(async () => {
   cloud = await relayCloud();
@@ -19,7 +24,9 @@ beforeAll(async () => {
 });
 
 const batch = () => ({
-  categories: [{ id: drinks, name: "Drinks", parentId: null }],
+  stores: [{ id: osu, name: "Osu Mart" }],
+  branches: [{ id: osuBranch, storeId: osu, name: "Osu" }],
+  categories: [{ id: drinks, name: "Drinks", parentId: null, onlineVisible: true }],
   products: [
     {
       id: milo,
@@ -31,6 +38,16 @@ const batch = () => ({
       onlineVisible: true,
     },
   ],
+  prices: [
+    {
+      id: shelf,
+      productId: milo,
+      branchId: null,
+      amount: 450_000,
+      validFrom: "2026-01-01T00:00:00.000Z",
+      validTo: null,
+    },
+  ],
 });
 const publish = (body: unknown) =>
   cloud.send(shop, "/relay/publish", { method: "POST", body: JSON.stringify(body) });
@@ -40,7 +57,13 @@ const products = () =>
 test("a published batch writes the relay org's catalogue, audited in its chain", async () => {
   const published = await publish(batch());
   expect(published.status).toBe(200);
-  expect(await published.json()).toEqual({ categories: 1, products: 1 });
+  expect(await published.json()).toEqual({
+    stores: 1,
+    branches: 1,
+    categories: 1,
+    products: 1,
+    prices: 1,
+  });
   const [product] = await products();
   expect(product).toMatchObject({
     id: milo,
@@ -67,12 +90,22 @@ test("a published batch writes the relay org's catalogue, audited in its chain",
   renamed.products[0]!.name = "Milo 500g";
   expect((await publish(renamed)).status).toBe(200);
   expect((await products())[0]!.name).toBe("Milo 500g");
+
+  // The relay's own store prices the product from the published price, at the published branch.
+  const page = await readStoreProduct(db, shop.licence.org, milo, { branch: osuBranch });
+  expect(page?.product).toMatchObject({ name: "Milo 500g", price: 450_000 });
 });
 
 test("a batch carries only the published fields and cannot reach another org's rows", async () => {
   const withCost = batch();
   Object.assign(withCost.products[0]!, { costPrice: 12_000 });
   expect((await publish(withCost)).status).toBe(400);
+  const pricedAtCost = batch();
+  Object.assign(pricedAtCost.prices[0]!, { costAmount: 300_000 });
+  expect((await publish(pricedAtCost)).status).toBe(400);
+  const storeWithPhone = batch();
+  Object.assign(storeWithPhone.stores[0]!, { phone: "0244000000" });
+  expect((await publish(storeWithPhone)).status).toBe(400);
   // An id that belongs to another shop's product is never updated through this relay.
   const [tax] = await db
     .select({ id: schema.taxClass.id })

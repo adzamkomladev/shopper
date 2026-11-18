@@ -34,7 +34,10 @@ export async function runRelayPublisher(
           (thrown: unknown) => (thrown instanceof Error ? thrown.message : String(thrown)),
         );
         if (error)
-          await recordRelayError(db, context, { error: `Shopper could not be reached: ${error}` });
+          await recordRelayError(db, context, {
+            error: `Shopper could not be reached: ${error}`,
+            retrying: true,
+          });
         return !!error;
       }),
     );

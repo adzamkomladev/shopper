@@ -1,6 +1,13 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { defineCommand, type CommandContext } from "@shopper/audit";
-import { org, product, relayPublished, taxClass, type ShopperDatabase } from "@shopper/db-pg";
+import {
+  org,
+  product,
+  relayPublished,
+  taxClass,
+  workflowRun,
+  type ShopperDatabase,
+} from "@shopper/db-pg";
 import { sha256 } from "@shopper/utils";
 import { BATCH_ROWS, type RelayBatch } from "../schemas/relay";
 import { productFields, relayProjection } from "./projection";
@@ -147,6 +154,7 @@ const relayPublishedCommand = defineCommand({
       .update(org)
       .set({ relayPublishedAt: sql`now()`, relayError: null })
       .where(eq(org.id, context.orgId));
+    await mirrorRun(tx, context.orgId, "publish", "completed");
     return { rows: input.rows.length };
   },
   audit: (_input, output) => output,
@@ -155,10 +163,37 @@ const relayPublishedCommand = defineCommand({
 /** Why the last publish did not go through, for the settings page; the next success clears it. */
 export const recordRelayError = defineCommand({
   name: "relay.failed",
-  async run(tx, context, input: { error: string }) {
+  async run(tx, context, input: { error: string; retrying?: boolean }) {
     const error = input.error.slice(0, 500);
     await tx.update(org).set({ relayError: error }).where(eq(org.id, context.orgId));
+    // A refusal ends the run; an unreachable relay waits to try again.
+    await mirrorRun(tx, context.orgId, "publish", input.retrying ? "waiting" : "failed");
     return { error };
   },
   audit: (_input, output) => output,
 });
+
+/**
+ * The Publisher's state in `workflow_run`, the record. Not a step checkpoint: a loop reuses its step names every
+ * run, so a saved step would replay an old answer instead of publishing.
+ */
+const mirrorRun = (
+  tx: Pick<ShopperDatabase, "insert">,
+  orgId: string,
+  step: string,
+  status: "completed" | "waiting" | "failed",
+) =>
+  tx
+    .insert(workflowRun)
+    .values({
+      orgId,
+      instanceId: orgId,
+      businessKey: orgId,
+      type: "relay-publisher",
+      currentStep: step,
+      status,
+    })
+    .onConflictDoUpdate({
+      target: [workflowRun.orgId, workflowRun.instanceId],
+      set: { currentStep: step, status, updatedAt: sql`now()` },
+    });

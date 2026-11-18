@@ -23,8 +23,9 @@ export async function readOnlineSettings(db: Queryable, orgId: string) {
 }
 
 /**
- * Switches Online Orders on the box. Switching on forgets what the relay was sent, so the next publish is a full
- * snapshot: the way to repair a relay that lost its copy.
+ * Switches Online Orders on the box. Switching on marks everything sent as stale, so the next publish is a full
+ * snapshot (the way to repair a relay that lost its copy); the rows are kept so a product hidden while it was off is
+ * still withdrawn.
  */
 export const saveOnlineSettings = defineCommand({
   name: "settings.online",
@@ -32,7 +33,10 @@ export const saveOnlineSettings = defineCommand({
     const next = v.parse(onlineSettingsInput, input.body);
     const before = await readOnlineSettings(tx, context.orgId);
     if (next.onlineOrders && !before.onlineOrders)
-      await tx.delete(relayPublished).where(eq(relayPublished.orgId, context.orgId));
+      await tx
+        .update(relayPublished)
+        .set({ hash: "" })
+        .where(eq(relayPublished.orgId, context.orgId));
     await tx
       .update(org)
       .set({

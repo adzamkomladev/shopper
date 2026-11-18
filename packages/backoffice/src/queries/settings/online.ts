@@ -11,6 +11,11 @@ export function onlineSettingsQuery(shop = currentShop()) {
   return queryOptions({
     queryKey: ["settings", shop?.id ?? "box", "online"],
     queryFn: () => apiFetch("/settings/online", onlineSettingsView, { shopId: shop?.id ?? null }),
+    // While the first publish is on its way the page asks again, so it shows how it went without a reload.
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data?.onlineOrders && !data.publishedAt && !data.error ? 5000 : false;
+    },
   });
 }
 

@@ -13,7 +13,7 @@ import {
   setPrice,
   updateProduct,
 } from "@shopper/core/catalogue";
-import { relayProjection } from "@shopper/core/relay";
+import { relayProjection, saveOnlineSettings } from "@shopper/core/relay";
 import { readStoreProduct } from "@shopper/core/storefront";
 import { provisionOrg, provisioningContext } from "../../../tooling/database/seed";
 import { emptyDatabase } from "../../support/migration/archive";
@@ -113,6 +113,13 @@ const fresh = async (sku: string) =>
       onlineVisible: true,
     })
   ).id;
+const run = async () =>
+  (
+    await box.db
+      .select({ status: schema.workflowRun.status })
+      .from(schema.workflowRun)
+      .where(eq(schema.workflowRun.instanceId, ctx.orgId))
+  )[0]?.status;
 const same = async () =>
   expect(await relayProjection(cloudDb, ctx.orgId)).toEqual(
     await relayProjection(box.db, ctx.orgId),
@@ -208,6 +215,7 @@ test("a relay that refuses the box stops the Publisher and says why", async () =
     .from(schema.org)
     .where(eq(schema.org.id, ctx.orgId));
   expect(org?.relayError).toMatch(/online orders/i);
+  expect(await run()).toBe("failed");
   // Switched back on in the cloud, the next run catches up and clears the reason.
   await enrol(shop, true);
   await publish();
@@ -217,10 +225,20 @@ test("a relay that refuses the box stops the Publisher and says why", async () =
     .from(schema.org)
     .where(eq(schema.org.id, ctx.orgId));
   expect(after?.relayError).toBeNull();
+  expect(await run()).toBe("completed");
 });
 
-test("with Online Orders off on the box nothing is published", async () => {
-  await box.db.update(schema.org).set({ onlineOrders: false }).where(eq(schema.org.id, ctx.orgId));
+test("with Online Orders off nothing is published; switched on, everything is, hidden products withdrawn", async () => {
+  const listed = await fresh("WITHDRAWN");
+  await publish();
+  await saveOnlineSettings(box.db, ctx, { body: { onlineOrders: false } });
   await setPrice(box.db, ctx, { productId: await fresh("SWITCHED-OFF"), data: { amount: 44_000 } });
+  // Hidden while nothing is published: the relay still lists it until the switch goes back on.
+  await updateProduct(box.db, ctx, { id: listed, data: { onlineVisible: false } });
   expect(await publish()).toEqual([]);
+
+  await saveOnlineSettings(box.db, ctx, { body: { onlineOrders: true } });
+  const snapshot = await publish();
+  expect(snapshot[0]?.stores).toHaveLength(2);
+  await same();
 });

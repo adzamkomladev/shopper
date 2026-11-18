@@ -123,7 +123,7 @@ test("the Online Orders switch and every catalogue write wake the Publisher; swi
     (await call(cloud, "owner", "PUT", "/settings/online", { onlineOrders: true })).status,
   ).toBe(400);
 
-  // What a previous publish recorded is forgotten when the switch goes on: the next publish is a snapshot.
+  // What a previous publish recorded goes stale when the switch goes on: the next publish is a snapshot.
   await world.db.insert(schema.relayPublished).values({
     orgId: world.a.orgId,
     entity: "product",
@@ -136,10 +136,10 @@ test("the Online Orders switch and every catalogue write wake the Publisher; swi
   expect(woken).toEqual([world.a.orgId]);
   expect(
     await world.db
-      .select()
+      .select({ hash: schema.relayPublished.hash })
       .from(schema.relayPublished)
       .where(eq(schema.relayPublished.orgId, world.a.orgId)),
-  ).toEqual([]);
+  ).toEqual([{ hash: "" }]);
 
   // A catalogue write wakes it once it succeeds; a read or a refused write does not.
   expect(

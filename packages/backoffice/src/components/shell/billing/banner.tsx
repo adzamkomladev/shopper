@@ -7,12 +7,24 @@ import { billingStatusQuery } from "../../../queries/billing";
 
 /**
  * Every member sees why changes are refused while an overdue invoice or a box's unconfirmed licence keeps the back
- * office read-only, a box moving to the cloud or a cloud shop onto its box, and a box's warning in the 30 days before
- * its licence locks.
+ * office read-only, a box moving to the cloud or a cloud shop onto its box, a relay org whose box writes it, and a
+ * box's warning in the 30 days before its licence locks.
  */
 export function ReadOnlyBanner() {
   const { data } = useQuery(billingStatusQuery());
   const licence = data?.licence;
+  if (data?.relay)
+    return (
+      <Alert role="status">
+        <ServerIcon aria-hidden />
+        <AlertDescription>
+          <span>
+            This shop runs on its own box, which publishes its catalogue here for online orders.
+            This cloud copy only reads: make changes on the box.
+          </span>
+        </AlertDescription>
+      </Alert>
+    );
   if (data?.move)
     return (
       <Alert role="status">

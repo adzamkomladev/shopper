@@ -238,3 +238,19 @@ One `RateLimiter` port (`packages/ports/src/limits.ts`) with a fixed policy tabl
   A till pins a LAN box's CA (trust on first use) before it spends its one-time code.
 - **The leaving cloud org** refuses member writes and register pushes with 423 while the move is open, claimed or
   archived. Only the owner can call it off, and only before it is archived.
+
+## Relay org (v1.5 Day 46)
+
+- **Box identity.** `/relay/*` is in the sweep's `PUBLIC` list: every request carries a `signedRequest` by the box's
+  licence key (401 when missing, forged, stale beyond 5 minutes or not matching its body). Each signature is
+  single-use: `relay_nonce` keeps its SHA-256 for ten minutes, so a replay is refused 401.
+- **Who may relay.** Only a licence platform staff enrolled (`relay_box`, `platform.tenant.update`), not revoked and
+  with the Online Orders add-on (403), with `maintenanceUntil` today or later (402). The relay acts on `licence.org`,
+  never on an org the request names. Enrolment refuses a licence Shopper did not sign (422) and an org that already
+  trades in the cloud (409).
+- **Nothing else writes a relay org.** Every member write gets 423 (`refuseRelayEdits`), and the `relay_lock` trigger
+  on `tax_class`, `category`, `product`, `product_barcode` and `price` refuses any writer that has not set
+  `shopper.relay` (SET LOCAL) to that org. Only `relay.publish` and relay provisioning set it. A publish batch is a
+  strict field allowlist (`relayBatch`), and an id that is another org's row is never updated.
+- Nonces and the heartbeat's `last_seen_at` are protocol state, not business data, and write no audit row; enrolment,
+  the add-on switch, revocation and every publish batch do.

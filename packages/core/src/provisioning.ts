@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
 import { org, shopperMeta, taxClass, taxRule } from "@shopper/db-pg";
 import { ghana2026, registeredSince } from "@shopper/tax";
@@ -10,6 +11,8 @@ export const provisionOrg = defineCommand({
     input: {
       name: string;
       slug?: string;
+      /** A relay org (v1.5) is written only by its box: provisioning opens its catalogue lock for this transaction. */
+      mode?: "relay";
       metadata: { schemaVersion: number; syncProtocol: number; archiveFormat: number };
     },
   ) {
@@ -20,8 +23,11 @@ export const provisionOrg = defineCommand({
         id: context.orgId,
         name: input.name,
         slug: input.slug?.trim().toLowerCase(),
+        mode: input.mode,
         vatRegisteredFrom: registeredSince,
       });
+    if (input.mode === "relay")
+      await tx.execute(sql`SELECT set_config('shopper.relay', ${context.orgId}, true)`);
     await tx.insert(taxClass).values([
       { orgId: context.orgId, code: "standard", name: "Standard" },
       { orgId: context.orgId, code: "zero-rated", name: "Zero-rated" },

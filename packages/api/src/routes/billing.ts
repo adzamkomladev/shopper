@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { isReadOnly, readBilling } from "@shopper/core/billing";
+import { isRelayOrg } from "@shopper/core/relay";
 import { leavingMove } from "@shopper/export";
 import { activeCloudMove } from "../middleware/moved";
 import { problem } from "../middleware/problem";
@@ -31,6 +32,8 @@ export function billingRoutes(options: ApiOptions) {
       onPrem: options.licenceSigningKey
         ? ((await leavingMove(database, principal.orgId))?.status ?? null)
         : null,
+      // A relay org (v1.5) is its box's projection: the cloud back office only reads.
+      relay: await isRelayOrg(database, principal.orgId),
     });
   });
   app.use("/billing", requirePermission(options.authentication, "billing.manage"));

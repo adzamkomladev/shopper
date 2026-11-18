@@ -129,10 +129,10 @@ test("A's session naming B as the shop is refused everywhere, and B's own lists 
   expect(await own.text()).toContain(SENTINEL);
 });
 
-// A box checks in, moves into the cloud, and takes a cloud shop over, by licence-signed requests with no session: the
+// A box checks in, moves into the cloud, takes a cloud shop over and talks to its relay, by licence-signed requests with no session: the
 // signature is the credential, and the licence names the one shop it may act for.
 const PUBLIC =
-  /^\/($|about|health|version|tax-rules|orgs\/|public\/|licence\/confirmations$|migration\/(imports|handover))/;
+  /^\/($|about|health|version|tax-rules|orgs\/|public\/|licence\/confirmations$|migration\/(imports|handover)|relay\/)/;
 
 /** Every route the API can mount, with each optional family switched on. */
 function routes() {

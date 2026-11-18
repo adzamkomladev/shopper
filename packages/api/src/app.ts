@@ -36,6 +36,8 @@ import { readOnlyGuard } from "./middleware/readonly";
 import { billingRoutes } from "./routes/billing";
 import { licenceRoutes } from "./routes/licence";
 import { migrationRoutes } from "./routes/migration";
+import { relayRoutes } from "./routes/relay";
+import { refuseRelayEdits } from "./middleware/relay";
 import { moveRoutes } from "./routes/move";
 import {
   refuseShoppersWhileLeaving,
@@ -58,6 +60,7 @@ export function createApi(options: ApiOptions = {}) {
     c.header("Shopper-Version", buildInfo.version);
   });
   app.use("*", readOnlyGuard(options));
+  if (options.database) app.use("*", refuseRelayEdits(options.database, options.authentication));
   // Only a box moves: from the start of its move it takes no changes but sign-in, the move and the handshake.
   if (options.database && options.cloudMoves) {
     app.use(
@@ -185,6 +188,11 @@ export function createApi(options: ApiOptions = {}) {
         archiveImports: options.archiveImports,
         licenceSigningKey: options.licenceSigningKey,
       }),
+    );
+  if (options.database && options.licenceSigningKey)
+    app.route(
+      "/",
+      relayRoutes({ database: options.database, licenceSigningKey: options.licenceSigningKey }),
     );
   app.route("/", updateRoutes(options));
   if (options.database && options.kyb) app.route("/", kybRoutes({ ...options, kyb: options.kyb }));

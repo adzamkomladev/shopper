@@ -57,4 +57,5 @@ export const billingStatus = v.object({
   licence: v.nullish(v.object(licenceState)),
   move: v.nullish(v.object({ status: moveStatus, cloudUrl: v.string() })),
   onPrem: v.nullish(onPremStatus),
+  relay: v.optional(v.boolean(), false),
 });

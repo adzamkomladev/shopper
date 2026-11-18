@@ -3,7 +3,7 @@
 import { beforeAll, expect, test } from "vite-plus/test";
 import { and, eq, sql } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
-import { context, db, fixture, otherContext } from "../auth/setup";
+import { api, context, cookies, db, fixture, otherContext, request } from "../auth/setup";
 
 const relay = () => context.orgId;
 const full = () => otherContext.orgId;
@@ -98,4 +98,25 @@ test("the publisher's transaction writes exactly its own relay org", async () =>
   await expect(
     db.update(schema.product).set({ name: "After" }).where(eq(schema.product.id, productId)),
   ).rejects.toThrow();
+});
+
+test("the cloud portal reads a relay org's catalogue but cannot change it", async () => {
+  const asOwner = (path: string, method = "GET", body?: unknown) =>
+    request(api, cookies.get("superadmin")!, path, method, body);
+  const created = await asOwner("/products", "POST", {
+    sku: "PORTAL-1",
+    name: "Portal Milo",
+    baseUnit: "each",
+    taxClass: "standard",
+  });
+  expect(created.status).toBe(423);
+  expect((await created.json()).error).toMatch(/its own box/);
+  expect((await asOwner(`/products/${productId}`, "PATCH", { name: "Portal edit" })).status).toBe(
+    423,
+  );
+  expect((await asOwner("/categories", "POST", { name: "Portal drinks" })).status).toBe(423);
+  // Any member, not just the owner: the cloud back office of a relay org only reads.
+  expect((await request(api, cookies.get("admin")!, "/customers", "POST", {})).status).toBe(423);
+  expect((await asOwner("/products")).status).toBe(200);
+  expect(await (await asOwner("/billing/status")).json()).toMatchObject({ relay: true });
 });

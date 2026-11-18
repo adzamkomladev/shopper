@@ -61,12 +61,11 @@ test("asset migration constraint and index names match the owning Drizzle models
 });
 
 test("current migration metadata includes asset and all published receipt fields", async () => {
-  const snapshot = JSON.parse(
-    await readFile(
-      new URL("../../../packages/db/pg/migrations/meta/0041_snapshot.json", import.meta.url),
-      "utf8",
-    ),
-  );
+  const meta = new URL("../../../packages/db/pg/migrations/meta/", import.meta.url);
+  // The newest migration's snapshot, so a new column never leaves this checking a stale one.
+  const journal = JSON.parse(await readFile(new URL("_journal.json", meta), "utf8"));
+  const latest = String(journal.entries.at(-1).idx).padStart(4, "0");
+  const snapshot = JSON.parse(await readFile(new URL(`${latest}_snapshot.json`, meta), "utf8"));
   for (const table of [
     schema.asset,
     schema.productImport,

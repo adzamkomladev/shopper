@@ -45,7 +45,9 @@ jobs:
       - run: vp run build
   integration:
     name: integration (${{ matrix.shard }}/4)
-    runs-on: ubuntu-latest
+    # shortcut: Electron's GPU process cannot fork on ubuntu-26.04 (the new ubuntu-latest), so the Linux Electron tests
+    # abort before the app starts. The till ships on Windows (till-windows). Move back once Electron runs on 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     strategy:
       fail-fast: false

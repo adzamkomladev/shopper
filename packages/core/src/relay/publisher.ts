@@ -1,6 +1,7 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { defineCommand, type CommandContext } from "@shopper/audit";
 import {
+  asset,
   org,
   product,
   relayPublished,
@@ -10,17 +11,19 @@ import {
 } from "@shopper/db-pg";
 import { sha256 } from "@shopper/utils";
 import { BATCH_ROWS, type RelayBatch } from "../schemas/relay";
+import { sendPhotos } from "./photos";
 import { productFields, relayProjection } from "./projection";
-import type { RelaySend } from "./types";
+import type { RelayPublisherDeps } from "../workflows/types";
 
 type Kind = keyof RelayBatch;
 type Row = { id: string };
 type Hashed = { row: Row; hash: string };
 /** Parents before children: a batch's rows land in this order, and a later kind waits for an earlier one. */
-const KINDS = ["stores", "branches", "categories", "products", "prices"] as const;
+const KINDS = ["stores", "branches", "fulfilment", "categories", "products", "prices"] as const;
 const ENTITY = {
   stores: "store",
   branches: "branch",
+  fulfilment: "fulfilment",
   categories: "category",
   products: "product",
   prices: "price",
@@ -35,7 +38,7 @@ const ENTITY = {
 export async function publishPending(
   db: ShopperDatabase,
   context: CommandContext,
-  send: RelaySend,
+  relay: Pick<RelayPublisherDeps, "send" | "blobs">,
   now = new Date(),
 ) {
   const [shop] = await db
@@ -45,11 +48,12 @@ export async function publishPending(
   if (!shop?.onlineOrders) return { sent: 0, off: true };
   const pending = await pendingRows(db, context.orgId, now);
   let sent = 0;
+  const offered = new Set<string>();
   for (const batch of batches(pending)) {
-    const response = await send("/relay/publish", {
-      method: "POST",
-      body: JSON.stringify(wire(batch)),
-    });
+    const photos = (batch.products ?? []).map((entry) => (entry.row as { image?: string }).image);
+    const response =
+      (await sendPhotos(db, context.orgId, photos, relay.send, relay.blobs, offered)) ??
+      (await relay.send("/relay/publish", { method: "POST", body: JSON.stringify(wire(batch)) }));
     if ([401, 402, 403].includes(response.status)) {
       const reason = ((await response.json().catch(() => ({}))) as { error?: string }).error;
       await recordRelayError(db, context, { error: reason ?? `Refused (${response.status})` });
@@ -87,6 +91,7 @@ async function pendingRows(db: ShopperDatabase, orgId: string, now: Date) {
           taxClass,
           and(eq(taxClass.orgId, product.orgId), eq(taxClass.id, product.taxClassId)),
         )
+        .leftJoin(asset, and(eq(asset.orgId, product.orgId), eq(asset.id, product.imageAssetId)))
         .where(and(eq(product.orgId, orgId), inArray(product.id, gone)))
     : [];
   const rows = { ...projection, products: [...projection.products, ...withdrawn] };

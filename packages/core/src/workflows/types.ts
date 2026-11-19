@@ -81,4 +81,6 @@ export interface RelayPublisherDeps {
   appVersion: string;
   /** A licence-signed request to the cloud's relay. */
   send: RelaySend;
+  /** The box's storage, opened when a product photo it offers the relay must be read. */
+  blobs?: () => Promise<Blobs>;
 }

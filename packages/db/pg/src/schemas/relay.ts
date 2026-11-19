@@ -38,7 +38,9 @@ export const relayPublished = pgTable(
     orgId: uuid("org_id")
       .notNull()
       .references(() => org.id),
-    entity: text("entity", { enum: ["store", "branch", "category", "product", "price"] }).notNull(),
+    entity: text("entity", {
+      enum: ["store", "branch", "fulfilment", "category", "product", "price"],
+    }).notNull(),
     entityId: uuid("entity_id").notNull(),
     hash: text("hash").notNull(),
     publishedAt: timestamp("published_at", { withTimezone: true }).notNull().defaultNow(),

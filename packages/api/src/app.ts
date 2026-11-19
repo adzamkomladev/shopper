@@ -199,7 +199,11 @@ export function createApi(options: ApiOptions = {}) {
   if (options.database && options.licenceSigningKey)
     app.route(
       "/",
-      relayRoutes({ database: options.database, licenceSigningKey: options.licenceSigningKey }),
+      relayRoutes({
+        database: options.database,
+        licenceSigningKey: options.licenceSigningKey,
+        blobs: options.blobs,
+      }),
     );
   app.route("/", updateRoutes(options));
   if (options.database && options.kyb) app.route("/", kybRoutes({ ...options, kyb: options.kyb }));

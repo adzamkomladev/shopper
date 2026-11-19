@@ -57,7 +57,7 @@ export async function listBuckets() {
   }));
 }
 
-async function listKeys(name: string) {
+export async function listKeys(name: string) {
   const response = await client.fetch(`${rustfs.endpoint}/${name}?list-type=2`);
   if (response.status === 404) return [];
   if (!response.ok) throw new Error(`RustFS list ${name}: ${response.status}`);

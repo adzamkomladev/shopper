@@ -111,12 +111,21 @@ async function requireStoredImage(tx: ShopperTransaction, blobs: Blobs, orgId: s
     .from(asset)
     .where(and(eq(asset.orgId, orgId), eq(asset.id, id), eq(asset.purpose, "product_image")));
   if (!found) throw new AssetError("Photo not found", 404);
+  if (!(await storedAsRegistered(blobs, orgId, found)))
+    throw new AssetError("The uploaded photo does not match what was registered", 409);
+}
+
+/** Whether the stored bytes, read up to the photo size limit, are the size and digest the asset registered. */
+export async function storedAsRegistered(
+  blobs: Blobs,
+  orgId: string,
+  found: Pick<typeof asset.$inferSelect, "key" | "sizeBytes" | "sha256">,
+) {
   const bytes = await blobs
     .get(orgId, found.key, MAX_PRODUCT_IMAGE_BYTES)
     .catch((error: unknown) => {
       if (error instanceof RangeError) return null;
       throw error;
     });
-  if (!bytes || bytes.byteLength !== found.sizeBytes || (await sha256(bytes)) !== found.sha256)
-    throw new AssetError("The uploaded photo does not match what was registered", 409);
+  return !!bytes && bytes.byteLength === found.sizeBytes && (await sha256(bytes)) === found.sha256;
 }

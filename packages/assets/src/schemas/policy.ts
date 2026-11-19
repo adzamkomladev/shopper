@@ -75,5 +75,7 @@ export const productImageUploadInput = v.strictObject({
   ),
   sha256: v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/)),
 });
+/** A photo an on-prem box offers its relay org (v1.5): named by its digest, so the relay holds it once. */
+export const relayImageOffer = v.omit(productImageUploadInput, ["fileName"]);
 /** The photo to show, or null to remove it. */
 export const productImageInput = v.strictObject({ assetId: v.nullable(uuidV7Schema) });

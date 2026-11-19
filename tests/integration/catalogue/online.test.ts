@@ -1,6 +1,7 @@
 // v1.5 Day 47: a category hidden online hides its products from the store, and a hidden department hides every
 // category under it. Showing it again brings them back; each change is the audited category save. On a box the
-// Online Orders switch and every catalogue write wake the Publisher; switching on forgets what was sent.
+// Online Orders switch and every catalogue, store, branch or fulfilment write wake the Publisher; switching on
+// forgets what was sent.
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { and, eq } from "drizzle-orm";
 import { v7 } from "uuid";
@@ -150,6 +151,17 @@ test("the Online Orders switch and every catalogue write wake the Publisher; swi
     400,
   );
   expect(woken).toEqual([world.a.orgId, world.a.orgId]);
+  // So does a new store and branch, and the branch's pickup, delivery and hours (Day 48).
+  const store = await (await call(box, "owner", "POST", "/stores", { name: "Osu" })).json();
+  const branch = await (
+    await call(box, "owner", "POST", "/branches", { name: "Osu Main", storeId: store.id })
+  ).json();
+  const hours = { pickup: true, delivery: false, deliveryFee: 0, opens: "08:00", closes: "20:00" };
+  const fulfilment = { ...hours, slotMinutes: 60, slotCapacity: 10, leadMinutes: 60 };
+  expect(
+    (await call(box, "owner", "PUT", `/branches/${branch.id}/fulfilment`, fulfilment)).status,
+  ).toBe(200);
+  expect(woken).toHaveLength(5);
 
   const [audit] = await world.db
     .select({ payload: schema.auditLog.payload })

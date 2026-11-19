@@ -84,7 +84,7 @@ export function createBoxApp(
     const workflowDatabase = workflowPool.db;
     const { mail, sms } = boxChannels(environment);
     priceChange ??= boxPriceChange({ database: workflowDatabase, realtime }, launch);
-    relayPublisher ??= bootRelayPublisher(environment, licence, workflowDatabase, launch);
+    relayPublisher ??= bootRelayPublisher(environment, licence, workflowDatabase, launch, blobs);
     if (environment.SHOPPER_LINK_SECRET)
       authFlows ??= boxAuthFlows(
         {

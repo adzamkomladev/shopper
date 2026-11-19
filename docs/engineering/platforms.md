@@ -226,17 +226,24 @@ class: `runRelayPublisher` (`@shopper/core/relay`), started by `boxRelayPublishe
 `{ loop: true }`, instance id = the org id. `apps/box/src/relay.ts` boots it only for a licensed box with
 `SHOPPER_LICENCE_URL`, and every request goes out through `BoxLicence.send`, so it is signed.
 
-- **What goes up** is `relayProjection`, field by field: stores and branches (id, name), categories (with
-  `online_visible`), products visible online and not archived, and their prices in force or starting later. The
-  relay reads its copy with the same function, which is how the tests prove the two are equal.
+- **What goes up** is `relayProjection`, field by field: stores and branches (id, name), each branch's
+  `branch_fulfilment` (pickup, delivery, fee, hours, slots: what the store's checkout offers), categories (with
+  `online_visible`), products visible online and not archived (with their photo's digest), and their prices in force
+  or starting later. The relay reads its copy with the same function, which is how the tests prove the two are equal.
+- **Photos (Day 48)** are content-addressed on the relay: one `asset` per digest, key
+  `receipts/products/sha256/<digest>`. Before a batch names a digest, the box offers it on `POST /relay/images` (`offerRelayImage`, `@shopper/assets`). The
+  relay answers `{assetId}` when it already holds those bytes, or registers the photo once and adds an upload grant;
+  only then does the box PUT the bytes, read from its own Blobs, straight to storage. `relay.publish` links a photo
+  only after checking the stored bytes against the digest (once; `asset.verified_sha256`), and refuses the batch with
+  409 otherwise, so the Publisher retries. The same photo on two products, or a renamed product, uploads nothing.
 - **What changed** comes from a diff, not the till feed (`store_change` is per store and carries no categories or
   visibility). `relay_published` keeps the hash of every row the relay acknowledged. A run sends rows whose hash
   differs, re-sends a product that left the projection as `onlineVisible: false`, and records each batch's hashes
   once the relay answers 200. An empty table means a full snapshot.
-- **Batches** hold at most 500 rows of a kind, parents first (stores, branches, categories, products, prices). A
-  retried batch changes nothing on the relay.
-- **When it runs:** after any successful catalogue write (the catalogue router's `relayPublisher` hook), when the
-  Online Orders switch goes on (`PUT /settings/online`), and on boot. Scheduled prices need no wake: future prices
+- **Batches** hold at most 500 rows of a kind, parents first (stores, branches, fulfilment, categories, products,
+  prices). A retried batch changes nothing on the relay.
+- **When it runs:** after any successful catalogue, store, branch or fulfilment write (the `wakePublisher` middleware),
+  when the Online Orders switch goes on (`PUT /settings/online`), and on boot. Scheduled prices need no wake: future prices
   are already published, and the store prices by the time of the request.
 - **Failures:** 401, 402 or 403 records the reason in `org.relay_error` and ends the run. A network error or 5xx
   records it and retries after 1 minute, doubling to 15 minutes; any wake cuts the wait short.
@@ -244,6 +251,10 @@ class: `runRelayPublisher` (`@shopper/core/relay`), started by `boxRelayPublishe
   This is also how to repair a relay that lost its copy.
 
 Category visibility applies everywhere: `catalogue_public` hides a product whose category or department is hidden.
+
+The relay org's catalogue tables and `branch_fulfilment` are written only by `relay.publish` (the `relay_lock` trigger
+checks `shopper.relay`), and its cloud back office only reads (`refuseRelayEdits`). Delivery zones do not exist (one flat
+fee per branch) and store trading hours stay on the box: only the store-day workflow reads them.
 
 ## Rules that keep both sides honest
 

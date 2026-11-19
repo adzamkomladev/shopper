@@ -89,7 +89,7 @@ const publisher = () =>
     withDatabase: (run) => run(box.db),
     appVersion: ctx.appVersion,
     send: async (path, init) => {
-      sent.push(JSON.parse(init.body) as Batch);
+      if (path === "/relay/publish") sent.push(JSON.parse(init.body) as Batch);
       return cloud.send(shop, path, init);
     },
   });
@@ -179,8 +179,12 @@ test("nothing the shop keeps private ever leaves the box", async () => {
   const allowed: Record<string, string[]> = {
     stores: ["id", "name"],
     branches: ["id", "storeId", "name"],
+    fulfilment:
+      "id branchId pickup delivery deliveryFee opens closes slotMinutes slotCapacity leadMinutes".split(
+        " ",
+      ),
     categories: ["id", "name", "parentId", "onlineVisible"],
-    products: ["id", "sku", "name", "categoryId", "taxClass", "baseUnit", "onlineVisible"],
+    products: ["id", "sku", "name", "categoryId", "taxClass", "baseUnit", "onlineVisible", "image"],
     prices: ["id", "productId", "branchId", "amount", "validFrom", "validTo"],
   };
   expect(sent.length).toBeGreaterThan(0);

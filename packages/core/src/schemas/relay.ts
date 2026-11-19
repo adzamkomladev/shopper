@@ -1,6 +1,7 @@
 import * as v from "valibot";
 import { uuidV7Schema } from "@shopper/ports";
 import { name, text, timestamp } from "./fields";
+import { fulfilmentFields } from "./orders/fulfilment";
 
 /** The most rows of one kind a publish batch carries; the Publisher splits larger catalogues. */
 export const BATCH_ROWS = 500;
@@ -15,6 +16,13 @@ const rows = <T extends v.GenericSchema>(row: T) =>
 export const relayBatch = v.strictObject({
   stores: rows(v.strictObject({ id: uuidV7Schema, name })),
   branches: rows(v.strictObject({ id: uuidV7Schema, storeId: uuidV7Schema, name })),
+  /** Each branch's pickup, delivery, hours and slots: what the store's checkout offers. */
+  fulfilment: rows(
+    v.pipe(
+      v.strictObject({ id: uuidV7Schema, branchId: uuidV7Schema, ...fulfilmentFields }),
+      v.check((row) => row.closes > row.opens, "Closing must be after opening"),
+    ),
+  ),
   categories: rows(
     v.strictObject({
       id: uuidV7Schema,
@@ -32,6 +40,8 @@ export const relayBatch = v.strictObject({
       taxClass: v.picklist(["standard", "zero-rated", "exempt"]),
       baseUnit: v.picklist(["each", "kg", "g", "l", "ml"]),
       onlineVisible: v.boolean(),
+      /** The photo's digest; the box offers its bytes on `/relay/images` first. */
+      image: v.optional(v.nullable(v.pipe(v.string(), v.regex(/^[a-f0-9]{64}$/))), null),
     }),
   ),
   prices: rows(

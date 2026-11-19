@@ -1,5 +1,14 @@
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
-import { branch, category, price, product, store, taxClass } from "@shopper/db-pg";
+import {
+  asset,
+  branch,
+  branchFulfilment,
+  category,
+  price,
+  product,
+  store,
+  taxClass,
+} from "@shopper/db-pg";
 import type { Queryable } from "../types";
 
 /**
@@ -18,6 +27,22 @@ export async function relayProjection(db: Queryable, orgId: string, now = new Da
     .from(branch)
     .where(eq(branch.orgId, orgId))
     .orderBy(asc(branch.id));
+  const fulfilment = await db
+    .select({
+      id: branchFulfilment.id,
+      branchId: branchFulfilment.branchId,
+      pickup: branchFulfilment.pickup,
+      delivery: branchFulfilment.delivery,
+      deliveryFee: branchFulfilment.deliveryFee,
+      opens: branchFulfilment.opens,
+      closes: branchFulfilment.closes,
+      slotMinutes: branchFulfilment.slotMinutes,
+      slotCapacity: branchFulfilment.slotCapacity,
+      leadMinutes: branchFulfilment.leadMinutes,
+    })
+    .from(branchFulfilment)
+    .where(eq(branchFulfilment.orgId, orgId))
+    .orderBy(asc(branchFulfilment.id));
   const categories = await db
     .select({
       id: category.id,
@@ -36,6 +61,7 @@ export async function relayProjection(db: Queryable, orgId: string, now = new Da
       taxClass,
       and(eq(taxClass.orgId, product.orgId), eq(taxClass.id, product.taxClassId)),
     )
+    .leftJoin(asset, and(eq(asset.orgId, product.orgId), eq(asset.id, product.imageAssetId)))
     .where(
       and(eq(product.orgId, orgId), eq(product.onlineVisible, true), isNull(product.archivedAt)),
     )
@@ -68,6 +94,13 @@ export async function relayProjection(db: Queryable, orgId: string, now = new Da
   return {
     stores,
     branches,
+    // PostgreSQL reads a time as HH:MM:SS; the wire and the back office use HH:MM.
+    fulfilment: fulfilment.map((row) => ({
+      ...row,
+      deliveryFee: Number(row.deliveryFee),
+      opens: row.opens.slice(0, 5),
+      closes: row.closes.slice(0, 5),
+    })),
     categories,
     products,
     prices: prices.map((row) => ({
@@ -88,4 +121,6 @@ export const productFields = {
   taxClass: taxClass.code,
   baseUnit: product.baseUnit,
   onlineVisible: sql<boolean>`${product.onlineVisible} AND ${product.archivedAt} IS NULL`,
+  /** The photo's digest: the relay holds it content-addressed, so equal digests mean equal photos. */
+  image: asset.sha256,
 };

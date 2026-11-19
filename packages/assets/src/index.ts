@@ -5,3 +5,4 @@ export * from "./receipts";
 export * from "./kyb";
 export * from "./rendered";
 export * from "./products";
+export * from "./relay";

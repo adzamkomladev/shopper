@@ -1,18 +1,29 @@
 import { eq, sql } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
-import { branch, category, price, product, store, taxClass } from "@shopper/db-pg";
+import { relayImageId } from "@shopper/assets";
+import {
+  branch,
+  branchFulfilment,
+  category,
+  price,
+  product,
+  store,
+  taxClass,
+} from "@shopper/db-pg";
 import { money } from "@shopper/money";
+import type { Blobs } from "@shopper/ports";
 import type { RelayBatch } from "../schemas/relay";
 
 /**
  * A box publishes catalogue rows to its relay org: the only writer the relay lock lets through (it sets
  * `shopper.relay` for this transaction). Rows are upserted by the box's ids, so a retried batch changes nothing, and an
  * id that is another org's row is left alone. Prices are append-only versions, so one already here is kept as is.
- * The relay org's chain records each batch.
+ * A product's photo must already be in storage (offered on `/relay/images`). The relay org's chain records each batch.
  */
 export const publishRelay = defineCommand({
   name: "relay.publish",
-  async run(tx, context, batch: RelayBatch) {
+  async run(tx, context, input: { batch: RelayBatch; blobs?: Blobs }) {
+    const batch = input.batch;
     const orgId = context.orgId;
     await tx.execute(sql`SELECT set_config('shopper.relay', ${orgId}, true)`);
     for (const row of batch.stores)
@@ -33,6 +44,17 @@ export const publishRelay = defineCommand({
           set: { name: row.name, updatedAt: sql`now()` },
           setWhere: eq(branch.orgId, orgId),
         });
+    for (const row of batch.fulfilment) {
+      const fields = { ...row, deliveryFee: money(row.deliveryFee), updatedAt: sql`now()` };
+      await tx
+        .insert(branchFulfilment)
+        .values({ orgId, ...fields })
+        .onConflictDoUpdate({
+          target: branchFulfilment.id,
+          set: fields,
+          setWhere: eq(branchFulfilment.orgId, orgId),
+        });
+    }
     for (const row of batch.categories)
       await tx
         .insert(category)
@@ -63,6 +85,7 @@ export const publishRelay = defineCommand({
         taxClassId: classes.get(row.taxClass)!,
         baseUnit: row.baseUnit,
         onlineVisible: row.onlineVisible,
+        imageAssetId: row.image ? await relayImageId(tx, input.blobs, orgId, row.image) : null,
       };
       await tx
         .insert(product)
@@ -81,6 +104,7 @@ export const publishRelay = defineCommand({
     return {
       stores: batch.stores.length,
       branches: batch.branches.length,
+      fulfilment: batch.fulfilment.length,
       categories: batch.categories.length,
       products: batch.products.length,
       prices: batch.prices.length,

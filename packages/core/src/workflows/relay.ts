@@ -29,7 +29,7 @@ export async function runRelayPublisher(
   for (let tick = 0; ; tick++) {
     const failed = await flow.step(`publish-${tick}`, policy, () =>
       deps.withDatabase(async (db) => {
-        const error = await publishPending(db, context, deps.send).then(
+        const error = await publishPending(db, context, deps).then(
           () => null,
           (thrown: unknown) => (thrown instanceof Error ? thrown.message : String(thrown)),
         );

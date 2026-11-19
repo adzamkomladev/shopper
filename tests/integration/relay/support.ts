@@ -12,9 +12,9 @@ import { context, db, otherContext } from "../auth/setup";
 export const CLOUD = "https://cloud.shopper.test";
 export type Box = { licence: Licence; key: string };
 
-export async function relayCloud() {
+export async function relayCloud(options: Partial<Parameters<typeof createApi>[0]> = {}) {
   const issuer = await generateKey();
-  const api = createApi({ database: db, licenceSigningKey: issuer.privateKey });
+  const api = createApi({ database: db, licenceSigningKey: issuer.privateKey, ...options });
   return {
     issuer,
     api,

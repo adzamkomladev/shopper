@@ -60,6 +60,7 @@ test("a published batch writes the relay org's catalogue, audited in its chain",
   expect(await published.json()).toEqual({
     stores: 1,
     branches: 1,
+    fulfilment: 0,
     categories: 1,
     products: 1,
     prices: 1,
@@ -129,4 +130,34 @@ test("a batch carries only the published fields and cannot reach another org's r
     .from(schema.product)
     .where(eq(schema.product.id, foreign!.id));
   expect(after).toEqual({ orgId: context.orgId, name: "Other shop's rice" });
+});
+
+test("a photo the relay does not hold, or a fulfilment row out of bounds, is refused", async () => {
+  const digest = "a".repeat(64);
+  const unheld = batch();
+  Object.assign(unheld.products[0]!, { image: digest });
+  expect((await publish(unheld)).status).toBe(409);
+  // Without storage the relay cannot take photos at all.
+  const offer = await cloud.send(shop, "/relay/images", {
+    method: "POST",
+    body: JSON.stringify({ sha256: digest, sizeBytes: 10, contentType: "image/png" }),
+  });
+  expect(offer.status).toBe(503);
+  const hours = {
+    id: v7(),
+    branchId: osuBranch,
+    pickup: true,
+    delivery: true,
+    deliveryFee: 15_000,
+    opens: "08:00",
+    closes: "20:00",
+    slotMinutes: 60,
+    slotCapacity: 10,
+    leadMinutes: 60,
+  };
+  expect((await publish({ ...batch(), fulfilment: [{ ...hours, zone: "Osu" }] })).status).toBe(400);
+  expect((await publish({ ...batch(), fulfilment: [{ ...hours, opens: "21:00" }] })).status).toBe(
+    400,
+  );
+  expect((await publish({ ...batch(), fulfilment: [hours] })).status).toBe(200);
 });

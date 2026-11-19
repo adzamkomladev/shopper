@@ -5,6 +5,7 @@ import { branchFulfilmentOf, OrderError, saveFulfilment } from "@shopper/core/or
 import { managementId } from "@shopper/core/management";
 import { assertBranch } from "../middleware/require/branches";
 import { requirePermission } from "../middleware/require/permission";
+import { wakePublisher } from "../middleware/relay";
 import type { ApiEnvironment, ApiOptions } from "../types";
 
 /** A branch's online ordering: pickup, delivery and its fee, hours and slots, read and saved on the branch screen. */
@@ -23,7 +24,8 @@ export function fulfilmentRoutes(options: ApiOptions) {
     assertBranch(c.get("principal"), id);
     return c.json(await branchFulfilmentOf(options.database, c.get("principal").orgId, id));
   });
-  app.put(path, requirePermission(options.authentication, "branch.write"), async (c) => {
+  const wake = wakePublisher(options.relayPublisher);
+  app.put(path, requirePermission(options.authentication, "branch.write"), wake, async (c) => {
     if (!options.database) return c.json({ error: "Database unavailable" }, 503);
     const principal = c.get("principal");
     const id = v.parse(managementId, c.req.param("id"));

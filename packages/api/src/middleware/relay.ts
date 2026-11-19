@@ -1,7 +1,8 @@
 import type { MiddlewareHandler } from "hono";
 import { isRelayOrg } from "@shopper/core/relay";
 import type { ShopperDatabase } from "@shopper/db-pg";
-import type { ApiAuthentication } from "../types";
+import type { WorkflowLauncher } from "@shopper/ports";
+import type { ApiAuthentication, ApiEnvironment } from "../types";
 
 /**
  * A relay org (v1.5) is its on-prem box's projection: its cloud back office only reads, for every member and every
@@ -26,5 +27,20 @@ export function refuseRelayEdits(
           423,
         )
       : next();
+  };
+}
+
+/**
+ * On a box, a successful write to what its relay org's store shows (catalogue, stores, branches, fulfilment) wakes
+ * the Publisher (v1.5), so the online store follows within seconds. A failed wake is logged, never the write's error.
+ */
+export function wakePublisher(publisher?: WorkflowLauncher): MiddlewareHandler<ApiEnvironment> {
+  return async (c, next) => {
+    await next();
+    if (!publisher || c.req.method === "GET" || !c.res.ok) return;
+    const orgId = c.get("principal").orgId;
+    await publisher
+      .start(orgId, { orgId })
+      .catch((error: unknown) => console.error({ event: "relay.wake_failed", orgId, error }));
   };
 }

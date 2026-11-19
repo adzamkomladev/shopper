@@ -32,6 +32,7 @@ import {
 import { mappingRoutes } from "./catalogue/mappings";
 import { productImageRoutes } from "./catalogue/images";
 import { problem } from "../middleware/problem";
+import { wakePublisher } from "../middleware/relay";
 import { requirePermission } from "../middleware/require/permission";
 import { priceBody } from "../schemas/catalogue";
 import type { ApiAuthentication, ApiEnvironment } from "../types";
@@ -65,15 +66,7 @@ export function catalogueRoutes(options: {
         ? "stock.write"
         : "product.write",
   );
-  const publisher = options.relayPublisher;
-  const wake = async (c: Ctx, next: () => Promise<void>) => {
-    await next();
-    if (!publisher || c.req.method === "GET" || !c.res.ok) return;
-    const orgId = c.get("principal").orgId;
-    await publisher
-      .start(orgId, { orgId })
-      .catch((error: unknown) => console.error({ event: "relay.wake_failed", orgId, error }));
-  };
+  const wake = wakePublisher(options.relayPublisher);
   for (const root of ["products", "barcodes", "prices", "categories", "suppliers", "catalogue"])
     app.use(`/${root}`, guard, wake).use(`/${root}/*`, guard, wake);
 

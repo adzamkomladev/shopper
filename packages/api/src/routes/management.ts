@@ -13,6 +13,7 @@ import { storeDayId } from "@shopper/core/reports";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import { branchScope } from "../middleware/require/branches";
 import { requirePermission } from "../middleware/require/permission";
+import { wakePublisher } from "../middleware/relay";
 import type { ApiEnvironment, ApiOptions, ApiPrincipal } from "../types";
 
 // Stores and branches: one CRUD surface per management kind.
@@ -28,6 +29,7 @@ export function managementRoutes(options: ApiOptions) {
           options.authentication,
           (request) => `${kind}.${request.method === "GET" ? "read" : "write"}`,
         ),
+        wakePublisher(options.relayPublisher),
         async (c) => {
           const principal = c.get("principal");
           const action = c.req.method;

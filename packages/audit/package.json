@@ -18,7 +18,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsrs -b"
   },
   "dependencies": {
     "@shopper/db-pg": "workspace:*",

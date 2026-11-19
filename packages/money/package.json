@@ -10,7 +10,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsrs -b"
   },
   "dependencies": {
     "valibot": "1.5.0"

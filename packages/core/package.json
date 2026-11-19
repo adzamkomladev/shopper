@@ -158,7 +158,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsrs -b"
   },
   "dependencies": {
     "@shopper/assets": "workspace:*",

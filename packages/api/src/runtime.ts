@@ -54,10 +54,9 @@ async function route(request: Request, options: RuntimeOptions): Promise<Respons
     }).fetch(request);
   }
   if (/^\/shop(?:\/|$)/.test(url.pathname)) return shop(request, options);
-  // A box checks in with its licence-signed request: no session, no shop selector.
+  // A box checking in or moving in signs every request with its licence: no session, no shop selector.
   if (url.pathname === "/licence/confirmations")
     return createApi({ licenceSigningKey: options.licenceSigningKey }).fetch(request);
-  // A box moving in: every request is licence-signed, so like the check-in it needs no session or shop selector.
   if (/^\/migration\/(?:imports|handover)(?:\/|$)/.test(url.pathname))
     return createApi({
       database: options.database,
@@ -93,6 +92,7 @@ async function route(request: Request, options: RuntimeOptions): Promise<Respons
       lane: options.lane,
       minTillVersion: options.minTillVersion,
       tillFeed: options.tillFeed,
+      relayPublisher: options.relayPublisher,
       movable: !!options.cloudMoves,
       onPrem: !!options.licenceSigningKey,
     }).fetch(request);

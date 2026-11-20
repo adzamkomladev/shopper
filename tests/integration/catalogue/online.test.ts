@@ -195,4 +195,13 @@ test("the Online Orders switch and every catalogue write wake the Publisher; swi
       and(eq(schema.auditLog.orgId, world.a.orgId), eq(schema.auditLog.command, "settings.online")),
     );
   expect(changes.at(-1)?.payload).toMatchObject({ onlineOrders: true, buffer: 3 });
+  // A stock write changes what the store may sell: it wakes the Publisher too.
+  const adjusted = await call(box, "owner", "POST", "/stock/adjustments", {
+    id: v7(),
+    branchId: shop.branches[0],
+    cause: "damaged",
+    lines: [{ productId: await shop.product("Wake-up milk"), quantityThousandths: 1000 }],
+  });
+  expect(adjusted.status).toBe(201);
+  expect(woken).toHaveLength(7);
 });

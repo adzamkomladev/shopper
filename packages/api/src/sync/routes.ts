@@ -13,7 +13,7 @@ import { issueReceiptBlocks } from "@shopper/core/till";
 import { adoptSession } from "./offline";
 
 import type { ShopperDatabase } from "@shopper/db-pg";
-import type { Blobs, Lane, Queue, Sequencer } from "@shopper/ports";
+import type { Blobs, Lane, Queue, Sequencer, WorkflowLauncher } from "@shopper/ports";
 import type { createDeviceService } from "@shopper/auth/devices";
 import { createApproverRoutes } from "./approvers";
 import { createAuditRoutes } from "./audit";
@@ -50,6 +50,8 @@ export function createSyncRoutes(options: {
   movable?: boolean;
   /** Cloud only: a shop can move onto its own box; while it does its registers only read, then follow it there. */
   onPrem?: boolean;
+  /** Box only (v1.5): accepted sales wake the Publisher, so a sell-out reaches the online store within seconds. */
+  relayPublisher?: WorkflowLauncher;
 }) {
   const protocol = options.protocol ?? buildInfo.syncProtocol;
   const app = new Hono();
@@ -192,6 +194,12 @@ export function createSyncRoutes(options: {
         return c.json({ error: "Sale sequencing unavailable" }, 503);
       }
     }
+    if (accepted.length)
+      await options.relayPublisher
+        ?.start(principal.orgId, { orgId: principal.orgId })
+        .catch((error: unknown) =>
+          console.error({ event: "relay.wake_failed", orgId: principal.orgId, error }),
+        );
     return c.json({
       requestId: data.requestId,
       accepted,

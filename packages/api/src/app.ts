@@ -114,6 +114,7 @@ export function createApi(options: ApiOptions = {}) {
         lane: options.lane,
         minTillVersion: options.minTillVersion,
         tillFeed: options.tillFeed,
+        relayPublisher: options.relayPublisher,
         movable: !!options.cloudMoves,
         onPrem: !!options.licenceSigningKey,
       }),
@@ -144,7 +145,15 @@ export function createApi(options: ApiOptions = {}) {
   if (options.database) app.route("/", shiftRoutes(options.database, options.authentication));
   if (options.database) app.route("/", auditRoutes(options.database, options.authentication));
   if (options.database)
-    app.route("/", stockRoutes(options.database, options.authentication, options.notifications));
+    app.route(
+      "/",
+      stockRoutes(
+        options.database,
+        options.authentication,
+        options.notifications,
+        options.relayPublisher,
+      ),
+    );
   if (options.database)
     app.route(
       "/",

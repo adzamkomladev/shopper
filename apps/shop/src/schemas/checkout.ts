@@ -39,6 +39,8 @@ export const fulfilmentOptions = v.object({
   pickup: v.boolean(),
   delivery: v.boolean(),
   deliveryFee: amount,
+  /** The shop's system has gone quiet in opening hours (v1.5): no orders until it is back; the cart waits. */
+  paused: v.boolean(),
   slots: v.array(v.object({ start: v.string(), end: v.string(), remaining: v.number() })),
 });
 export type FulfilmentOptions = v.InferOutput<typeof fulfilmentOptions>;

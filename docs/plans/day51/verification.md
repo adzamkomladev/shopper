@@ -40,7 +40,7 @@
 - `e2e/portal/customers/online.spec.ts`: keyboard toggle, persists across reload, hidden off a box; screenshots at
   1920, 1440, 1366, 768 and 390 with axe and horizontal-overflow checks (pass).
 - Relay (51), orders, payments, fiscal, customers and shop suites (88 files, 380 tests) pass; `vp check` and
-  `vp run guard` are clean; full `vp test --run` result below.
+  `vp run guard` are clean; full `vp test --run` timed out locally (58 min); with Rivet started, the Rivet, conformance and sealed-box tests that it reached pass. The Electron receipt-render equivalence test fails on this machine (pixel tolerance), unrelated to the change; CI runs the full suite.
 
 ## Review
 

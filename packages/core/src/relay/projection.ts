@@ -10,10 +10,11 @@ import {
   taxClass,
 } from "@shopper/db-pg";
 import type { Queryable } from "../types";
+import { relayAvailability } from "./availability";
 
 /**
  * The online catalogue a box publishes to its relay org (v1.5), field by field: nothing else about the shop (costs,
- * suppliers, stock, customers) can leave by accident. Products are those visible online and not archived; prices are
+ * suppliers, movements, customers) can leave by accident; stock only as each branch's floored availability. Products are those visible online and not archived; prices are
  * theirs that are still in force or start later. The relay's copy read with the same function must equal the box's.
  */
 export async function relayProjection(db: Queryable, orgId: string, now = new Date()) {
@@ -109,6 +110,7 @@ export async function relayProjection(db: Queryable, orgId: string, now = new Da
       validFrom: row.validFrom.toISOString(),
       validTo: row.validTo?.toISOString() ?? null,
     })),
+    availability: await relayAvailability(db, orgId, now),
   };
 }
 

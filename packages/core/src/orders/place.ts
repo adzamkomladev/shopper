@@ -18,7 +18,7 @@ import { quoteCart } from "../storefront/cart";
 import { OrderError } from "./error";
 import { recordStatus } from "./fulfil/events";
 import { reserveStock } from "./holds";
-import { readFulfilment, slotStarts, takenSlots } from "./slots";
+import { orderingPaused, readFulfilment, slotStarts, takenSlots } from "./slots";
 import { orderByDigest } from "./view";
 
 /** How long an unpaid order keeps its stock: the time a shopper has to pay. */
@@ -75,6 +75,11 @@ const placeCommand = defineCommand({
         input.fulfilment === "delivery"
           ? "This branch does not deliver. Choose pickup."
           : "This branch does not take pickup orders.",
+      );
+    if (await orderingPaused(tx, context.orgId, fulfilment, now))
+      throw new OrderError(
+        "paused",
+        "Online ordering is paused at this branch. Your cart is kept; try again in a few minutes.",
       );
     const slot = slotStarts(fulfilment, now).find((at) => at.getTime() === input.slot.getTime());
     if (!slot) throw new OrderError("slot", "That time is no longer open. Pick another.");

@@ -1,5 +1,15 @@
-import { boolean, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
-import { org, tenant } from "./base";
+import {
+  boolean,
+  foreignKey,
+  integer,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
+import { branch, org, tenant } from "./base";
+import { product } from "./catalogue";
 
 /**
  * A box enrolled to publish to its relay org (v1.5): one row per licence, the relay org being the licence's `org`.
@@ -39,11 +49,33 @@ export const relayPublished = pgTable(
       .notNull()
       .references(() => org.id),
     entity: text("entity", {
-      enum: ["store", "branch", "fulfilment", "category", "product", "price"],
+      enum: ["store", "branch", "fulfilment", "category", "product", "price", "availability"],
     }).notNull(),
     entityId: uuid("entity_id").notNull(),
     hash: text("hash").notNull(),
     publishedAt: timestamp("published_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.orgId, t.entity, t.entityId] })],
+);
+
+/**
+ * On a relay org: what its box says each branch can still sell online, floored to a step (v1.5 Day 49). The store's
+ * `availableOf` adds it to on hand; only the box's publish writes it (relay lock).
+ */
+export const onlineAvailability = pgTable(
+  "online_availability",
+  {
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => org.id),
+    branchId: uuid("branch_id").notNull(),
+    productId: uuid("product_id").notNull(),
+    quantityThousandths: integer("quantity_thousandths").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.orgId, t.branchId, t.productId] }),
+    foreignKey({ columns: [t.orgId, t.branchId], foreignColumns: [branch.orgId, branch.id] }),
+    foreignKey({ columns: [t.orgId, t.productId], foreignColumns: [product.orgId, product.id] }),
+  ],
 );

@@ -25,6 +25,8 @@ export const EXCLUDED_TABLES: Record<string, string> = {
   relay_nonce: "Relay request signatures kept only to refuse replays.",
   relay_published:
     "What a box last sent its relay org; a moved shop republishes from scratch when it switches Online Orders on.",
+  online_availability:
+    "A relay org's copy of what its box can sell online; the box republishes it from its own stock.",
 };
 
 /** Columns dropped from tables that are otherwise exported: secrets and tokens, never business data. */

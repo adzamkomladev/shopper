@@ -129,8 +129,8 @@ test("a snapshot, then 100 changes: the relay's catalogue equals the box's proje
   const snapshot = await publish();
   await same();
   const total = rows(snapshot);
-  // 2 stores, 3 branches, 2 categories, 39 visible products, their 39 shop prices and 4 branch prices.
-  expect(total).toBe(2 + 3 + 2 + 39 + 43);
+  // 2 stores, 3 branches, 2 categories, 39 products, their 39 shop and 4 branch prices, 39 availability rows.
+  expect(total).toBe(2 + 3 + 2 + 39 + 43 + 39);
   const changes = [
     (i: number) =>
       setPrice(box.db, ctx, { productId: products[i % 39]!, data: { amount: 20_000 + i } }),
@@ -186,6 +186,7 @@ test("nothing the shop keeps private ever leaves the box", async () => {
     categories: ["id", "name", "parentId", "onlineVisible"],
     products: ["id", "sku", "name", "categoryId", "taxClass", "baseUnit", "onlineVisible", "image"],
     prices: ["id", "productId", "branchId", "amount", "validFrom", "validTo"],
+    availability: ["id", "branches"],
   };
   expect(sent.length).toBeGreaterThan(0);
   for (const batch of sent)

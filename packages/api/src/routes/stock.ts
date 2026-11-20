@@ -11,12 +11,13 @@ import {
   stockBranches,
 } from "@shopper/core/stock";
 import type { AdjustmentInput, ReceiptInput } from "@shopper/core/schemas";
-import type { Queue } from "@shopper/ports";
+import type { Queue, WorkflowLauncher } from "@shopper/ports";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import { commandContext } from "./stock/context";
 import { branchScope, scopedBody, scopedQuery } from "../middleware/require/branches";
 import { takeRoutes } from "./stock/takes";
 import { problem } from "../middleware/problem";
+import { wakePublisher } from "../middleware/relay";
 import { requirePermission } from "../middleware/require/permission";
 import type { ApiAuthentication, ApiEnvironment } from "../types";
 
@@ -25,12 +26,15 @@ export function stockRoutes(
   database: ShopperDatabase,
   authentication: ApiAuthentication | undefined,
   notifications?: Queue,
+  relayPublisher?: WorkflowLauncher,
 ) {
   const app = new Hono<ApiEnvironment>();
   const guard = requirePermission(authentication, (request) =>
     request.method === "GET" ? "stock.read" : "stock.write",
   );
-  app.use("/stock", guard).use("/stock/*", guard);
+  // On a box a stock write changes what the online store may sell: it wakes the Publisher (v1.5).
+  const wake = wakePublisher(relayPublisher);
+  app.use("/stock", guard, wake).use("/stock/*", guard, wake);
   const org = (c: Context<ApiEnvironment>) => c.get("principal").orgId;
   // A till reads its own branch, whatever the query says; a scoped member only theirs.
   const query = (c: Context<ApiEnvironment>) => scopedQuery(c.get("principal"), c.req.query());

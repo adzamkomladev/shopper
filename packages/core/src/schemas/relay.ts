@@ -54,11 +54,29 @@ export const relayBatch = v.strictObject({
       validTo: v.nullable(timestamp),
     }),
   ),
+  /** Per product, what each branch can still sell online (thousandths, floored to a step by the box). */
+  availability: rows(
+    v.strictObject({
+      id: uuidV7Schema,
+      branches: v.pipe(
+        v.array(
+          v.strictObject({
+            branchId: uuidV7Schema,
+            available: v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(2 ** 31 - 1)),
+          }),
+        ),
+        v.maxLength(BATCH_ROWS),
+      ),
+    }),
+  ),
 });
 export type RelayBatch = v.InferOutput<typeof relayBatch>;
 
 /** The Publisher's run: one loop per box org, its instance id the org id. */
 export const relayPublisherParams = v.object({ orgId: uuidV7Schema });
 
-/** The box's Online Orders switch, as the settings page saves it. */
-export const onlineSettingsInput = v.strictObject({ onlineOrders: v.boolean() });
+/** The box's Online Orders switch and the units of every product kept back from the online store (unchanged when absent). */
+export const onlineSettingsInput = v.strictObject({
+  onlineOrders: v.boolean(),
+  buffer: v.optional(v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(10_000))),
+});

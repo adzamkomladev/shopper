@@ -144,3 +144,40 @@ test("a dropped connection on Place order says so, and trying again places the o
     timeout: 30_000,
   });
 });
+
+test("while the shop's box is silent the checkout says ordering is paused and keeps the cart", async ({
+  page,
+}, info) => {
+  await startShopper(page);
+  const [osu] = store.branches;
+  await page.goto(`/${SHOP}/products/${store.products.rice}?branch=${osu}`);
+  await expect(page.getByRole("heading", { name: `Jasmine rice ${tag}` })).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(async () => {
+    await page.getByRole("button", { name: "Add to cart" }).click();
+    await expect(cartButton(page)).toHaveAccessibleName("Cart, 1 item", { timeout: 1_000 });
+  }).toPass({ timeout: 30_000 });
+  await page.keyboard.press("c");
+  await expect(page.getByRole("region", { name: "Items" }).getByRole("listitem")).toHaveCount(1);
+  // v1.5 Day 49: the relay has not heard from the box for 5 minutes in opening hours.
+  await page.route(
+    (url) => url.pathname.endsWith("/fulfilment"),
+    async (route) => {
+      const live = (await (await route.fetch()).json()) as Record<string, unknown>;
+      await route.fulfill({ json: { ...live, paused: true } });
+    },
+  );
+  await page.goto(`/${SHOP}/checkout?branch=${osu}`);
+  await expect(page.getByText(`Online ordering is paused at Osu ${tag}`)).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(page.getByText("Your cart is saved")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Place order" })).toHaveCount(0);
+  await shoot(page, info, "checkout-paused");
+  await expectNoSeriousAxe(page);
+  // The cart is untouched, ready for when ordering resumes.
+  await page.getByRole("link", { name: "Review your cart" }).click();
+  await expect(page.getByRole("region", { name: "Items" }).getByRole("listitem")).toHaveCount(1);
+  await expect(cartButton(page)).toHaveAccessibleName("Cart, 1 item");
+});

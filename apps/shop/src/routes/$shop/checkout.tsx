@@ -75,6 +75,14 @@ function Checkout() {
             </Button>
           </AlertDescription>
         </Alert>
+      ) : options.data.paused ? (
+        <Gone
+          shop={shop}
+          branchId={branchId}
+          title={`Online ordering is paused at ${options.data.branch.name}`}
+          description="Your cart is saved. The shop's system is reconnecting; try again in a few minutes."
+          cart
+        />
       ) : closed ? (
         <Gone
           shop={shop}
@@ -104,11 +112,14 @@ function Gone({
   branchId,
   title,
   description,
+  cart,
 }: {
   shop: string;
   branchId: string;
   title: string;
   description: string;
+  /** Offer the cart back too: it is kept for when ordering resumes. */
+  cart?: boolean;
 }) {
   return (
     <Empty className="rounded-panel border border-dashed bg-card py-16">
@@ -119,7 +130,14 @@ function Gone({
         <EmptyTitle>{title}</EmptyTitle>
         <EmptyDescription>{description}</EmptyDescription>
       </EmptyHeader>
-      <EmptyContent>
+      <EmptyContent className="flex-row flex-wrap justify-center">
+        {cart && (
+          <Button asChild variant="outline" size="touch" className="rounded-full px-6 font-bold">
+            <Link to="/$shop/cart" params={{ shop }} search={{ branch: branchId }}>
+              Review your cart
+            </Link>
+          </Button>
+        )}
         <Button asChild size="touch" className="rounded-full px-6 font-bold">
           <Link to="/$shop" params={{ shop }} search={{ branch: branchId }}>
             Browse the store

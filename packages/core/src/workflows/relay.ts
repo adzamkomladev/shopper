@@ -12,7 +12,7 @@ const RETRY_MS = 60_000;
 const MAX_RETRY_MS = 15 * 60_000;
 
 /**
- * The box's Publisher (v1.5): send the relay org what changed, then end; a catalogue write or the Online Orders switch
+ * The box's Publisher (v1.5): send the relay org what changed and beat (Day 49), then end; a catalogue write or the Online Orders switch
  * starts it again (a start on a running loop is a wake). When the relay cannot be reached it keeps the reason and
  * tries again later, sooner if woken; a refusal (not enrolled, add-on off, maintenance lapsed) ends the run.
  * PostgreSQL is the record: what the relay acknowledged is in `relay_published`, so a rerun sends nothing twice.

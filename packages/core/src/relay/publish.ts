@@ -5,6 +5,7 @@ import {
   branch,
   branchFulfilment,
   category,
+  onlineAvailability,
   price,
   product,
   store,
@@ -13,6 +14,8 @@ import {
 import { money } from "@shopper/money";
 import type { Blobs } from "@shopper/ports";
 import type { RelayBatch } from "../schemas/relay";
+
+const AVAILABILITY_CHUNK = 5000;
 
 /**
  * A box publishes catalogue rows to its relay org: the only writer the relay lock lets through (it sets
@@ -101,6 +104,27 @@ export const publishRelay = defineCommand({
         .insert(price)
         .values(batch.prices.map((row) => ({ orgId, ...row, amount: money(row.amount) })))
         .onConflictDoNothing({ target: price.id });
+    const available = batch.availability.flatMap((row) =>
+      row.branches.map((entry) => ({
+        orgId,
+        branchId: entry.branchId,
+        productId: row.id,
+        quantityThousandths: entry.available,
+      })),
+    );
+    // Chunked: 500 products × many branches would pass PostgreSQL's 65 535 bound parameters in one insert.
+    for (let from = 0; from < available.length; from += AVAILABILITY_CHUNK)
+      await tx
+        .insert(onlineAvailability)
+        .values(available.slice(from, from + AVAILABILITY_CHUNK))
+        .onConflictDoUpdate({
+          target: [
+            onlineAvailability.orgId,
+            onlineAvailability.branchId,
+            onlineAvailability.productId,
+          ],
+          set: { quantityThousandths: sql`excluded.quantity_thousandths`, updatedAt: sql`now()` },
+        });
     return {
       stores: batch.stores.length,
       branches: batch.branches.length,
@@ -108,6 +132,7 @@ export const publishRelay = defineCommand({
       categories: batch.categories.length,
       products: batch.products.length,
       prices: batch.prices.length,
+      availability: batch.availability.length,
     };
   },
   audit: (_input, output) => output,

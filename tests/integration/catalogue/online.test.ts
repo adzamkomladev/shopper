@@ -112,6 +112,7 @@ test("the Online Orders switch and every catalogue write wake the Publisher; swi
   expect(await read.json()).toEqual({
     box: true,
     onlineOrders: false,
+    buffer: 0,
     publishedAt: null,
     error: null,
   });
@@ -170,4 +171,37 @@ test("the Online Orders switch and every catalogue write wake the Publisher; swi
       and(eq(schema.auditLog.orgId, world.a.orgId), eq(schema.auditLog.command, "settings.online")),
     );
   expect(audit?.payload).toMatchObject({ onlineOrders: true });
+
+  // Day 49: the units kept back from the online store save on their own, audited, and wake the Publisher.
+  const kept = await call(box, "owner", "PUT", "/settings/online", {
+    onlineOrders: true,
+    buffer: 3,
+  });
+  expect(await kept.json()).toMatchObject({ onlineOrders: true, buffer: 3 });
+  const [row] = await world.db
+    .select({ buffer: schema.org.onlineBuffer })
+    .from(schema.org)
+    .where(eq(schema.org.id, world.a.orgId));
+  expect(row?.buffer).toBe(3000);
+  expect(woken).toHaveLength(6);
+  for (const buffer of [-1, 1.5, 10_001])
+    expect(
+      (await call(box, "owner", "PUT", "/settings/online", { onlineOrders: true, buffer })).status,
+    ).toBe(400);
+  const changes = await world.db
+    .select({ payload: schema.auditLog.payload })
+    .from(schema.auditLog)
+    .where(
+      and(eq(schema.auditLog.orgId, world.a.orgId), eq(schema.auditLog.command, "settings.online")),
+    );
+  expect(changes.at(-1)?.payload).toMatchObject({ onlineOrders: true, buffer: 3 });
+  // A stock write changes what the store may sell: it wakes the Publisher too.
+  const adjusted = await call(box, "owner", "POST", "/stock/adjustments", {
+    id: v7(),
+    branchId: shop.branches[0],
+    cause: "damaged",
+    lines: [{ productId: await shop.product("Wake-up milk"), quantityThousandths: 1000 }],
+  });
+  expect(adjusted.status).toBe(201);
+  expect(woken).toHaveLength(7);
 });

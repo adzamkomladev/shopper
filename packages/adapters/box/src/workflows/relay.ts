@@ -8,7 +8,10 @@ import {
 import type { Launch } from "../types";
 import { memoryLaunch } from "./launch";
 
-/** The box's Publisher to its relay org (v1.5): one loop per org. `relaunch` on boot starts it where switched on. */
+/**
+ * The box's Publisher to its relay org (v1.5): one loop per org. `relaunch` starts it where switched on, on boot and
+ * every minute: each run publishes what is due, then beats (Day 49).
+ */
 export function boxRelayPublisher(deps: RelayPublisherDeps, launch: Launch = memoryLaunch) {
   const flows = launch(
     "relay-publisher",

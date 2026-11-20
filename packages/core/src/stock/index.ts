@@ -1,7 +1,7 @@
 export { acceptStockDocument } from "./accept";
 export { countDeltas } from "./counts";
 export { StockError } from "./error";
-export { onHand } from "./onhand";
+export { availableOf, onHand } from "./onhand";
 export { listDocuments, readDocument } from "./documents";
 export { listStock, readStockProduct, stockBranches } from "./queries";
 export { adjustStock, receiveStock } from "./record";

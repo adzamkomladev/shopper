@@ -3,8 +3,9 @@ import * as v from "valibot";
 import { publicKeyOf, type Licence } from "@shopper/core/licence";
 import { buildInfo } from "@shopper/config";
 import { AssetError, offerRelayImage } from "@shopper/assets";
-import type { Blobs } from "@shopper/ports";
+import type { Blobs, Queue, WorkflowLauncher } from "@shopper/ports";
 import {
+  applyRelayEvents,
   publishRelay,
   relayAccess,
   relayBatch,
@@ -14,7 +15,6 @@ import {
 } from "@shopper/core/relay";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import { problem } from "../middleware/problem";
-import { relayInboxQuery } from "../schemas/relay";
 
 type RelayEnvironment = { Variables: { relay: { licence: Licence; box: RelayBox } } };
 
@@ -27,6 +27,8 @@ export function relayRoutes(options: {
   database: ShopperDatabase;
   licenceSigningKey: string;
   blobs?: Blobs;
+  orderFlows?: WorkflowLauncher;
+  notifications?: Queue;
 }) {
   const app = new Hono<RelayEnvironment>();
   const db = options.database;
@@ -49,7 +51,12 @@ export function relayRoutes(options: {
     });
   });
   app.post("/relay/heartbeat", async (c) => c.json(await relayHeartbeat(db, c.get("relay").box)));
-  const context = (orgId: string) => ({ orgId, role: "relay", appVersion: buildInfo.version });
+  const context = (orgId: string) => ({
+    orgId,
+    role: "relay",
+    appVersion: buildInfo.version,
+    queue: options.notifications,
+  });
   app.post("/relay/publish", async (c) => {
     const batch = v.parse(relayBatch, await c.req.json());
     return c.json(
@@ -64,10 +71,17 @@ export function relayRoutes(options: {
       await offerRelayImage(db, context(c.get("relay").box.orgId), { blobs: options.blobs, data }),
     );
   });
-  app.get("/relay/orders", async (c) => {
-    const query = v.parse(relayInboxQuery, c.req.query());
+  // The box's order inbox (Day 50): paid orders it has not taken, and what it did with them.
+  app.get("/relay/orders", async (c) => c.json(await relayInbox(db, c.get("relay").box.orgId)));
+  app.post("/relay/orders/events", async (c) => {
+    if (!options.orderFlows) return c.json({ error: "Online orders are not running here" }, 503);
     return c.json(
-      await relayInbox(db, c.get("relay").box.orgId, { storeId: query.store, after: query.after }),
+      await applyRelayEvents(
+        db,
+        context(c.get("relay").box.orgId),
+        options.orderFlows,
+        await c.req.json(),
+      ),
     );
   });
   app.onError(problem);

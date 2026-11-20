@@ -17,7 +17,8 @@ import { price, product } from "../catalogue";
 import { asset } from "../assets";
 import { shopAccount } from "../shop";
 
-export const orderChannels = ["online"] as const;
+/** `relay`: on a box, an order its relay org took online and the box pulled to fill (v1.5 Day 50). */
+export const orderChannels = ["online", "relay"] as const;
 export const orderStatuses = [
   "placed",
   "expired",
@@ -83,6 +84,10 @@ export const onlineOrder = pgTable(
     receiptAssetId: uuid("receipt_asset_id"),
     /** When the confirmation text and email went out; each is sent once. */
     smsSentAt: timestamp("sms_sent_at", { withTimezone: true }),
+    /** On a relay org: when its box took the order and decided (v1.5 Day 50); its inbox stops offering it. */
+    relayAckedAt: timestamp("relay_acked_at", { withTimezone: true }),
+    /** On a box: the paid lines whose price or tax differs from the box's own quote when it accepted; null when none. */
+    priceCheck: jsonb("price_check"),
     emailSentAt: timestamp("email_sent_at", { withTimezone: true }),
     placedAt: timestamp("placed_at", { withTimezone: true }).notNull().defaultNow(),
   },

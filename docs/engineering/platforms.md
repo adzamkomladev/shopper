@@ -217,7 +217,7 @@ The drills run in the `heavy` test project; the machine test in `machine`.
 An on-prem shop sells online through a cloud **relay org** (`org.mode = 'relay'`, id = the box licence's `org`). The
 box never serves the store: it calls the cloud's `/relay/*` routes (mounted where `licenceSigningKey` is set) over its
 own outbound connection, licence-signed like its check-in. `@shopper/core/relay` owns the access check
-(`relayAccess`), the heartbeat, the order-inbox read over `online_order.inbox_cursor` and `relay.publish`; platform
+(`relayAccess`), the heartbeat, the order inbox (Day 50, below) and `relay.publish`; platform
 staff enrol, switch the add-on and revoke through `/platform/relays`. Business code only; no adapter or port is
 involved. See `security.md` for the lock and refusals.
 
@@ -268,6 +268,32 @@ not a workflow: it is liveness, not business logic, and keeps no step history. O
 when the box has been silent 5 minutes (or never beat) while the branch is inside its opens–closes: `GET
 /shop/:code/fulfilment` answers `paused: true`, the checkout says "Online ordering is paused" and keeps the cart (it is
 the browser's), and `placeOrder` refuses with `OrderError("paused")`. Out of hours nothing pauses; a cloud shop never does.
+
+**Order inbox (Day 50).** Paid online orders reach the box on the same Publisher run, not a separate actor (the
+relay gives the box 10 minutes to decide; the run comes at least every minute). A run is: take orders → decide →
+publish → tell → heartbeat (`relay/inbox/box.ts`).
+
+- **Take:** `GET /relay/orders` (`relayInbox`) answers up to 100 orders in `paid` with `relay_acked_at IS NULL`,
+  oldest payment first, with their lines (paid `price_id`, tax snapshot), slot, customer and receipt. No placement
+  cursor: orders are paid out of placement order. The box inserts them as its own `online_order` rows, same ids,
+  `channel = 'relay'`, `ON CONFLICT DO NOTHING`, so a redelivered order is processed once (`relay.orders.received`).
+- **Decide** (`relay.order.decided`, per order): `reserveStock` at the branch, holds expiring a day after the slot.
+  Short → `refunded`; otherwise `accepted`, and `checkPrices` re-quotes the lines with `quoteCart`: any line whose price
+  version or gross differs goes in `online_order.price_check`. The customer always pays what they paid; the pick
+  screen shows the changed lines.
+- **Tell:** every `online_order_event` of a relayed order with `relayed_at IS NULL`, in order, plus the ids still open,
+  go to `POST /relay/orders/events` (`applyRelayEvents`). The first event acks the order. `accepted` →
+  `acceptStoreOrder`; `refunded` → `declineStoreOrder` while paid, `cancelStoreOrder` after; `picking`, `ready`,
+  `out_for_delivery`, `completed` → `relay.order.moved` (status, event, the shopper's SMS) and the workflow's
+  `picked` / `handed_over`. A status the order already passed is skipped. The answer names the orders the relay has
+  refunded (its own timeouts); the box ends those with `relay.order.cancelled` and frees their holds.
+- **Why publish comes before tell:** the relay's payment took the goods off its shelf (a sale movement). Once acked,
+  `availableOf` leaves those movements out, because the box's published figure carries its hold. Publishing first means
+  the relay briefly counts the order twice (shows less), never zero times (shows more).
+- **On the box** a relayed order has no payment and no workflow: `/orders/*` sends no workflow events for it and wakes
+  the Publisher; cancelling frees the holds (the relay refunds when told); hand-over turns the holds into sale
+  movements; a short or substitute pick is refused; `deliverOrderStatus` never texts for it (the relay does).
+- **Refunds tell the shopper:** `refundPaidOrder` queues `order.status` `refunded`, for cloud shops too.
 
 Category visibility applies everywhere: `catalogue_public` hides a product whose category or department is hidden.
 

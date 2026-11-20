@@ -80,7 +80,14 @@ up to date.
 Only names, SKUs, categories, prices, branches and how much each branch can sell leave the box. Cost prices,
 suppliers, stock counts and customers never do. The box checks in every minute. If it goes quiet for 5 minutes while a
 branch is open (power or internet down), the online store pauses ordering at that branch and keeps shoppers' carts;
-it resumes by itself when the box is back. If the page says the last update did not reach Shopper, the box keeps trying by itself. Turning the switch off and
+it resumes by itself when the box is back.
+
+Paid online orders come to the box within a minute and appear under **Online orders**, already accepted, with their
+stock set aside. An order the branch cannot fill is turned down and the shopper is refunded and told by text. Pick an
+online order in full, or cancel it: the shopper gets their money back. If a price changed after the shopper paid, the
+order says so; charge what they paid. When the order is ready or handed over, the shopper is told.
+
+If the page says the last update did not reach Shopper, the box keeps trying by itself. Turning the switch off and
 on again sends the whole catalogue afresh.
 
 ## When something is wrong

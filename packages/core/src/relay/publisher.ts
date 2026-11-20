@@ -44,7 +44,8 @@ const ENTITY = {
  * Sends the relay org whatever its copy of the online catalogue lacks: every row whose hash differs from the one the
  * relay last acknowledged (all of them the first time, a snapshot), plus a withdrawal for each product that left the
  * projection. Each acknowledged batch is recorded before the next is sent, so a crash resends at most one batch, which
- * the relay takes again without change. A refusal (401/402/403) stops it and is kept for the settings page.
+ * the relay takes again without change; then a heartbeat (Day 49). A refusal (401/402/403) stops it and is kept for
+ * the settings page.
  */
 export async function publishPending(
   db: ShopperDatabase,
@@ -65,17 +66,26 @@ export async function publishPending(
     const response =
       (await sendPhotos(db, context.orgId, photos, relay.send, relay.blobs, offered)) ??
       (await relay.send("/relay/publish", { method: "POST", body: JSON.stringify(wire(batch)) }));
-    if ([401, 402, 403].includes(response.status)) {
-      const reason = ((await response.json().catch(() => ({}))) as { error?: string }).error;
-      await recordRelayError(db, context, { error: reason ?? `Refused (${response.status})` });
-      return { sent, refused: response.status };
-    }
-    if (!response.ok) throw new Error(`The relay answered ${response.status}`);
+    if (await refusedBy(db, context, response)) return { sent, refused: response.status };
     sent += await recordPublished(db, context, hashed(batch), now);
   }
   // Nothing was pending: still clear a failure the relay has since got over.
   if (!sent && shop.relayError) await recordPublished(db, context, [], now);
+  // Alive only once what is due is on the relay (Day 49): a reconnecting box never reopens ordering on stale stock.
+  const beat = await relay.send("/relay/heartbeat", { method: "POST", body: "{}" });
+  if (await refusedBy(db, context, beat)) return { sent, refused: beat.status };
   return { sent };
+}
+
+/** A refusal (401/402/403) is kept with its reason and ends the run; any other failure throws, to be retried. */
+async function refusedBy(db: ShopperDatabase, context: CommandContext, response: Response) {
+  if ([401, 402, 403].includes(response.status)) {
+    const reason = ((await response.json().catch(() => ({}))) as { error?: string }).error;
+    await recordRelayError(db, context, { error: reason ?? `Refused (${response.status})` });
+    return true;
+  }
+  if (!response.ok) throw new Error(`The relay answered ${response.status}`);
+  return false;
 }
 
 async function pendingRows(db: ShopperDatabase, orgId: string, now: Date) {

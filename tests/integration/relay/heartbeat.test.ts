@@ -148,14 +148,13 @@ test("each minute's run beats only after what is due reached the relay", async (
   const ctx = provisioningContext(org());
   await provisionOrg(box.db, ctx, { name: "Osu Mart", slug: `beat-${Date.now().toString(36)}` });
   const sent: string[] = [];
-  let relayDown = false;
+  let refuse: string | undefined;
   const publisher = boxRelayPublisher({
     withDatabase: (run) => run(box.db),
     appVersion: ctx.appVersion,
     send: async (path, init) => {
       sent.push(path);
-      if (relayDown && path === "/relay/publish")
-        return Response.json({ error: "Support has ended" }, { status: 402 });
+      if (path === refuse) return Response.json({ error: "Support has ended" }, { status: 402 });
       return cloud.send(shop, path, init);
     },
   });
@@ -174,12 +173,23 @@ test("each minute's run beats only after what is due reached the relay", async (
   expect((await relayRow(shop))?.lastSeenAt).not.toBeNull();
   // A publish that does not go through sends no heartbeat, so the relay pauses rather than sell on stale stock.
   await seen(null);
-  relayDown = true;
+  refuse = "/relay/publish";
   await box.db.insert(schema.store).values({ orgId: org(), name: "Spintex" });
   sent.length = 0;
   await publisher.relaunch();
   await publisher.idle();
   expect(sent).toEqual(["/relay/publish"]);
   expect((await relayRow(shop))?.lastSeenAt).toBeNull();
+  // Nothing left to send, the heartbeat itself is refused: the reason is kept for the settings page and the run ends.
+  refuse = "/relay/heartbeat";
+  sent.length = 0;
+  await publisher.relaunch();
+  await publisher.idle();
+  expect(sent).toEqual(["/relay/publish", "/relay/heartbeat"]);
+  const [after] = await box.db
+    .select({ error: schema.org.relayError })
+    .from(schema.org)
+    .where(eq(schema.org.id, org()));
+  expect(after?.error).toBe("Support has ended");
   await box.close();
 }, 180_000);

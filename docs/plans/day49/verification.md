@@ -31,7 +31,7 @@
 - `relay/heartbeat.test.ts` (new, 3): silent 6 min at 10:00 → paused, order refused `paused`, the cart still quotes;
   heartbeat → resumes and an order is placed; 4 min of silence is not a pause; a never-seen box pauses, out of hours
   nothing pauses, a cloud shop never pauses; the minute's run sends nothing with Online Orders off, publishes before it
-  beats, and sends no heartbeat when the publish is refused.
+  beats, sends no heartbeat when the publish is refused, and keeps the reason when the heartbeat itself is refused.
 - `catalogue/online.test.ts`: the buffer saves (3 → 3000), refuses −1, 1.5 and 10 001, is audited, wakes the Publisher;
   a stock adjustment wakes it too.
 - `relay/publish.test.ts`: availability rows accepted; an extra field or a negative figure refused 400.
@@ -55,6 +55,8 @@
      beats only on success. P2 fixed: availability inserts are chunked under PostgreSQL's bound-parameter limit.
   3. P1 fixed: the beat's publish ran outside the Publisher's one-run-per-org; the heartbeat now lives inside the run.
      P2 fixed: the buffer form shares the switch's save, so it cannot turn ordering back on behind a pending switch-off.
+  4. Two P2s fixed: the heartbeat now ends `publishPending` and shares its failure handling, so a refused heartbeat
+     keeps its reason and ends the run, and a transport error is recorded and retried like a failed publish.
 
 ## Not done / known limits
 

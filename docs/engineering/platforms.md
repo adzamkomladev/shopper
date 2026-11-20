@@ -254,7 +254,7 @@ class: `runRelayPublisher` (`@shopper/core/relay`), started by `boxRelayPublishe
   middleware), after a till push with accepted sales, when the Online Orders settings save (`PUT /settings/online`), and
   on boot and every minute (the heartbeat's clock). Scheduled prices need no wake: future prices
   are already published, and the store prices by the time of the request.
-- **Failures:** 401, 402 or 403 records the reason in `org.relay_error` and ends the run. A network error or 5xx
+- **Failures** (of a batch or the heartbeat): 401, 402 or 403 records the reason in `org.relay_error` and ends the run. A network error or 5xx
   records it and retries after 1 minute, doubling to 15 minutes; any wake cuts the wait short.
 - **The switch:** `org.online_orders`. Switching it on forgets `relay_published`, which forces a fresh snapshot.
   This is also how to repair a relay that lost its copy.

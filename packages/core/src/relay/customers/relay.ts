@@ -22,6 +22,14 @@ export const publishRelayCustomers = defineCommand({
       await tx
         .delete(relayCustomer)
         .where(and(eq(relayCustomer.orgId, ctx.orgId), inArray(relayCustomer.id, ids)));
+    // A receipt whose customer changed phone may still sit under a customer of a later batch.
+    const receipts = input.batch.customers.flatMap((row) =>
+      row.receipts.map((receipt) => receipt.id),
+    );
+    if (receipts.length)
+      await tx
+        .delete(relayReceipt)
+        .where(and(eq(relayReceipt.orgId, ctx.orgId), inArray(relayReceipt.id, receipts)));
     for (const row of input.batch.customers) {
       await tx
         .insert(relayCustomer)

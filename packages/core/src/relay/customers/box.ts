@@ -58,6 +58,14 @@ export async function shareCustomers(
   for (const [index, batch] of batches.entries()) {
     // Withdrawals ride the first batch, within what the relay takes; any more go next run.
     const gone = index === 0 ? withdrawn.slice(0, BATCH_ROWS) : [];
+    // Marked before sending: a copy the relay took but never acknowledged can still be withdrawn.
+    const fresh = batch.filter((entry) => !known.has(entry.row.id));
+    if (fresh.length)
+      await sharedCustomers(db, context, {
+        rows: fresh.map((entry) => ({ id: entry.row.id, hash: "" })),
+        withdrawn: [],
+        now,
+      });
     const response = await send("/relay/customers", {
       method: "POST",
       body: JSON.stringify({ customers: batch.map((entry) => entry.row), withdrawn: gone }),

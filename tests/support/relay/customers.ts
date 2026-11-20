@@ -3,7 +3,7 @@
 //   const w = await customersWorld()
 //   w.box / w.ctx           -> the box database (golden org) and a command context for its staff
 //   w.relayDb / w.shop      -> the relay database and the relay org's shop ({ slug }) for shopHttp sign-in
-//   w.run()                 -> one Publisher run on the box; w.sent holds every relay request it made
+//   w.run(lose?)            -> one Publisher run on the box; w.sent holds every relay request it made
 //   w.share(id, on)         -> staff switch a box customer's online receipts and points
 import { eq } from "drizzle-orm";
 import { v7 } from "uuid";
@@ -48,13 +48,15 @@ export async function customersWorld() {
   const ctx = { ...databases().context, orgId: ids.org, role: "admin", actorId: ids.cashier };
   await box.update(schema.org).set({ onlineOrders: true }).where(eq(schema.org.id, ids.org));
   const sent: { path: string; body: string }[] = [];
-  const run = () =>
+  /** One run; the relay's answer to `lose` is dropped after the relay acted on it (a lost acknowledgement). */
+  const run = (lose?: string) =>
     publishPending(box, ctx, {
       send: async (path, init) => {
         sent.push({ path, body: init.body ?? "" });
-        return api.fetch(
+        const answer = await api.fetch(
           await signedRequest({ licence, key: key.privateKey }, `https://cloud.test${path}`, init),
         );
+        return path === lose ? new Response("", { status: 503 }) : answer;
       },
     });
   const send = async (path: string, body: unknown) =>

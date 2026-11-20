@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
 import { customer } from "@shopper/db-pg";
 import { readCustomerRow } from "./queries";
@@ -12,6 +12,7 @@ export const setCustomerOnline = defineCommand({
   name: "customer.online.set",
   async run(tx, ctx, input: { id: string; on: boolean }) {
     const current = await readCustomerRow(tx, ctx.orgId, input.id, true);
+    // Consent is the phone's: every live record with it follows, so no duplicate keeps a copy online.
     await tx
       .update(customer)
       .set({
@@ -19,7 +20,13 @@ export const setCustomerOnline = defineCommand({
         onlineSharedAt: input.on ? sql`COALESCE(${customer.onlineSharedAt}, now())` : null,
         updatedAt: new Date(),
       })
-      .where(and(eq(customer.orgId, ctx.orgId), eq(customer.id, current.id)));
+      .where(
+        and(
+          eq(customer.orgId, ctx.orgId),
+          eq(customer.phone, current.phone),
+          isNull(customer.mergedIntoId),
+        ),
+      );
     return { id: current.id, on: input.on };
   },
   audit: (_input, output) => output,

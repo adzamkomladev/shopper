@@ -5,6 +5,7 @@
 import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { eq, sql } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
+import { updateCustomer } from "@shopper/core/customers";
 import { readShopPoints } from "@shopper/core/shop";
 import { goldenWorld } from "../../support/sales/golden/setup";
 import { addCustomer, addLoyaltyEntry } from "../../support/customers/seed";
@@ -152,4 +153,59 @@ test("a customer field outside the allowlist is refused and nothing is stored", 
       .from(schema.relayCustomer)
       .where(eq(schema.relayCustomer.id, privateOne)),
   ).toEqual([]);
+});
+
+test("the box's tax profile reaches the relay, so the invoice the box fiscalises matches the checkout", async () => {
+  await w.box
+    .update(schema.org)
+    .set({ tin: "C0012345678", vatRegisteredFrom: "2020-01-01" })
+    .where(eq(schema.org.id, ids.org));
+  await w.run();
+  const read = (db: typeof w.box) =>
+    db
+      .select({
+        tin: schema.org.tin,
+        vatRegisteredFrom: schema.org.vatRegisteredFrom,
+        priceMode: schema.org.priceMode,
+      })
+      .from(schema.org)
+      .where(eq(schema.org.id, ids.org));
+  const [box] = await read(w.box);
+  expect(box!.tin).not.toBeNull();
+  expect(await read(w.relayDb)).toEqual([box]);
+});
+
+test("consent belongs to the phone: a changed number or a duplicate record never keeps a copy online", async () => {
+  const duplicate = await addCustomer({ phone: SHARED, name: "Ama Duplicate" });
+  await w.share(duplicate, true);
+  await w.share(shared, false);
+  const rows = await w.box
+    .select({ shared: schema.customer.onlineSharedAt })
+    .from(schema.customer)
+    .where(eq(schema.customer.phone, SHARED));
+  expect(rows.map((row) => row.shared)).toEqual([null, null]);
+  await w.run();
+  expect(await w.relayDb.select().from(schema.relayCustomer)).toEqual([]);
+
+  await w.share(shared, true);
+  await w.run();
+  expect(await w.relayDb.select().from(schema.relayCustomer)).toHaveLength(1);
+  await updateCustomer(w.box, w.ctx, { id: duplicate, patch: { phone: "0277319999" } });
+  await updateCustomer(w.box, w.ctx, { id: shared, patch: { phone: "0277318888" } });
+  await w.run();
+  expect(await w.relayDb.select().from(schema.relayCustomer)).toEqual([]);
+  expect(await w.relayDb.select().from(schema.relayReceipt)).toEqual([]);
+});
+
+test("a first copy whose acknowledgement was lost is still withdrawn when consent goes", async () => {
+  const late = await addCustomer({ phone: "0277317777", name: "Abena Late" });
+  await w.share(late, true);
+  // The relay stores the copy, but its answer never reaches the box.
+  await w.run("/relay/customers").catch(() => undefined);
+  expect(
+    await w.relayDb.select({ id: schema.relayCustomer.id }).from(schema.relayCustomer),
+  ).toEqual([{ id: late }]);
+  await w.share(late, false);
+  await w.run();
+  expect(await w.relayDb.select().from(schema.relayCustomer)).toEqual([]);
 });

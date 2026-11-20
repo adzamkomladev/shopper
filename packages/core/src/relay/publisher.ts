@@ -10,7 +10,7 @@ import {
   type ShopperDatabase,
 } from "@shopper/db-pg";
 import { sha256 } from "@shopper/utils";
-import { BATCH_ROWS, type RelayBatch } from "../schemas/relay";
+import { BATCH_ROWS, RELAY_ENTITY, RELAY_KINDS, type RelayBatch } from "../schemas/relay";
 import { availabilityDue } from "./availability";
 import { shareCustomers } from "./customers/box";
 import { takeOrders, tellOrders } from "./inbox/box";
@@ -22,25 +22,8 @@ type Kind = keyof RelayBatch;
 type Row = { id: string };
 type Hashed = { row: Row; hash: string };
 type AvailabilityRow = RelayBatch["availability"][number];
-/** Parents before children: a batch's rows land in this order, and a later kind waits for an earlier one. */
-const KINDS = [
-  "stores",
-  "branches",
-  "fulfilment",
-  "categories",
-  "products",
-  "prices",
-  "availability",
-] as const;
-const ENTITY = {
-  stores: "store",
-  branches: "branch",
-  fulfilment: "fulfilment",
-  categories: "category",
-  products: "product",
-  prices: "price",
-  availability: "availability",
-} as const;
+const KINDS = RELAY_KINDS;
+const ENTITY = RELAY_ENTITY;
 
 /**
  * Sends the relay org whatever its copy of the online catalogue lacks: every row whose hash differs from the one the

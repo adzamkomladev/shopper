@@ -4,6 +4,7 @@ import { afterAll, beforeAll, expect, test } from "vite-plus/test";
 import { and, eq } from "drizzle-orm";
 import * as schema from "@shopper/db-pg";
 import {
+  cancelStoreOrder,
   finishStoreOrder,
   handOverStoreOrder,
   recordPick,
@@ -78,4 +79,14 @@ test("the box fiscalises a relayed order when it is handed over; the relay never
     expect.objectContaining({ invoiceNumber: boxOrder!.receiptNumber, status: "pending" }),
   ]);
   expect(await fiscalOf(w.f.world.db, order.id)).toEqual([]);
+});
+
+test("a relayed order cancelled before hand-over is refunded on the relay without a credit note", async () => {
+  const dropped = await w.f.paid(oil());
+  await w.run();
+  await cancelStoreOrder(w.box, w.ctx, quiet, dropped.id);
+  await w.run();
+  expect((await w.relayOrder(dropped.id))?.status).toBe("refunded");
+  // No invoice was fiscalised for it anywhere, so there is nothing to credit.
+  expect(await w.f.world.db.select().from(schema.fiscalDoc)).toEqual([]);
 });

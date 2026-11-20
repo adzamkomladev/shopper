@@ -85,7 +85,13 @@ export const updateCustomer = defineCommand({
     const next = v.parse(customerFields, { ...fieldsOf(current), ...patch });
     const [row] = await tx
       .update(customer)
-      .set({ ...next, version: sql`${customer.version} + 1`, updatedAt: new Date() })
+      .set({
+        ...next,
+        // Consent to show receipts online was given for the old number, not the new one (v1.5 Day 51).
+        ...(next.phone === current.phone ? {} : { onlineSharedAt: null }),
+        version: sql`${customer.version} + 1`,
+        updatedAt: new Date(),
+      })
       .where(and(eq(customer.orgId, ctx.orgId), eq(customer.id, current.id)))
       .returning();
     await publishCustomer(tx, ctx.orgId, row!);

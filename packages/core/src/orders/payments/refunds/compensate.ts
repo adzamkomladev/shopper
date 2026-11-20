@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { defineCommand, enqueueAfterCommit, type CommandContext } from "@shopper/audit";
 import { v7 } from "uuid";
-import { onlineOrder, stockMovement, type ShopperTransaction } from "@shopper/db-pg";
+import { fiscalDoc, onlineOrder, stockMovement, type ShopperTransaction } from "@shopper/db-pg";
 import { recordFiscalDoc } from "../../../fiscal/documents";
 import { reverseOrder } from "../../../ledger/orders";
 import { receiptDocument } from "../../../schemas/receipts/document";
@@ -107,14 +107,20 @@ async function giveBack(
     tender: refund.tender,
     at: now,
   });
-  await recordFiscalDoc(
-    tx,
-    ctx.orgId,
-    documentOf(receipt, held, {
-      kind: "refund",
-      number: `${receipt.header.receiptNumber}-C`,
-      at: now,
-    }),
-    { storeId: order.storeId, branchId: order.branchId, orderRefundId: refund.id },
-  );
+  const [invoice] = await tx
+    .select({ id: fiscalDoc.id })
+    .from(fiscalDoc)
+    .where(and(eq(fiscalDoc.orgId, ctx.orgId), eq(fiscalDoc.orderId, order.id)));
+  // Nothing to credit where the invoice was never fiscalised (a relay org's box fiscalises at hand-over, Day 51).
+  if (invoice)
+    await recordFiscalDoc(
+      tx,
+      ctx.orgId,
+      documentOf(receipt, held, {
+        kind: "refund",
+        number: `${receipt.header.receiptNumber}-C`,
+        at: now,
+      }),
+      { storeId: order.storeId, branchId: order.branchId, orderRefundId: refund.id },
+    );
 }

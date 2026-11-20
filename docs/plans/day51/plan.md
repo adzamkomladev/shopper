@@ -37,8 +37,8 @@ what the webapp shows, in two relay-only tables.
 
 1. **Opt-in is a box customer flag set by staff.** `customer.online_shared_at` (null = not shared), set by a new
    audited command `customer.online.set { id, on }` under the existing customer-edit permission. Not part of
-   `fieldsOf` or `customerUpsert`, so tills and sale-event versions are unchanged. A phone counts as opted in when any
-   live row with that phone is.
+   `fieldsOf` or `customerUpsert`, so tills and sale-event versions are unchanged. Consent is the phone's: switching applies to every
+   live row with that phone, and editing a customer's phone (portal or till) clears it.
 2. **The box publishes exactly what the webapp shows, computed by the webapp's own code.** For each opted-in phone the
    box runs `readShopPoints` and the receipt list query (`shop/purchases.ts`, newest 100, with their receipt
    documents) against its own database. One code path, so "webapp balance = box ledger" holds by construction and the
@@ -59,7 +59,7 @@ what the webapp shows, in two relay-only tables.
    `shortcut: no PDF copies for relay receipts; upload them like photos if a shop asks.`
 7. **Link orders to in-store loyalty by phone.** `receiveOrders` resolves the box customer for each order's phone
    (oldest live row, else creates one with the order's name, published to tills) and stores it in a new
-   `online_order.customer_id`. The staff order shows the linked customer. Points are not earned on online orders
+   `online_order.customer_id`. Points are not earned on online orders
    (cloud orders do not earn either).
 8. **Fiscalise relayed orders on the box at hand-over.** `settleOrder` skips `recordFiscalDoc` when the org is a
    relay; the box's hand-over of a relayed order records the pending fiscal document from the mirrored receipt (same
@@ -142,6 +142,21 @@ E2E `tests/e2e/portal/customers` (detail): the "Share receipts and points online
 - **S4 Customer detail switch.** Backoffice UI, e2e, `/ui-verify`.
 - **S5 Docs, review, ship.** `platforms.md` relay section, owner guide (customers), `verification.md`; `vp check`,
   `vp run guard`, `vp test --run`; `/pre-merge-review` (Codex `gpt-6.2-sol`); push, PR, CI green, merge; Notion row.
+
+## Codex review (gpt-6.2-sol)
+
+Fixed: a first copy whose acknowledgement was lost could escape withdrawal (ids are marked before sending); consent
+followed an edited phone (now cleared on any phone edit, and set per phone across duplicate rows); a receipt moving
+between customers in different batches collided (the relay drops incoming receipt ids first); the relay org never had
+the box's TIN, VAT date or price mode (now a `shop` row in every publish, so checkout tax and the box's fiscal
+invoice agree); a relay refund wrote a credit note for an invoice never fiscalised (credit notes only follow a
+fiscalised order invoice).
+
+Not changed: the buyer's TIN on their own VAT receipt (it is their invoice, as a cloud shop shows it); enqueueing the
+hand-over fiscal document (online orders rely on the fiscal lane's stranded scan, as settle and refunds do);
+withdrawal while Online Orders is off (Day 53's purge removes the relay projection); the switch needs `product.read`
+to see the box's online settings (owner and manager roles carry it); the linked customer is not yet shown on the
+staff order.
 
 ## Not in scope
 

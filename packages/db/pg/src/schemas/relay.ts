@@ -52,6 +52,7 @@ export const relayPublished = pgTable(
       .references(() => org.id),
     entity: text("entity", {
       enum: [
+        "shop",
         "store",
         "branch",
         "fulfilment",

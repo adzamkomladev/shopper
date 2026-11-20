@@ -1,4 +1,5 @@
 import * as v from "valibot";
+import { priceModes } from "@shopper/db-pg";
 import { uuidV7Schema } from "@shopper/ports";
 import { ghanaPhone, name, text, timestamp } from "./fields";
 import { receiptDocument } from "./receipts/document";
@@ -15,6 +16,15 @@ const rows = <T extends v.GenericSchema>(row: T) =>
  * anything else the shop keeps private is refused, never stored. Parents come before their children.
  */
 export const relayBatch = v.strictObject({
+  /** The shop's tax profile (one row, its id the org's): the relay prices, taxes and invoices as the box would. */
+  shop: rows(
+    v.strictObject({
+      id: uuidV7Schema,
+      tin: v.nullable(text(32)),
+      vatRegisteredFrom: v.nullable(v.pipe(v.string(), v.isoDate())),
+      priceMode: v.picklist(priceModes),
+    }),
+  ),
   stores: rows(v.strictObject({ id: uuidV7Schema, name })),
   branches: rows(v.strictObject({ id: uuidV7Schema, storeId: uuidV7Schema, name })),
   /** Each branch's pickup, delivery, hours and slots: what the store's checkout offers. */
@@ -72,6 +82,29 @@ export const relayBatch = v.strictObject({
   ),
 });
 export type RelayBatch = v.InferOutput<typeof relayBatch>;
+
+/** Parents before children: a batch's rows land in this order, and a later kind waits for an earlier one. */
+export const RELAY_KINDS = [
+  "shop",
+  "stores",
+  "branches",
+  "fulfilment",
+  "categories",
+  "products",
+  "prices",
+  "availability",
+] as const;
+/** What `relay_published` calls each kind's rows. */
+export const RELAY_ENTITY = {
+  shop: "shop",
+  stores: "store",
+  branches: "branch",
+  fulfilment: "fulfilment",
+  categories: "category",
+  products: "product",
+  prices: "price",
+  availability: "availability",
+} as const;
 
 /** The Publisher's run: one loop per box org, its instance id the org id. */
 export const relayPublisherParams = v.object({ orgId: uuidV7Schema });

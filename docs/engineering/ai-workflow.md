@@ -13,7 +13,7 @@ Only the model behind each role differs per tool.
 3. **Build** (`tdd-slice` skill, main agent or `implementer`/`ui-builder`). The smallest code that turns
    the tests green, one slice at a time.
 4. **Check** (`checker` agent): `vp check`, `vp run guard`, `vp test --run`. Fix and repeat.
-5. **Review** (`pre-merge-review` skill, `reviewer` agent, which runs Codex `gpt-6.1-sol`). UI changes
+5. **Review** (`pre-merge-review` skill, `reviewer` agent, which runs Codex `gpt-6.2-sol`). UI changes
    also go through `ui-reviewer` with screenshots. Fix every confirmed finding.
 6. **Commit / PR** with the description from
    [developer-experience.md](developer-experience.md#git).
@@ -36,14 +36,14 @@ and the `skill` tool with `ui-verify` or `/ui-verify` (OpenCode).
 
 | Role          | Job                                                         | Claude Code                                | Codex                                          | OpenCode                                      |
 | ------------- | ----------------------------------------------------------- | ------------------------------------------ | ---------------------------------------------- | --------------------------------------------- |
-| main session  | Drives the loop, small edits, talks to the user             | Opus, effort low (medium for complex work) | `gpt-6.1-sol` low (medium for complex work)    | `deepseek-v4.1-flash`                         |
+| main session  | Drives the loop, small edits, talks to the user             | Opus, effort low (medium for complex work) | `gpt-6.2-sol` low (medium for complex work)    | `deepseek-v4.1-flash`                         |
 | `planner`     | Turns a request into an approved, test-first plan           | Opus, high (medium for small)              | `gpt-6-astra` medium (high for money/tax/auth) | `deepseek-v4-pro`                             |
 | `explorer`    | Read-only search: where things are, how they work           | Haiku, low                                 | `gpt-6-luna` high (xhigh for wide sweeps)      | `qwen3.8-flash`                               |
-| `test-author` | Writes the failing integration/e2e tests from the plan      | Sonnet, high                               | `gpt-6.1-sol` medium                           | `glm-5.3-flash`                               |
-| `implementer` | Makes a planned slice pass, backend and packages            | Sonnet, medium                             | `gpt-6.1-sol` medium (low for small slices)    | `deepseek-v4.1-flash`                         |
+| `test-author` | Writes the failing integration/e2e tests from the plan      | Sonnet, high                               | `gpt-6.2-sol` medium                           | `glm-5.3-flash`                               |
+| `implementer` | Makes a planned slice pass, backend and packages            | Sonnet, medium                             | `gpt-6.2-sol` medium (low for small slices)    | `deepseek-v4.1-flash`                         |
 | `ui-builder`  | Builds screens/components from Figma per frontend.md        | Sonnet, high                               | `gpt-6.1-terra` medium (high for long flows)   | `glm-5.3-flash`                               |
 | `checker`     | Runs check/guard/tests, returns only the failures           | Haiku, medium                              | `gpt-6-luna` high (xhigh for long logs)        | `qwen3.8-flash`                               |
-| `reviewer`    | Runs Codex review (`gpt-6.1-sol` medium), verifies findings | Sonnet, low (drives `codex review`)        | `gpt-6.1-sol` medium (low for small diffs)     | `deepseek-v4.1-flash` (drives `codex review`) |
+| `reviewer`    | Runs Codex review (`gpt-6.2-sol` medium), verifies findings | Sonnet, low (drives `codex review`)        | `gpt-6.2-sol` medium (low for small diffs)     | `deepseek-v4.1-flash` (drives `codex review`) |
 | `ui-reviewer` | Screenshots + Figma comparison + a11y and UX slop check     | Sonnet, high                               | `gpt-6.1-terra` medium (high for long flows)   | `glm-5.3-flash`                               |
 
 ### Picking a Codex model
@@ -55,7 +55,7 @@ only.
 | --------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
 | `gpt-6-luna`    | Fast, mechanical sub-agent work: reshaping data into JSON, classifying elements, extracting fields, routing and cleaning | `high`, or `xhigh` when long   |
 | `gpt-6.1-terra` | Driving a UI: browser and screen navigation, multi-step flows, reading layouts, screenshots and Figma frames             | `medium`, or `high` when long  |
-| `gpt-6.1-sol`   | Code: implementing, debugging, refactoring, reviewing diffs, auditing ledgers and contracts, getting unstuck             | `low` (light) or `medium`      |
+| `gpt-6.2-sol`   | Code: implementing, debugging, refactoring, reviewing diffs, auditing ledgers and contracts, getting unstuck             | `low` (light) or `medium`      |
 | `gpt-6-astra`   | Architecture blueprints, cross-domain strategy (compliance and code), final high-risk arbitration                        | `medium`, or `high` when risky |
 
 Luna is cheap, so it runs high to be right the first time; Sol is strong, so it stays light. Never
@@ -73,10 +73,10 @@ effort when the task needs it.
 
 ```sh
 # Pick one target: --uncommitted (local work), --base main (a branch), or --commit <sha>
-codex review --uncommitted -c model="gpt-6.1-sol" -c model_reasoning_effort="medium"
+codex review --uncommitted -c model="gpt-6.2-sol" -c model_reasoning_effort="medium"
 
 # Focused review: custom instructions replace the target flag, so name the scope in the prompt
-codex review -c model="gpt-6.1-sol" -c model_reasoning_effort="medium" \
+codex review -c model="gpt-6.2-sol" -c model_reasoning_effort="medium" \
   "Review the uncommitted changes (git diff HEAD plus untracked files), focusing on <area>."
 ```
 

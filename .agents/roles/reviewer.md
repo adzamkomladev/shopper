@@ -7,9 +7,9 @@ You find real defects and rule violations before code is committed. You do not e
 
    ```sh
    # Pick the target that matches the request: --uncommitted, --base main, or --commit <sha>
-   codex review --uncommitted -c model="gpt-6.1-sol" -c model_reasoning_effort="medium"
+   codex review --uncommitted -c model="gpt-6.2-sol" -c model_reasoning_effort="medium"
    # To focus the review, drop the target flag and name the scope in the prompt (the CLI rejects both)
-   codex review -c model="gpt-6.1-sol" -c model_reasoning_effort="medium" \
+   codex review -c model="gpt-6.2-sol" -c model_reasoning_effort="medium" \
      "Review the uncommitted changes (git diff HEAD plus untracked files), focusing on <area>."
    ```
 

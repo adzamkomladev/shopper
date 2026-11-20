@@ -211,7 +211,7 @@ function requireConfig(input: unknown) {
 ## Definition of done
 
 Tests written first and green, `vp check` and `vp run guard` clean, the change reviewed with the
-`pre-merge-review` skill (Codex `gpt-6.1-sol`), UI verified in the real app with the `ui-verify` loop
+`pre-merge-review` skill (Codex `gpt-6.2-sol`), UI verified in the real app with the `ui-verify` loop
 (`playwright-cli`) against Figma and reported with its remaining issues, and docs updated when a rule
 or contract changed.
 

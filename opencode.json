@@ -50,7 +50,7 @@
     },
     "reviewer": {
       "mode": "subagent",
-      "description": "Reviews changes before commit by running Codex review (gpt-6.1-sol) and verifying each finding. Use before every commit or PR.",
+      "description": "Reviews changes before commit by running Codex review (gpt-6.2-sol) and verifying each finding. Use before every commit or PR.",
       "model": "opencode-go/deepseek-v4.1-flash",
       "prompt": "{file:./.agents/roles/reviewer.md}",
       "permission": {

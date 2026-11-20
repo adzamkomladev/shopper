@@ -1,6 +1,6 @@
 ---
 name: pre-merge-review
-description: Review Shopper changes before commit or PR using Codex (gpt-6.1-sol) plus a rules checklist, and the ui-reviewer for UI changes. Use before every commit, PR, or when the user asks for a review.
+description: Review Shopper changes before commit or PR using Codex (gpt-6.2-sol) plus a rules checklist, and the ui-reviewer for UI changes. Use before every commit, PR, or when the user asks for a review.
 ---
 
 # Pre-merge review
@@ -8,7 +8,7 @@ description: Review Shopper changes before commit or PR using Codex (gpt-6.1-sol
 1. Run `vp check`, `vp run guard`, and `vp test --run`. Fix failures first; review a red build only
    if the user asks.
 2. Spawn the `reviewer` agent (or follow `.agents/roles/reviewer.md` inline). It runs
-   `codex review` on `gpt-6.1-sol` and verifies each finding.
+   `codex review` on `gpt-6.2-sol` and verifies each finding.
 3. If any `.tsx`, CSS, or UI package changed, also spawn `ui-reviewer`. It runs the `ui-verify` loop
    with `playwright-cli` (Playwright MCP as fallback) and judges the result; a UI change without real
    screenshots at desktop, laptop, tablet, mobile and till sizes is not reviewed. If the caller

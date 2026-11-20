@@ -73,9 +73,14 @@ up to date.
    - A product appears online only when its own **Show online** is on, and its category and department are switched
      on on the same page.
    - Hiding a department hides every category under it.
+4. Set **Keep back from the online store**: that many units of every product stay for the shelf. The online store
+   shows a little less than you have (it rounds down to 1, 2, 3, 5, 10, 20, 50, 100 and so on), so it never sells
+   what the shop cannot fill. A sell-out reaches the online store within seconds; restocks within a minute.
 
-Only names, SKUs, categories, prices and branches leave the box. Cost prices, suppliers, stock and customers never
-do. If the page says the last update did not reach Shopper, the box keeps trying by itself. Turning the switch off and
+Only names, SKUs, categories, prices, branches and how much each branch can sell leave the box. Cost prices,
+suppliers, stock counts and customers never do. The box checks in every minute. If it goes quiet for 5 minutes while a
+branch is open (power or internet down), the online store pauses ordering at that branch and keeps shoppers' carts;
+it resumes by itself when the box is back. If the page says the last update did not reach Shopper, the box keeps trying by itself. Turning the switch off and
 on again sends the whole catalogue afresh.
 
 ## When something is wrong

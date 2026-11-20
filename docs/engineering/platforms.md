@@ -251,8 +251,8 @@ class: `runRelayPublisher` (`@shopper/core/relay`), started by `boxRelayPublishe
 - **Batches** hold at most 500 rows of a kind, parents first (stores, branches, fulfilment, categories, products,
   prices, availability). A retried batch changes nothing on the relay.
 - **When it runs:** after any successful catalogue, store, branch, fulfilment or stock write (the `wakePublisher`
-  middleware), after a till push with accepted sales, when the Online Orders settings save (`PUT /settings/online`), on
-  boot, and on every heartbeat. Scheduled prices need no wake: future prices
+  middleware), after a till push with accepted sales, when the Online Orders settings save (`PUT /settings/online`), and
+  on boot; every heartbeat also publishes what is due. Scheduled prices need no wake: future prices
   are already published, and the store prices by the time of the request.
 - **Failures:** 401, 402 or 403 records the reason in `org.relay_error` and ends the run. A network error or 5xx
   records it and retries after 1 minute, doubling to 15 minutes; any wake cuts the wait short.
@@ -260,7 +260,9 @@ class: `runRelayPublisher` (`@shopper/core/relay`), started by `boxRelayPublishe
   This is also how to repair a relay that lost its copy.
 
 **Heartbeat and pause (Day 49).** Every 60 s `apps/box/src/relay.ts` calls `beat()`: for each org with Online Orders on
-it POSTs `/relay/heartbeat` (`relay_box.last_seen_at`; liveness, no audit row) and wakes the Publisher. A plain timer,
+it first runs `publishPending` (what moved without a wake, held-back rises) and only when that went through POSTs
+`/relay/heartbeat` (`relay_box.last_seen_at`; liveness, no audit row). A box back from an outage therefore never
+reopens ordering on stale stock, and one whose publishes keep failing stays paused. A plain timer,
 not a workflow: it is liveness, not business logic, and keeps no step history. On the relay `orderingPaused` is true
 when the box has been silent 5 minutes (or never beat) while the branch is inside its opens–closes: `GET
 /shop/:code/fulfilment` answers `paused: true`, the checkout says "Online ordering is paused" and keeps the cart (it is

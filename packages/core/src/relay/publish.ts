@@ -15,6 +15,8 @@ import { money } from "@shopper/money";
 import type { Blobs } from "@shopper/ports";
 import type { RelayBatch } from "../schemas/relay";
 
+const AVAILABILITY_CHUNK = 5000;
+
 /**
  * A box publishes catalogue rows to its relay org: the only writer the relay lock lets through (it sets
  * `shopper.relay` for this transaction). Rows are upserted by the box's ids, so a retried batch changes nothing, and an
@@ -110,10 +112,11 @@ export const publishRelay = defineCommand({
         quantityThousandths: entry.available,
       })),
     );
-    if (available.length)
+    // Chunked: 500 products × many branches would pass PostgreSQL's 65 535 bound parameters in one insert.
+    for (let from = 0; from < available.length; from += AVAILABILITY_CHUNK)
       await tx
         .insert(onlineAvailability)
-        .values(available)
+        .values(available.slice(from, from + AVAILABILITY_CHUNK))
         .onConflictDoUpdate({
           target: [
             onlineAvailability.orgId,

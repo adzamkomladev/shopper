@@ -15,6 +15,7 @@ import {
   refundPaidOrder,
   startPicking,
 } from "@shopper/core/orders";
+import { applyRelayEvents } from "@shopper/core/relay";
 import { deliveryOf } from "../../support/payments/orders/reads";
 import { inboxWorld } from "../../support/relay/inbox";
 
@@ -188,4 +189,37 @@ test("a relay timeout gives the box's stock back; a box cancel refunds on the re
   expect(await w.boxHolds(dropped.id)).toEqual([]);
   await w.run();
   expect((await w.relayOrder(dropped.id))?.status).toBe("refunded");
+});
+
+test("an accept whose workflow wake was lost is woken again when the box retries", async () => {
+  const order = await w.f.paid(oil());
+  const events = { events: [{ id: order.id, status: "accepted" }], open: [] };
+  const lost = { send: async () => Promise.reject(new Error("engine unavailable")) };
+  await expect(applyRelayEvents(w.f.world.db, w.f.ctx, lost, events)).rejects.toThrow();
+  expect((await w.relayOrder(order.id))?.status).toBe("accepted");
+  const woken: string[] = [];
+  const flows = { send: async (id: string, type: string) => void woken.push(`${id} ${type}`) };
+  await applyRelayEvents(w.f.world.db, w.f.ctx, flows, events);
+  expect(woken).toEqual([`${order.id} store.accepted`]);
+});
+
+test("a tax-only change is flagged though the price version and gross are unchanged", async () => {
+  const [before] = await w.box.select().from(schema.org).where(eq(schema.org.id, w.orgId));
+  const order = await w.f.paid(oil());
+  const [line] = await w.f.lines(order);
+  // The box is no longer VAT registered: the same inclusive price now carries no VAT.
+  await w.box.update(schema.org).set({ vatRegisteredFrom: null }).where(eq(schema.org.id, w.orgId));
+  await w.run();
+  await w.box
+    .update(schema.org)
+    .set({ vatRegisteredFrom: before!.vatRegisteredFrom })
+    .where(eq(schema.org.id, w.orgId));
+  const staff = (await readStaffOrder(w.box, w.orgId, order.id))!;
+  expect(staff.priceCheck).toEqual([
+    expect.objectContaining({
+      lineId: line!.id,
+      paidPriceId: line!.priceId,
+      priceId: line!.priceId,
+    }),
+  ]);
 });

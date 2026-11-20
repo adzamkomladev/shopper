@@ -20,7 +20,8 @@ export const relayOrders = v.object({
         fulfilment: v.picklist(["pickup", "delivery"]),
         slotStart: timestamp,
         slotEnd: timestamp,
-        deliveryAddress: v.nullable(v.record(v.string(), v.string())),
+        // Checkout stores a blank landmark as null.
+        deliveryAddress: v.nullable(v.record(v.string(), v.nullable(v.string()))),
         customerName: v.string(),
         customerPhone: v.pipe(v.string(), v.regex(/^0[0-9]{9}$/)),
         email: v.nullable(v.string()),

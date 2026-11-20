@@ -1,7 +1,11 @@
 import type { onlineOrder, onlineOrderLine, ShopperTransaction } from "@shopper/db-pg";
 import { quoteCart } from "../../storefront/cart";
 
-/** The paid lines the box's own quote now prices (version or gross) differently. */
+/** What the customer paid, line by line: a change to any of it (price or any tax) is flagged. */
+const amounts = ["base", "vat", "nhil", "getfund", "covid", "gross"] as const;
+type Amount = (typeof amounts)[number];
+
+/** The paid lines the box's own quote now prices or taxes differently (price version, gross or any levy). */
 export async function checkPrices(
   tx: ShopperTransaction,
   orgId: string,
@@ -24,7 +28,9 @@ export async function checkPrices(
   );
   return lines.flatMap((line, index) => {
     const quoted = quote.lines[index]!;
-    if (quoted.priceId === line.priceId && quoted.tax?.gross === line.gross) return [];
+    const paid = (line.payload as { tax: Record<Amount, number> }).tax;
+    if (quoted.priceId === line.priceId && amounts.every((key) => quoted.tax?.[key] === paid[key]))
+      return [];
     return [
       {
         lineId: line.id,

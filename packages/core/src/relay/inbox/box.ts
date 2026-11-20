@@ -77,7 +77,9 @@ export async function tellOrders(db: ShopperDatabase, context: CommandContext, s
         isNull(onlineOrderEvent.relayedAt),
       ),
     )
-    .orderBy(asc(onlineOrderEvent.at), asc(onlineOrderEvent.id));
+    .orderBy(asc(onlineOrderEvent.at), asc(onlineOrderEvent.id))
+    // Within what the relay takes in one request; the rest go on the next run.
+    .limit(500);
   const live = await db
     .select({ id: onlineOrder.id })
     .from(onlineOrder)
@@ -87,7 +89,9 @@ export async function tellOrders(db: ShopperDatabase, context: CommandContext, s
         eq(onlineOrder.channel, "relay"),
         inArray(onlineOrder.status, ["accepted", "picking", "ready", "out_for_delivery"]),
       ),
-    );
+    )
+    .orderBy(asc(onlineOrder.slotEnd))
+    .limit(1000);
   if (!events.length && !live.length) return undefined;
   const response = await send("/relay/orders/events", {
     method: "POST",

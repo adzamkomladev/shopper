@@ -104,6 +104,9 @@ export async function applyRelayEvents(
     if (!status) continue;
     if (event.status === "accepted" && status === "paid")
       await acceptStoreOrder(db, ctx, flows, event.id);
+    // Moved by an earlier request whose wake failed: the box retries, so the workflow is woken again.
+    else if (event.status === "accepted" && status === "accepted")
+      await flows.send(event.id, "store.accepted", {});
     else if (event.status === "refunded" && status === "paid")
       await declineStoreOrder(db, ctx, flows, event.id);
     else if (event.status === "refunded" && live.includes(status))
@@ -111,7 +114,8 @@ export async function applyRelayEvents(
     else if (isStep(event.status)) {
       const moved = await relayOrderMoved(db, ctx, { id: event.id, status: event.status });
       const wake = steps[event.status].wake;
-      if (moved.moved && wake) await flows.send(event.id, wake, {});
+      // Woken again on a retry (the order is still where this event put it), so a lost wake is never final.
+      if (wake && (moved.moved || status === event.status)) await flows.send(event.id, wake, {});
     }
   }
   const named = [...new Set([...ids, ...input.open])];

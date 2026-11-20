@@ -5,7 +5,7 @@ import type { WorkflowLauncher } from "@shopper/ports";
 import { acceptOrder } from "../flow";
 import { OrderError } from "../error";
 import { refundPaidOrder } from "../payments/refunds/compensate";
-import { cancelPlacedOrder } from "./cancel";
+import { cancelPlacedOrder, cancelRelayedOrder } from "./cancel";
 import { dispatchOrder, handOverOrder } from "./handover";
 import { finishPicking } from "./pick";
 
@@ -47,9 +47,14 @@ export async function cancelStoreOrder(
   id: string,
 ) {
   const [before] = await db
-    .select({ status: onlineOrder.status })
+    .select({ status: onlineOrder.status, channel: onlineOrder.channel })
     .from(onlineOrder)
     .where(and(eq(onlineOrder.orgId, ctx.orgId), eq(onlineOrder.id, id)));
+  // A box's relayed order (v1.5 Day 50): its stock goes back here and the relay refunds when it hears.
+  if (before?.channel === "relay") {
+    if (!(await cancelRelayedOrder(db, ctx, { id })).moved) throw gone();
+    return;
+  }
   if (!(await refundPaidOrder(db, ctx, { id, reason: "cancelled" })).refunded) throw gone();
   const waiting = { paid: "store.accepted", picking: "picked" } as Record<string, string>;
   const event =

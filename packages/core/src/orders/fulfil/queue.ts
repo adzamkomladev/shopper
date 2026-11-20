@@ -90,6 +90,15 @@ export async function listOrderQueue(
   };
 }
 
+type PriceCheck = {
+  lineId: string;
+  name: string;
+  paidPriceId: string | null;
+  paid: number;
+  priceId: string | null;
+  now: number | null;
+};
+
 /**
  * One order for the people filling it: the customer's contact, every line with what was picked and the barcodes a
  * scanner reads, the adjustment picking made, and the timeline. Null when the order is not in the org (or branches).
@@ -145,6 +154,9 @@ export async function readStaffOrder(
     id: order.id,
     number: Number(order.inboxCursor),
     status: order.status,
+    channel: order.channel,
+    /** A relayed order's lines the box would now price differently; the customer pays what they paid (Day 50). */
+    priceCheck: order.priceCheck as PriceCheck[] | null,
     branch: { id: order.branchId, name: found.branchName },
     fulfilment: order.fulfilment,
     slotStart: order.slotStart.toISOString(),

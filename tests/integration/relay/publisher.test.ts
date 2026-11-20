@@ -89,7 +89,7 @@ const publisher = () =>
     withDatabase: (run) => run(box.db),
     appVersion: ctx.appVersion,
     send: async (path, init) => {
-      if (path === "/relay/publish") sent.push(JSON.parse(init.body) as Batch);
+      if (path === "/relay/publish") sent.push(JSON.parse(init.body!) as Batch);
       return cloud.send(shop, path, init);
     },
   });
@@ -213,8 +213,8 @@ test("a price change on the box is on the relay's store within seconds", async (
 test("a relay that refuses the box stops the Publisher and says why", async () => {
   await enrol(shop, false);
   await setPrice(box.db, ctx, { productId: await fresh("REFUSED"), data: { amount: 31_000 } });
-  const tried = await publish();
-  expect(tried).toHaveLength(1);
+  // Refused at the run's first request (the order inbox): nothing is published.
+  expect(await publish()).toEqual([]);
   const [org] = await box.db
     .select({ relayError: schema.org.relayError })
     .from(schema.org)

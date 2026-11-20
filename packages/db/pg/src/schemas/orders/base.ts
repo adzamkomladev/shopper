@@ -16,6 +16,7 @@ import { branch, moneyColumn, store, tenant } from "../base";
 import { price, product } from "../catalogue";
 import { asset } from "../assets";
 import { shopAccount } from "../shop";
+import { customer } from "../customers/base";
 
 /** `relay`: on a box, an order its relay org took online and the box pulled to fill (v1.5 Day 50). */
 export const orderChannels = ["online", "relay"] as const;
@@ -88,6 +89,8 @@ export const onlineOrder = pgTable(
     relayAckedAt: timestamp("relay_acked_at", { withTimezone: true }),
     /** On a box: the paid lines whose price or tax differs from the box's own quote when it accepted; null when none. */
     priceCheck: jsonb("price_check"),
+    /** On a box: the in-store customer with the order's phone, so the order joins their loyalty record (v1.5 Day 51). */
+    customerId: uuid("customer_id"),
     emailSentAt: timestamp("email_sent_at", { withTimezone: true }),
     placedAt: timestamp("placed_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -107,6 +110,7 @@ export const onlineOrder = pgTable(
       columns: [t.orgId, t.receiptAssetId],
       foreignColumns: [asset.orgId, asset.id],
     }),
+    foreignKey({ columns: [t.orgId, t.customerId], foreignColumns: [customer.orgId, customer.id] }),
     check(
       "online_order_receipt_issued",
       sql`(${t.receipt} IS NULL) = (${t.receiptNumber} IS NULL)`,

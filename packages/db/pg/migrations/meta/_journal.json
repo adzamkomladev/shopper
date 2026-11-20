@@ -365,6 +365,13 @@
       "when": 1795155164464,
       "tag": "0051_relay_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1795202420560,
+      "tag": "0052_relay_customers",
+      "breakpoints": true
     }
   ]
 }

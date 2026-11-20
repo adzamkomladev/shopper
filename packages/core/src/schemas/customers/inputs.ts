@@ -69,3 +69,6 @@ export const customerQuery = v.object({
 
 /** The body of a merge: the customer folded into the one in the path. */
 export const customerMerge = v.strictObject({ loserId: customerId });
+
+/** Staff switch a customer's receipts and points on or off for the online store (v1.5 Day 51). */
+export const customerOnline = v.strictObject({ on: v.boolean() });

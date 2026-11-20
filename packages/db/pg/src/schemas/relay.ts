@@ -1,14 +1,16 @@
 import {
   boolean,
   foreignKey,
+  index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
-import { branch, org, tenant } from "./base";
+import { branch, moneyColumn, org, tenant } from "./base";
 import { product } from "./catalogue";
 
 /**
@@ -49,7 +51,16 @@ export const relayPublished = pgTable(
       .notNull()
       .references(() => org.id),
     entity: text("entity", {
-      enum: ["store", "branch", "fulfilment", "category", "product", "price", "availability"],
+      enum: [
+        "store",
+        "branch",
+        "fulfilment",
+        "category",
+        "product",
+        "price",
+        "availability",
+        "customer",
+      ],
     }).notNull(),
     entityId: uuid("entity_id").notNull(),
     hash: text("hash").notNull(),
@@ -77,5 +88,52 @@ export const onlineAvailability = pgTable(
     primaryKey({ columns: [t.orgId, t.branchId, t.productId] }),
     foreignKey({ columns: [t.orgId, t.branchId], foreignColumns: [branch.orgId, branch.id] }),
     foreignKey({ columns: [t.orgId, t.productId], foreignColumns: [product.orgId, product.id] }),
+  ],
+);
+
+/**
+ * On a relay org: a box customer who agreed to see their receipts and points online (v1.5 Day 51), keyed by the box's
+ * customer id. `points` is what the box's own account code shows for their phone; only the box's publish writes it.
+ */
+export const relayCustomer = pgTable(
+  "relay_customer",
+  {
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => org.id),
+    id: uuid("id").notNull(),
+    phone: text("phone").notNull(),
+    points: jsonb("points").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.orgId, t.id] }),
+    index("relay_customer_phone").on(t.orgId, t.phone),
+  ],
+);
+
+/** On a relay org: one of a published customer's till receipts, as the box's account code lists it (v1.5 Day 51). */
+export const relayReceipt = pgTable(
+  "relay_receipt",
+  {
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => org.id),
+    /** The box's sale id. */
+    id: uuid("id").notNull(),
+    customerId: uuid("customer_id").notNull(),
+    receiptNumber: text("receipt_number"),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    total: moneyColumn("total"),
+    status: text("status").notNull(),
+    branchName: text("branch_name").notNull(),
+    receipt: jsonb("receipt"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.orgId, t.id] }),
+    foreignKey({
+      columns: [t.orgId, t.customerId],
+      foreignColumns: [relayCustomer.orgId, relayCustomer.id],
+    }).onDelete("cascade"),
   ],
 );

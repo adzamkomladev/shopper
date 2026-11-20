@@ -7,8 +7,10 @@ import type { Blobs, Queue, WorkflowLauncher } from "@shopper/ports";
 import {
   applyRelayEvents,
   publishRelay,
+  publishRelayCustomers,
   relayAccess,
   relayBatch,
+  relayCustomers,
   relayHeartbeat,
   relayInbox,
   type RelayBox,
@@ -62,6 +64,11 @@ export function relayRoutes(options: {
     return c.json(
       await publishRelay(db, context(c.get("relay").box.orgId), { batch, blobs: options.blobs }),
     );
+  });
+  // Opted-in customers' receipts and points, as the box's account pages show them (Day 51).
+  app.post("/relay/customers", async (c) => {
+    const batch = v.parse(relayCustomers, await c.req.json());
+    return c.json(await publishRelayCustomers(db, context(c.get("relay").box.orgId), { batch }));
   });
   // A product photo by digest: an upload grant when the relay lacks those bytes, otherwise nothing to send.
   app.post("/relay/images", async (c) => {

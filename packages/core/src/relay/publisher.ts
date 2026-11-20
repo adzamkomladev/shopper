@@ -12,6 +12,7 @@ import {
 import { sha256 } from "@shopper/utils";
 import { BATCH_ROWS, type RelayBatch } from "../schemas/relay";
 import { availabilityDue } from "./availability";
+import { shareCustomers } from "./customers/box";
 import { takeOrders, tellOrders } from "./inbox/box";
 import { sendPhotos } from "./photos";
 import { productFields, relayProjection } from "./projection";
@@ -76,6 +77,8 @@ export async function publishPending(
   }
   // Nothing was pending: still clear a failure the relay has since got over.
   if (!sent && shop.relayError) await recordPublished(db, context, [], now);
+  const shared = await shareCustomers(db, context, relay.send, now);
+  if (shared && (await refusedBy(db, context, shared))) return { sent, refused: shared.status };
   const told = await tellOrders(db, context, relay.send);
   if (told && (await refusedBy(db, context, told))) return { sent, refused: told.status };
   // Alive only once what is due is on the relay (Day 49): a reconnecting box never reopens ordering on stale stock.

@@ -47,6 +47,8 @@ function customerColumns() {
     kycVerifiedAt: customer.kycVerifiedAt,
     archivedAt: customer.archivedAt,
     mergedIntoId: customer.mergedIntoId,
+    /** Their receipts and points may be published to the online store (v1.5 Day 51). */
+    onlineShared: sql<boolean>`${customer.onlineSharedAt} IS NOT NULL`.mapWith(Boolean),
   };
 }
 

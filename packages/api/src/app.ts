@@ -164,6 +164,7 @@ export function createApi(options: ApiOptions = {}) {
         options.linkSecret && options.baseURL
           ? { secret: options.linkSecret, baseUrl: options.baseURL }
           : undefined,
+        options.relayPublisher,
       ),
     );
   if (options.database && options.linkSecret)

@@ -197,7 +197,13 @@ const update = defineCommand({
     if (Object.keys(applied).length) {
       const [row] = await tx
         .update(customer)
-        .set({ ...applied, version: sql`${customer.version} + 1`, updatedAt: new Date() })
+        .set({
+          ...applied,
+          // Online consent was given for the old number (v1.5 Day 51).
+          ...(after.phone === before.phone ? {} : { onlineSharedAt: null }),
+          version: sql`${customer.version} + 1`,
+          updatedAt: new Date(),
+        })
         .where(and(eq(customer.orgId, ctx.orgId), eq(customer.id, id)))
         .returning();
       await publishCustomer(tx, ctx.orgId, row!);

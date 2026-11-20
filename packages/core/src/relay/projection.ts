@@ -2,6 +2,7 @@ import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import {
   asset,
   branch,
+  org,
   branchFulfilment,
   category,
   price,
@@ -18,6 +19,15 @@ import { relayAvailability } from "./availability";
  * theirs that are still in force or start later. The relay's copy read with the same function must equal the box's.
  */
 export async function relayProjection(db: Queryable, orgId: string, now = new Date()) {
+  const shop = await db
+    .select({
+      id: org.id,
+      tin: org.tin,
+      vatRegisteredFrom: org.vatRegisteredFrom,
+      priceMode: org.priceMode,
+    })
+    .from(org)
+    .where(eq(org.id, orgId));
   const stores = await db
     .select({ id: store.id, name: store.name })
     .from(store)
@@ -93,6 +103,7 @@ export async function relayProjection(db: Queryable, orgId: string, now = new Da
     )
     .orderBy(asc(price.id));
   return {
+    shop,
     stores,
     branches,
     // PostgreSQL reads a time as HH:MM:SS; the wire and the back office use HH:MM.

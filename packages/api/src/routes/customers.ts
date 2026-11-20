@@ -10,17 +10,19 @@ import {
   readAgeingReport,
   readCustomer,
   readLoyalty,
+  setCustomerOnline,
   unarchiveCustomer,
   updateCustomer,
 } from "@shopper/core/customers";
-import { customerMerge } from "@shopper/core/schemas";
-import type { Queue } from "@shopper/ports";
+import { customerMerge, customerOnline } from "@shopper/core/schemas";
+import type { Queue, WorkflowLauncher } from "@shopper/ports";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import { commandContext } from "./stock/context";
 import { customerCreditRoutes } from "./customers/credit";
 import { customerHistoryRoutes } from "./customers/history";
 import { customerStatementRoutes } from "./customers/statements";
 import { problem } from "../middleware/problem";
+import { wakePublisher } from "../middleware/relay";
 import { requirePermission } from "../middleware/require/permission";
 import type { ApiAuthentication, ApiEnvironment, StatementLinks } from "../types";
 
@@ -36,6 +38,7 @@ export function customerRoutes(
   authentication: ApiAuthentication | undefined,
   notifications?: Queue,
   links?: StatementLinks,
+  relayPublisher?: WorkflowLauncher,
 ) {
   const app = new Hono<ApiEnvironment>();
   const guard = requirePermission(authentication, (request) => {
@@ -80,6 +83,12 @@ export function customerRoutes(
       id: c.req.param("id"),
       patch: await body(c),
     });
+    return c.json(await readCustomer(database, org(c), id));
+  });
+  // An on-prem box publishes the change on the run this wakes (v1.5 Day 51).
+  app.put("/customers/:id/online", wakePublisher(relayPublisher), async (c) => {
+    const { on } = v.parse(customerOnline, (await body(c)) ?? {});
+    const { id } = await setCustomerOnline(database, run(c), { id: c.req.param("id"), on });
     return c.json(await readCustomer(database, org(c), id));
   });
   app.post("/customers/:id/archive", async (c) => {

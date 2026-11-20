@@ -6,6 +6,7 @@ import {
   branchFulfilment,
   category,
   onlineAvailability,
+  org,
   price,
   product,
   store,
@@ -29,6 +30,12 @@ export const publishRelay = defineCommand({
     const batch = input.batch;
     const orgId = context.orgId;
     await tx.execute(sql`SELECT set_config('shopper.relay', ${orgId}, true)`);
+    // The box's own tax profile, so checkout taxes and the invoice the box fiscalises agree (Day 51).
+    for (const row of batch.shop.filter((entry) => entry.id === orgId))
+      await tx
+        .update(org)
+        .set({ tin: row.tin, vatRegisteredFrom: row.vatRegisteredFrom, priceMode: row.priceMode })
+        .where(eq(org.id, orgId));
     for (const row of batch.stores)
       await tx
         .insert(store)
@@ -126,6 +133,7 @@ export const publishRelay = defineCommand({
           set: { quantityThousandths: sql`excluded.quantity_thousandths`, updatedAt: sql`now()` },
         });
     return {
+      shop: batch.shop.length,
       stores: batch.stores.length,
       branches: batch.branches.length,
       fulfilment: batch.fulfilment.length,

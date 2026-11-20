@@ -3,6 +3,7 @@ import { enqueueAfterCommit, type CommandContext } from "@shopper/audit";
 import {
   onlineOrder,
   onlineOrderLine,
+  org,
   stockMovement,
   type orderPayment,
   type ShopperTransaction,
@@ -51,11 +52,14 @@ export async function settleOrder(
     .where(and(eq(onlineOrder.orgId, ctx.orgId), eq(onlineOrder.id, order.id)))
     .returning();
   await recordStatus(tx, ctx, order.id, "paid", now);
-  await recordFiscalDoc(tx, ctx.orgId, receipt, {
-    storeId: order.storeId,
-    branchId: order.branchId,
-    orderId: order.id,
-  });
+  const [shop] = await tx.select({ mode: org.mode }).from(org).where(eq(org.id, ctx.orgId));
+  // A relay org's box fiscalises the order when it hands it over (v1.5 Day 51).
+  if (shop?.mode !== "relay")
+    await recordFiscalDoc(tx, ctx.orgId, receipt, {
+      storeId: order.storeId,
+      branchId: order.branchId,
+      orderId: order.id,
+    });
   await recordReportLines(
     tx,
     ctx.orgId,

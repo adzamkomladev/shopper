@@ -1,5 +1,6 @@
 export { archiveCustomer, createCustomer, unarchiveCustomer, updateCustomer } from "./commands";
 export { CustomerError } from "./error";
+export { setCustomerOnline } from "./online";
 export { customerCsv } from "./export";
 export { mergeCustomers } from "./merge";
 export { listCustomers, readCustomer, readCustomerRow } from "./queries";

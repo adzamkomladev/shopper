@@ -58,6 +58,7 @@ test("a published batch writes the relay org's catalogue, audited in its chain",
   const published = await publish(batch());
   expect(published.status).toBe(200);
   expect(await published.json()).toEqual({
+    shop: 0,
     stores: 1,
     branches: 1,
     fulfilment: 0,

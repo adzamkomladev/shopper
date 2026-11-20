@@ -239,8 +239,9 @@ class: `runRelayPublisher` (`@shopper/core/relay`), started by `boxRelayPublishe
 - **Availability (Day 49)** is the last kind: per online product, each branch's on hand less live holds less the
   shop's buffer (`org.online_buffer`, thousandths, set on the box's Online Orders card), floored to a step of
   0, 1, 2, 3, 5, 10, 20, 50, 100 … 10 000 units (`relayAvailability`). Flooring means the relay never offers more than
-  the box has, and the hash only changes when a step is crossed, so 100 sales send a handful of rows. A changed row goes
-  at once when any branch reached 0, otherwise once its last publish (`relay_published.published_at`) is 30 s old.
+  the box has, and the row only changes when a step is crossed, so 100 sales send a handful of rows. A drop at any
+  branch goes at once; a rise once the row's last publish (`relay_published.published_at`) is 30 s old. For this kind
+  `relay_published.hash` holds the figures last sent, not a digest, so the next run can tell a drop from a rise.
   The relay keeps it in `online_availability` (relay lock), and `availableOf` adds it to on hand, so the store, cart
   and holds need no relay branch. Weighed goods under one unit floor to 0 and are not offered online.
 - **What changed** comes from a diff, not the till feed (`store_change` is per store and carries no categories or

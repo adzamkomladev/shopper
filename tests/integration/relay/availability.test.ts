@@ -141,6 +141,16 @@ test("a sell-out goes up at once; a restock waits until 30 s after the last publ
   expect(await relayAvailable(bread, at(1036))).toBe(50);
 });
 
+test("a drop to a lower step inside 30 s goes up at once, so the relay never offers more", async () => {
+  const tins = await product("TINS", 3);
+  await publish(at(3000));
+  expect(await relayAvailable(tins, at(3000))).toBe(3);
+  await move(tins, -1);
+  // Five seconds on, 2 left: the relay must not keep offering 3.
+  expect((await publish(at(3005))).map((row) => row.id)).toContain(tins);
+  expect(await relayAvailable(tins, at(3005))).toBe(2);
+});
+
 test("the shop's safety buffer comes off before the ladder", async () => {
   const eggs = await product("EGGS", 12);
   await box.db.update(schema.org).set({ onlineBuffer: 5000 }).where(eq(schema.org.id, ctx.orgId));

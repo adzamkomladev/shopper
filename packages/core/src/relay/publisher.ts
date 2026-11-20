@@ -19,6 +19,7 @@ import type { RelayPublisherDeps } from "../workflows/types";
 type Kind = keyof RelayBatch;
 type Row = { id: string };
 type Hashed = { row: Row; hash: string };
+type AvailabilityRow = RelayBatch["availability"][number];
 /** Parents before children: a batch's rows land in this order, and a later kind waits for an earlier one. */
 const KINDS = [
   "stores",
@@ -111,7 +112,11 @@ async function pendingRows(db: ShopperDatabase, orgId: string, now: Date) {
       await Promise.all(
         (rows[kind] as Row[]).map(async (row) => ({
           row,
-          hash: await sha256(JSON.stringify(row)),
+          // An availability row keeps its figures as its "hash", so the next run can tell a drop from a rise.
+          hash:
+            kind === "availability"
+              ? JSON.stringify((row as AvailabilityRow).branches)
+              : await sha256(JSON.stringify(row)),
         })),
       )
     ).filter((entry) => {
@@ -121,7 +126,7 @@ async function pendingRows(db: ShopperDatabase, orgId: string, now: Date) {
       return (
         kind !== "availability" ||
         !last?.hash ||
-        availabilityDue(entry.row as RelayBatch["availability"][number], last.publishedAt, now)
+        availabilityDue(entry.row as AvailabilityRow, last, now)
       );
     });
   return pending;

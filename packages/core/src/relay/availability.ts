@@ -43,16 +43,25 @@ export async function relayAvailability(db: Queryable, orgId: string, now: Date)
 }
 
 /**
- * Whether a changed availability row goes on this run: a sell-out at a branch always does, any other change once the
- * row's last publish is AVAILABILITY_DEBOUNCE_MS old.
+ * Whether a changed availability row goes on this run: a drop at any branch always does (the relay must never offer
+ * more than the box has), a rise once the row's last publish is AVAILABILITY_DEBOUNCE_MS old. `last.hash` holds the
+ * figures last sent.
  */
-export const availabilityDue = (
-  row: { branches: { available: number }[] },
-  publishedAt: Date | undefined,
+export function availabilityDue(
+  row: { branches: { branchId: string; available: number }[] },
+  last: { hash: string; publishedAt: Date },
   now: Date,
-) =>
-  !publishedAt ||
-  row.branches.some((entry) => entry.available === 0) ||
-  now.getTime() - publishedAt.getTime() >= AVAILABILITY_DEBOUNCE_MS;
+) {
+  const before = new Map(
+    (JSON.parse(last.hash) as { branchId: string; available: number }[]).map((entry) => [
+      entry.branchId,
+      entry.available,
+    ]),
+  );
+  return (
+    row.branches.some((entry) => entry.available < (before.get(entry.branchId) ?? Infinity)) ||
+    now.getTime() - last.publishedAt.getTime() >= AVAILABILITY_DEBOUNCE_MS
+  );
+}
 
 const step = (thousandths: number) => STEPS.filter((floor) => floor <= thousandths).at(-1) ?? 0;

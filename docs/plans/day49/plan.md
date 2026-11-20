@@ -41,9 +41,11 @@ So the work is: a new `availability` kind on the wire, one more term in `availab
    hash only changes when the step changes, so the existing hash diff _is_ the crossing detector. Flooring means the
    relay never shows more than the box has. 100 sales from 120 → 20 cross twice (100→50, 50→20).
    `shortcut: weighed products under 1 kg/l floor to 0 and are not sold online; add fractional steps if a shop asks.`
-3. **Debounce per product row, sold-out at once.** An availability row is due when its hash differs **and** either it
-   was last published ≥ 30 s ago (`relay_published.published_at`) or any branch reached 0. A rise waits; selling out
-   never does, because "never offer what the shop can't fill" beats the rate cap. Held rows go on the next run.
+3. **Debounce per product row; any drop at once.** An availability row is due when its figures changed **and** either
+   a branch dropped (the relay must never offer more than the box has) or the row was last published ≥ 30 s ago
+   (`relay_published.published_at`). For this kind `relay_published.hash` holds the figures last sent, so a drop is
+   told from a rise. A held rise goes on the next run (the minute's heartbeat wakes one). _Changed after Codex review:
+   the first cut only sent sell-outs at once._
 4. **Safety buffer = one shop-wide number of base units**, `org.online_buffer` (integer thousandths, default 0), saved
    with the existing Online Orders switch (`settings.online`, audited). Per-product buffers are not built.
 5. **Reserved = the box's live holds**, already inside `availableOf`. Relay holds (Day 50 orders) are subtracted on the

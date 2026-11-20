@@ -65,6 +65,8 @@ export const org = pgTable(
     /** When the relay last acknowledged everything, and why the last publish failed (cleared on success). */
     relayPublishedAt: timestamp("relay_published_at", { withTimezone: true }),
     relayError: text("relay_error"),
+    /** On a box: how much of every product (thousandths of its unit) is kept back from the online store. */
+    onlineBuffer: integer("online_buffer").notNull().default(0),
     loyaltyEnabled: boolean("loyalty_enabled").notNull().default(false),
     /** Points earned per 10 000 bps of a sale's value, and what one point is worth. */
     loyaltyEarnBps: integer("loyalty_earn_bps").notNull().default(0),

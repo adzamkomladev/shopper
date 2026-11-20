@@ -64,6 +64,7 @@ test("a published batch writes the relay org's catalogue, audited in its chain",
     categories: 1,
     products: 1,
     prices: 1,
+    availability: 0,
   });
   const [product] = await products();
   expect(product).toMatchObject({
@@ -104,6 +105,14 @@ test("a batch carries only the published fields and cannot reach another org's r
   const pricedAtCost = batch();
   Object.assign(pricedAtCost.prices[0]!, { costAmount: 300_000 });
   expect((await publish(pricedAtCost)).status).toBe(400);
+  // Availability carries a branch and a figure, nothing else (never cost or on-hand detail).
+  const stocked = (entry: Record<string, unknown>) => ({
+    ...batch(),
+    availability: [{ id: milo, branches: [{ branchId: osuBranch, available: 5000, ...entry }] }],
+  });
+  expect((await publish(stocked({}))).status).toBe(200);
+  expect((await publish(stocked({ onHand: 7000 }))).status).toBe(400);
+  expect((await publish(stocked({ available: -1 }))).status).toBe(400);
   const storeWithPhone = batch();
   Object.assign(storeWithPhone.stores[0]!, { phone: "0244000000" });
   expect((await publish(storeWithPhone)).status).toBe(400);

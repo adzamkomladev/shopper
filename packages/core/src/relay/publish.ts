@@ -5,6 +5,7 @@ import {
   branch,
   branchFulfilment,
   category,
+  onlineAvailability,
   price,
   product,
   store,
@@ -101,6 +102,26 @@ export const publishRelay = defineCommand({
         .insert(price)
         .values(batch.prices.map((row) => ({ orgId, ...row, amount: money(row.amount) })))
         .onConflictDoNothing({ target: price.id });
+    const available = batch.availability.flatMap((row) =>
+      row.branches.map((entry) => ({
+        orgId,
+        branchId: entry.branchId,
+        productId: row.id,
+        quantityThousandths: entry.available,
+      })),
+    );
+    if (available.length)
+      await tx
+        .insert(onlineAvailability)
+        .values(available)
+        .onConflictDoUpdate({
+          target: [
+            onlineAvailability.orgId,
+            onlineAvailability.branchId,
+            onlineAvailability.productId,
+          ],
+          set: { quantityThousandths: sql`excluded.quantity_thousandths`, updatedAt: sql`now()` },
+        });
     return {
       stores: batch.stores.length,
       branches: batch.branches.length,
@@ -108,6 +129,7 @@ export const publishRelay = defineCommand({
       categories: batch.categories.length,
       products: batch.products.length,
       prices: batch.prices.length,
+      availability: batch.availability.length,
     };
   },
   audit: (_input, output) => output,

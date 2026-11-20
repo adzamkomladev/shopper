@@ -351,6 +351,13 @@
       "when": 1795101860151,
       "tag": "0049_relay_fulfilment",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1795133841361,
+      "tag": "0050_relay_availability",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,5 @@
 import { and, eq, sql } from "drizzle-orm";
-import { stockHold, stockMovement } from "@shopper/db-pg";
+import { onlineAvailability, stockHold, stockMovement } from "@shopper/db-pg";
 import type { Queryable } from "../types";
 
 /** The signed movement total of the product's row in the outer query; the one definition of on hand. */
@@ -11,11 +11,15 @@ export const onHandOf = (orgId: string, branchId: string, productId: unknown) =>
   )}), 0)::bigint`.mapWith(Number);
 
 /**
- * What the online store may still sell: on hand less every hold that is neither released nor past its expiry, so a
- * late release never keeps a unit off sale. The one definition of available.
+ * What the online store may still sell: on hand (on a relay org, what its box last published) less every hold that is
+ * neither released nor past its expiry, so a late release never keeps a unit off sale. The one definition of available.
  */
 export const availableOf = (orgId: string, branchId: string, productId: unknown, at: Date) =>
-  sql<number>`(${onHandOf(orgId, branchId, productId)} - COALESCE((SELECT SUM(${stockHold.quantityThousandths}) FROM ${stockHold} WHERE ${and(
+  sql<number>`(${onHandOf(orgId, branchId, productId)} + COALESCE((SELECT ${onlineAvailability.quantityThousandths} FROM ${onlineAvailability} WHERE ${and(
+    eq(onlineAvailability.orgId, orgId),
+    eq(onlineAvailability.branchId, branchId),
+    sql`${onlineAvailability.productId} = ${productId}`,
+  )}), 0) - COALESCE((SELECT SUM(${stockHold.quantityThousandths}) FROM ${stockHold} WHERE ${and(
     eq(stockHold.orgId, orgId),
     eq(stockHold.branchId, branchId),
     sql`${stockHold.productId} = ${productId}`,

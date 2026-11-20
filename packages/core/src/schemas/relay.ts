@@ -54,6 +54,21 @@ export const relayBatch = v.strictObject({
       validTo: v.nullable(timestamp),
     }),
   ),
+  /** Per product, what each branch can still sell online (thousandths, floored to a step by the box). */
+  availability: rows(
+    v.strictObject({
+      id: uuidV7Schema,
+      branches: v.pipe(
+        v.array(
+          v.strictObject({
+            branchId: uuidV7Schema,
+            available: v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(2 ** 31 - 1)),
+          }),
+        ),
+        v.maxLength(BATCH_ROWS),
+      ),
+    }),
+  ),
 });
 export type RelayBatch = v.InferOutput<typeof relayBatch>;
 

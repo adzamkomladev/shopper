@@ -6,7 +6,6 @@ import {
   onlineOrderEvent,
   onlineOrderLine,
   type ShopperDatabase,
-  type ShopperTransaction,
 } from "@shopper/db-pg";
 import { money } from "@shopper/money";
 import { cancelRelayedOrder } from "../../orders/fulfil/cancel";
@@ -14,12 +13,11 @@ import { recordStatus } from "../../orders/fulfil/events";
 import { move, readOrder } from "../../orders/flow";
 import { reserveStock } from "../../orders/holds";
 import { relayOrders, relayOrdersTold, type RelayOrder } from "../../schemas/orders/relay";
-import { quoteCart } from "../../storefront/cart";
+import { checkPrices } from "./prices";
 import type { RelaySend } from "../types";
 
 /** How long after its slot ends a relayed order's stock stays held; the relay refunds an uncollected order by then. */
 const HOLD_AFTER_SLOT_MS = 24 * 3_600_000;
-const open = ["accepted", "picking", "ready", "out_for_delivery"] as const;
 
 /**
  * The box's order inbox (v1.5 Day 50), the first step of each Publisher run: takes the relay's paid orders (a
@@ -87,7 +85,7 @@ export async function tellOrders(db: ShopperDatabase, context: CommandContext, s
       and(
         eq(onlineOrder.orgId, context.orgId),
         eq(onlineOrder.channel, "relay"),
-        inArray(onlineOrder.status, [...open]),
+        inArray(onlineOrder.status, ["accepted", "picking", "ready", "out_for_delivery"]),
       ),
     );
   if (!events.length && !live.length) return undefined;
@@ -197,43 +195,6 @@ const decideOrder = defineCommand({
   audit: (input, output) => ({ id: input.id, ...output }),
   details: (input) => ({ entity: "online_order", entityId: input.id }),
 });
-
-/** The paid lines the box's own quote now prices (version or gross) differently. */
-async function checkPrices(
-  tx: ShopperTransaction,
-  orgId: string,
-  order: typeof onlineOrder.$inferSelect,
-  lines: (typeof onlineOrderLine.$inferSelect & { productId: string })[],
-  now: Date,
-) {
-  const quote = await quoteCart(
-    tx,
-    orgId,
-    {
-      branch: order.branchId,
-      fulfilment: "pickup",
-      lines: lines.map((line) => ({
-        productId: line.productId,
-        quantityThousandths: line.quantityThousandths,
-      })),
-    },
-    now,
-  );
-  return lines.flatMap((line, index) => {
-    const quoted = quote.lines[index]!;
-    if (quoted.priceId === line.priceId && quoted.tax?.gross === line.gross) return [];
-    return [
-      {
-        lineId: line.id,
-        name: (line.payload as { name: string }).name,
-        paidPriceId: line.priceId,
-        paid: line.gross,
-        priceId: quoted.priceId,
-        now: quoted.tax?.gross ?? null,
-      },
-    ];
-  });
-}
 
 /** These statuses reached the relay. */
 const toldOrders = defineCommand({

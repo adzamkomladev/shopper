@@ -91,6 +91,19 @@ export const staffOrder = v.object({
     v.object({ beforeGross: v.number(), afterGross: v.number(), refundAmount: v.number() }),
   ),
   events: v.array(v.object({ status: v.string(), at: v.string() })),
+  /** `relay`: an online order the box took from its relay org (v1.5 Day 50). */
+  channel: v.optional(v.picklist(["online", "relay"]), "online"),
+  /** A relayed order's lines the shop now prices differently; the customer pays what they paid. */
+  priceCheck: v.nullish(
+    v.array(
+      v.object({
+        lineId: v.string(),
+        name: v.string(),
+        paid: v.number(),
+        now: v.nullable(v.number()),
+      }),
+    ),
+  ),
 });
 export type StaffOrder = v.InferOutput<typeof staffOrder>;
 

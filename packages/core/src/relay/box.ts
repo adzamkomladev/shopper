@@ -1,5 +1,5 @@
-import { and, asc, eq, gt, lt } from "drizzle-orm";
-import { onlineOrder, org, relayBox, relayNonce, type ShopperDatabase } from "@shopper/db-pg";
+import { and, eq, lt } from "drizzle-orm";
+import { org, relayBox, relayNonce, type ShopperDatabase } from "@shopper/db-pg";
 import { sha256 } from "@shopper/utils";
 import { verifySignedRequest, type Licence } from "../licence";
 import { fromBase64Url, toBase64Url } from "../licence/keys";
@@ -7,7 +7,6 @@ import type { RelayBox } from "./types";
 
 /** How long a used signature is remembered: a request is fresh for 5 minutes either side of its signing time. */
 const REMEMBER_MS = 10 * 60_000;
-const INBOX_PAGE = 100;
 
 /**
  * Who is calling the relay: a genuine, fresh, licence-signed request from a box enrolled with the relay org its
@@ -50,40 +49,6 @@ export async function isRelayOrg(db: ShopperDatabase, orgId: string) {
 export async function relayHeartbeat(db: ShopperDatabase, box: RelayBox, now = new Date()) {
   await db.update(relayBox).set({ lastSeenAt: now }).where(eq(relayBox.id, box.id));
   return { seenAt: now.toISOString() };
-}
-
-/**
- * One store's orders after the box's cursor for it, oldest first; the box acknowledges by asking from the last one.
- * `inbox_cursor` is numbered per store, so a cursor only means something within its store.
- */
-export async function relayInbox(
-  db: ShopperDatabase,
-  orgId: string,
-  input: { storeId: string; after: bigint },
-) {
-  const rows = await db
-    .select({
-      id: onlineOrder.id,
-      status: onlineOrder.status,
-      channel: onlineOrder.channel,
-      inboxCursor: onlineOrder.inboxCursor,
-      gross: onlineOrder.gross,
-      placedAt: onlineOrder.createdAt,
-    })
-    .from(onlineOrder)
-    .where(
-      and(
-        eq(onlineOrder.orgId, orgId),
-        eq(onlineOrder.storeId, input.storeId),
-        gt(onlineOrder.inboxCursor, input.after),
-      ),
-    )
-    .orderBy(asc(onlineOrder.inboxCursor))
-    .limit(INBOX_PAGE);
-  return {
-    orders: rows.map((row) => ({ ...row, inboxCursor: String(row.inboxCursor) })),
-    cursor: String(rows.at(-1)?.inboxCursor ?? input.after),
-  };
 }
 
 /**

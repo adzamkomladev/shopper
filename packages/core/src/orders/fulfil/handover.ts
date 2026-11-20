@@ -1,7 +1,8 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { v7 } from "uuid";
 import { defineCommand, enqueueAfterCommit } from "@shopper/audit";
-import { onlineOrder } from "@shopper/db-pg";
+import { onlineOrder, stockHold, stockMovement, type ShopperTransaction } from "@shopper/db-pg";
+import { releaseOrderHolds } from "../holds";
 import { OrderError } from "../error";
 import { readOrder } from "../flow";
 import { recordStatus } from "./events";
@@ -49,9 +50,45 @@ export const handOverOrder = defineCommand({
       .set({ status: "completed", completedAt: now, updatedAt: now })
       .where(and(eq(onlineOrder.orgId, ctx.orgId), eq(onlineOrder.id, order.id)));
     await recordStatus(tx, ctx, order.id, "completed", now);
+    if (order.channel === "relay") await sellHeld(tx, ctx.orgId, order, now);
     enqueueAfterCommit(tx, told(ctx.orgId, order.id, "completed"));
     return { id: order.id };
   },
   audit: (input) => ({ id: input.id }),
   details: (input) => ({ entity: "online_order", entityId: input.id }),
 });
+
+/**
+ * A relayed order on a box (v1.5 Day 50) held its stock from acceptance; at hand-over the goods leave the shelf. The
+ * relay took the money and invoiced it.
+ */
+async function sellHeld(
+  tx: ShopperTransaction,
+  orgId: string,
+  order: typeof onlineOrder.$inferSelect,
+  now: Date,
+) {
+  const held = await tx
+    .select()
+    .from(stockHold)
+    .where(
+      and(
+        eq(stockHold.orgId, orgId),
+        eq(stockHold.orderId, order.id),
+        isNull(stockHold.releasedAt),
+      ),
+    );
+  if (held.length)
+    await tx.insert(stockMovement).values(
+      held.map((hold) => ({
+        orgId,
+        branchId: hold.branchId,
+        productId: hold.productId,
+        orderId: order.id,
+        reason: "sale" as const,
+        quantityThousandths: -hold.quantityThousandths,
+        occurredAt: now,
+      })),
+    );
+  await releaseOrderHolds(tx, orgId, order.id, "fulfilled", now);
+}

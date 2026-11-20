@@ -13,9 +13,16 @@ export const onHandOf = (orgId: string, branchId: string, productId: unknown) =>
 /**
  * What the online store may still sell: on hand (on a relay org, what its box last published) less every hold that is
  * neither released nor past its expiry, so a late release never keeps a unit off sale. The one definition of available.
+ * On a relay org an order's sale leaves the shelf at payment until its box has taken the order (Day 50); from then
+ * the box's published figure carries it, so those movements no longer count.
  */
 export const availableOf = (orgId: string, branchId: string, productId: unknown, at: Date) =>
-  sql<number>`(${onHandOf(orgId, branchId, productId)} + COALESCE((SELECT ${onlineAvailability.quantityThousandths} FROM ${onlineAvailability} WHERE ${and(
+  sql<number>`(${onHandOf(orgId, branchId, productId)} - COALESCE((SELECT SUM(m.quantity_thousandths) FROM stock_movement m JOIN online_order o ON o.org_id = m.org_id AND o.id = m.order_id WHERE ${and(
+    sql`m.org_id = ${orgId}`,
+    sql`m.branch_id = ${branchId}`,
+    sql`m.product_id = ${productId}`,
+    sql`o.relay_acked_at IS NOT NULL`,
+  )}), 0) + COALESCE((SELECT ${onlineAvailability.quantityThousandths} FROM ${onlineAvailability} WHERE ${and(
     eq(onlineAvailability.orgId, orgId),
     eq(onlineAvailability.branchId, branchId),
     sql`${onlineAvailability.productId} = ${productId}`,

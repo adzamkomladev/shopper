@@ -80,25 +80,37 @@ export function orderRoutes(options: ApiOptions) {
     return c.json(await listOrderQueue(database, principal.orgId, { ...query, branches: scope }));
   });
   app.get("/orders/:id", answer);
-  const step = (path: string, run: (c: Context<ApiEnvironment>, id: string) => Promise<unknown>) =>
+  type Order = NonNullable<Awaited<ReturnType<typeof readStaffOrder>>>;
+  // A box's relayed order (v1.5 Day 50) has no workflow here: the Publisher tells the relay, woken at once.
+  const quiet = { send: async () => {} };
+  const flowsOf = (order: Order) => (order.channel === "relay" ? quiet : flows());
+  const step = (
+    path: string,
+    run: (c: Context<ApiEnvironment>, id: string, order: Order) => Promise<unknown>,
+  ) =>
     app.post(`/orders/:id/${path}`, write, async (c) => {
       const order = await reach(c);
-      await run(c, order.id);
+      await run(c, order.id, order);
+      if (order.channel === "relay")
+        await options.relayPublisher
+          ?.start(c.get("principal").orgId, { orgId: c.get("principal").orgId })
+          .catch((error: unknown) => console.error({ event: "relay.wake_failed", error }));
       return c.json(await reach(c));
     });
   const db = database;
-  step("accept", (c, id) => acceptStoreOrder(db, context(c), flows(), id));
-  step("decline", (c, id) => declineStoreOrder(db, context(c), flows(), id));
+  step("accept", (c, id, order) => acceptStoreOrder(db, context(c), flowsOf(order), id));
+  step("decline", (c, id, order) => declineStoreOrder(db, context(c), flowsOf(order), id));
   step("start", (c, id) => startPicking(db, context(c), { id }));
-  step("ready", (c, id) => finishStoreOrder(db, context(c), flows(), id));
+  step("ready", (c, id, order) => finishStoreOrder(db, context(c), flowsOf(order), id));
   step("dispatch", (c, id) => dispatchStoreOrder(db, context(c), id));
-  step("handover", async (c, id) => {
-    await handOverStoreOrder(db, context(c), flows(), id);
+  step("handover", async (c, id, order) => {
+    await handOverStoreOrder(db, context(c), flowsOf(order), id);
+    if (order.channel === "relay") return;
     // The review workflow asks the shopper how it went after a couple of days.
     const orgId = c.get("principal").orgId;
     await options.orderReviews?.start(reviewInstanceId(id), { orgId, id });
   });
-  step("cancel", (c, id) => cancelStoreOrder(db, context(c), flows(), id));
+  step("cancel", (c, id, order) => cancelStoreOrder(db, context(c), flowsOf(order), id));
   // Reviews a moderator decides on: those the screening flagged.
   app.get("/reviews", requirePermission(options.authentication, "review.moderate"), async (c) =>
     c.json({ reviews: await listFlaggedReviews(db, c.get("principal").orgId) }),

@@ -16,6 +16,8 @@ export const onlineOrderEvent = pgTable(
     actorId: uuid("actor_id"),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
     notifiedAt: timestamp("notified_at", { withTimezone: true }),
+    /** On a box: when this status of a relayed order was told to the relay (v1.5 Day 50). */
+    relayedAt: timestamp("relayed_at", { withTimezone: true }),
   },
   (t) => [
     unique().on(t.orgId, t.id),

@@ -166,10 +166,10 @@ test("each minute's run beats only after what is due reached the relay", async (
   expect(sent).toEqual([]);
   await box.db.update(schema.org).set({ onlineOrders: true }).where(eq(schema.org.id, org()));
   await box.db.insert(schema.store).values({ orgId: org(), name: "Osu" });
-  // Back from an outage with changes: they go up first, then the heartbeat.
+  // Back from an outage: paid orders are taken, changes go up, then the heartbeat.
   await publisher.relaunch();
   await publisher.idle();
-  expect(sent).toEqual(["/relay/publish", "/relay/heartbeat"]);
+  expect(sent).toEqual(["/relay/orders", "/relay/publish", "/relay/heartbeat"]);
   expect((await relayRow(shop))?.lastSeenAt).not.toBeNull();
   // A publish that does not go through sends no heartbeat, so the relay pauses rather than sell on stale stock.
   await seen(null);
@@ -178,14 +178,14 @@ test("each minute's run beats only after what is due reached the relay", async (
   sent.length = 0;
   await publisher.relaunch();
   await publisher.idle();
-  expect(sent).toEqual(["/relay/publish"]);
+  expect(sent).toEqual(["/relay/orders", "/relay/publish"]);
   expect((await relayRow(shop))?.lastSeenAt).toBeNull();
   // Nothing left to send, the heartbeat itself is refused: the reason is kept for the settings page and the run ends.
   refuse = "/relay/heartbeat";
   sent.length = 0;
   await publisher.relaunch();
   await publisher.idle();
-  expect(sent).toEqual(["/relay/publish", "/relay/heartbeat"]);
+  expect(sent).toEqual(["/relay/orders", "/relay/publish", "/relay/heartbeat"]);
   const [after] = await box.db
     .select({ error: schema.org.relayError })
     .from(schema.org)

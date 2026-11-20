@@ -12,6 +12,7 @@ import {
 import { sha256 } from "@shopper/utils";
 import { BATCH_ROWS, type RelayBatch } from "../schemas/relay";
 import { availabilityDue } from "./availability";
+import { takeOrders, tellOrders } from "./inbox/box";
 import { sendPhotos } from "./photos";
 import { productFields, relayProjection } from "./projection";
 import type { RelayPublisherDeps } from "../workflows/types";
@@ -44,7 +45,8 @@ const ENTITY = {
  * Sends the relay org whatever its copy of the online catalogue lacks: every row whose hash differs from the one the
  * relay last acknowledged (all of them the first time, a snapshot), plus a withdrawal for each product that left the
  * projection. Each acknowledged batch is recorded before the next is sent, so a crash resends at most one batch, which
- * the relay takes again without change; then a heartbeat (Day 49). A refusal (401/402/403) stops it and is kept for
+ * the relay takes again without change. Paid orders are taken before and told after the publish (Day 50); then a
+ * heartbeat (Day 49). A refusal (401/402/403) stops it and is kept for
  * the settings page.
  */
 export async function publishPending(
@@ -58,6 +60,9 @@ export async function publishPending(
     .from(org)
     .where(eq(org.id, context.orgId));
   if (!shop?.onlineOrders) return { sent: 0, off: true };
+  // Paid orders first (Day 50): stock the box holds for them goes up in this same run.
+  const taken = await takeOrders(db, context, relay.send, now);
+  if (taken && (await refusedBy(db, context, taken))) return { sent: 0, refused: taken.status };
   const pending = await pendingRows(db, context.orgId, now);
   let sent = 0;
   const offered = new Set<string>();
@@ -71,6 +76,8 @@ export async function publishPending(
   }
   // Nothing was pending: still clear a failure the relay has since got over.
   if (!sent && shop.relayError) await recordPublished(db, context, [], now);
+  const told = await tellOrders(db, context, relay.send);
+  if (told && (await refusedBy(db, context, told))) return { sent, refused: told.status };
   // Alive only once what is due is on the relay (Day 49): a reconnecting box never reopens ordering on stale stock.
   const beat = await relay.send("/relay/heartbeat", { method: "POST", body: "{}" });
   if (await refusedBy(db, context, beat)) return { sent, refused: beat.status };

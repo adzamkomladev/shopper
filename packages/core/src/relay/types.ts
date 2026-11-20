@@ -8,4 +8,7 @@ export type RelayBox = typeof relayBox.$inferSelect;
 export type RelayProjection = Awaited<ReturnType<typeof relayProjection>>;
 
 /** A licence-signed request to the cloud's relay; the box's shell signs it. */
-export type RelaySend = (path: string, init: { method: string; body: string }) => Promise<Response>;
+export type RelaySend = (
+  path: string,
+  init: { method: string; body?: string },
+) => Promise<Response>;

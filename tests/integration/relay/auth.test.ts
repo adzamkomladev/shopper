@@ -35,11 +35,10 @@ test("an enrolled box reads its relay status, beats its heartbeat and reads its 
   expect(beat.status).toBe(200);
   expect((await relayRow(shop))!.lastSeenAt).toBeInstanceOf(Date);
 
-  // Each store numbers its own orders, so the box reads its inbox store by store.
-  const inbox = await cloud.send(shop, `/relay/orders?store=${shop.licence.id}&after=0`);
+  // The inbox offers paid orders the box has not taken yet (Day 50): none so far.
+  const inbox = await cloud.send(shop, "/relay/orders");
   expect(inbox.status).toBe(200);
-  expect(await inbox.json()).toEqual({ orders: [], cursor: "0" });
-  expect((await cloud.send(shop, "/relay/orders?after=0")).status).toBe(400);
+  expect(await inbox.json()).toEqual({ orders: [] });
 });
 
 test("unsigned, forged, stale and tampered requests are refused", async () => {

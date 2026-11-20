@@ -48,7 +48,7 @@ const publish = async (now: Date) => {
     ctx,
     {
       send: async (path, init) => {
-        if (path === "/relay/publish") sent.push(JSON.parse(init.body) as Batch);
+        if (path === "/relay/publish") sent.push(JSON.parse(init.body!) as Batch);
         return cloud.send(shop, path, init);
       },
     },

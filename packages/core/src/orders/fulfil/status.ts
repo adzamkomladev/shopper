@@ -8,7 +8,7 @@ import type { StatementDeliveryDeps } from "../../customers";
 import { orderStatusMessage } from "../../schemas/orders/messages";
 
 /**
- * Tells the shopper their order moved: ready for pickup, out for delivery, delivered. A delivery says nothing when it
+ * Tells the shopper their order moved: ready for pickup, out for delivery, delivered, or cancelled and refunded. A delivery says nothing when it
  * is merely ready, and a collected order needs no text. Each status is told once (the order's event row remembers),
  * and a shell with no SMS credentials retries rather than dropping it.
  */
@@ -37,7 +37,8 @@ export async function deliverOrderStatus(deps: StatementDeliveryDeps, delivery: 
       ),
     )
     .where(and(eq(onlineOrder.orgId, orgId), eq(onlineOrder.id, orderId)));
-  if (!found || found.notifiedAt) return await delivery.ack();
+  // A box's relayed order (v1.5 Day 50) is told by its relay, never twice.
+  if (!found || found.notifiedAt || found.order.channel === "relay") return await delivery.ack();
   const order = found.order;
   const [adjustment] = await deps.db
     .select()
@@ -55,6 +56,7 @@ export async function deliverOrderStatus(deps: StatementDeliveryDeps, delivery: 
       `${label} is ready for pickup at ${found.branchName}.${changed}`,
     out_for_delivery: `${label} is on its way to you.${changed}`,
     completed: order.fulfilment === "delivery" && `${label} was delivered. Thank you!`,
+    refunded: `${label} was cancelled and refunded. ${formatGHS(order.fulfilledGross ?? order.gross)} is on its way back to you.`,
   }[status];
   if (!text) return await delivery.ack();
   if (!deps.sms) return await delivery.retry();
@@ -68,7 +70,7 @@ const markTold = defineCommand({
   async run(
     tx,
     ctx,
-    input: { orderId: string; status: "ready" | "out_for_delivery" | "completed" },
+    input: { orderId: string; status: "ready" | "out_for_delivery" | "completed" | "refunded" },
   ) {
     await tx
       .update(onlineOrderEvent)

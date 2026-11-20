@@ -212,6 +212,8 @@ export function createApi(options: ApiOptions = {}) {
         database: options.database,
         licenceSigningKey: options.licenceSigningKey,
         blobs: options.blobs,
+        orderFlows: options.orderFlows,
+        notifications: options.notifications,
       }),
     );
   app.route("/", updateRoutes(options));

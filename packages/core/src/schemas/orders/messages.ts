@@ -11,6 +11,6 @@ export const orderRefundMessage = v.object({ payload: v.object({ id: uuidV7Schem
 export const orderStatusMessage = v.object({
   payload: v.object({
     orderId: uuidV7Schema,
-    status: v.picklist(["ready", "out_for_delivery", "completed"]),
+    status: v.picklist(["ready", "out_for_delivery", "completed", "refunded"]),
   }),
 });

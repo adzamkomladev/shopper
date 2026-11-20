@@ -1,6 +1,7 @@
 import * as v from "valibot";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { defineCommand, type CommandContext } from "@shopper/audit";
+import { defineCommand, enqueueAfterCommit, type CommandContext } from "@shopper/audit";
+import { v7 } from "uuid";
 import { onlineOrder, stockMovement, type ShopperTransaction } from "@shopper/db-pg";
 import { recordFiscalDoc } from "../../../fiscal/documents";
 import { reverseOrder } from "../../../ledger/orders";
@@ -50,6 +51,15 @@ export const refundPaidOrder = defineCommand({
     const payment = await keeperPayment(tx, ctx.orgId, order.id);
     const refund = (await owe(tx, ctx, payment, input.reason))!;
     await giveBack(tx, ctx, order, { id: refund.id, tender: payment.method }, now);
+    // The shopper hears their money is coming back (Day 50): a decline, a timeout or a cancel alike.
+    enqueueAfterCommit(tx, {
+      id: v7(),
+      orgId: ctx.orgId,
+      v: 1,
+      sequence: "0",
+      type: "order.status",
+      payload: { orderId: order.id, status: "refunded" },
+    });
     return { refunded: true as const, id: refund.id };
   },
   audit: (input, output) => ({ id: input.id, reason: input.reason, refunded: output.refunded }),

@@ -141,6 +141,11 @@ export const finishPicking = defineCommand({
     const goods = goodsOf(lines, picks);
     if (![...goods.kept, ...goods.substitutes].some((item) => item.productId))
       throw conflict("Nothing was picked. Cancel the order instead.");
+    // A relayed order's money is on the relay (v1.5 Day 50): the box cannot refund part of it yet.
+    if (order.channel === "relay" && goods.credits.length)
+      throw conflict(
+        "Online orders from the relay are picked in full for now. Pick it in full or cancel it.",
+      );
     const now = new Date();
     const adjusted = await settleAdjustment(tx, ctx, order, now);
     await tx

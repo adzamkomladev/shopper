@@ -168,3 +168,34 @@ test("a pick that is refused says why and the order is read again", async ({ pag
     .click();
   await expect(page.getByRole("alert").filter({ hasText: "not being picked" })).toBeVisible();
 });
+
+test("a relayed order whose prices changed shows what the customer paid and is picked in full", async ({
+  page,
+}, info) => {
+  const order = staffOrder("picking", {
+    channel: "relay",
+    priceCheck: [
+      {
+        lineId: "019a0000-0000-7000-8000-000000000520",
+        name: "Jasmine rice",
+        paidPriceId: "019a0000-0000-7000-8000-000000000c01",
+        paid: 27_7500,
+        priceId: "019a0000-0000-7000-8000-000000000c02",
+        now: 29_8500,
+      },
+    ],
+  });
+  await page.route(
+    (url) => url.pathname.startsWith(`/api/orders/${ORDER_ID}`),
+    (route) => route.fulfill({ json: order }),
+  );
+  await page.goto(`/orders/${ORDER_ID}`);
+  const note = page.getByRole("note", { name: "Prices changed since this order was paid" });
+  await expect(note).toBeVisible();
+  await expect(note).toContainText("Charge what the customer paid");
+  await expect(note).toContainText(/Jasmine rice.*27\.75.*29\.85/);
+  // The relay holds the money, so a short pick cannot be refunded here: the items are found in full or the order is cancelled.
+  await expect(page.getByRole("button", { name: /Found all/ }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /Short or substitute/ })).toHaveCount(0);
+  await shoot(page, info, "orders-relay-prices");
+});

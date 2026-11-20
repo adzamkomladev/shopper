@@ -209,3 +209,28 @@ test("a first copy whose acknowledgement was lost is still withdrawn when consen
   await w.run();
   expect(await w.relayDb.select().from(schema.relayCustomer)).toEqual([]);
 });
+
+test("agreeing never shares an archived duplicate; withdrawing clears it too", async () => {
+  const live = await addCustomer({ phone: "0277316666", name: "Kwame Live" });
+  const archived = await addCustomer({
+    phone: "0277316666",
+    name: "Kwame Old",
+    archivedAt: new Date(),
+  });
+  const sharedOf = async (id: string) =>
+    (
+      await w.box
+        .select({ at: schema.customer.onlineSharedAt })
+        .from(schema.customer)
+        .where(eq(schema.customer.id, id))
+    )[0]!.at;
+  await w.share(live, true);
+  expect(await sharedOf(live)).not.toBeNull();
+  expect(await sharedOf(archived)).toBeNull();
+  await w.box
+    .update(schema.customer)
+    .set({ onlineSharedAt: new Date() })
+    .where(eq(schema.customer.id, archived));
+  await w.share(live, false);
+  expect(await sharedOf(archived)).toBeNull();
+});

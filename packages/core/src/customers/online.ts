@@ -25,6 +25,8 @@ export const setCustomerOnline = defineCommand({
           eq(customer.orgId, ctx.orgId),
           eq(customer.phone, current.phone),
           isNull(customer.mergedIntoId),
+          // Agreeing covers live records only; withdrawing also clears archived ones, so a restore never re-shares.
+          input.on ? isNull(customer.archivedAt) : undefined,
         ),
       );
     return { id: current.id, on: input.on };

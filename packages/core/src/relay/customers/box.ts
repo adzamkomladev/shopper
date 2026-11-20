@@ -140,5 +140,7 @@ const sharedCustomers = defineCommand({
         );
     return { shared: input.rows.map((row) => row.id), withdrawn: input.withdrawn };
   },
-  audit: (_input, output) => output,
+  // A blank hash marks copies about to be sent, not yet taken by the relay.
+  audit: (input, output) =>
+    input.rows.some((row) => !row.hash) ? { sending: output.shared } : output,
 });

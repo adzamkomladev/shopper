@@ -22,6 +22,8 @@ export const customerView = v.object({
   lastVisitAt: v.nullable(v.string()),
   archivedAt: v.nullable(v.string()),
   mergedIntoId: v.nullable(v.string()),
+  /** Staff recorded they agreed to see receipts and points in the online store (v1.5 Day 51). */
+  onlineShared: v.optional(v.boolean(), false),
   /** What they owe; below zero is a deposit held for them. */
   balance: amount,
   points: int,

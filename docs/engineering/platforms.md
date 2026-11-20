@@ -295,6 +295,17 @@ publish → tell → heartbeat (`relay/inbox/box.ts`).
   movements; a short or substitute pick is refused; `deliverOrderStatus` never texts for it (the relay does).
 - **Refunds tell the shopper:** `refundPaidOrder` queues `order.status` `refunded`, for cloud shops too.
 
+**Customers, receipts and points (Day 51).** Shopper accounts of an on-prem shop live in its relay org (phone sign-in
+there). Staff record consent on the box (`customer.online_shared_at`, `PUT /customers/:id/online`, not a till field).
+After the catalogue publish, each run calls `shareCustomers` (`relay/customers/box.ts`): for every shared phone it runs
+the box's own `readShopPoints` and receipt query, hashes the result (`relay_published` entity `customer`) and sends
+what changed to `POST /relay/customers` (strict `relayCustomers` allowlist, 25 customers a batch); a customer no
+longer shared, merged or archived goes as `withdrawn`. The relay replaces the copy in `relay_customer` /
+`relay_receipt` (`relay.customers.published`); on a relay org `/shop/account/points` and `/receipts` read that copy
+(no PDFs: they stay on the box). A relayed order is linked to the box customer with its phone on receipt (a new one
+made from the order otherwise, `online_order.customer_id`). Relay orgs do not fiscalise at payment; the box records the
+order's fiscal document from the relay's receipt at hand-over and its fiscal lane signs it.
+
 Category visibility applies everywhere: `catalogue_public` hides a product whose category or department is hidden.
 
 The relay org's catalogue tables, `branch_fulfilment` and `online_availability` are written only by `relay.publish` (the `relay_lock` trigger

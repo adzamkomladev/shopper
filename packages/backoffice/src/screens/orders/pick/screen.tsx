@@ -8,6 +8,7 @@ import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { OrderActions } from "../../../components/orders/pick/actions";
 import { OrderHeader } from "../../../components/orders/pick/header";
 import { PickLine } from "../../../components/orders/pick/line";
+import { PriceCheckNote } from "../../../components/orders/pick/prices";
 import { SCAN_ID, ScanField } from "../../../components/orders/pick/scan";
 import { ShortDialog } from "../../../components/orders/pick/substitute";
 import { OfflineNote } from "../../../components/register/states";
@@ -75,6 +76,7 @@ export function PickScreen() {
               </AlertDescription>
             </Alert>
           )}
+          {order.priceCheck?.length ? <PriceCheckNote lines={order.priceCheck} /> : null}
           {order.status === "picking" && (
             <ScanField lines={products} disabled={!picking} onFound={foundAll} />
           )}
@@ -91,7 +93,7 @@ export function PickScreen() {
                 picking={picking}
                 busy={pickLine.isPending}
                 onFoundAll={() => foundAll(line)}
-                onShort={() => setShortLine(line)}
+                onShort={order.channel === "relay" ? undefined : () => setShortLine(line)}
               />
             ))}
           </ul>

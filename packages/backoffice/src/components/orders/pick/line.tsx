@@ -18,7 +18,8 @@ export function PickLine({
   picking: boolean;
   busy: boolean;
   onFoundAll: () => void;
-  onShort: () => void;
+  /** Absent where a short pick cannot be settled here (a relayed order): found in full or cancelled. */
+  onShort?: () => void;
 }) {
   const pick = line.pick;
   return (
@@ -65,9 +66,11 @@ export function PickLine({
               <CheckIcon aria-hidden /> Found all
             </Button>
           )}
-          <Button size="sm" variant="outline" disabled={busy} onClick={onShort}>
-            Short or substitute…
-          </Button>
+          {onShort && (
+            <Button size="sm" variant="outline" disabled={busy} onClick={onShort}>
+              Short or substitute…
+            </Button>
+          )}
         </div>
       )}
     </li>

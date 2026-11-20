@@ -11,9 +11,9 @@
   drop can be told from a rise.
 - **Safety buffer.** `org.online_buffer` (thousandths), saved with the Online Orders settings (`settings.online`,
   audited before/after) from a "Keep back from the online store" field on the box's Online Orders card.
-- **Heartbeat.** `boxRelayPublisher().beat()`: for each org with Online Orders on, publish what is due, and only when
-  that went through POST `/relay/heartbeat`, so a reconnecting box never reopens ordering on stale stock.
-  `apps/box/src/relay.ts` runs it every 60 s on a plain timer (liveness, not business logic).
+- **Heartbeat.** Every Publisher run ends with POST `/relay/heartbeat`, only after what is due went through, so a
+  reconnecting box never reopens ordering on stale stock and beats never race publishes (one run per org).
+  `apps/box/src/relay.ts` starts a run every 60 s (`relaunch`) on a plain timer: liveness, not business logic.
 - **Wakes.** Stock writes (`/stock/*`) and till pushes with accepted sales wake the Publisher; the minute's beat is
   the backstop.
 - **Pause.** `orderingPaused`: a relay org whose box has been silent ≥ 5 min (or never beat) while the branch is inside
@@ -30,8 +30,8 @@
   drop from 3 to 2 inside 30 s goes at once; buffer 5 on 12 shows 5; the relay's copy refuses a cloud-side write.
 - `relay/heartbeat.test.ts` (new, 3): silent 6 min at 10:00 → paused, order refused `paused`, the cart still quotes;
   heartbeat → resumes and an order is placed; 4 min of silence is not a pause; a never-seen box pauses, out of hours
-  nothing pauses, a cloud shop never pauses; `beat()` sends nothing with Online Orders off, publishes before it beats,
-  and sends no heartbeat when the publish fails.
+  nothing pauses, a cloud shop never pauses; the minute's run sends nothing with Online Orders off, publishes before it
+  beats, and sends no heartbeat when the publish is refused.
 - `catalogue/online.test.ts`: the buffer saves (3 → 3000), refuses −1, 1.5 and 10 001, is audited, wakes the Publisher;
   a stock adjustment wakes it too.
 - `relay/publish.test.ts`: availability rows accepted; an extra field or a negative figure refused 400.
@@ -45,13 +45,16 @@
 ## Checks
 
 - `vp check`: 0 errors. `vp run guard`: clean.
-- Integration: see the PR; the full suite runs locally and in CI.
+- Integration: relay, shop, catalogue, stock, orders, migration, export, db, tax/schema and sync ingest suites green
+  locally. A full local run hit its 40-minute timeout on the loaded machine; the full suite runs in CI.
 - UI: screenshots at 1920, 1440, 1366, 768 and 390 for the buffer card (valid, invalid), and 1920, 1440, 768, 390
   for the paused checkout, with axe and horizontal-overflow checks at each size.
 - Codex review (`gpt-6.1-sol`, medium, `--base main`), three passes:
   1. P1 fixed: non-zero drops were held for 30 s; now any drop goes at once.
   2. P1 fixed: a heartbeat could reopen ordering before reduced stock was published; the beat now publishes first and
      beats only on success. P2 fixed: availability inserts are chunked under PostgreSQL's bound-parameter limit.
+  3. P1 fixed: the beat's publish ran outside the Publisher's one-run-per-org; the heartbeat now lives inside the run.
+     P2 fixed: the buffer form shares the switch's save, so it cannot turn ordering back on behind a pending switch-off.
 
 ## Not done / known limits
 

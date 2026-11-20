@@ -57,20 +57,30 @@ export function OnlineOrdersCard({ settings }: { settings: OnlineSettingsView })
             </AlertDescription>
           </Alert>
         )}
-        {settings.onlineOrders && <BufferForm buffer={settings.buffer} />}
+        {settings.onlineOrders && <BufferForm buffer={settings.buffer} save={save} />}
       </CardContent>
     </Card>
   );
 }
 
-/** Units of every product the online store leaves for the shelf, so a busy day in store never oversells online. */
-function BufferForm({ buffer }: { buffer: number }) {
+/**
+ * Units of every product the online store leaves for the shelf, so a busy day in store never oversells online. It
+ * shares the switch's save, so it waits while the switch is saving and never turns ordering back on behind it.
+ */
+function BufferForm({
+  buffer,
+  save,
+}: {
+  buffer: number;
+  save: ReturnType<typeof useSaveOnlineOrders>;
+}) {
   const online = useOnline();
-  const save = useSaveOnlineOrders();
   const form = useForm({
     defaultValues: { buffer: String(buffer) },
     validators: { onSubmit: bufferFormSchema },
-    onSubmit: ({ value }) => save.mutate({ onlineOrders: true, buffer: Number(value.buffer) }),
+    onSubmit: ({ value }) => {
+      if (!save.isPending) save.mutate({ onlineOrders: true, buffer: Number(value.buffer) });
+    },
     onSubmitInvalid: focusFirstInvalid,
   });
   const shortcuts = useShortcuts({

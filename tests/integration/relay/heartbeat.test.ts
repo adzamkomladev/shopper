@@ -143,7 +143,7 @@ test("a box never heard from pauses its branches; out of hours nothing pauses; a
   expect((await listSlots(db, cloudShop.orgId, cloudBranch!.id, morning)).paused).toBe(false);
 });
 
-test("the box beats once a minute, only after what is due reached the relay", async () => {
+test("each minute's run beats only after what is due reached the relay", async () => {
   const box = await emptyDatabase();
   const ctx = provisioningContext(org());
   await provisionOrg(box.db, ctx, { name: "Osu Mart", slug: `beat-${Date.now().toString(36)}` });
@@ -154,26 +154,31 @@ test("the box beats once a minute, only after what is due reached the relay", as
     appVersion: ctx.appVersion,
     send: async (path, init) => {
       sent.push(path);
-      if (relayDown && path === "/relay/publish") return new Response(null, { status: 503 });
+      if (relayDown && path === "/relay/publish")
+        return Response.json({ error: "Support has ended" }, { status: 402 });
       return cloud.send(shop, path, init);
     },
   });
   await seen(null);
-  await publisher.beat();
+  // The minute's tick (`relaunch`) runs the Publisher, which beats once what is due is on the relay.
+  await publisher.relaunch();
+  await publisher.idle();
   // Online Orders off: the box says nothing.
   expect(sent).toEqual([]);
   await box.db.update(schema.org).set({ onlineOrders: true }).where(eq(schema.org.id, org()));
   await box.db.insert(schema.store).values({ orgId: org(), name: "Osu" });
   // Back from an outage with changes: they go up first, then the heartbeat.
-  await publisher.beat();
+  await publisher.relaunch();
+  await publisher.idle();
   expect(sent).toEqual(["/relay/publish", "/relay/heartbeat"]);
   expect((await relayRow(shop))?.lastSeenAt).not.toBeNull();
-  // A publish that fails sends no heartbeat, so the relay pauses rather than sell on stale stock.
+  // A publish that does not go through sends no heartbeat, so the relay pauses rather than sell on stale stock.
   await seen(null);
   relayDown = true;
   await box.db.insert(schema.store).values({ orgId: org(), name: "Spintex" });
   sent.length = 0;
-  await publisher.beat();
+  await publisher.relaunch();
+  await publisher.idle();
   expect(sent).toEqual(["/relay/publish"]);
   expect((await relayRow(shop))?.lastSeenAt).toBeNull();
   await box.close();

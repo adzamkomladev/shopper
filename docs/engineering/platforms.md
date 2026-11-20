@@ -252,16 +252,17 @@ class: `runRelayPublisher` (`@shopper/core/relay`), started by `boxRelayPublishe
   prices, availability). A retried batch changes nothing on the relay.
 - **When it runs:** after any successful catalogue, store, branch, fulfilment or stock write (the `wakePublisher`
   middleware), after a till push with accepted sales, when the Online Orders settings save (`PUT /settings/online`), and
-  on boot; every heartbeat also publishes what is due. Scheduled prices need no wake: future prices
+  on boot and every minute (the heartbeat's clock). Scheduled prices need no wake: future prices
   are already published, and the store prices by the time of the request.
 - **Failures:** 401, 402 or 403 records the reason in `org.relay_error` and ends the run. A network error or 5xx
   records it and retries after 1 minute, doubling to 15 minutes; any wake cuts the wait short.
 - **The switch:** `org.online_orders`. Switching it on forgets `relay_published`, which forces a fresh snapshot.
   This is also how to repair a relay that lost its copy.
 
-**Heartbeat and pause (Day 49).** Every 60 s `apps/box/src/relay.ts` calls `beat()`: for each org with Online Orders on
-it first runs `publishPending` (what moved without a wake, held-back rises) and only when that went through POSTs
-`/relay/heartbeat` (`relay_box.last_seen_at`; liveness, no audit row). A box back from an outage therefore never
+**Heartbeat and pause (Day 49).** Every 60 s `apps/box/src/relay.ts` calls `relaunch()`, starting (or waking) the
+Publisher for each org with Online Orders on. Every Publisher run ends by POSTing `/relay/heartbeat`
+(`relay_box.last_seen_at`; liveness, no audit row), but only after `publishPending` went through, and inside the one
+run per org, so a beat never races a publish. A box back from an outage therefore never
 reopens ordering on stale stock, and one whose publishes keep failing stays paused. A plain timer,
 not a workflow: it is liveness, not business logic, and keeps no step history. On the relay `orderingPaused` is true
 when the box has been silent 5 minutes (or never beat) while the branch is inside its opens–closes: `GET

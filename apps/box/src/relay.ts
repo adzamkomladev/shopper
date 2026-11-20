@@ -11,7 +11,7 @@ const HEARTBEAT_MS = 60_000;
  * (`SHOPPER_LICENCE_URL`): every request goes out signed with the box's licence key; product photos are read from
  * the box's storage. On boot it starts again where
  * Online Orders is on, so changes made while it was down go up. Every minute it beats: the relay pauses a branch's
- * online ordering after 5 minutes of silence in opening hours (v1.5 Day 49), and each beat publishes what is due first.
+ * online ordering after 5 minutes of silence in opening hours (v1.5 Day 49); each run publishes what is due first.
  */
 export function bootRelayPublisher(
   environment: Record<string, string | undefined>,
@@ -34,10 +34,10 @@ export function bootRelayPublisher(
   publisher
     .relaunch()
     .catch((error: unknown) => console.error({ event: "relay.relaunch_failed", error }));
-  // Liveness, not business logic: a plain timer, so no workflow history grows by a step a minute.
+  // The heartbeat's clock. Liveness, not business logic: a plain timer starting a run that ends, not a forever loop.
   setInterval(() => {
     publisher
-      .beat()
+      .relaunch()
       .catch((error: unknown) => console.error({ event: "relay.beat_failed", error }));
   }, HEARTBEAT_MS).unref();
   return publisher;

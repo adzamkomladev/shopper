@@ -7,7 +7,7 @@ import { SIZES, heading, replay } from "../../../support/payments/screens";
 // Orders card is drawn from replayed `/settings/online` answers, since the e2e box has no licence to publish with.
 test.describe.configure({ timeout: 180_000 });
 
-const settings = { box: false, onlineOrders: false, publishedAt: null, error: null };
+const settings = { box: false, onlineOrders: false, buffer: 0, publishedAt: null, error: null };
 const category = (page: Page, name: string) =>
   page.getByRole("switch", { name: new RegExp(`^${name}`) });
 const watch = (page: Page) => {
@@ -90,6 +90,46 @@ test("on a box the Online Orders switch shows how the last update went", async (
   await expect(toggle).not.toBeChecked();
   const put = sent.find((request) => request.method() === "PUT");
   expect(put?.postDataJSON()).toEqual({ onlineOrders: false });
+  expect(errors.map((message) => message.text())).toEqual([]);
+});
+
+test("on a box the units kept back from the online store save from the keyboard", async ({
+  page,
+}, info) => {
+  const errors = watch(page);
+  const sent: Request[] = [];
+  const on = {
+    ...settings,
+    box: true,
+    onlineOrders: true,
+    publishedAt: "2026-11-26T09:41:00.000Z",
+  };
+  await replay(page, "/settings/online", on, sent);
+  await page.goto("/settings/online");
+  const field = page.getByLabel("Keep back from the online store");
+  await expect(field).toHaveValue("0");
+  await field.fill("-1");
+  await page.keyboard.press("Control+Enter");
+  await expect(
+    page.getByText("Enter a whole number, like 2, or 0 to keep nothing back"),
+  ).toBeVisible();
+  await expect(field).toBeFocused();
+  await shoot(page, info, "settings-online-buffer-invalid", { sizes: SIZES });
+
+  await page.unroute("**/*");
+  await replay(page, "/settings/online", { ...on, buffer: 3 }, sent);
+  await field.fill("3");
+  await page.keyboard.press("Control+Enter");
+  await expect(page.getByText("The online store now keeps back 3 of every product")).toBeVisible();
+  const put = sent.find((request) => request.method() === "PUT");
+  expect(put?.postDataJSON()).toEqual({ onlineOrders: true, buffer: 3 });
+  await shoot(page, info, "settings-online-buffer", { sizes: SIZES });
+  // Switched off, there is nothing to keep back.
+  await page.unroute("**/*");
+  await replay(page, "/settings/online", { ...settings, box: true });
+  await page.reload();
+  await expect(page.getByRole("switch", { name: "Sell online from this box" })).not.toBeChecked();
+  await expect(field).toHaveCount(0);
   expect(errors.map((message) => message.text())).toEqual([]);
 });
 

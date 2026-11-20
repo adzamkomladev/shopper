@@ -1,11 +1,16 @@
+import { useForm } from "@tanstack/react-form";
 import { CircleAlertIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@shopper/ui/components/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@shopper/ui/components/card";
 import { Field, FieldContent, FieldDescription, FieldLabel } from "@shopper/ui/components/field";
 import { Switch } from "@shopper/ui/components/switch";
+import { useShortcuts } from "@shopper/ui/hooks/shortcuts";
 import { useOnline } from "@shopper/ui/hooks/use-online";
+import { focusFirstInvalid } from "../../../lib/focus";
 import { useSaveOnlineOrders } from "../../../queries/settings/online";
-import type { OnlineSettingsView } from "../../../schemas/settings/online";
+import { bufferFormSchema, type OnlineSettingsView } from "../../../schemas/settings/online";
+import { TextField } from "../../fields/text";
+import { SaveBar } from "../page";
 
 const stamp = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
@@ -17,12 +22,12 @@ const stamp = new Intl.DateTimeFormat("en-GB", {
 
 /**
  * The box's Online Orders switch: when on, the box keeps Shopper's online store up to date with this catalogue
- * (prices, names and what is listed). Below it, how the last update went.
+ * (prices, names, what is listed and how much is left). Below it, how the last update went and what is kept back.
  */
 export function OnlineOrdersCard({ settings }: { settings: OnlineSettingsView }) {
   const online = useOnline();
   const save = useSaveOnlineOrders();
-  const checked = save.isPending ? save.variables : settings.onlineOrders;
+  const checked = save.isPending ? save.variables.onlineOrders : settings.onlineOrders;
   return (
     <Card>
       <CardHeader>
@@ -35,7 +40,7 @@ export function OnlineOrdersCard({ settings }: { settings: OnlineSettingsView })
             checked={checked}
             disabled={!online || save.isPending}
             aria-describedby="online-orders-status"
-            onCheckedChange={(next) => save.mutate(next)}
+            onCheckedChange={(next) => save.mutate({ onlineOrders: next })}
           />
           <FieldContent>
             <FieldLabel htmlFor="online-orders">Sell online from this box</FieldLabel>
@@ -52,8 +57,52 @@ export function OnlineOrdersCard({ settings }: { settings: OnlineSettingsView })
             </AlertDescription>
           </Alert>
         )}
+        {settings.onlineOrders && <BufferForm buffer={settings.buffer} />}
       </CardContent>
     </Card>
+  );
+}
+
+/** Units of every product the online store leaves for the shelf, so a busy day in store never oversells online. */
+function BufferForm({ buffer }: { buffer: number }) {
+  const online = useOnline();
+  const save = useSaveOnlineOrders();
+  const form = useForm({
+    defaultValues: { buffer: String(buffer) },
+    validators: { onSubmit: bufferFormSchema },
+    onSubmit: ({ value }) => save.mutate({ onlineOrders: true, buffer: Number(value.buffer) }),
+    onSubmitInvalid: focusFirstInvalid,
+  });
+  const shortcuts = useShortcuts({
+    "Mod+Enter": () => {
+      if (online && !save.isPending) void form.handleSubmit();
+    },
+  });
+  return (
+    <form
+      ref={shortcuts}
+      noValidate
+      className="flex flex-col gap-4 border-t pt-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void form.handleSubmit();
+      }}
+    >
+      <form.Field name="buffer">
+        {(field) => (
+          <TextField
+            field={field}
+            label="Keep back from the online store"
+            description="Units of every product left off the online store, so in-store sales never oversell it."
+            inputMode="numeric"
+            autoComplete="off"
+            className="max-w-32"
+            onChange={() => save.isError && save.reset()}
+          />
+        )}
+      </form.Field>
+      <SaveBar label="Save" pending={save.isPending} error={save.error?.message} />
+    </form>
   );
 }
 

@@ -19,18 +19,24 @@ export function onlineSettingsQuery(shop = currentShop()) {
   });
 }
 
-/** Turns Online Orders on or off on the box; the page keeps what the API answers with. */
+/**
+ * Turns Online Orders on or off on the box, or saves the units it keeps back from the online store; the page keeps
+ * what the API answers with.
+ */
 export function useSaveOnlineOrders() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (onlineOrders: boolean) =>
-      apiFetch("/settings/online", onlineSettingsView, {
-        method: "PUT",
-        body: { onlineOrders },
-      }),
-    onSuccess: (data) => {
+    mutationFn: (body: { onlineOrders: boolean; buffer?: number }) =>
+      apiFetch("/settings/online", onlineSettingsView, { method: "PUT", body }),
+    onSuccess: (data, body) => {
       queryClient.setQueryData(onlineSettingsQuery().queryKey, data);
-      toast.success(data.onlineOrders ? "Online Orders is on" : "Online Orders is off");
+      toast.success(
+        body.buffer !== undefined
+          ? `The online store now keeps back ${data.buffer} of every product`
+          : data.onlineOrders
+            ? "Online Orders is on"
+            : "Online Orders is off",
+      );
     },
     onError: (error) => toast.error(error.message),
   });

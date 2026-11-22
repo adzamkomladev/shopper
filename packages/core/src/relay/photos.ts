@@ -35,7 +35,7 @@ export async function sendPhotos(
         contentType: photo.contentType,
       }),
     });
-    if ([401, 402, 403].includes(response.status)) return response;
+    if ([401, 402, 403, 426].includes(response.status)) return response;
     if (!response.ok) throw new Error(`The relay answered ${response.status} for a photo`);
     const offer = (await response.json()) as { upload?: BlobUpload };
     if (offer.upload) {

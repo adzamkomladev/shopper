@@ -34,6 +34,9 @@ export async function relayCloud(options: Partial<Parameters<typeof createApi>[0
       });
       return { licence, key: key.privateKey };
     },
+    /** The box's licence-signed request, not yet sent. */
+    signed: (box: Box, path: string, init: { method: string; body?: string } = { method: "GET" }) =>
+      signedRequest(box, `${CLOUD}${path}`, init),
     /** The box's licence-signed request to the relay. */
     async send(
       box: Box,

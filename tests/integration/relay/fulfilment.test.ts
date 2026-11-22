@@ -10,6 +10,7 @@ import {
   recordPick,
   startPicking,
 } from "@shopper/core/orders";
+import { expectAllowed } from "../../support/relay/allowlist";
 import { inboxWorld } from "../../support/relay/inbox";
 
 let w: Awaited<ReturnType<typeof inboxWorld>>;
@@ -36,7 +37,10 @@ test("a relayed order joins the in-store customer with its phone", async () => {
     .values({ orgId: w.orgId, name: "Esi Known", phone: "0241112233" })
     .returning();
   const order = await w.f.paid({ ...oil(), phone: "0241112233", name: "Esi Online" });
-  await w.run();
+  const wire: { path: string; body?: string }[] = [];
+  await w.run((path, init) => void wire.push({ path, body: init.body as string | undefined }));
+  // What the box tells its relay about the order it took is on the allowlist too (Day 52).
+  expectAllowed(wire, ["/relay/orders/events"]);
   expect((await w.boxOrder(order.id))?.customerId).toBe(known!.id);
   // The shop's record keeps its own name.
   expect((await customersWith("0241112233")).map((row) => row.name)).toEqual(["Esi Known"]);
@@ -47,7 +51,7 @@ test("an unknown phone becomes one customer, however often its orders arrive", a
   // Its answer is lost: the relay offers the order again on the next run.
   await w
     .run((path) =>
-      path === "/relay/orders/events" ? new Response("", { status: 503 }) : undefined,
+      path.split("?")[0] === "/relay/orders/events" ? new Response("", { status: 503 }) : undefined,
     )
     .catch(() => undefined);
   await w.run();

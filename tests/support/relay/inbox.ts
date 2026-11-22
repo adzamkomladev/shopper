@@ -1,6 +1,6 @@
 // A relay org with paid online orders (the real order and payment workflows) and its box: a second database holding
 // the same store, branches, catalogue and prices with the same ids, as the Publisher would have left them (v1.5 Day 50).
-//   const w = await inboxWorld()
+//   const w = await inboxWorld({ acceptWithinMs? })
 //   w.f                      -> the relay side: fulfilWorld (f.paid(), f.ctx, f.world.db, f.world.sent, ...)
 //   w.box / w.ctx            -> the box database and a command context for its staff
 //   w.run(intercept?)        -> one Publisher run on the box against the relay (pull, decide, publish, push, beat)
@@ -20,8 +20,8 @@ import { fulfilWorld } from "../orders/fulfil";
 
 type Send = (path: string, init: { method: string; body?: string }) => Promise<Response>;
 
-export async function inboxWorld() {
-  const f = await fulfilWorld({ acceptWithinMs: 600_000, pickLeadMs: 0 });
+export async function inboxWorld(options: { acceptWithinMs?: number } = {}) {
+  const f = await fulfilWorld({ acceptWithinMs: 600_000, pickLeadMs: 0, ...options });
   const orgId = f.world.a.orgId;
   const relayDb = f.world.db;
   await relayDb.update(schema.org).set({ mode: "relay" }).where(eq(schema.org.id, orgId));
@@ -77,6 +77,7 @@ export async function inboxWorld() {
       | typeof schema.branch
       | typeof schema.category
       | typeof schema.price
+      | typeof schema.taxRule
       | typeof schema.branchFulfilment,
   ) => {
     const rows = await relayDb
@@ -109,6 +110,9 @@ export async function inboxWorld() {
     })),
   );
   await copy(schema.price);
+  // The relay prices with its box's tax rules (Day 52): the box holds the relay's, as its first publish would leave them.
+  await box.db.delete(schema.taxRule).where(eq(schema.taxRule.orgId, orgId));
+  await copy(schema.taxRule);
   await copy(schema.branchFulfilment);
   const main = f.shop.branches[0];
 
@@ -121,9 +125,9 @@ export async function inboxWorld() {
       quantityThousandths: units * 1000,
       occurredAt: new Date(Date.now() - 60_000),
     });
-  const run = (intercept?: (path: string) => Response | undefined) =>
+  const run = (intercept?: (path: string, init: RequestInit) => Response | undefined) =>
     publishPending(box.db, ctx, {
-      send: async (path, init) => intercept?.(path) ?? relay(path, init),
+      send: async (path, init) => intercept?.(path, init) ?? relay(path, init),
     });
   const order = (db: schema.ShopperDatabase) => async (id: string) =>
     (await db.select().from(schema.onlineOrder).where(eq(schema.onlineOrder.id, id)))[0];

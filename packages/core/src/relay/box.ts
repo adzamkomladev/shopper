@@ -39,6 +39,18 @@ export async function relayAccess(
   return { licence, box };
 }
 
+/**
+ * Why a relay speaking protocol `speaks` turns down a box that named `named` (`publish/N` in its signed path; none is
+ * `publish/1`), or undefined when it speaks it too: its own version and the one before (Day 52).
+ */
+export function protocolRefusal(named: string | undefined, speaks: number) {
+  const version = Number((named ?? "publish/1").match(/^publish\/(\d+)$/)?.[1]);
+  if (version === speaks || version === speaks - 1) return undefined;
+  return version > speaks
+    ? "The relay is older than this box; it will retry."
+    : "Update this box to keep Online Orders: the relay no longer speaks its protocol.";
+}
+
 /** Whether an org is a relay (v1.5): its cloud back office only reads, and only its box writes. */
 export async function isRelayOrg(db: ShopperDatabase, orgId: string) {
   const [row] = await db.select({ mode: org.mode }).from(org).where(eq(org.id, orgId));

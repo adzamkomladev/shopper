@@ -56,6 +56,8 @@ export interface ShopOptions {
   paystack?: Pick<ReturnType<typeof createPaystack>, "initialize">;
   /** Checks the signed review links texted to shoppers. */
   linkSecret: string;
+  /** Takes what a shopper's command queues: the refund and the text of an order they cancel after paying. */
+  notifications?: Queue;
 }
 /** What signs a customer's statement link and where the portal opens it. */
 export interface StatementLinks {
@@ -126,6 +128,8 @@ export interface ApiOptions {
   updates?: BoxUpdates;
   /** The issuer's Ed25519 private JWK, cloud only: it confirms box check-ins. */
   licenceSigningKey?: string;
+  /** Cloud only: the relay's publish protocol (default the current one); it also speaks the one before. */
+  relayProtocol?: number;
 }
 
 /** The box's update bundles (box only): see apps/box/src/updates. */

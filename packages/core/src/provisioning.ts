@@ -33,6 +33,7 @@ export const provisionOrg = defineCommand({
       { orgId: context.orgId, code: "zero-rated", name: "Zero-rated" },
       { orgId: context.orgId, code: "exempt", name: "Exempt" },
     ]);
+    // A relay org's rules are replaced by the set its box publishes (v1.5 Day 52); this one serves until then.
     await tx.insert(taxRule).values({ orgId: context.orgId, ...ghana2026 });
     await tx.insert(shopperMeta).values({
       orgId: context.orgId,

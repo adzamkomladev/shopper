@@ -9,6 +9,7 @@ import {
   product,
   store,
   taxClass,
+  taxRule,
 } from "@shopper/db-pg";
 import type { Queryable } from "../types";
 import { relayAvailability } from "./availability";
@@ -19,15 +20,30 @@ import { relayAvailability } from "./availability";
  * theirs that are still in force or start later. The relay's copy read with the same function must equal the box's.
  */
 export async function relayProjection(db: Queryable, orgId: string, now = new Date()) {
-  const shop = await db
+  const taxRules = await db
     .select({
-      id: org.id,
-      tin: org.tin,
-      vatRegisteredFrom: org.vatRegisteredFrom,
-      priceMode: org.priceMode,
+      id: taxRule.id,
+      effectiveFrom: taxRule.effectiveFrom,
+      vatBps: taxRule.vatBps,
+      nhilBps: taxRule.nhilBps,
+      getfundBps: taxRule.getfundBps,
+      covidBps: taxRule.covidBps,
+      source: taxRule.source,
     })
-    .from(org)
-    .where(eq(org.id, orgId));
+    .from(taxRule)
+    .where(eq(taxRule.orgId, orgId))
+    .orderBy(asc(taxRule.effectiveFrom));
+  const shop = (
+    await db
+      .select({
+        id: org.id,
+        tin: org.tin,
+        vatRegisteredFrom: org.vatRegisteredFrom,
+        priceMode: org.priceMode,
+      })
+      .from(org)
+      .where(eq(org.id, orgId))
+  ).map((row) => ({ ...row, taxRules }));
   const stores = await db
     .select({ id: store.id, name: store.name })
     .from(store)

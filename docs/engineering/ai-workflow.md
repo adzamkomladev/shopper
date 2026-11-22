@@ -15,8 +15,10 @@ Only the model behind each role differs per tool.
 4. **Check** (`checker` agent): `vp check`, `vp run guard`, `vp test --run`. Fix and repeat.
 5. **Review** (`pre-merge-review` skill, `reviewer` agent, which runs Codex `gpt-6.2-sol`). UI changes
    also go through `ui-reviewer` with screenshots. Fix every confirmed finding.
-6. **Commit / PR** with the description from
-   [developer-experience.md](developer-experience.md#git).
+6. **Commit** after each green slice with the description from
+   [developer-experience.md](developer-experience.md#git). Push once, when every slice is done.
+7. **Ship.** Open the PR, watch its CI until it is green (a red run is fixed, pushed and watched
+   again), then merge. Every review in this loop is Codex `gpt-6.2-sol`.
 
 Skip a subagent when the work is small enough that briefing it costs more than doing it.
 

@@ -254,7 +254,15 @@ class: `runRelayPublisher` (`@shopper/core/relay`), started by `boxRelayPublishe
   middleware), after a till push with accepted sales, when the Online Orders settings save (`PUT /settings/online`), and
   on boot and every minute (the heartbeat's clock). Scheduled prices need no wake: future prices
   are already published, and the store prices by the time of the request.
-- **Failures** (of a batch or the heartbeat): 401, 402 or 403 records the reason in `org.relay_error` and ends the run. A network error or 5xx
+- **Tax profile and rules (Days 51–52):** the `shop` row carries the box's TIN, VAT registration, price mode and every
+  `tax_rule` (ids and all). The relay replaces its rules with that set, so checkout and the box's acceptance check price
+  with the same rules; a relay org is provisioned with none of its own. `tests/integration/relay/parity.test.ts` holds
+  the cloud's quote equal to the box's for 250 seeded baskets, before and after the box changes its rule and price mode.
+- **Protocol (Day 52):** every request names the box's protocol in its signed path, `?protocol=publish/N`
+  (`RELAY_PROTOCOL`, now 1; none means 1). A relay speaks its own version and the one before (`relayProtocol` on
+  `createApi`); anything else is a 426 with the reason, answered before the signature is spent. Bump the version when a
+  body's shape changes incompatibly, and keep the previous shape working on the relay until boxes are updated.
+- **Failures** (of a batch or the heartbeat): 401, 402, 403 or 426 records the reason in `org.relay_error` and ends the run. A network error or 5xx
   records it and retries after 1 minute, doubling to 15 minutes; any wake cuts the wait short.
 - **The switch:** `org.online_orders`. Switching it on forgets `relay_published`, which forces a fresh snapshot.
   This is also how to repair a relay that lost its copy.
@@ -294,6 +302,12 @@ publish → tell → heartbeat (`relay/inbox/box.ts`).
   the Publisher; cancelling frees the holds (the relay refunds when told); hand-over turns the holds into sale
   movements; a short or substitute pick is refused; `deliverOrderStatus` never texts for it (the relay does).
 - **Refunds tell the shopper:** `refundPaidOrder` queues `order.status` `refunded`, for cloud shops too.
+- **A box offline mid-order (Day 52):** a relay order's workflow waits 30 minutes for the box
+  (`RELAY_ACCEPT_WITHIN_MS`; cloud shops keep their 10-minute refund). Then `order.overdue` stamps
+  `online_order.overdue_at` and queues `order.overdue` (an SMS: cancel for a full refund, or keep waiting), and the
+  workflow waits for the box again until the slot ends, then refunds as `not_accepted`. Meanwhile the shopper's
+  `POST /shop/:code/orders/:id/cancel` refunds the order (`refundPaidOrder` with `overdue`: paid and offered only) and
+  wakes the workflow with `store.accepted { cancelled }`. The box never takes a refunded order.
 
 **Customers, receipts and points (Day 51).** Shopper accounts of an on-prem shop live in its relay org (phone sign-in
 there). Staff record consent on the box (`customer.online_shared_at`, `PUT /customers/:id/online`, not a till field).

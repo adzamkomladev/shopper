@@ -19,7 +19,7 @@ import type { ApiAuthentication, ApiEnvironment } from "../../types";
  */
 export function fiscalRoutes(options: {
   database: ShopperDatabase;
-  authentication: ApiAuthentication | undefined;
+  authentication?: ApiAuthentication;
   lane?: Lane;
   blobs?: Blobs;
 }) {

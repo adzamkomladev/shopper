@@ -77,10 +77,15 @@ up to date.
    shows a little less than you have (it rounds down to 1, 2, 3, 5, 10, 20, 50, 100 and so on), so it never sells
    what the shop cannot fill. A sell-out reaches the online store within seconds; restocks within a minute.
 
-Only names, SKUs, categories, prices, branches and how much each branch can sell leave the box. Cost prices,
+Only names, SKUs, categories, prices, the shop's tax settings and rates, branches and how much each branch can sell
+leave the box. Cost prices,
 suppliers, stock counts and customers never do. The box checks in every minute. If it goes quiet for 5 minutes while a
 branch is open (power or internet down), the online store pauses ordering at that branch and keeps shoppers' carts;
 it resumes by itself when the box is back.
+
+If the box is off or offline when an order is paid, the order waits for it. After 30 minutes the shopper is texted
+that they can cancel for a full refund or keep waiting; if they wait, the box takes the order as soon as it is back,
+until the order's time slot ends (then the shopper is refunded).
 
 Paid online orders come to the box within a minute and appear under **Online orders**, already accepted, with their
 stock set aside. An order the branch cannot fill is turned down and the shopper is refunded and told by text. Pick an

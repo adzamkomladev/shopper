@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, ne, notInArray, or, sql } from "drizzle-orm";
 import { defineCommand } from "@shopper/audit";
 import { relayImageId } from "@shopper/assets";
 import {
@@ -11,6 +11,7 @@ import {
   product,
   store,
   taxClass,
+  taxRule,
 } from "@shopper/db-pg";
 import { money } from "@shopper/money";
 import type { Blobs } from "@shopper/ports";
@@ -31,11 +32,40 @@ export const publishRelay = defineCommand({
     const orgId = context.orgId;
     await tx.execute(sql`SELECT set_config('shopper.relay', ${orgId}, true)`);
     // The box's own tax profile, so checkout taxes and the invoice the box fiscalises agree (Day 51).
-    for (const row of batch.shop.filter((entry) => entry.id === orgId))
+    for (const row of batch.shop.filter((entry) => entry.id === orgId)) {
       await tx
         .update(org)
         .set({ tin: row.tin, vatRegisteredFrom: row.vatRegisteredFrom, priceMode: row.priceMode })
         .where(eq(org.id, orgId));
+      // And its tax rules, the whole set (Day 52): the box deletes only rules not yet in force, which no sale used.
+      // A box from before Day 52 sends none; its relay keeps what it has.
+      const rules = row.taxRules ?? [];
+      if (rules.length)
+        await tx.delete(taxRule).where(
+          and(
+            eq(taxRule.orgId, orgId),
+            or(
+              notInArray(
+                taxRule.id,
+                rules.map((rule) => rule.id),
+              ),
+              // A rule moved off a date another now takes: clear it first, the insert would clash.
+              ...rules.map((rule) =>
+                and(eq(taxRule.effectiveFrom, rule.effectiveFrom), ne(taxRule.id, rule.id)),
+              ),
+            ),
+          ),
+        );
+      for (const rule of rules)
+        await tx
+          .insert(taxRule)
+          .values({ orgId, ...rule })
+          .onConflictDoUpdate({
+            target: taxRule.id,
+            set: { ...rule, updatedAt: sql`now()` },
+            setWhere: eq(taxRule.orgId, orgId),
+          });
+    }
     for (const row of batch.stores)
       await tx
         .insert(store)

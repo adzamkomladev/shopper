@@ -9,6 +9,7 @@ import { boxRelayPublisher } from "@shopper/adapters-box";
 import { listSlots, OrderError, placeOrder } from "@shopper/core/orders";
 import { relayHeartbeat } from "@shopper/core/relay";
 import { quoteCart } from "@shopper/core/storefront";
+import { ghana2026 } from "@shopper/tax";
 import { provisionOrg, provisioningContext } from "../../../tooling/database/seed";
 import { emptyDatabase } from "../../support/migration/archive";
 import { context, db } from "../auth/setup";
@@ -28,6 +29,16 @@ beforeAll(async () => {
   await enrol(shop);
   const store = v7();
   const batch = {
+    // The box's tax profile and rules: the relay prices with these (Day 52).
+    shop: [
+      {
+        id: shop.licence.org,
+        tin: null,
+        vatRegisteredFrom: "2020-01-01",
+        priceMode: "inclusive",
+        taxRules: [{ id: v7(), ...ghana2026 }],
+      },
+    ],
     stores: [{ id: store, name: "Osu Mart" }],
     branches: [{ id: branch, storeId: store, name: "Osu" }],
     fulfilment: [
@@ -153,8 +164,9 @@ test("each minute's run beats only after what is due reached the relay", async (
     withDatabase: (run) => run(box.db),
     appVersion: ctx.appVersion,
     send: async (path, init) => {
-      sent.push(path);
-      if (path === refuse) return Response.json({ error: "Support has ended" }, { status: 402 });
+      sent.push(path.split("?")[0]!);
+      if (path.split("?")[0] === refuse)
+        return Response.json({ error: "Support has ended" }, { status: 402 });
       return cloud.send(shop, path, init);
     },
   });

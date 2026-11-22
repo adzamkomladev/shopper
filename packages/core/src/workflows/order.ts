@@ -6,7 +6,13 @@ import {
   type Workflow,
   type WorkflowCheckpoint,
 } from "@shopper/ports";
-import { acceptOrder, confirmHeld, expireOrder, markOrderPaid } from "../orders/flow";
+import {
+  acceptOrder,
+  confirmHeld,
+  expireOrder,
+  markOrderPaid,
+  offerOrderCancel,
+} from "../orders/flow";
 import { orderCompleted, orderEnded, orderPicked, pickDue } from "../orders/fulfil/stages";
 import { refundPaidOrder } from "../orders/payments/refunds/compensate";
 import { refundOrderPayment } from "../orders/payments/refunds/send";
@@ -17,6 +23,12 @@ const policy = { maxAttempts: 3, delayMs: 1000, backoff: "constant" } as const;
 const hour = 3_600_000;
 /** How long the store has to accept a paid order before it is refunded. */
 export const ACCEPT_WITHIN_MS = 10 * 60_000;
+/**
+ * A relay org's box may be offline (v1.5 Day 52): it has 30 minutes, then the shopper is offered a refund or the wait.
+ * shortcut: wall-clock minutes, not opening-hours minutes; the store only takes orders in hours. Upgrade if shops report
+ * late-evening orders lapsing overnight.
+ */
+export const RELAY_ACCEPT_WITHIN_MS = 30 * 60_000;
 
 /** What a store's decision carries: it turned the order down, or cancelled it (its refund is already made). */
 type Decision = { declined?: boolean; cancelled?: boolean };
@@ -106,11 +118,27 @@ export async function runOnlineOrder(
     // A payment can land in the moment the hold ends; its own transaction decided, so a paid order carries on.
     if (lapsed.moved) return;
   }
-  if (!(await record("paid", "waiting", markOrderPaid)).paid) return await end("not paid");
+  const settled = await record("paid", "waiting", markOrderPaid);
+  if (!settled.paid) return await end("not paid");
 
-  const decision = await waited(
-    flow.waitFor("accept", "store.accepted", deps.acceptWithinMs ?? ACCEPT_WITHIN_MS),
-  );
+  // A relay order never waits past its slot: the box may take it only until the slot ends.
+  const within = settled.relay
+    ? Math.min(RELAY_ACCEPT_WITHIN_MS, Math.max(0, Date.parse(settled.slotEnd) - Date.now()))
+    : ACCEPT_WITHIN_MS;
+  const decision =
+    (await waited(flow.waitFor("accept", "store.accepted", deps.acceptWithinMs ?? within))) ??
+    // A relay order past its deadline is not refunded: the shopper chooses, and the box may still take it until the slot ends.
+    (settled.relay
+      ? await record("overdue", "waiting", offerOrderCancel).then((offer) =>
+          waited(
+            flow.waitFor(
+              "accept-late",
+              "store.accepted",
+              Math.max(0, Date.parse(offer.slotEnd) - Date.now()),
+            ),
+          ),
+        )
+      : null);
   if (!decision) return await giveBack("unaccepted", "not_accepted", "refund");
   if ((decision as Decision).declined || (decision as Decision).cancelled)
     return await end((decision as Decision).declined ? "declined" : "cancelled");

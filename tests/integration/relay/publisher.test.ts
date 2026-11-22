@@ -89,7 +89,7 @@ const publisher = () =>
     withDatabase: (run) => run(box.db),
     appVersion: ctx.appVersion,
     send: async (path, init) => {
-      if (path === "/relay/publish") sent.push(JSON.parse(init.body!) as Batch);
+      if (path.split("?")[0] === "/relay/publish") sent.push(JSON.parse(init.body!) as Batch);
       return cloud.send(shop, path, init);
     },
   });
@@ -177,7 +177,7 @@ test("a snapshot, then 100 changes: the relay's catalogue equals the box's proje
 
 test("nothing the shop keeps private ever leaves the box", async () => {
   const allowed: Record<string, string[]> = {
-    shop: ["id", "tin", "vatRegisteredFrom", "priceMode"],
+    shop: ["id", "tin", "vatRegisteredFrom", "priceMode", "taxRules"],
     stores: ["id", "name"],
     branches: ["id", "storeId", "name"],
     fulfilment:

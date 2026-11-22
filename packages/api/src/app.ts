@@ -210,11 +210,10 @@ export function createApi(options: ApiOptions = {}) {
     app.route(
       "/",
       relayRoutes({
+        ...options,
         database: options.database,
         licenceSigningKey: options.licenceSigningKey,
-        blobs: options.blobs,
-        orderFlows: options.orderFlows,
-        notifications: options.notifications,
+        protocol: options.relayProtocol,
       }),
     );
   app.route("/", updateRoutes(options));
@@ -227,23 +226,15 @@ export function createApi(options: ApiOptions = {}) {
       "/",
       taxReportRoutes(options.database, options.authentication, options.notifications),
     );
-  if (options.database)
-    app.route(
-      "/",
-      fiscalRoutes({
-        database: options.database,
-        authentication: options.authentication,
-        lane: options.lane,
-        blobs: options.blobs,
-      }),
-    );
+  if (options.database) app.route("/", fiscalRoutes({ ...options, database: options.database }));
   if (options.database && options.shop) {
+    const shop = { ...options.shop, database: options.database };
     app.use("/shop/:code/*", refuseShoppersWhileLeaving(options.database));
     // Before `/shop/:code`, which would otherwise take "account" for a shop code.
-    app.route("/", shopAccountRoutes({ ...options.shop, database: options.database }));
-    app.route("/", shopSignInRoutes({ ...options.shop, database: options.database }));
-    app.route("/", shopStoreRoutes({ ...options.shop, database: options.database }));
-    app.route("/", shopOrderRoutes({ ...options.shop, database: options.database }));
+    app.route("/", shopAccountRoutes(shop));
+    app.route("/", shopSignInRoutes(shop));
+    app.route("/", shopStoreRoutes(shop));
+    app.route("/", shopOrderRoutes(shop));
   }
   return app;
 }

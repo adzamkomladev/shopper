@@ -226,6 +226,8 @@ function shop(request: Request, options: RuntimeOptions) {
   return createApi({
     database: options.database,
     shop: {
+      // The shop's engines, Paystack, Turnstile, the box's one org and the shopper's IP, by the same names.
+      ...options,
       access: createShopAccess({
         database: options.database,
         linkSecret: options.linkSecret,
@@ -233,15 +235,6 @@ function shop(request: Request, options: RuntimeOptions) {
         queue: options.notifications,
       }),
       appVersion: buildInfo.version,
-      blobs: options.blobs,
-      turnstile: options.turnstile,
-      clientIP: options.clientIP,
-      orgId: options.orgId,
-      orderFlows: options.orderFlows,
-      stockHolds: options.stockHolds,
-      orderPayments: options.orderPayments,
-      orderReviews: options.orderReviews,
-      paystack: options.paystack,
       linkSecret: options.linkSecret,
     },
   }).fetch(request);

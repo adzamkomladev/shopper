@@ -103,6 +103,8 @@ async function orderWhere(db: Queryable, orgId: string, match: SQL) {
     timeline: timeline.map((event) => ({ status: event.status, at: event.at.toISOString() })),
     /** The shopper's own review of the order, whatever its state; null until they give one. */
     review: review ?? null,
+    // A relay order its box has not confirmed in time (v1.5 Day 52): the shopper may cancel it for a refund.
+    overdue: row.status === "paid" && row.overdueAt !== null,
     canReview: row.status === "completed" && !review && reviewable(row.completedAt),
     /** What picking changed, once it did: shown to the shopper only after the pick is finished. */
     adjustment: adjustment

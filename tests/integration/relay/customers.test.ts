@@ -48,7 +48,9 @@ afterAll(async () => {
 });
 
 const customerBodies = () =>
-  w.sent.filter((request) => request.path === "/relay/customers").map((request) => request.body);
+  w.sent
+    .filter((request) => request.path.split("?")[0] === "/relay/customers")
+    .map((request) => request.body);
 const json = async (response: Response) => ({
   status: response.status,
   body: await response.json().catch(() => null),

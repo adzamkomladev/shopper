@@ -105,14 +105,21 @@ export function shopOrderRoutes(options: ShopOptions) {
       }),
     );
   });
-  // The shopper's own way out of an order they have not paid: their key proves it is theirs.
+  // The shopper's own way out of an unpaid order, or of a paid relay order its box never confirmed: their key proves it is theirs.
   app.post("/shop/:code/orders/:id/cancel", async (c) => {
     const found = await shopOf(c);
+    if (!options.orderFlows)
+      return c.json({ error: "This shop is not taking online orders yet" }, 503);
     const { key } = (await body(c)) as { key?: string };
     const id = c.req.param("id");
     if (!(await readOrderView(options.database, found.id, id, String(key ?? ""))))
       throw new OrderError("not_found", "We could not find that order");
-    await cancelOwnOrder(options.database, { orgId: found.id, appVersion: options.appVersion }, id);
+    await cancelOwnOrder(
+      options.database,
+      { orgId: found.id, appVersion: options.appVersion, queue: options.notifications },
+      options.orderFlows,
+      id,
+    );
     return c.json(await readOrderView(options.database, found.id, id, String(key)));
   });
   // The shopper reviews an order they have received, with their key or the link texted to them; the review's workflow screens and publishes it.

@@ -57,7 +57,7 @@ test("the same order delivered twice is processed once", async () => {
   // The box takes the order but its answer never reaches the relay: the next run is offered it again.
   const lost = await w
     .run((path) =>
-      path === "/relay/orders/events" ? new Response("", { status: 503 }) : undefined,
+      path.split("?")[0] === "/relay/orders/events" ? new Response("", { status: 503 }) : undefined,
     )
     .catch(() => "failed");
   expect(lost).toBe("failed");

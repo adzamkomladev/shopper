@@ -56,7 +56,7 @@ export async function customersWorld() {
         const answer = await api.fetch(
           await signedRequest({ licence, key: key.privateKey }, `https://cloud.test${path}`, init),
         );
-        return path === lose ? new Response("", { status: 503 }) : answer;
+        return path.split("?")[0] === lose ? new Response("", { status: 503 }) : answer;
       },
     });
   const send = async (path: string, body: unknown) =>

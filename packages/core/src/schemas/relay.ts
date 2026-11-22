@@ -5,9 +5,13 @@ import { ghanaPhone, name, text, timestamp } from "./fields";
 import { receiptDocument } from "./receipts/document";
 import { fulfilmentFields } from "./orders/fulfilment";
 
+/** The publish protocol this box speaks (`publish/1`); a relay speaks its own and the one before. */
+export const RELAY_PROTOCOL = 1;
+
 /** The most rows of one kind a publish batch carries; the Publisher splits larger catalogues. */
 export const BATCH_ROWS = 500;
 
+const bps = v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(10_000));
 const rows = <T extends v.GenericSchema>(row: T) =>
   v.optional(v.pipe(v.array(row), v.maxLength(BATCH_ROWS)), []);
 
@@ -23,6 +27,24 @@ export const relayBatch = v.strictObject({
       tin: v.nullable(text(32)),
       vatRegisteredFrom: v.nullable(v.pipe(v.string(), v.isoDate())),
       priceMode: v.picklist(priceModes),
+      /** Every dated tax rule of the box (Day 52): the relay prices with these. Older boxes send none. */
+      taxRules: v.optional(
+        v.pipe(
+          v.array(
+            v.strictObject({
+              id: uuidV7Schema,
+              effectiveFrom: v.pipe(v.string(), v.isoDate()),
+              vatBps: bps,
+              nhilBps: bps,
+              getfundBps: bps,
+              covidBps: bps,
+              source: text(500),
+            }),
+          ),
+          v.minLength(1),
+          v.maxLength(1_000),
+        ),
+      ),
     }),
   ),
   stores: rows(v.strictObject({ id: uuidV7Schema, name })),

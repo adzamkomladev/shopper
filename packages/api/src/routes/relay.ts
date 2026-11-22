@@ -7,7 +7,9 @@ import type { Blobs, Queue, WorkflowLauncher } from "@shopper/ports";
 import {
   applyRelayEvents,
   publishRelay,
+  protocolRefusal,
   publishRelayCustomers,
+  RELAY_PROTOCOL,
   relayAccess,
   relayBatch,
   relayCustomers,
@@ -31,10 +33,15 @@ export function relayRoutes(options: {
   blobs?: Blobs;
   orderFlows?: WorkflowLauncher;
   notifications?: Queue;
+  /** The publish protocol this relay speaks; it also takes the one before. */
+  protocol?: number;
 }) {
   const app = new Hono<RelayEnvironment>();
   const db = options.database;
   app.use("/relay/*", async (c, next) => {
+    // Before the signature is spent, so the box can send it again once one side is updated.
+    const refusal = protocolRefusal(c.req.query("protocol"), options.protocol ?? RELAY_PROTOCOL);
+    if (refusal) return c.json({ error: refusal }, 426);
     const access = await relayAccess(db, c.req.raw, {
       issuer: publicKeyOf(options.licenceSigningKey),
     });

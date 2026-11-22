@@ -212,8 +212,9 @@ function requireConfig(input: unknown) {
 
 Tests written first and green, `vp check` and `vp run guard` clean, the change reviewed with the
 `pre-merge-review` skill (Codex `gpt-6.2-sol`), UI verified in the real app with the `ui-verify` loop
-(`playwright-cli`) against Figma and reported with its remaining issues, and docs updated when a rule
-or contract changed.
+(`playwright-cli`) against Figma and reported with its remaining issues, docs updated when a rule
+or contract changed, and the branch shipped: pushed once, PR opened, CI watched until green (fixed and
+pushed again when red), then merged.
 
 <!--VITE PLUS START-->
 

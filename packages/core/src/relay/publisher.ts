@@ -10,13 +10,20 @@ import {
   type ShopperDatabase,
 } from "@shopper/db-pg";
 import { sha256 } from "@shopper/utils";
-import { BATCH_ROWS, RELAY_ENTITY, RELAY_KINDS, type RelayBatch } from "../schemas/relay";
+import {
+  BATCH_ROWS,
+  RELAY_ENTITY,
+  RELAY_KINDS,
+  RELAY_PROTOCOL,
+  type RelayBatch,
+} from "../schemas/relay";
 import { availabilityDue } from "./availability";
 import { shareCustomers } from "./customers/box";
 import { takeOrders, tellOrders } from "./inbox/box";
 import { sendPhotos } from "./photos";
 import { productFields, relayProjection } from "./projection";
 import type { RelayPublisherDeps } from "../workflows/types";
+import type { RelaySend } from "./types";
 
 type Kind = keyof RelayBatch;
 type Row = { id: string };
@@ -44,8 +51,11 @@ export async function publishPending(
     .from(org)
     .where(eq(org.id, context.orgId));
   if (!shop?.onlineOrders) return { sent: 0, off: true };
+  // Every request names the box's protocol in its signed path (Day 52): the relay speaks it and the one before.
+  const send: RelaySend = (path, init) =>
+    relay.send(`${path}?protocol=publish/${RELAY_PROTOCOL}`, init);
   // Paid orders first (Day 50): stock the box holds for them goes up in this same run.
-  const taken = await takeOrders(db, context, relay.send, now);
+  const taken = await takeOrders(db, context, send, now);
   if (taken && (await refusedBy(db, context, taken))) return { sent: 0, refused: taken.status };
   const pending = await pendingRows(db, context.orgId, now);
   let sent = 0;
@@ -53,26 +63,26 @@ export async function publishPending(
   for (const batch of batches(pending)) {
     const photos = (batch.products ?? []).map((entry) => (entry.row as { image?: string }).image);
     const response =
-      (await sendPhotos(db, context.orgId, photos, relay.send, relay.blobs, offered)) ??
-      (await relay.send("/relay/publish", { method: "POST", body: JSON.stringify(wire(batch)) }));
+      (await sendPhotos(db, context.orgId, photos, send, relay.blobs, offered)) ??
+      (await send("/relay/publish", { method: "POST", body: JSON.stringify(wire(batch)) }));
     if (await refusedBy(db, context, response)) return { sent, refused: response.status };
     sent += await recordPublished(db, context, hashed(batch), now);
   }
   // Nothing was pending: still clear a failure the relay has since got over.
   if (!sent && shop.relayError) await recordPublished(db, context, [], now);
-  const shared = await shareCustomers(db, context, relay.send, now);
+  const shared = await shareCustomers(db, context, send, now);
   if (shared && (await refusedBy(db, context, shared))) return { sent, refused: shared.status };
-  const told = await tellOrders(db, context, relay.send);
+  const told = await tellOrders(db, context, send);
   if (told && (await refusedBy(db, context, told))) return { sent, refused: told.status };
   // Alive only once what is due is on the relay (Day 49): a reconnecting box never reopens ordering on stale stock.
-  const beat = await relay.send("/relay/heartbeat", { method: "POST", body: "{}" });
+  const beat = await send("/relay/heartbeat", { method: "POST", body: "{}" });
   if (await refusedBy(db, context, beat)) return { sent, refused: beat.status };
   return { sent };
 }
 
-/** A refusal (401/402/403) is kept with its reason and ends the run; any other failure throws, to be retried. */
+/** A refusal (401/402/403, 426 for a protocol) is kept with its reason and ends the run; any other failure throws. */
 async function refusedBy(db: ShopperDatabase, context: CommandContext, response: Response) {
-  if ([401, 402, 403].includes(response.status)) {
+  if ([401, 402, 403, 426].includes(response.status)) {
     const reason = ((await response.json().catch(() => ({}))) as { error?: string }).error;
     await recordRelayError(db, context, { error: reason ?? `Refused (${response.status})` });
     return true;

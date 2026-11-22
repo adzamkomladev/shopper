@@ -1,9 +1,15 @@
 export { enrolRelay, revokeRelay, setRelayOnlineOrders } from "./commands";
-export { isRelayOrg, relayAccess, relayHeartbeat } from "./box";
+export { isRelayOrg, protocolRefusal, relayAccess, relayHeartbeat } from "./box";
 export { applyRelayEvents, relayInbox } from "./inbox/relay";
 export { publishRelay } from "./publish";
 export { relayProjection } from "./projection";
-export { BATCH_ROWS, relayBatch, relayCustomers, type RelayBatch } from "../schemas/relay";
+export {
+  BATCH_ROWS,
+  RELAY_PROTOCOL,
+  relayBatch,
+  relayCustomers,
+  type RelayBatch,
+} from "../schemas/relay";
 export { publishRelayCustomers } from "./customers/relay";
 export type { RelayBox, RelayProjection } from "./types";
 export { publishPending, recordRelayError } from "./publisher";

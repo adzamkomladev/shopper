@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { defineCommand, enqueueAfterCommit, type CommandContext } from "@shopper/audit";
 import { v7 } from "uuid";
 import { fiscalDoc, onlineOrder, stockMovement, type ShopperTransaction } from "@shopper/db-pg";
@@ -33,7 +33,12 @@ const reasons = {
  */
 export const refundPaidOrder = defineCommand({
   name: "order.refund",
-  async run(tx, ctx, input: { id: string; reason: CompensationReason; now?: Date }) {
+  // `overdue`: only a paid order offered back to its shopper (v1.5 Day 52), never one the shop has since taken.
+  async run(
+    tx,
+    ctx,
+    input: { id: string; reason: CompensationReason; now?: Date; overdue?: boolean },
+  ) {
     const now = input.now ?? new Date();
     const [order] = await tx
       .update(onlineOrder)
@@ -42,7 +47,9 @@ export const refundPaidOrder = defineCommand({
         and(
           eq(onlineOrder.orgId, ctx.orgId),
           eq(onlineOrder.id, input.id),
-          inArray(onlineOrder.status, reasons[input.reason]),
+          input.overdue
+            ? and(eq(onlineOrder.status, "paid"), isNotNull(onlineOrder.overdueAt))
+            : inArray(onlineOrder.status, reasons[input.reason]),
         ),
       )
       .returning();

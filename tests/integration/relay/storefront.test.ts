@@ -15,6 +15,7 @@ import { listKeys, rustfs } from "../../../tooling/storage/buckets";
 import { fileBucket } from "../../support/assets/buckets";
 import { emptyDatabase } from "../../support/migration/archive";
 import { db as cloudDb } from "../auth/setup";
+import { expectAllowed } from "../../support/relay/allowlist";
 import { CLOUD, enrol, relayCloud, type Box } from "./support";
 
 const LINK = "relay-storefront-link-secret-0123456789";
@@ -41,6 +42,7 @@ const rice = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3]);
 const milo = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10, 9, 8, 7, 6]);
 /** Every image offer the relay answered, and whether it handed out an upload grant. */
 const offers: boolean[] = [];
+const wire: { path: string; body?: string }[] = [];
 
 beforeAll(async () => {
   const blobs = await blobsIn(cloudBucket);
@@ -109,8 +111,9 @@ const publish = async () => {
     appVersion: ctx.appVersion,
     blobs: async () => boxStorage,
     send: async (path, init) => {
+      wire.push({ path, body: init.body as string | undefined });
       const response = await cloud.send(shop, path, init);
-      if (path === "/relay/images" && response.ok)
+      if (path.split("?")[0] === "/relay/images" && response.ok)
         offers.push("upload" in ((await response.clone().json()) as object));
       return response;
     },
@@ -157,6 +160,7 @@ test("the same photo published twice is one object on the relay, and the store s
   expect(offers.slice(asked).some(Boolean)).toBe(false);
   expect(await listKeys(await cloudBucket)).toHaveLength(2);
   expect(await relayImages()).toHaveLength(2);
+  expectAllowed(wire, ["/relay/images", "/relay/publish"]);
 });
 
 const hours = (open: string, close: string, pickup = true) => ({

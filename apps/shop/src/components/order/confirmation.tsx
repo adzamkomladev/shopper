@@ -29,10 +29,17 @@ const statusCopy: Record<
     detail: "It was not paid in time, so the items went back on the shelf.",
   }),
   cancelled: () => ({ title: "Cancelled", detail: "This order was cancelled." }),
-  paid: (order) => ({
-    title: "Paid",
-    detail: `The shop has your payment and will get your order ready.${order.receiptNumber ? ` Receipt ${order.receiptNumber}.` : ""}`,
-  }),
+  paid: (order) =>
+    order.overdue
+      ? {
+          title: "Waiting for the shop",
+          detail:
+            "The shop has not confirmed your order yet. Cancel it for a full refund, or keep waiting and we will text you when it moves.",
+        }
+      : {
+          title: "Paid",
+          detail: `The shop has your payment and will get your order ready.${order.receiptNumber ? ` Receipt ${order.receiptNumber}.` : ""}`,
+        },
   refunded: () => ({
     title: "Refunded",
     detail: "The shop could not fill this order. Your payment is on its way back to you.",
@@ -89,6 +96,9 @@ export function OrderConfirmation({
             <PayPanel shop={shop} order={order} orderKey={orderKey} />
             <CancelOrder shop={shop} order={order} orderKey={orderKey} />
           </>
+        ) : null}
+        {order.status === "paid" && order.overdue ? (
+          <CancelOrder shop={shop} order={order} orderKey={orderKey} refund />
         ) : null}
         {order.timeline.some((event) => event.status === "paid") && order.status !== "refunded" ? (
           <OrderTimeline order={order} />

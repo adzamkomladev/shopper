@@ -149,6 +149,39 @@ test("an unpaid order can be cancelled and then reads as cancelled", async ({ pa
   }).toPass({ timeout: 30_000 });
 });
 
+test("a paid order the shop has not confirmed in time offers a refund, by keyboard", async ({
+  page,
+}, info) => {
+  let status = "paid";
+  const sent: unknown[] = [];
+  await serve(
+    page,
+    () =>
+      shopperOrder(status, {
+        overdue: status === "paid",
+        timeline: [{ status: "paid", at: new Date().toISOString() }],
+        adjustment: null,
+      }),
+    (_url, body) => {
+      sent.push(body);
+      status = "refunded";
+      return shopperOrder("refunded", { timeline: [], adjustment: null });
+    },
+  );
+  await open(page);
+  await expect(page.getByRole("heading", { name: "Waiting for the shop" })).toBeVisible();
+  await expect(page.getByText("Cancel it for a full refund, or keep waiting")).toBeVisible();
+  await expectNoSeriousAxe(page);
+  await shoot(page, info, "shop-order-overdue");
+  const refund = page.getByRole("button", { name: "Cancel and refund" });
+  await expect(async () => {
+    await refund.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("heading", { name: "Refunded" })).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout: 30_000 });
+  expect(sent).toEqual([{ key: KEY }]);
+});
+
 test("the store page shows the shop's average and its latest reviews once there are some", async ({
   page,
 }, info) => {

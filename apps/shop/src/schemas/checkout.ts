@@ -86,6 +86,8 @@ export const placedOrder = v.object({
   adjustment: v.nullable(
     v.object({ beforeGross: amount, afterGross: amount, refundAmount: amount }),
   ),
+  /** A paid relay order the shop has not confirmed in time: the shopper may cancel it for a full refund. */
+  overdue: v.optional(v.boolean(), false),
   /** Whether the review form is still offered: completed, not yet reviewed, and inside the window. */
   canReview: v.boolean(),
   review: v.nullable(

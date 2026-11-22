@@ -5,7 +5,7 @@ import { branch, onlineOrder, onlineOrderAdjustment, onlineOrderEvent, org } fro
 import { formatGHS } from "@shopper/money";
 import type { Delivery } from "@shopper/ports";
 import type { StatementDeliveryDeps } from "../../customers";
-import { orderStatusMessage } from "../../schemas/orders/messages";
+import { orderOverdueMessage, orderStatusMessage } from "../../schemas/orders/messages";
 
 /**
  * Tells the shopper their order moved: ready for pickup, out for delivery, delivered, or cancelled and refunded. A delivery says nothing when it
@@ -87,3 +87,23 @@ const markTold = defineCommand({
   audit: (input) => ({ id: input.orderId, status: input.status }),
   details: (input) => ({ entity: "online_order", entityId: input.orderId }),
 });
+
+/**
+ * A relay order its box has not confirmed by the deadline (v1.5 Day 52): the shopper hears they may cancel it for a full
+ * refund or keep waiting. Said only while the order still waits; one the box took meanwhile needs no text.
+ */
+export async function deliverOrderOverdue(deps: StatementDeliveryDeps, delivery: Delivery) {
+  const { orderId } = v.parse(orderOverdueMessage, delivery.message).payload;
+  const [found] = await deps.db
+    .select({ order: onlineOrder, shop: org.name })
+    .from(onlineOrder)
+    .innerJoin(org, eq(org.id, onlineOrder.orgId))
+    .where(and(eq(onlineOrder.orgId, delivery.message.orgId), eq(onlineOrder.id, orderId)));
+  if (found?.order.status !== "paid") return await delivery.ack();
+  if (!deps.sms) return await delivery.retry();
+  await deps.sms.send(
+    [found.order.customerPhone],
+    `${found.shop}: order ${found.order.receiptNumber ?? found.order.inboxCursor} is still waiting for the shop to confirm it. Cancel it for a full refund on your order page, or keep waiting.`,
+  );
+  await delivery.ack();
+}

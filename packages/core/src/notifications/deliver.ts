@@ -18,7 +18,7 @@ import { deliverKybNotice } from "../kyb/deliver";
 import { deliverShopCode } from "../shop/deliver";
 import { deliverOrderConfirmation } from "../orders/payments/notify";
 import { deliverReviewAsk } from "../orders/reviews/deliver";
-import { deliverOrderStatus } from "../orders/fulfil/status";
+import { deliverOrderOverdue, deliverOrderStatus } from "../orders/fulfil/status";
 import { deliverPickDue } from "../orders/fulfil/pickers";
 import { refundOrderPayment } from "../orders/payments/refunds/send";
 import { orderRefundMessage } from "../schemas/orders/messages";
@@ -75,6 +75,8 @@ export async function deliverNotification(deps: NotificationDeps, delivery: Deli
       return await deliverReviewAsk(deps, delivery);
     case "order.status":
       return await deliverOrderStatus(deps, delivery);
+    case "order.overdue":
+      return await deliverOrderOverdue(deps, delivery);
     case "order.pick_due":
       return await deliverPickDue(deps, delivery);
     case "order.refund":

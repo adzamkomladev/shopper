@@ -1,0 +1,1 @@
+ALTER TABLE "online_order" ADD COLUMN IF NOT EXISTS "overdue_at" timestamp with time zone;

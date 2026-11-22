@@ -79,14 +79,14 @@ test("the store cancels an accepted order: one full refund, the goods back, the 
 test("a shopper cancelling an unpaid order releases its reservation at once and it cannot be paid", async () => {
   const order = await f.placeLapsing(1_500);
   expect((await f.holds(order))[0]!.releasedAt).toBeNull();
-  await cancelOwnOrder(f.world.db, f.ctx, order.id);
+  await cancelOwnOrder(f.world.db, f.ctx, f.orderFlows, order.id);
   expect((await f.row(order)).status).toBe("cancelled");
   expect((await f.holds(order)).map((hold) => hold.releaseReason)).toEqual([
     "cancelled",
     "cancelled",
   ]);
   expect((await f.pay(order)).status).toBe(409);
-  await expect(cancelOwnOrder(f.world.db, f.ctx, order.id)).rejects.toMatchObject({
+  await expect(cancelOwnOrder(f.world.db, f.ctx, f.orderFlows, order.id)).rejects.toMatchObject({
     code: "conflict",
   });
   // The run ends when the hold would have: it finds the order cancelled, not expired.

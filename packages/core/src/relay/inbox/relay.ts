@@ -100,9 +100,16 @@ export async function applyRelayEvents(
   const ids = [...new Set(input.events.map((event) => event.id))];
   if (ids.length) await ackOrders(db, ctx, { ids });
   for (const event of input.events) {
-    const status = await statusOf(db, ctx.orgId, event.id);
-    if (!status) continue;
-    if (event.status === "accepted" && status === "paid")
+    const [order] = await db
+      .select({ status: onlineOrder.status, slotEnd: onlineOrder.slotEnd })
+      .from(onlineOrder)
+      .where(and(eq(onlineOrder.orgId, ctx.orgId), eq(onlineOrder.id, event.id)));
+    if (!order) continue;
+    const status = order.status;
+    // Past its slot a paid order is the shopper's refund (Day 52), however late the box's accept arrives.
+    if (event.status === "accepted" && status === "paid" && order.slotEnd <= new Date())
+      await declineStoreOrder(db, ctx, flows, event.id);
+    else if (event.status === "accepted" && status === "paid")
       await acceptStoreOrder(db, ctx, flows, event.id);
     // Moved by an earlier request whose wake failed: the box retries, so the workflow is woken again.
     else if (event.status === "accepted" && status === "accepted")
@@ -145,14 +152,6 @@ const steps = {
 } as const satisfies Record<string, { from: Status[]; wake: string | null }>;
 
 const isStep = (status: Status): status is keyof typeof steps => status in steps;
-
-const statusOf = async (db: ShopperDatabase, orgId: string, id: string) =>
-  (
-    await db
-      .select({ status: onlineOrder.status })
-      .from(onlineOrder)
-      .where(and(eq(onlineOrder.orgId, orgId), eq(onlineOrder.id, id)))
-  )[0]?.status;
 
 /** The box has these orders: the inbox stops offering them. The first time is kept. */
 const ackOrders = defineCommand({

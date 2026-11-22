@@ -1,6 +1,7 @@
-import { and, count, eq, inArray, isNull } from "drizzle-orm";
-import { defineCommand } from "@shopper/audit";
-import { onlineOrder, stockHold, type ShopperTransaction } from "@shopper/db-pg";
+import { and, count, eq, gt, inArray, isNull, sql } from "drizzle-orm";
+import { v7 } from "uuid";
+import { defineCommand, enqueueAfterCommit } from "@shopper/audit";
+import { onlineOrder, org, stockHold, type ShopperTransaction } from "@shopper/db-pg";
 import { recordStatus } from "./fulfil/events";
 import { releaseOrderHolds } from "./holds";
 
@@ -48,7 +49,52 @@ export const markOrderPaid = defineCommand({
   name: "order.paid",
   async run(tx, context, input: Input) {
     const order = await readOrder(tx, context.orgId, input.id);
-    return { paid: !["placed", "expired", "cancelled", "refunded"].includes(order.status) };
+    const [shop] = await tx.select({ mode: org.mode }).from(org).where(eq(org.id, context.orgId));
+    return {
+      paid: !["placed", "expired", "cancelled", "refunded"].includes(order.status),
+      relay: shop?.mode === "relay",
+      slotEnd: order.slotEnd.toISOString(),
+    };
+  },
+  audit: (input, output) => ({ id: input.id, ...output }),
+  details: (input) => ({ entity: "online_order", entityId: input.id }),
+});
+
+/**
+ * A relay org's paid order its box has not accepted by the deadline (v1.5 Day 52): the shopper may now cancel it for a
+ * full refund, and is texted so. Stamped once; an order the box took meanwhile is left alone.
+ */
+export const offerOrderCancel = defineCommand({
+  name: "order.overdue",
+  async run(tx, context, input: Input) {
+    const [offered] = await tx
+      .update(onlineOrder)
+      .set({ overdueAt: new Date() })
+      .where(
+        and(
+          eq(onlineOrder.orgId, context.orgId),
+          eq(onlineOrder.id, input.id),
+          eq(onlineOrder.status, "paid"),
+          isNull(onlineOrder.overdueAt),
+          // Past its slot there is nothing to wait for: the workflow refunds instead.
+          gt(onlineOrder.slotEnd, sql`now()`),
+        ),
+      )
+      .returning({ id: onlineOrder.id });
+    if (offered)
+      enqueueAfterCommit(tx, {
+        id: v7(),
+        orgId: context.orgId,
+        v: 1,
+        sequence: "0",
+        type: "order.overdue",
+        payload: { orderId: input.id },
+      });
+    // The slot as it stands now: the box may still take the order until it ends.
+    return {
+      offered: !!offered,
+      slotEnd: (await readOrder(tx, context.orgId, input.id)).slotEnd.toISOString(),
+    };
   },
   audit: (input, output) => ({ id: input.id, ...output }),
   details: (input) => ({ entity: "online_order", entityId: input.id }),

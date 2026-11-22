@@ -64,10 +64,20 @@ export async function cancelStoreOrder(
   if (event) await flows.send(id, event, { cancelled: true });
 }
 
-/** The shopper cancels an order they have not paid for. */
-export async function cancelOwnOrder(db: ShopperDatabase, ctx: CommandContext, id: string) {
-  if (!(await cancelPlacedOrder(db, ctx, { id })).moved)
+/**
+ * The shopper gives up an order: one they have not paid for goes back on the shelf; a paid relay order its box has not
+ * confirmed by the deadline (v1.5 Day 52) is refunded in full and its workflow woken, as a store cancel would.
+ */
+export async function cancelOwnOrder(
+  db: ShopperDatabase,
+  ctx: CommandContext,
+  flows: Flows,
+  id: string,
+) {
+  if ((await cancelPlacedOrder(db, ctx, { id })).moved) return;
+  if (!(await refundPaidOrder(db, ctx, { id, reason: "cancelled", overdue: true })).refunded)
     throw new OrderError("conflict", "This order can no longer be cancelled.");
+  await flows.send(id, "store.accepted", { cancelled: true });
 }
 
 /** The pick is done: the order is ready for the shopper and its workflow moves on. */

@@ -73,6 +73,8 @@ export const onlineOrder = pgTable(
     holdExpiresAt: timestamp("hold_expires_at", { withTimezone: true }).notNull(),
     paidAt: timestamp("paid_at", { withTimezone: true }),
     acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    /** A relay org's paid order its box has not accepted by the deadline: the shopper may cancel it for a refund (v1.5 Day 52). */
+    overdueAt: timestamp("overdue_at", { withTimezone: true }),
     readyAt: timestamp("ready_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     /** When the shopper was asked for a review; they are asked once. */

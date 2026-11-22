@@ -13,6 +13,7 @@ import { recordStatus } from "../../orders/fulfil/events";
 import { move, readOrder } from "../../orders/flow";
 import { reserveStock } from "../../orders/holds";
 import { relayOrders, relayOrdersTold, type RelayOrder } from "../../schemas/orders/relay";
+import { linkOrderCustomers } from "./customers";
 import { checkPrices } from "./prices";
 import type { RelaySend } from "../types";
 
@@ -156,6 +157,11 @@ const receiveOrders = defineCommand({
         })),
       );
     if (lines.length) await tx.insert(onlineOrderLine).values(lines);
+    await linkOrderCustomers(
+      tx,
+      ctx,
+      input.orders.filter((order) => taken.has(order.id)),
+    );
     return { received: [...taken] };
   },
   audit: (input, output) => ({ offered: input.orders.map((order) => order.id), ...output }),

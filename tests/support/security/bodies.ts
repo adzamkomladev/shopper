@@ -112,6 +112,7 @@ export const BODIES: Record<string, Body> = {
   "POST /reviews/:id/decision": () => ({ decision: "approve" }),
   "POST /transactions/:id/receipt/email": () => ({ requestKey: v7(), email: "sweep@tenants.test" }),
   "PUT /customers/:id/limit": () => ({ creditLimit: 100_000 }),
+  "PUT /customers/:id/online": () => ({ on: true }),
   "PUT /ledger/lock": () => ({ through: null }),
   "PUT /settings/credit": () => ({ termsDays: 30, interestBps: 0 }),
   "PUT /settings/kyc": () => ({ idRequired: false, idTypes: ["ghana_card"] }),

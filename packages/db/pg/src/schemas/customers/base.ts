@@ -33,6 +33,8 @@ export const customer = pgTable(
     kycVerifiedAt: timestamp("kyc_verified_at", { withTimezone: true }),
     version: integer("version").notNull().default(1),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
+    /** When staff recorded their consent to see receipts and points online (v1.5 Day 51); null keeps them on the box. */
+    onlineSharedAt: timestamp("online_shared_at", { withTimezone: true }),
     mergedIntoId: uuid("merged_into_id"),
     createdDeviceId: uuid("created_device_id"),
   },

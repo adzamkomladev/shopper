@@ -1,0 +1,40 @@
+import { and, eq, isNull, sql } from "drizzle-orm";
+import { defineCommand } from "@shopper/audit";
+import { customer } from "@shopper/db-pg";
+import { readCustomerRow } from "./queries";
+
+/**
+ * Staff record that a customer agreed (or no longer agrees) to see their receipts and points in the online store
+ * (v1.5 Day 51). An on-prem box publishes only these customers; switching off withdraws the copy on the next run.
+ * Not a till field: the customer feed and sale events are unchanged.
+ */
+export const setCustomerOnline = defineCommand({
+  name: "customer.online.set",
+  async run(tx, ctx, input: { id: string; on: boolean }) {
+    const current = await readCustomerRow(tx, ctx.orgId, input.id, true);
+    // Consent is the phone's: every live record with it follows, so no duplicate keeps a copy online.
+    await tx
+      .update(customer)
+      .set({
+        // Switching on again keeps when they first agreed.
+        onlineSharedAt: input.on ? sql`COALESCE(${customer.onlineSharedAt}, now())` : null,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(customer.orgId, ctx.orgId),
+          eq(customer.phone, current.phone),
+          isNull(customer.mergedIntoId),
+          // Agreeing covers live records only; withdrawing also clears archived ones, so a restore never re-shares.
+          input.on ? isNull(customer.archivedAt) : undefined,
+        ),
+      );
+    return { id: current.id, on: input.on };
+  },
+  audit: (_input, output) => output,
+  details: (_input, output) => ({
+    entity: "customer",
+    entityId: output.id,
+    after: { onlineShared: output.on },
+  }),
+});

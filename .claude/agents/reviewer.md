@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: Reviews changes before commit by running Codex review (gpt-6.1-sol) and verifying each finding against the rules. Use before every commit or PR.
+description: Reviews changes before commit by running Codex review (gpt-6.2-sol) and verifying each finding against the rules. Use before every commit or PR.
 model: sonnet
 effort: low
 color: red

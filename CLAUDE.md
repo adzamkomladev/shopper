@@ -4,7 +4,7 @@
 
 - Subagents live in `.claude/agents/`. Their prompts point to `.agents/roles/`. Pick one by the
   table in `docs/engineering/ai-workflow.md`. Use `planner` before any multi-file change, and
-  `reviewer` (which drives `codex review` on `gpt-6.1-sol`) before every commit.
+  `reviewer` (which drives `codex review` on `gpt-6.2-sol`) before every commit.
 - Skills in `.claude/skills/` (a symlink to `.agents/skills/`) are also slash commands:
   `/feature-plan`, `/tdd-slice`, `/pre-merge-review`, `/ui-screen`, `/ui-verify`, `/skeleton-audit`, `/playwright-cli`,
   `/cloud-box-parity`, `/release`.

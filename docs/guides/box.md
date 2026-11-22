@@ -85,7 +85,13 @@ it resumes by itself when the box is back.
 Paid online orders come to the box within a minute and appear under **Online orders**, already accepted, with their
 stock set aside. An order the branch cannot fill is turned down and the shopper is refunded and told by text. Pick an
 online order in full, or cancel it: the shopper gets their money back. If a price changed after the shopper paid, the
-order says so; charge what they paid. When the order is ready or handed over, the shopper is told.
+order says so; charge what they paid. When the order is ready or handed over, the shopper is told. Handing an online
+order over records its tax invoice on the box, like a till sale. An online order joins the in-store customer with the
+same phone (a new customer is added when the shop has none).
+
+Shoppers sign in to the online store with their phone. To let one see their till receipts and points there, open the
+customer and turn on **Show receipts and points online** once they agree. Only those customers' receipts and points
+leave the box; turning it off removes them from the online store within a minute.
 
 If the page says the last update did not reach Shopper, the box keeps trying by itself. Turning the switch off and
 on again sends the whole catalogue afresh.

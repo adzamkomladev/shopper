@@ -9,6 +9,7 @@ import { ArchiveDialog } from "../../../components/customers/archive/dialog";
 import { CustomerHeader } from "../../../components/customers/detail/header";
 import { MergedNote, SharedPhoneNote } from "../../../components/customers/detail/notes";
 import { CustomerSkeleton } from "../../../components/customers/detail/states";
+import { CustomerOnline } from "../../../components/customers/detail/online";
 import { CustomerDetails, CustomerSummary } from "../../../components/customers/detail/summary";
 import { CustomerTabs } from "../../../components/customers/detail/tabs";
 import { CustomerSheet } from "../../../components/customers/form/sheet";
@@ -109,6 +110,7 @@ function Customer() {
       <CustomerSummary customer={customer} />
       {canManage && <AccountActions panels={account} customer={customer} />}
       <CustomerDetails customer={customer} />
+      {!merged && <CustomerOnline customer={customer} canEdit={canEdit} />}
       <CustomerTabs customer={customer} tab={tab} canManage={canManage} />
       <CustomerSheet
         open={edit.open}

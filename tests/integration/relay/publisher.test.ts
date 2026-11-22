@@ -129,8 +129,8 @@ test("a snapshot, then 100 changes: the relay's catalogue equals the box's proje
   const snapshot = await publish();
   await same();
   const total = rows(snapshot);
-  // 2 stores, 3 branches, 2 categories, 39 products, their 39 shop and 4 branch prices, 39 availability rows.
-  expect(total).toBe(2 + 3 + 2 + 39 + 43 + 39);
+  // Tax profile, 2 stores, 3 branches, 2 categories, 39 products, 39 shop + 4 branch prices, 39 availability rows.
+  expect(total).toBe(1 + 2 + 3 + 2 + 39 + 43 + 39);
   const changes = [
     (i: number) =>
       setPrice(box.db, ctx, { productId: products[i % 39]!, data: { amount: 20_000 + i } }),
@@ -177,6 +177,7 @@ test("a snapshot, then 100 changes: the relay's catalogue equals the box's proje
 
 test("nothing the shop keeps private ever leaves the box", async () => {
   const allowed: Record<string, string[]> = {
+    shop: ["id", "tin", "vatRegisteredFrom", "priceMode"],
     stores: ["id", "name"],
     branches: ["id", "storeId", "name"],
     fulfilment:

@@ -3,6 +3,8 @@ import { asset, branch, sale, type ShopperDatabase } from "@shopper/db-pg";
 import { uuidV7Schema } from "@shopper/ports";
 import * as v from "valibot";
 import { receiptDocument } from "../schemas/receipts/document";
+import { isRelayOrg } from "../relay/box";
+import { relayShopReceipts } from "../relay/customers/relay";
 import { ShopError } from "./error";
 import { customersOf } from "./queries";
 import type { ShopSession } from "./types";
@@ -12,11 +14,15 @@ const RECENT = 100;
 
 /** The shopper's purchases at this shop, newest first: sales rung up to their phone's customer rows. */
 export async function listShopReceipts(db: ShopperDatabase, session: ShopSession) {
-  const rows = await receipts(db, session)
-    .orderBy(desc(sale.occurredAt), desc(sale.id))
-    .limit(RECENT);
-  return { items: rows.map(({ receipt: _receipt, ...row }) => itemView(row)) };
+  const rows = (await isRelayOrg(db, session.orgId))
+    ? await relayShopReceipts(db, session)
+    : await receiptRows(db, session);
+  return { items: rows.map(({ receipt: _receipt, ...row }) => itemView({ pdfKey: null, ...row })) };
 }
+
+/** Their newest receipts with the documents, as an on-prem box publishes them (v1.5 Day 51). */
+export const receiptRows = (db: ShopperDatabase, session: Pick<ShopSession, "orgId" | "phone">) =>
+  receipts(db, session).orderBy(desc(sale.occurredAt), desc(sale.id)).limit(RECENT);
 
 /** One of their purchases with the receipt document the till printed; any other sale is not found. */
 export async function readShopReceipt(db: ShopperDatabase, session: ShopSession, rawId: unknown) {
@@ -37,7 +43,7 @@ export async function shopReceiptPdfKey(db: ShopperDatabase, session: ShopSessio
   return row.pdfKey;
 }
 
-function receipts(db: ShopperDatabase, session: ShopSession, id?: string) {
+function receipts(db: ShopperDatabase, session: Pick<ShopSession, "orgId" | "phone">, id?: string) {
   const verified = sql<boolean>`${asset.verifiedSha256} IS NOT NULL AND ${asset.verifiedSha256} = ${asset.sha256}`;
   return db
     .select({
@@ -65,6 +71,11 @@ function receipts(db: ShopperDatabase, session: ShopSession, id?: string) {
 
 async function ownReceipt(db: ShopperDatabase, session: ShopSession, rawId: unknown) {
   const id = v.safeParse(uuidV7Schema, rawId);
+  if (id.success && (await isRelayOrg(db, session.orgId))) {
+    // Till PDFs stay on the box: the page shows the receipt document instead.
+    const [copy] = await relayShopReceipts(db, session, id.output);
+    if (copy) return { ...copy, pdfKey: null };
+  }
   const [row] = id.success ? await receipts(db, session, id.output) : [];
   if (!row) throw new ShopError("We could not find that receipt", 404);
   return row;

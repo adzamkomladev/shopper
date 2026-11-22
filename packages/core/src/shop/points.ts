@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm";
 import type { ShopperDatabase } from "@shopper/db-pg";
 import { readLoyaltySettings } from "../customers/loyalty/settings";
+import { isRelayOrg } from "../relay/box";
+import { relayShopPoints } from "../relay/customers/relay";
 import { tierFor } from "../customers/loyalty/tiers";
 import { customersOf } from "./queries";
 import type { ShopSession } from "./types";
@@ -9,7 +11,13 @@ import type { ShopSession } from "./types";
 const RECENT = 50;
 
 /** The shopper's points at this shop, summed over their customer rows, the tier they hold and recent movements. */
-export async function readShopPoints(db: ShopperDatabase, session: ShopSession, now = new Date()) {
+export async function readShopPoints(
+  db: ShopperDatabase,
+  session: Pick<ShopSession, "orgId" | "phone">,
+  now = new Date(),
+) {
+  // An on-prem shop's points live on its box, which publishes this very answer (v1.5 Day 51).
+  if (await isRelayOrg(db, session.orgId)) return relayShopPoints(db, session);
   const settings = await readLoyaltySettings(db, session.orgId);
   const { rows } = await db.execute<{
     id: string;

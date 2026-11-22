@@ -1,7 +1,10 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { v7 } from "uuid";
+import * as v from "valibot";
 import { defineCommand, enqueueAfterCommit } from "@shopper/audit";
 import { onlineOrder, stockHold, stockMovement, type ShopperTransaction } from "@shopper/db-pg";
+import { recordFiscalDoc } from "../../fiscal/documents";
+import { receiptDocument } from "../../schemas/receipts/document";
 import { releaseOrderHolds } from "../holds";
 import { OrderError } from "../error";
 import { readOrder } from "../flow";
@@ -60,7 +63,7 @@ export const handOverOrder = defineCommand({
 
 /**
  * A relayed order on a box (v1.5 Day 50) held its stock from acceptance; at hand-over the goods leave the shelf. The
- * relay took the money and invoiced it.
+ * relay took the money; the box fiscalises the invoice the relay issued, over its own E-VAT link (Day 51).
  */
 async function sellHeld(
   tx: ShopperTransaction,
@@ -91,4 +94,10 @@ async function sellHeld(
       })),
     );
   await releaseOrderHolds(tx, orgId, order.id, "fulfilled", now);
+  if (order.receipt)
+    await recordFiscalDoc(tx, orgId, v.parse(receiptDocument, order.receipt), {
+      storeId: order.storeId,
+      branchId: order.branchId,
+      orderId: order.id,
+    });
 }
